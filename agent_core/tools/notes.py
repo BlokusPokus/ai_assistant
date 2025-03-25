@@ -1,0 +1,3 @@
+"""
+Note handling tool implementation.
+"""
