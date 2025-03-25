@@ -5,9 +5,12 @@ Base classes for Tool and ToolRegistry implementation.
 Defines Tool and ToolRegistry. Also handles schema generation and safe execution.
 """
 
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Callable, TYPE_CHECKING
 import jsonschema
-from agent_core.llm.planner import LLMPlanner
+
+# Only import type hints during type checking
+if TYPE_CHECKING:
+    from agent_core.llm.planner import LLMPlanner
 
 
 class Tool:
@@ -37,20 +40,19 @@ class Tool:
 
 class ToolRegistry:
     def __init__(self):
-        self.tools = {}
-        self._llm_planner = None  # Reference to LLMPlanner for callbacks
+        self.tools: Dict[str, Tool] = {}
+        self._llm_planner = None
 
     def set_planner(self, planner: 'LLMPlanner'):
-        """Sets up bidirectional relationship with planner"""
+        """Establish bidirectional relationship with planner"""
         self._llm_planner = planner
 
     def register(self, tool: Tool):
-        if tool.name in self.tools:
-            raise ValueError(f"Tool {tool.name} already registered")
+        """Register a new tool"""
         self.tools[tool.name] = tool
 
     def get_schema(self) -> dict:
-        """Enhanced schema generation for LLM function calling"""
+        """Get tool schemas for LLM function calling"""
         return {
             name: {
                 "name": name,
@@ -64,9 +66,10 @@ class ToolRegistry:
             for name, tool in self.tools.items()
         }
 
-    def run_tool(self, name: str, **kwargs):
+    def run_tool(self, name: str, **kwargs) -> Any:
+        """Execute a tool by name"""
         if name not in self.tools:
-            raise ValueError(f"Unknown tool: {name}")
+            raise ValueError(f"Tool {name} not found")
         result = self.tools[name].execute(**kwargs)
 
         # Notify planner of tool execution if needed

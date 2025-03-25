@@ -1,0 +1,3 @@
+google-generativeai  # For Gemini LLM
+jsonschema          # For tool validation
+pydantic            # For data models 

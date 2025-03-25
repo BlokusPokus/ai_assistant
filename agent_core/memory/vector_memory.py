@@ -7,10 +7,11 @@ Stores and retrieves user history, tool outputs, notes.
 """
 
 from .interface import MemoryInterface
+from .client import VectorDBClient
 
 
 class VectorMemory(MemoryInterface):
-    def __init__(self, client):
+    def __init__(self, client: VectorDBClient):
         """
         Initialize with vector DB client (Chroma/Qdrant).
         """

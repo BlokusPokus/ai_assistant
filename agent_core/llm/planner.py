@@ -6,24 +6,25 @@ LLM planner step. Decides whether to respond, call a tool, or reflect.
 """
 
 from agent_core.llm.llm_client import LLMClient
-from agent_core.llm.prompt_builder import PromptBuilder
 from agent_core.tools.base import ToolRegistry
 from ..types.messages import ToolCall, FinalAnswer
 from typing import Union, Any
 from agent_core.types.state import AgentState
+from agent_core.llm.prompt_builder import PromptBuilder
 
 
 class LLMPlanner:
-    def __init__(self, llm_client: LLMClient, prompt_builder: PromptBuilder, tool_registry: 'ToolRegistry'):
+    def __init__(self, llm_client: LLMClient, tool_registry: 'ToolRegistry'):
         self.llm_client = llm_client
-        self.prompt_builder = prompt_builder
         self.tool_registry = tool_registry
+        self.prompt_builder = PromptBuilder(tool_registry)
         # Set up bidirectional relationship
         self.tool_registry.set_planner(self)
 
     def choose_action(self, state: 'AgentState') -> Union[ToolCall, FinalAnswer]:
         """
-        Decides next action based on current state.
+        Choose next action based on state.
+        Returns either a ToolCall or FinalAnswer.
         """
         # Build prompt
         prompt = self.prompt_builder.build(state)

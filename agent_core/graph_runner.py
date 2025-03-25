@@ -6,18 +6,23 @@ Defines and runs the LangGraph execution flow. Handles node registration,
 agent loop, planner/tool/reflect transitions.
 """
 
-from .logs.logger import log_interaction
-from .types.state import AgentState
-from .logs.models import LogEntry
+from agent_core.logs.logger import log_interaction
+from agent_core.types.state import AgentState
+from agent_core.logs.models import LogEntry
 from datetime import datetime
+from agent_core.tools.base import ToolRegistry
+from agent_core.types.messages import FinalAnswer, ToolCall
+from agent_core.config import LOOP_LIMIT
+from agent_core.memory.interface import MemoryInterface
+from agent_core.llm.planner import LLMPlanner
 
 
 class LangGraphRunner:
-    def __init__(self, memory, tools, llm):
+    def __init__(self, memory: 'MemoryInterface', tools: 'ToolRegistry', planner: 'LLMPlanner'):
         self.memory = memory
         self.tools = tools
-        self.llm = llm
-        self.max_steps = 5
+        self.planner = planner
+        self.max_steps = LOOP_LIMIT
 
     def run(self, user_input: str) -> str:
         """
@@ -29,54 +34,30 @@ class LangGraphRunner:
         Returns:
             str: Final output or answer
         """
-        # Initialize state with memory context
-        state = AgentState(user_input)
+        # Initialize state
+        state = AgentState(user_input=user_input)
         state.memory_context = self.memory.query(user_input)
 
-        for step in range(self.max_steps):
-            # Get next action from LLM
-            action = self.llm.choose_action(state)
+        while state.step_count < self.max_steps:
+            # Get next action from planner
+            action = self.planner.choose_action(state)
 
-            # Enhanced logging with structured LogEntry
-            log_entry = LogEntry(
-                user_input=user_input,
-                memory_used=state.memory_context,
-                tool_called=action.name if not action.is_final() else None,
-                tool_output=None,  # Will be updated if tool is called
-                agent_response=action.output if action.is_final() else None,
-                timestamp=datetime.now().isoformat()
-            )
-
-            # Log the interaction
-            if action.is_final():
-                log_interaction(log_entry)
+            if isinstance(action, FinalAnswer):
                 return action.output
 
-            # Execute tool and update state
-            try:
-                result = self.tools.run_tool(action.name, **action.args)
-                log_entry.tool_output = str(result)
-                log_interaction(log_entry)
+            if isinstance(action, ToolCall):
+                try:
+                    # Execute tool and store result
+                    result = self.tools.run_tool(action.name, **action.args)
+                    # Add to memory
+                    self.memory.add(str(result), {
+                        "tool": action.name,
+                        "args": action.args
+                    })
+                    # Update state
+                    state.add_tool_result(action, result)
+                except Exception as e:
+                    return f"Error executing tool {action.name}: {str(e)}"
 
-                self.memory.add(str(result), {
-                    "tool": action.name,
-                    "args": action.args
-                })
-                state.add_tool_result(action, result)
-            except Exception as e:
-                error_msg = f"Error executing tool {action.name}: {str(e)}"
-                log_entry.tool_output = error_msg
-                log_interaction(log_entry)
-                return error_msg
-
-        # If we hit the loop limit, force a finish
-        final_response = self.llm.force_finish(state)
-        log_interaction(LogEntry(
-            user_input=user_input,
-            memory_used=state.memory_context,
-            tool_called=None,
-            tool_output=None,
-            agent_response=final_response,
-            timestamp=datetime.now().isoformat()
-        ))
-        return final_response
+        # Hit loop limit
+        return self.planner.force_finish(state)

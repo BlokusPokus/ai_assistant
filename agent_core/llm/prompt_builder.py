@@ -27,13 +27,24 @@ class PromptBuilder:
         # Build system context
         prompt = [
             "You are an AI assistant that helps users by either responding directly or using tools.",
+            "Always try to use tools when available and appropriate.",
             "\nAvailable tools and their descriptions:",
         ]
 
         # Add tool descriptions
         tool_schema = self.tool_registry.get_schema()
-        for name, info in tool_schema.items():
-            prompt.append(f"- {name}: {info['description']}")
+        if not tool_schema:
+            prompt.append("No tools are currently available.")
+        else:
+            for name, info in tool_schema.items():
+                desc = info.get('description', 'No description available')
+                params = info.get('parameters', {}).get('properties', {})
+                param_desc = [f"  - {p}: {details.get('description', 'No description')}"
+                              for p, details in params.items()]
+
+                prompt.append(f"- {name}: {desc}")
+                if param_desc:
+                    prompt.extend(param_desc)
 
         prompt.append("\nContext from memory:")
         # Add memory context

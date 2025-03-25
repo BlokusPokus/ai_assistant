@@ -5,20 +5,32 @@ Main AgentCore class that orchestrates memory, tools, LLM, and LangGraph functio
 Main AgentCore interface. Combines LangGraph runner, memory, tools, and LLM. 
 Provides the .run(user_input) method.
 """
-from .graph_runner import LangGraphRunner
+
+from agent_core.graph_runner import LangGraphRunner
+from agent_core.memory.vector_memory import VectorMemory
+from agent_core.memory.interface import MemoryInterface
+from agent_core.tools.base import ToolRegistry
+from agent_core.llm.gemini import GeminiLLM
+from agent_core.llm.llm_client import LLMClient
+from agent_core.llm.planner import LLMPlanner
+from agent_core.llm.prompt_builder import PromptBuilder
+from agent_core.config import GEMINI_API_KEY
 
 
 class AgentCore:
-    def __init__(self, memory, tools, llm):
+    def __init__(self, memory: 'MemoryInterface', tools: 'ToolRegistry', llm: 'LLMClient'):
         """
         Initializes the core agent components.
 
         Args:
             memory (MemoryInterface): Long-term memory access layer
             tools (ToolRegistry): Available tool functions
-            llm (LLMPlanner): Gemini-based planner agent
+            llm (LLMClient): Gemini-based planner agent
         """
-        self.runner = LangGraphRunner(memory, tools, llm)
+        # First create the planner with the LLM client
+        self.planner = LLMPlanner(llm, tools)
+        # Then create runner with planner (not LLM directly)
+        self.runner = LangGraphRunner(memory, tools, self.planner)
 
     def run(self, user_input: str) -> str:
         """
