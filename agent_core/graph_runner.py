@@ -6,6 +6,11 @@ Defines and runs the LangGraph execution flow. Handles node registration,
 agent loop, planner/tool/reflect transitions.
 """
 
+from .logs.logger import log_interaction
+from .types.state import AgentState
+from .logs.models import LogEntry
+from datetime import datetime
+
 
 class LangGraphRunner:
     def __init__(self, memory, tools, llm):
@@ -24,12 +29,54 @@ class LangGraphRunner:
         Returns:
             str: Final output or answer
         """
-        state = initialize_state(user_input, self.memory)
-        for _ in range(self.max_steps):
-            tool_or_final = self.llm.choose_action(state)
-            if tool_or_final.is_final():
-                return tool_or_final.output
-            result = self.tools.run_tool(
-                tool_or_final.name, **tool_or_final.args)
-            state = update_state(state, tool_or_final, result)
-        return self.llm.force_finish(state)
+        # Initialize state with memory context
+        state = AgentState(user_input)
+        state.memory_context = self.memory.query(user_input)
+
+        for step in range(self.max_steps):
+            # Get next action from LLM
+            action = self.llm.choose_action(state)
+
+            # Enhanced logging with structured LogEntry
+            log_entry = LogEntry(
+                user_input=user_input,
+                memory_used=state.memory_context,
+                tool_called=action.name if not action.is_final() else None,
+                tool_output=None,  # Will be updated if tool is called
+                agent_response=action.output if action.is_final() else None,
+                timestamp=datetime.now().isoformat()
+            )
+
+            # Log the interaction
+            if action.is_final():
+                log_interaction(log_entry)
+                return action.output
+
+            # Execute tool and update state
+            try:
+                result = self.tools.run_tool(action.name, **action.args)
+                log_entry.tool_output = str(result)
+                log_interaction(log_entry)
+
+                self.memory.add(str(result), {
+                    "tool": action.name,
+                    "args": action.args
+                })
+                state.add_tool_result(action, result)
+            except Exception as e:
+                error_msg = f"Error executing tool {action.name}: {str(e)}"
+                log_entry.tool_output = error_msg
+                log_interaction(log_entry)
+                return error_msg
+
+        # If we hit the loop limit, force a finish
+        final_response = self.llm.force_finish(state)
+        log_interaction(LogEntry(
+            user_input=user_input,
+            memory_used=state.memory_context,
+            tool_called=None,
+            tool_output=None,
+            agent_response=final_response,
+            timestamp=datetime.now().isoformat()
+        ))
+        return final_response

@@ -5,52 +5,72 @@ Base classes for Tool and ToolRegistry implementation.
 Defines Tool and ToolRegistry. Also handles schema generation and safe execution.
 """
 
+from typing import Dict, Any, Callable
+import jsonschema
+from agent_core.llm.planner import LLMPlanner
+
 
 class Tool:
-    def __init__(self, name, func, description, parameters):
+    def __init__(self, name: str, func: Callable, description: str, parameters: Dict):
         self.name = name
         self.func = func
         self.description = description
         self.parameters = parameters
 
+        # Validate parameter schema
+        if not isinstance(parameters, dict):
+            raise ValueError("Parameters must be a JSON schema dict")
+
+    def validate_args(self, kwargs: Dict[str, Any]):
+        """Validates arguments against parameter schema."""
+        try:
+            jsonschema.validate(instance=kwargs, schema=self.parameters)
+        except jsonschema.exceptions.ValidationError as e:
+            raise ValueError(
+                f"Invalid arguments for tool {self.name}: {str(e)}")
+
     def execute(self, **kwargs):
-        """
-        Executes the tool function.
-
-        Args:
-            kwargs: Arguments for the tool
-
-        Returns:
-            Any: Result of tool execution
-        """
+        """Executes the tool with validation."""
+        self.validate_args(kwargs)
         return self.func(**kwargs)
 
 
 class ToolRegistry:
     def __init__(self):
         self.tools = {}
+        self._llm_planner = None  # Reference to LLMPlanner for callbacks
+
+    def set_planner(self, planner: 'LLMPlanner'):
+        """Sets up bidirectional relationship with planner"""
+        self._llm_planner = planner
 
     def register(self, tool: Tool):
+        if tool.name in self.tools:
+            raise ValueError(f"Tool {tool.name} already registered")
         self.tools[tool.name] = tool
 
-    def get_schema(self):
-        """
-        Returns schemas for all tools.
-
-        Returns:
-            dict: Tool names and JSON schema
-        """
-        return {name: tool.parameters for name, tool in self.tools.items()}
+    def get_schema(self) -> dict:
+        """Enhanced schema generation for LLM function calling"""
+        return {
+            name: {
+                "name": name,
+                "description": tool.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": tool.parameters,
+                    "required": list(tool.parameters.keys())
+                }
+            }
+            for name, tool in self.tools.items()
+        }
 
     def run_tool(self, name: str, **kwargs):
-        """
-        Executes a tool by name.
+        if name not in self.tools:
+            raise ValueError(f"Unknown tool: {name}")
+        result = self.tools[name].execute(**kwargs)
 
-        Args:
-            name (str): Tool name
-            kwargs: Tool arguments
+        # Notify planner of tool execution if needed
+        if self._llm_planner:
+            self._llm_planner.on_tool_completion(name, result)
 
-        Returns:
-            Any: Tool output
-        """
-        return self.tools[name].execute(**kwargs)
+        return result
