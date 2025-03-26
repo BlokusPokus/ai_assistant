@@ -8,11 +8,12 @@ Can be implemented using any backend.
 
 
 class MemoryInterface:
-    def query(self, query: str, k: int = 5):
+    def query(self, user_id: int, query: str, k: int = 5):
         """
         Search memory for relevant context.
 
         Args:
+            user_id (int): ID of the user
             query (str): Input to search
             k (int): Number of top results to return
 
@@ -21,12 +22,13 @@ class MemoryInterface:
         """
         raise NotImplementedError
 
-    def add(self, content: str, metadata: dict):
+    def add(self, user_id: int, content: str, metadata: dict):
         """
         Add a new memory record.
 
         Args:
-            content (str): Raw text to embed and store
+            user_id (int): ID of the user
+            content (str): Raw text to store
             metadata (dict): Associated metadata
         """
         raise NotImplementedError

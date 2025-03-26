@@ -6,13 +6,21 @@ Defines and runs the LangGraph execution flow. Handles node registration,
 agent loop, planner/tool/reflect transitions.
 """
 
+from agent_core.types.state import AgentState
+
+from agent_core.tools.base import ToolRegistry
+from agent_core.types.messages import FinalAnswer, ToolCall
+from agent_core.config import LOOP_LIMIT
+from agent_core.memory.interface import MemoryInterface
+from agent_core.llm.planner import LLMPlanner
+
 
 class LangGraphRunner:
-    def __init__(self, memory, tools, llm):
+    def __init__(self, memory: 'MemoryInterface', tools: 'ToolRegistry', planner: 'LLMPlanner'):
         self.memory = memory
         self.tools = tools
-        self.llm = llm
-        self.max_steps = 5
+        self.planner = planner
+        self.max_steps = LOOP_LIMIT
 
     def run(self, user_input: str) -> str:
         """
@@ -24,12 +32,30 @@ class LangGraphRunner:
         Returns:
             str: Final output or answer
         """
-        state = initialize_state(user_input, self.memory)
-        for _ in range(self.max_steps):
-            tool_or_final = self.llm.choose_action(state)
-            if tool_or_final.is_final():
-                return tool_or_final.output
-            result = self.tools.run_tool(
-                tool_or_final.name, **tool_or_final.args)
-            state = update_state(state, tool_or_final, result)
-        return self.llm.force_finish(state)
+        # Initialize state
+        state = AgentState(user_input=user_input)
+        state.memory_context = self.memory.query(user_input)
+
+        while state.step_count < self.max_steps:
+            # Get next action from planner
+            action = self.planner.choose_action(state)
+
+            if isinstance(action, FinalAnswer):
+                return action.output
+
+            if isinstance(action, ToolCall):
+                try:
+                    # Execute tool and store result
+                    result = self.tools.run_tool(action.name, **action.args)
+                    # Add to memory
+                    self.memory.add(str(result), {
+                        "tool": action.name,
+                        "args": action.args
+                    })
+                    # Update state
+                    state.add_tool_result(action, result)
+                except Exception as e:
+                    return f"Error executing tool {action.name}: {str(e)}"
+
+        # Hit loop limit
+        return self.planner.force_finish(state)
