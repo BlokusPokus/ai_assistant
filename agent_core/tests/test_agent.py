@@ -1,13 +1,10 @@
 from agent_core.memory.client import MockVectorDBClient
-from agent_core.memory.vector_memory import VectorMemory
+from agent_core.memory.memory import VectorMemory
 from agent_core.tools import ToolRegistry, WeatherTool, CalculatorTool
 from agent_core.llm.gemini import GeminiLLM
 from agent_core.config import GEMINI_API_KEY
 from agent_core.core import AgentCore
-import pdb
-import logging
 import sys
-import os
 
 # Add the project root directory to Python path
 project_root = "/Users/ianleblanc/Desktop/personal_assistant"

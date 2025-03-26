@@ -5,7 +5,7 @@ import logging
 from typing import List, Dict, Any
 import numpy as np
 from agent_core.memory.interface import MemoryInterface
-from sqlalchemy import create_engine, Column, Integer, String, Float, JSON
+from sqlalchemy import create_engine, Column, Integer, String, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 

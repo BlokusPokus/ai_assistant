@@ -176,3 +176,89 @@ chunk_id INT REFERENCES memory_chunks(id),
 key TEXT,
 value TEXT
 );
+
+# UML MERMAID DIAGRAM
+
+classDiagram
+class Users {
+int id
+string email
+string full_name
+datetime created_at
+}
+
+    class AuthTokens {
+        int id
+        int user_id
+        string token
+        datetime expires_at
+        datetime created_at
+    }
+
+    class Expenses {
+        int id
+        int user_id
+        decimal amount
+        int category_id
+        string description
+        datetime created_at
+    }
+
+    class ExpenseCategories {
+        int id
+        string name
+    }
+
+    class Events {
+        int id
+        int user_id
+        string title
+        string description
+        datetime start_time
+        datetime end_time
+    }
+
+    class Reminders {
+        int id
+        int user_id
+        string message
+        datetime remind_at
+        bool sent
+    }
+
+    class Notes {
+        int id
+        int user_id
+        string title
+        string content
+        datetime created_at
+    }
+
+    class Notifications {
+        int id
+        int user_id
+        string message
+        string channel
+        string status
+        datetime scheduled_at
+        datetime sent_at
+    }
+
+    class Tasks {
+        int id
+        int user_id
+        string task_name
+        string status
+        datetime scheduled_at
+        datetime created_at
+    }
+
+    %% Relationships
+    AuthTokens --> Users : user_id
+    Expenses --> Users : user_id
+    Expenses --> ExpenseCategories : category_id
+    Events --> Users : user_id
+    Reminders --> Users : user_id
+    Notes --> Users : user_id
+    Notifications --> Users : user_id
+    Tasks --> Users : user_id

@@ -1,9 +1,8 @@
-from typing import Dict, Any, Union
+from typing import Union
 import google.generativeai as genai
 from .llm_client import LLMClient
 from ..types.messages import ToolCall, FinalAnswer
 from dotenv import load_dotenv
-import json
 load_dotenv()
 
 

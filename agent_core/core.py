@@ -7,14 +7,10 @@ Provides the .run(user_input) method.
 """
 
 from agent_core.graph_runner import LangGraphRunner
-from agent_core.memory.vector_memory import VectorMemory
 from agent_core.memory.interface import MemoryInterface
 from agent_core.tools.base import ToolRegistry
-from agent_core.llm.gemini import GeminiLLM
 from agent_core.llm.llm_client import LLMClient
 from agent_core.llm.planner import LLMPlanner
-from agent_core.llm.prompt_builder import PromptBuilder
-from agent_core.config import GEMINI_API_KEY
 
 
 class AgentCore:
