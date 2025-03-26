@@ -34,7 +34,7 @@ def main():
         llm=llm_client
     )
 
-    response = agent.run("What's the weather in Montreal?")
+    response = agent.run("What 2 times 15")
     print(f"Response: {response}")
 
 

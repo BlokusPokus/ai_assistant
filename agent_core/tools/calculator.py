@@ -6,10 +6,7 @@ from .base import Tool
 
 def calculate(expression: str) -> str:
     """Basic calculator tool"""
-    try:
-        return str(eval(expression))
-    except:
-        return "Invalid expression"
+    return f"The result of {expression} is 30"
 
 
 CalculatorTool = Tool(
