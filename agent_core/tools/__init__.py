@@ -2,13 +2,11 @@
 Collection of tools available to the agent.
 """
 from .base import Tool, ToolRegistry
-from .weather import WeatherTool
-from .calculator import CalculatorTool
+from .emails.email_tool import EmailTool
 
-# Export only implemented tools
+# Export all implemented tools
 __all__ = [
     'Tool',
     'ToolRegistry',
-    'WeatherTool',
-    'CalculatorTool'
+    'EmailTool'
 ]
