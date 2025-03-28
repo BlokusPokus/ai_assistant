@@ -1,6 +1,10 @@
 # agent_core/llm/llm_client.py
 
 from ..types.messages import ToolCall, FinalAnswer
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
 
 
 class LLMClient:
@@ -25,6 +29,9 @@ class LLMClient:
             dict: Raw response from the LLM (could be function call or final response)
         """
         try:
+            logging.debug(f"Sending prompt to LLM: {prompt}")
+            logging.debug(f"Functions available: {functions}")
+
             # Convert functions list to the format expected by the model
             tools = [
                 {
@@ -40,6 +47,8 @@ class LLMClient:
                 tool_choice="auto"  # Let the model decide whether to use tools
             )
 
+            logging.debug(f"Received response from LLM: {response}")
+
             # Extract the actual response content
             # Different models might structure this differently
             if isinstance(response, dict):
@@ -52,8 +61,7 @@ class LLMClient:
                 return {"content": str(response)}  # Fallback
 
         except Exception as e:
-            # Log error and return a safe fallback response
-            print(f"Error in LLM completion: {str(e)}")
+            logging.error(f"Error in LLM completion: {str(e)}")
             return {"error": str(e), "content": "I encountered an error processing your request."}
 
     def parse_response(self, response: dict):
@@ -66,10 +74,12 @@ class LLMClient:
         Returns:
             ToolCall or FinalAnswer: Parsed result from model output
         """
+        logging.debug(f"Parsing response: {response}")
+
         # Check if response contains a function call
         if "function_call" in response:
-            # Extract function name and arguments
             function_call = response["function_call"]
+            logging.debug(f"Function call detected: {function_call}")
             return ToolCall(
                 name=function_call["name"],
                 args=function_call["arguments"]
@@ -86,4 +96,5 @@ class LLMClient:
             "No valid response content found"  # Fallback
         )
 
+        logging.debug(f"Final answer content: {content}")
         return FinalAnswer(output=content)

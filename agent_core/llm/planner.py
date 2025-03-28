@@ -36,7 +36,15 @@ class LLMPlanner:
         response = self.llm_client.complete(prompt, functions)
 
         # Parse into action
-        return self.llm_client.parse_response(response)
+        action = self.llm_client.parse_response(response)
+
+        # Log the chosen action for debugging
+        if isinstance(action, ToolCall):
+            print(f"ToolCall chosen: {action.name} with args {action.args}")
+        else:
+            print(f"FinalAnswer chosen: {action.output}")
+
+        return action
 
     def force_finish(self, state: 'AgentState') -> str:
         """Forces the agent to finish after hitting loop limit."""

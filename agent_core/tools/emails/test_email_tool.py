@@ -19,6 +19,10 @@ async def test_email_tool():
             print(f"Received: {email['received']}")
             print("-------------\n")
 
+        # Validate the email tool integration
+        assert len(emails) > 0, "No emails fetched, check integration"
+        print("Email tool integration test passed.")
+
     except Exception as e:
         print(f"Error: {str(e)}")
 

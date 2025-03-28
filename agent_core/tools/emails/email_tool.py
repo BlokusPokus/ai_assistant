@@ -16,12 +16,10 @@ class EmailTool(Tool):
                 "count": {
                     "type": "integer",
                     "description": "Number of emails to fetch",
-                    "default": 5
                 },
                 "batch_size": {
                     "type": "integer",
                     "description": "Number of emails per batch",
-                    "default": 2
                 }
             }
         )

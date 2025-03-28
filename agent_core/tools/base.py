@@ -7,6 +7,7 @@ Defines Tool and ToolRegistry. Also handles schema generation and safe execution
 
 from typing import Dict, Any, Callable, TYPE_CHECKING
 import jsonschema
+import asyncio
 
 # Only import type hints during type checking
 if TYPE_CHECKING:
@@ -32,10 +33,14 @@ class Tool:
             raise ValueError(
                 f"Invalid arguments for tool {self.name}: {str(e)}")
 
-    def execute(self, **kwargs):
+    async def execute(self, **kwargs):
         """Executes the tool with validation."""
         self.validate_args(kwargs)
-        return self.func(**kwargs)
+        # Check if the function is a coroutine
+        if asyncio.iscoroutinefunction(self.func):
+            return await self.func(**kwargs)
+        else:
+            return self.func(**kwargs)
 
 
 class ToolRegistry:
@@ -66,11 +71,12 @@ class ToolRegistry:
             for name, tool in self.tools.items()
         }
 
-    def run_tool(self, name: str, **kwargs) -> Any:
+    async def run_tool(self, name: str, **kwargs) -> Any:
         """Execute a tool by name"""
         if name not in self.tools:
             raise ValueError(f"Tool {name} not found")
-        result = self.tools[name].execute(**kwargs)
+        # Await the tool execution
+        result = await self.tools[name].execute(**kwargs)
 
         # Notify planner of tool execution if needed
         if self._llm_planner:

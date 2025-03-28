@@ -16,13 +16,13 @@ from agent_core.llm.planner import LLMPlanner
 
 
 class LangGraphRunner:
-    def __init__(self, memory: 'MemoryInterface', tools: 'ToolRegistry', planner: 'LLMPlanner'):
-        self.memory = memory
+    def __init__(self, tools: 'ToolRegistry', planner: 'LLMPlanner'):
+        # self.memory = memory
         self.tools = tools
         self.planner = planner
         self.max_steps = LOOP_LIMIT
 
-    def run(self, user_input: str) -> str:
+    async def run(self, user_input: str) -> str:
         """
         Runs the LangGraph agent loop.
 
@@ -34,7 +34,9 @@ class LangGraphRunner:
         """
         # Initialize state
         state = AgentState(user_input=user_input)
-        state.memory_context = self.memory.query(user_input)
+
+        # Skip memory query for now
+        # state.memory_context = self.memory.query(user_input)
 
         while state.step_count < self.max_steps:
             # Get next action from planner
@@ -45,13 +47,18 @@ class LangGraphRunner:
 
             if isinstance(action, ToolCall):
                 try:
-                    # Execute tool and store result
-                    result = self.tools.run_tool(action.name, **action.args)
+                    # Convert arguments to integers if necessary
+                    args = {k: int(v) if isinstance(v, float)
+                            else v for k, v in action.args.items()}
+
+                    # Await the execution of the tool
+                    result = await self.tools.run_tool(action.name, **args)
+                    print(f"Executed tool {action.name} with result: {result}")
                     # Add to memory
-                    self.memory.add(str(result), {
-                        "tool": action.name,
-                        "args": action.args
-                    })
+                    # self.memory.add(str(result), {
+                    #     "tool": action.name,
+                    #     "args": action.args
+                    # })
                     # Update state
                     state.add_tool_result(action, result)
                 except Exception as e:

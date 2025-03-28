@@ -8,5 +8,6 @@ from .emails.email_tool import EmailTool
 __all__ = [
     'Tool',
     'ToolRegistry',
+
     'EmailTool'
 ]
