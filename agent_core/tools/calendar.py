@@ -1,3 +1,0 @@
-"""
-Calendar management tool implementation.
-"""

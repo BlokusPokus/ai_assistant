@@ -1,9 +1,21 @@
 # agent_core/llm/llm_client.py
 
 from ..types.messages import ToolCall, FinalAnswer
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
 
 
 class LLMClient:
+    """
+    Base class for LLM clients providing a standard interface for model interactions.
+    Handles prompt completion and response parsing with support for function calling.
+    """
+
+    # ------------------------
+    # Initialization
+    # ------------------------
     def __init__(self, model):
         """
         Initialize the client with an LLM model (e.g., Google Gemini).
@@ -13,6 +25,9 @@ class LLMClient:
         """
         self.model = model
 
+    # ------------------------
+    # Core LLM Operations
+    # ------------------------
     def complete(self, prompt: str, functions: list) -> dict:
         """
         Sends prompt to the LLM with function metadata.
@@ -25,6 +40,9 @@ class LLMClient:
             dict: Raw response from the LLM (could be function call or final response)
         """
         try:
+            logging.debug(f"Sending prompt to LLM: {prompt}")
+            logging.debug(f"Functions available: {functions}")
+
             # Convert functions list to the format expected by the model
             tools = [
                 {
@@ -40,21 +58,35 @@ class LLMClient:
                 tool_choice="auto"  # Let the model decide whether to use tools
             )
 
-            # Extract the actual response content
-            # Different models might structure this differently
-            if isinstance(response, dict):
-                return response
-            elif hasattr(response, "model_dump"):  # Pydantic model
-                return response.model_dump()
-            elif hasattr(response, "dict"):  # Other object with dict method
-                return response.dict()
-            else:
-                return {"content": str(response)}  # Fallback
+            logging.debug(f"Received response from LLM: {response}")
+
+            return self._extract_response_content(response)
 
         except Exception as e:
-            # Log error and return a safe fallback response
-            print(f"Error in LLM completion: {str(e)}")
+            logging.error(f"Error in LLM completion: {str(e)}")
             return {"error": str(e), "content": "I encountered an error processing your request."}
+
+    # ------------------------
+    # Response Processing
+    # ------------------------
+    def _extract_response_content(self, response) -> dict:
+        """
+        Extracts content from various response formats into a standardized dictionary.
+
+        Args:
+            response: Raw response from the LLM model
+
+        Returns:
+            dict: Standardized response format
+        """
+        if isinstance(response, dict):
+            return response
+        elif hasattr(response, "model_dump"):  # Pydantic model
+            return response.model_dump()
+        elif hasattr(response, "dict"):  # Other object with dict method
+            return response.dict()
+        else:
+            return {"content": str(response)}  # Fallback
 
     def parse_response(self, response: dict):
         """
@@ -66,17 +98,18 @@ class LLMClient:
         Returns:
             ToolCall or FinalAnswer: Parsed result from model output
         """
+        logging.debug(f"Parsing response: {response}")
+
         # Check if response contains a function call
         if "function_call" in response:
-            # Extract function name and arguments
             function_call = response["function_call"]
+            logging.debug(f"Function call detected: {function_call}")
             return ToolCall(
                 name=function_call["name"],
                 args=function_call["arguments"]
             )
 
         # If no function call, treat as final answer
-        # Look for content in common response formats
         content = (
             response.get("text") or  # Standard text field
             response.get("content") or  # Alternative content field
@@ -86,4 +119,5 @@ class LLMClient:
             "No valid response content found"  # Fallback
         )
 
+        logging.debug(f"Final answer content: {content}")
         return FinalAnswer(output=content)

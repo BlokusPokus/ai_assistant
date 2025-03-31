@@ -2,11 +2,10 @@ from twilio.twiml.messaging_response import MessagingResponse
 from twilio.base.exceptions import TwilioRestException
 from communication.twilio_integration.twilio_client import TwilioService
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from dotenv import load_dotenv
 import os
 import logging
-import asyncio
 
 # Load environment variables from .env file
 load_dotenv(dotenv_path='agent_core/.env')

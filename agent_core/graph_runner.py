@@ -1,9 +1,10 @@
 """
-LangGraph definition and runner logic for the agent's workflow.
+Agent runner logic for managing the conversation workflow.
 
 📁 agent_core/graph_runner.py
-Defines and runs the LangGraph execution flow. Handles node registration, 
-agent loop, planner/tool/reflect transitions.
+Implements the main agent loop that manages the conversation flow between
+user input, planner decisions, and tool executions. Handles state transitions
+and enforces loop limits.
 """
 
 from agent_core.types.state import AgentState
@@ -15,26 +16,53 @@ from agent_core.memory.interface import MemoryInterface
 from agent_core.llm.planner import LLMPlanner
 
 
-class LangGraphRunner:
-    def __init__(self, memory: 'MemoryInterface', tools: 'ToolRegistry', planner: 'LLMPlanner'):
-        self.memory = memory
+class AgentRunner:
+    def __init__(self, tools: 'ToolRegistry', planner: 'LLMPlanner'):
+        """
+        Initialize the agent runner.
+
+        Input:
+            tools: Registry containing all available tools
+            planner: LLM-based planner for decision making
+
+        Output:
+            None
+
+        Description:
+            Sets up the runner with tools and planner, configures max steps from LOOP_LIMIT
+        """
+        # self.memory = memory
         self.tools = tools
         self.planner = planner
         self.max_steps = LOOP_LIMIT
 
-    def run(self, user_input: str) -> str:
+    async def run(self, user_input: str) -> str:
         """
-        Runs the LangGraph agent loop.
+        Runs the main agent loop processing user input.
 
-        Args:
-            user_input (str): Initial user message
+        Input:
+            user_input: String containing the user's message or query
 
-        Returns:
-            str: Final output or answer
+        Output:
+            str: Final response to user, either from:
+                - FinalAnswer from planner
+                - Tool execution result
+                - Error message
+                - Forced finish message if loop limit reached
+
+        Description:
+            1. Creates initial state with user input
+            2. Enters main loop (limited by LOOP_LIMIT):
+                - Gets next action from planner
+                - If FinalAnswer, returns it
+                - If ToolCall, executes tool and updates state
+            3. If loop limit reached, forces finish
         """
         # Initialize state
         state = AgentState(user_input=user_input)
-        state.memory_context = self.memory.query(user_input)
+
+        # Skip memory query for now
+        # state.memory_context = self.memory.query(user_input)
 
         while state.step_count < self.max_steps:
             # Get next action from planner
@@ -45,13 +73,18 @@ class LangGraphRunner:
 
             if isinstance(action, ToolCall):
                 try:
-                    # Execute tool and store result
-                    result = self.tools.run_tool(action.name, **action.args)
+                    # Convert arguments to integers if necessary
+                    args = {k: int(v) if isinstance(v, float)
+                            else v for k, v in action.args.items()}
+
+                    # Await the execution of the tool
+                    result = await self.tools.run_tool(action.name, **args)
+                    print(f"Executed tool {action.name} with result: {result}")
                     # Add to memory
-                    self.memory.add(str(result), {
-                        "tool": action.name,
-                        "args": action.args
-                    })
+                    # self.memory.add(str(result), {
+                    #     "tool": action.name,
+                    #     "args": action.args
+                    # })
                     # Update state
                     state.add_tool_result(action, result)
                 except Exception as e:

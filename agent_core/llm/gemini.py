@@ -3,10 +3,23 @@ import google.generativeai as genai
 from .llm_client import LLMClient
 from ..types.messages import ToolCall, FinalAnswer
 from dotenv import load_dotenv
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+
 load_dotenv()
 
 
 class GeminiLLM(LLMClient):
+    """
+    A client for interacting with Google's Gemini LLM models.
+    Provides completion, function calling, and embedding capabilities.
+    """
+
+    # ------------------------
+    # Initialization
+    # ------------------------
     def __init__(self, api_key: str, model: str = "gemini-1.5-flash"):
         """
         Initialize Gemini LLM.
@@ -20,12 +33,29 @@ class GeminiLLM(LLMClient):
         self.embedding_model = genai.GenerativeModel('embedding-001')
         print(f"Initialized GeminiLLM with model: {model}")
 
+    # ------------------------
+    # Core LLM Operations
+    # ------------------------
     def complete(self, prompt: str, functions: dict) -> dict:
-        """Implements LLMClient.complete"""
+        """
+        Generate a completion response from Gemini model with optional function calling.
+
+        Args:
+            prompt (str): The input text prompt to send to the model
+            functions (dict): Dictionary of function definitions that can be called by the model.
+                            Each function should have 'name', 'description', and 'parameters'
+
+        Returns:
+            dict: Either {'content': str} for text responses or 
+                 {'function_call': {'name': str, 'arguments': dict}} for function calls
+
+        Raises:
+            Exception: If there's an error during the API call or response processing
+        """
         try:
-            print(
+            logging.debug(
                 f"GeminiLLM.complete called with prompt length: {len(prompt)}")
-            print(
+            logging.debug(
                 f"Functions provided: {list(functions.keys()) if functions else 'None'}")
 
             # Convert functions to Gemini's function calling format
@@ -48,12 +78,12 @@ class GeminiLLM(LLMClient):
                     f"Converted {len(tools)} functions to Gemini tool format")
 
             # Make the API call with tools as a direct parameter
-            print("Calling Gemini API...")
+            logging.debug("Calling Gemini API...")
             response = self.model.generate_content(
                 prompt,
                 tools=[{"function_declarations": tools}] if tools else None
             )
-            print(f"Received response from Gemini API: {response}")
+            logging.debug(f"Received response from Gemini API: {response}")
 
             # Get the first candidate's content
             candidate = response.candidates[0]
@@ -62,7 +92,7 @@ class GeminiLLM(LLMClient):
 
             # Check if the response has a function call
             if hasattr(content.parts[0], 'function_call') and content.parts[0].function_call is not None:
-                print("Function call detected in response")
+                logging.debug("Function call detected in response")
                 function_call = content.parts[0].function_call
                 # Extract the name correctly - it might be in function_call.name
                 name = getattr(function_call, 'name', None)
@@ -72,7 +102,7 @@ class GeminiLLM(LLMClient):
                     print("No valid function name found in response")
                     # Treat as text response
                     return {"content": content.parts[0].text}
-                print(f"Function name: {name}")
+                logging.debug(f"Function name: {name}")
 
                 # Ensure we have valid arguments
                 args = {}
@@ -89,7 +119,12 @@ class GeminiLLM(LLMClient):
                             print(
                                 f"Could not convert args to dict: {function_call.args}")
                             args = {}
-                print(f"Processed function args: {args}")
+                logging.debug(f"Processed function args: {args}")
+
+                # Handle email tool specifically if needed
+                if name == "email":
+                    print("Email tool function call detected")
+                    # You might want to handle specific logic for email tool here
 
                 return {
                     "function_call": {
@@ -98,7 +133,8 @@ class GeminiLLM(LLMClient):
                     }
                 }
             else:
-                print("No function call detected, processing as text response")
+                logging.debug(
+                    "No function call detected, processing as text response")
                 # Fix: Access text content correctly from the response structure
                 if content.parts and len(content.parts) > 0:
                     text_content = content.parts[0].text
@@ -109,17 +145,31 @@ class GeminiLLM(LLMClient):
                     return {"content": ""}
 
         except Exception as e:
-            print(f"Error in Gemini completion: {str(e)}")
+            logging.error(f"Error in Gemini completion: {str(e)}")
             import traceback
-            print(f"Traceback: {traceback.format_exc()}")
+            logging.error(f"Traceback: {traceback.format_exc()}")
             if 'response' in locals() and response is not None:
-                print(f"Response structure: {response}")  # Debug print
+                logging.debug(f"Response structure: {response}")  # Debug print
             else:
-                print("Response is None or not available.")
+                logging.debug("Response is None or not available.")
             raise
 
+    # ------------------------
+    # Response Processing
+    # ------------------------
     def parse_response(self, response: dict) -> Union[ToolCall, FinalAnswer]:
-        """Implements LLMClient.parse_response"""
+        """
+        Parse the completion response into either a ToolCall or FinalAnswer.
+
+        Args:
+            response (dict): The response from complete() method, containing either
+                           text content or function call details
+
+        Returns:
+            Union[ToolCall, FinalAnswer]: 
+                - ToolCall if the response contains a function call
+                - FinalAnswer if the response contains text content
+        """
         print(f"Parsing response: {response}")
         if "error" in response:
             return FinalAnswer(output=f"Error: {response['error']}")
@@ -131,15 +181,19 @@ class GeminiLLM(LLMClient):
             )
         return FinalAnswer(output=response.get("content", ""))
 
+    # ------------------------
+    # Embedding Operations
+    # ------------------------
     def embed_text(self, text: str) -> list[float]:
         """
-        Create embeddings using Gemini.
+        Create vector embeddings for the given text using Gemini's embedding model.
 
         Args:
-            text: Text to embed
+            text (str): The input text to create embeddings for
 
         Returns:
-            list[float]: Vector embedding
+            list[float]: A vector of floating point numbers representing the text embedding.
+                        Returns empty list if embedding fails.
         """
         try:
             print(f"Creating embedding for text of length: {len(text)}")

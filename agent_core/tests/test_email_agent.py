@@ -1,17 +1,13 @@
-# from agent_core.memory.client import MockVectorDBClient
-# from agent_core.memory.memory import VectorMemory
-from agent_core.tools import ToolRegistry, EmailTool
+import asyncio
+from agent_core.memory.client import MockMemoryDBClient
+from agent_core.memory.memory import Memory
+from agent_core.tools import ToolRegistry
+from agent_core.tools.emails.email_tool import EmailTool
 from agent_core.llm.gemini import GeminiLLM
 from agent_core.config import GEMINI_API_KEY
 from agent_core.core import AgentCore
-import sys
-import asyncio
+import os
 from dotenv import load_dotenv
-
-# Add the project root directory to Python path
-project_root = "/Users/ianleblanc/Desktop/personal_assistant"
-if project_root not in sys.path:
-    sys.path.append(project_root)
 
 
 async def main():
@@ -19,13 +15,11 @@ async def main():
     load_dotenv()
 
     # Initialize components
-    # memory = VectorMemory(MockVectorDBClient())
+    memory = Memory(MockMemoryDBClient())
     tool_registry = ToolRegistry()
 
-    # Create an instance of EmailTool
+    # Register the EmailTool
     email_tool = EmailTool()
-
-    # Register the EmailTool instance
     tool_registry.register(email_tool)
 
     # Create LLM client
@@ -33,7 +27,6 @@ async def main():
 
     # Create agent
     agent = AgentCore(
-        # memory=memory,
         tools=tool_registry,
         llm=llm_client
     )
@@ -42,16 +35,23 @@ async def main():
     test_queries = [
         "Can you read my most recent emails?",
         "Show me my last 3 emails",
-        "How many new messages did I receive yesterday?"
+        "how many new messages did i receive yesterday?"
     ]
 
     for query in test_queries:
         print(f"\nUser Query: {query}")
         print("-" * 50)
-        response = await agent.run(query)  # Await the run method
+        response = await agent.run(query)
         print(f"Agent Response: {response}")
         print("-" * 50)
 
+    # New test case for email tool integration
+    email_query = "Read my emails"
+    print(f"\nUser Query: {email_query}")
+    print("-" * 50)
+    email_response = await agent.run(email_query)
+    print(f"Agent Response: {email_response}")
+    print("-" * 50)
 
 if __name__ == "__main__":
-    asyncio.run(main())  # Use asyncio.run to execute the main coroutine
+    asyncio.run(main())
