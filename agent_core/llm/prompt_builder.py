@@ -11,18 +11,58 @@ from agent_core.types.state import AgentState
 
 
 class PromptBuilder:
+    """
+    Constructs prompts for LLM interactions by combining system context,
+    tool descriptions, memory, conversation history, and user input.
+    """
+
     def __init__(self, tool_registry: 'ToolRegistry'):
+        """
+        Initialize the prompt builder with a tool registry.
+
+        Input:
+            tool_registry: Registry containing all available tools and their metadata
+
+        Output:
+            None
+
+        Description:
+            Sets up the prompt builder with access to the tool registry for later use
+            in constructing prompts that include tool descriptions and capabilities.
+        """
         self.tool_registry = tool_registry
 
     def build(self, state: 'AgentState') -> str:
         """
-        Builds the final prompt for the LLM.
+        Builds a complete prompt for the LLM by combining multiple components.
 
-        Args:
-            state: Current agent state containing input, memory, and history
+        Input:
+            state: AgentState object containing:
+                - user_input: Current user message
+                - memory_context: List of relevant memory items
+                - history: List of previous actions and their results
 
-        Returns:
-            str: LLM-ready prompt
+        Output:
+            str: A formatted prompt string containing:
+                1. System context and instructions
+                2. Available tools and their descriptions
+                3. Relevant memory context
+                4. Conversation history
+                5. Current user input
+                6. Final instruction for decision making
+
+        Description:
+            Constructs a comprehensive prompt by:
+            1. Adding system context about the AI's role
+            2. Including available tools and their parameters
+            3. Adding relevant memory items for context
+            4. Including previous actions and their results
+            5. Adding the current user input
+            6. Finishing with decision-making instruction
+
+            The resulting prompt helps the LLM understand the context
+            and make informed decisions about whether to use tools
+            or respond directly.
         """
         # Build system context
         prompt = [

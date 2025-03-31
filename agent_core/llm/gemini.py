@@ -12,6 +12,14 @@ load_dotenv()
 
 
 class GeminiLLM(LLMClient):
+    """
+    A client for interacting with Google's Gemini LLM models.
+    Provides completion, function calling, and embedding capabilities.
+    """
+
+    # ------------------------
+    # Initialization
+    # ------------------------
     def __init__(self, api_key: str, model: str = "gemini-1.5-flash"):
         """
         Initialize Gemini LLM.
@@ -25,8 +33,25 @@ class GeminiLLM(LLMClient):
         self.embedding_model = genai.GenerativeModel('embedding-001')
         print(f"Initialized GeminiLLM with model: {model}")
 
+    # ------------------------
+    # Core LLM Operations
+    # ------------------------
     def complete(self, prompt: str, functions: dict) -> dict:
-        """Implements LLMClient.complete"""
+        """
+        Generate a completion response from Gemini model with optional function calling.
+
+        Args:
+            prompt (str): The input text prompt to send to the model
+            functions (dict): Dictionary of function definitions that can be called by the model.
+                            Each function should have 'name', 'description', and 'parameters'
+
+        Returns:
+            dict: Either {'content': str} for text responses or 
+                 {'function_call': {'name': str, 'arguments': dict}} for function calls
+
+        Raises:
+            Exception: If there's an error during the API call or response processing
+        """
         try:
             logging.debug(
                 f"GeminiLLM.complete called with prompt length: {len(prompt)}")
@@ -129,8 +154,22 @@ class GeminiLLM(LLMClient):
                 logging.debug("Response is None or not available.")
             raise
 
+    # ------------------------
+    # Response Processing
+    # ------------------------
     def parse_response(self, response: dict) -> Union[ToolCall, FinalAnswer]:
-        """Implements LLMClient.parse_response"""
+        """
+        Parse the completion response into either a ToolCall or FinalAnswer.
+
+        Args:
+            response (dict): The response from complete() method, containing either
+                           text content or function call details
+
+        Returns:
+            Union[ToolCall, FinalAnswer]: 
+                - ToolCall if the response contains a function call
+                - FinalAnswer if the response contains text content
+        """
         print(f"Parsing response: {response}")
         if "error" in response:
             return FinalAnswer(output=f"Error: {response['error']}")
@@ -142,15 +181,19 @@ class GeminiLLM(LLMClient):
             )
         return FinalAnswer(output=response.get("content", ""))
 
+    # ------------------------
+    # Embedding Operations
+    # ------------------------
     def embed_text(self, text: str) -> list[float]:
         """
-        Create embeddings using Gemini.
+        Create vector embeddings for the given text using Gemini's embedding model.
 
         Args:
-            text: Text to embed
+            text (str): The input text to create embeddings for
 
         Returns:
-            list[float]: Vector embedding
+            list[float]: A vector of floating point numbers representing the text embedding.
+                        Returns empty list if embedding fails.
         """
         try:
             print(f"Creating embedding for text of length: {len(text)}")

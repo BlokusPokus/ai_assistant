@@ -8,6 +8,14 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class LLMClient:
+    """
+    Base class for LLM clients providing a standard interface for model interactions.
+    Handles prompt completion and response parsing with support for function calling.
+    """
+
+    # ------------------------
+    # Initialization
+    # ------------------------
     def __init__(self, model):
         """
         Initialize the client with an LLM model (e.g., Google Gemini).
@@ -17,6 +25,9 @@ class LLMClient:
         """
         self.model = model
 
+    # ------------------------
+    # Core LLM Operations
+    # ------------------------
     def complete(self, prompt: str, functions: list) -> dict:
         """
         Sends prompt to the LLM with function metadata.
@@ -49,20 +60,33 @@ class LLMClient:
 
             logging.debug(f"Received response from LLM: {response}")
 
-            # Extract the actual response content
-            # Different models might structure this differently
-            if isinstance(response, dict):
-                return response
-            elif hasattr(response, "model_dump"):  # Pydantic model
-                return response.model_dump()
-            elif hasattr(response, "dict"):  # Other object with dict method
-                return response.dict()
-            else:
-                return {"content": str(response)}  # Fallback
+            return self._extract_response_content(response)
 
         except Exception as e:
             logging.error(f"Error in LLM completion: {str(e)}")
             return {"error": str(e), "content": "I encountered an error processing your request."}
+
+    # ------------------------
+    # Response Processing
+    # ------------------------
+    def _extract_response_content(self, response) -> dict:
+        """
+        Extracts content from various response formats into a standardized dictionary.
+
+        Args:
+            response: Raw response from the LLM model
+
+        Returns:
+            dict: Standardized response format
+        """
+        if isinstance(response, dict):
+            return response
+        elif hasattr(response, "model_dump"):  # Pydantic model
+            return response.model_dump()
+        elif hasattr(response, "dict"):  # Other object with dict method
+            return response.dict()
+        else:
+            return {"content": str(response)}  # Fallback
 
     def parse_response(self, response: dict):
         """
@@ -86,7 +110,6 @@ class LLMClient:
             )
 
         # If no function call, treat as final answer
-        # Look for content in common response formats
         content = (
             response.get("text") or  # Standard text field
             response.get("content") or  # Alternative content field

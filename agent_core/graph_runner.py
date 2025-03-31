@@ -1,9 +1,10 @@
 """
-LangGraph definition and runner logic for the agent's workflow.
+Agent runner logic for managing the conversation workflow.
 
 📁 agent_core/graph_runner.py
-Defines and runs the LangGraph execution flow. Handles node registration, 
-agent loop, planner/tool/reflect transitions.
+Implements the main agent loop that manages the conversation flow between
+user input, planner decisions, and tool executions. Handles state transitions
+and enforces loop limits.
 """
 
 from agent_core.types.state import AgentState
@@ -15,8 +16,21 @@ from agent_core.memory.interface import MemoryInterface
 from agent_core.llm.planner import LLMPlanner
 
 
-class LangGraphRunner:
+class AgentRunner:
     def __init__(self, tools: 'ToolRegistry', planner: 'LLMPlanner'):
+        """
+        Initialize the agent runner.
+
+        Input:
+            tools: Registry containing all available tools
+            planner: LLM-based planner for decision making
+
+        Output:
+            None
+
+        Description:
+            Sets up the runner with tools and planner, configures max steps from LOOP_LIMIT
+        """
         # self.memory = memory
         self.tools = tools
         self.planner = planner
@@ -24,13 +38,25 @@ class LangGraphRunner:
 
     async def run(self, user_input: str) -> str:
         """
-        Runs the LangGraph agent loop.
+        Runs the main agent loop processing user input.
 
-        Args:
-            user_input (str): Initial user message
+        Input:
+            user_input: String containing the user's message or query
 
-        Returns:
-            str: Final output or answer
+        Output:
+            str: Final response to user, either from:
+                - FinalAnswer from planner
+                - Tool execution result
+                - Error message
+                - Forced finish message if loop limit reached
+
+        Description:
+            1. Creates initial state with user input
+            2. Enters main loop (limited by LOOP_LIMIT):
+                - Gets next action from planner
+                - If FinalAnswer, returns it
+                - If ToolCall, executes tool and updates state
+            3. If loop limit reached, forces finish
         """
         # Initialize state
         state = AgentState(user_input=user_input)
