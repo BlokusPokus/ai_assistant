@@ -7,7 +7,7 @@ from typing import Optional, List
 from msal import ConfidentialClientApplication
 from msgraph.core import GraphClient
 from tenacity import retry, stop_after_attempt, wait_exponential
-from .base import Tool
+from ..base import Tool
 
 # Configuration and Models
 
