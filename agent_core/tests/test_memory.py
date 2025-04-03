@@ -1,6 +1,7 @@
 import unittest
-from agent_core.memory.client import MockMemoryDBClient
-from agent_core.memory.memory import Memory
+
+from agent_core.tests.mock_database import MockMemoryDBClient
+from memory.interface import MemoryInterface
 
 
 class TestMemory(unittest.TestCase):
@@ -8,7 +9,7 @@ class TestMemory(unittest.TestCase):
     def setUp(self):
         """Set up the test environment."""
         self.client = MockMemoryDBClient()
-        self.memory = Memory(self.client)
+        self.memory = MemoryInterface(self.client)
 
     def test_add_record(self):
         """Test adding a record to the memory."""
@@ -50,7 +51,7 @@ class TestMemory(unittest.TestCase):
 def main():
     # Initialize memory with a mock client
     client = MockMemoryDBClient()
-    memory = Memory(client)
+    memory = MemoryInterface(client)
 
     # Add some records
     user_id = 1

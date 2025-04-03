@@ -30,7 +30,6 @@ def should_resume_conversation(timestamp: datetime) -> bool:
     Decide whether a conversation should be resumed or reset.
 
     Args:
-        conversation_id (str): Conversation ID
         timestamp (datetime): Time of last interaction
 
     Returns:
@@ -38,7 +37,8 @@ def should_resume_conversation(timestamp: datetime) -> bool:
     """
     if timestamp is None:
         return False
-    return (datetime.now(timezone.utc) - timestamp) < timedelta(minutes=CONVERSATION_TTL_MINUTES)
+    else:
+        return (datetime.now(timezone.utc) - timestamp) < timedelta(minutes=CONVERSATION_TTL_MINUTES)
 
 
 def expire_conversation(conversation_id: str) -> None:

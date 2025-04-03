@@ -28,7 +28,7 @@ core = AgentCore(tools, llm)
 
 
 async def test():
-    user_input = "What is my most recent email?"
+    user_input = "what is the next event on my calendar?"
     user_id = "+1234567890"
     response = await core.run(user_input, user_id)
     print("Final response:", response)

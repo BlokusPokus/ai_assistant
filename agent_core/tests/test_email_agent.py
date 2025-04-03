@@ -1,6 +1,5 @@
 import asyncio
-from agent_core.memory.client import MockMemoryDBClient
-from agent_core.memory.memory import Memory
+from tests.mock_database import MockMemoryDBClient
 from agent_core.tools import ToolRegistry
 from agent_core.tools.emails.email_tool import EmailTool
 from agent_core.llm.gemini import GeminiLLM
@@ -8,6 +7,7 @@ from agent_core.config import GEMINI_API_KEY
 from agent_core.core import AgentCore
 import os
 from dotenv import load_dotenv
+from memory.interface import MemoryInterface
 
 
 async def main():
@@ -15,7 +15,7 @@ async def main():
     load_dotenv()
 
     # Initialize components
-    memory = Memory(MockMemoryDBClient())
+    memory = MemoryInterface(MockMemoryDBClient())
     tool_registry = ToolRegistry()
 
     # Register the EmailTool

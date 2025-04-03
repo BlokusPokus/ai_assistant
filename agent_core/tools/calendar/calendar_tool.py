@@ -140,6 +140,10 @@ class CalendarTool:
             start_datetime = datetime.now().isoformat()
             end_datetime = (datetime.now() + timedelta(days=days)).isoformat()
 
+            # Ensure count and days are integers
+            count = int(count)
+            days = int(days)
+
             params = {
                 'startDateTime': start_datetime,
                 'endDateTime': end_datetime,
