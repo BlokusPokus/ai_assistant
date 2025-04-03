@@ -60,49 +60,58 @@ class CalendarClient:
         }
 
 
-class CalendarTool(Tool):
-    def __init__(self, name: str = "calendar"):
-        super().__init__(
-            name=name,
-            func=self.handle_calendar_action,  # Use a handler function
-            description="Tool for viewing and creating calendar events",
-            parameters={
-                "action": {
-                    "type": "string",
-                    "description": "Action to perform: 'view' to see events, 'create' to add new event",
-                    "enum": ["view", "create"]
-                },
-                "count": {
-                    "type": "integer",
-                    "description": "Number of events to fetch (for view action)"
-                },
-                "days": {
-                    "type": "integer",
-                    "description": "Number of days to look ahead (for view action)"
-                },
-                "subject": {
-                    "type": "string",
-                    "description": "Title of the event (for create action)"
-                },
-                "start_time": {
-                    "type": "string",
-                    "description": "Start time in YYYY-MM-DD HH:MM format (for create action)"
-                },
-                "duration": {
-                    "type": "integer",
-                    "description": "Duration in minutes (for create action)"
-                },
-                "location": {
-                    "type": "string",
-                    "description": "Location of the event (for create action)"
-                }
-            }
-        )
+class CalendarTool:
+    def __init__(self):
         load_dotenv()
         self.ms_graph_url = "https://graph.microsoft.com/v1.0"
         self._access_token = None
         self.scopes = ["Calendars.Read", "Calendars.ReadWrite", "User.Read"]
         self._initialize_token()
+
+        # Create individual tools
+        self.view_events_tool = Tool(
+            name="view_events",
+            func=self.get_events,
+            description="View upcoming calendar events",
+            parameters={
+                "count": {
+                    "type": "integer",
+                    "description": "Number of events to fetch"
+                },
+                "days": {
+                    "type": "integer",
+                    "description": "Number of days to look ahead"
+                }
+            }
+        )
+
+        self.create_event_tool = Tool(
+            name="create_event",
+            func=self.create_event,
+            description="Create a new calendar event or reminder",
+            parameters={
+                "subject": {
+                    "type": "string",
+                    "description": "Title of the event"
+                },
+                "start_time": {
+                    "type": "string",
+                    "description": "Start time in YYYY-MM-DD HH:MM format"
+                },
+                "duration": {
+                    "type": "integer",
+                    "description": "Duration in minutes"
+                },
+                "location": {
+                    "type": "string",
+                    "description": "Location of the event"
+                }
+            }
+        )
+
+    def __iter__(self):
+        """Makes the class iterable to return all tools"""
+        return iter([self.view_events_tool, self.create_event_tool])
 
     def _initialize_token(self):
         application_id = os.getenv("MICROSOFT_APPLICATION_ID")
@@ -119,24 +128,6 @@ class CalendarTool(Tool):
             client_secret,
             self.scopes
         )
-
-    async def handle_calendar_action(self, action: str, **kwargs) -> List[Dict[str, Any]]:
-        """Handle different calendar actions"""
-        if action == "view":
-            return await self.get_events(
-                count=kwargs.get('count', 5),
-                days=kwargs.get('days', 7)
-            )
-        elif action == "create":
-            result = await self.create_event(
-                subject=kwargs.get('subject'),
-                start_time=kwargs.get('start_time'),
-                duration=kwargs.get('duration', 60),
-                location=kwargs.get('location', '')
-            )
-            return [result]  # Wrap in list to match return type
-        else:
-            return [{"error": f"Unknown action: {action}"}]
 
     async def get_events(self, count: int = 5, days: int = 7) -> List[Dict[str, Any]]:
         """Get upcoming calendar events"""

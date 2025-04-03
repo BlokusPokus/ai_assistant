@@ -2,6 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Run Agent",
+      "type": "python",
+      "request": "launch",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "program": "agent_core/tests/test_flow.py", // or entry file
+      "args": []
+    },
+    {
       "name": "Debug Agent Core",
       "type": "python",
       "request": "launch",

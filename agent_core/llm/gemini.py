@@ -90,59 +90,43 @@ class GeminiLLM(LLMClient):
             content = candidate.content
             print(f"Extracted candidate content: {content}")
 
-            # Check if the response has a function call
-            if hasattr(content.parts[0], 'function_call') and content.parts[0].function_call is not None:
-                logging.debug("Function call detected in response")
-                function_call = content.parts[0].function_call
-                # Extract the name correctly - it might be in function_call.name
-                name = getattr(function_call, 'name', None)
-                if not name and hasattr(function_call, 'function_name'):
-                    name = function_call.function_name
-                if not name:  # Add this check to ensure name is valid
-                    print("No valid function name found in response")
-                    # Treat as text response
-                    return {"content": content.parts[0].text}
-                logging.debug(f"Function name: {name}")
+            # Check all parts for function calls
+            for part in content.parts:
+                if hasattr(part, 'function_call') and part.function_call is not None:
+                    logging.debug("Function call detected in response")
+                    function_call = part.function_call
+                    name = getattr(function_call, 'name', None)
 
-                # Ensure we have valid arguments
-                args = {}
-                if hasattr(function_call, 'args') and function_call.args is not None:
-                    print(f"Function args type: {type(function_call.args)}")
-                    if isinstance(function_call.args, dict):
-                        args = function_call.args
-                    elif hasattr(function_call.args, 'to_dict'):
-                        args = function_call.args.to_dict()
-                    else:
-                        try:
-                            args = dict(function_call.args)
-                        except TypeError:
-                            print(
-                                f"Could not convert args to dict: {function_call.args}")
-                            args = {}
-                logging.debug(f"Processed function args: {args}")
+                    if not name and hasattr(function_call, 'function_name'):
+                        name = function_call.function_name
 
-                # Handle email tool specifically if needed
-                if name == "email":
-                    print("Email tool function call detected")
-                    # You might want to handle specific logic for email tool here
+                    if name:  # If we found a valid name
+                        logging.debug(f"Function name: {name}")
 
-                return {
-                    "function_call": {
-                        "name": name,
-                        "arguments": args
-                    }
-                }
-            else:
-                logging.debug(
-                    "No function call detected, processing as text response")
-                # Fix: Access text content correctly from the response structure
-                if content.parts and len(content.parts) > 0:
-                    text_content = content.parts[0].text
-                    print(f"Extracted text content: {text_content}")
-                    return {"content": text_content}
-                else:
-                    print("No text content found in response")
-                    return {"content": ""}
+                        # Extract arguments
+                        args = {}
+                        if hasattr(function_call, 'args'):
+                            if isinstance(function_call.args, dict):
+                                args = function_call.args
+                            elif hasattr(function_call.args, 'to_dict'):
+                                args = function_call.args.to_dict()
+                            else:
+                                try:
+                                    args = dict(function_call.args)
+                                except TypeError:
+                                    logging.error(
+                                        f"Could not convert args to dict: {function_call.args}")
+                                    args = {}
+
+                        return {
+                            "function_call": {
+                                "name": name,
+                                "arguments": args
+                            }
+                        }
+
+            # If no function call found in any part, return text content
+            return {"content": content.parts[0].text if content.parts else ""}
 
         except Exception as e:
             logging.error(f"Error in Gemini completion: {str(e)}")

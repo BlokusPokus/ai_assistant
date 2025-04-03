@@ -17,7 +17,9 @@ Description:
 """
 import os
 from dotenv import load_dotenv
-load_dotenv()
+
+load_dotenv(
+    dotenv_path='/Users/ianleblanc/Desktop/personal_assistant/agent_core/.env')
 
 # Vector DB settings
 VECTOR_DB_URL = "http://localhost:6333"

@@ -2,33 +2,37 @@ C4Container
 
 title AI Assistant System - Container Diagram
 
-Person(user, "👤 User", "Interacts via web, SMS, email")
+Person(user, "👤 User", "Interacts via SMS, email")
 
-Boundary(ai, "AI assistant") {
-Container(web, "🖥️ Web Application", "React", "Allows users to view their data")
-Container(api, "⚙️ Backend API", "FastAPI (Python)", "Handles business logic and integrates with external systems")
-Container(auth, "Authentication Module", "FastAPI / OAuth2 / JWT", "Manages user login, tokens, and permissions")
-SystemDb(db, "💾 Database", "PostgreSQL", "Stores users, schedules, expenses, grocery data, notes, etc.")
-Container(obsidian, "📔 Obsidian Integration", "Local File System or API", "Pushes/pulls long-term notes")
-Container(worker, "⏱️ Background Worker", "Python + Celery", "Executes scheduled tasks like reminders, note syncing, grocery analysis")
+Boundary(ai_system, "AI Assistant System") {
+Container(agent_core_service, "⚙️ Agent Core Service", "Python", "Handles core logic, API (if any), LLM interaction, tool execution, integrations (agent_core/_). Manages scheduled tasks.")
+Container(scheduled_tasks_service, "📅 Scheduled Tasks Service", "Python/Celery", "Executes periodic tasks defined in schedule_tools/_.py (Expenses, ToDo, etc.).")
+SystemDb(db, "💾 Database", "PostgreSQL", "Stores user data, state, schedules, expenses, notes, etc.")
 }
 
-Boundary(external, "External systems") {
+Boundary(external, "External Systems") {
 System_Ext(twilio, "📱 Twilio", "SMS communication")
 System_Ext(outlook, "📧 Outlook", "Email service")
 System_Ext(calendar, "📅 Outlook Calendar", "Schedules and events")
-System_Ext(obsidian_ext, "📓 Obsidian", "Knowledge management")
+System_Ext(obsidian, "📓 Obsidian", "Knowledge management")
 System_Ext(budget, "💰 Budget App", "Budget tracking")
+System_Ext(gemini, "✨ Gemini LLM", "Core LLM")
+System_Ext(wikipedia, "🌐 Wikipedia", "Information lookup")
 }
 
-Rel(user, web, "Uses")
-Rel(web, api, "Makes REST API calls to")
-Rel(api, db, "Reads/writes to")
-Rel(api, worker, "Dispatches background tasks to")
-Rel(api, auth, "Delegates login/authentication to")
-Rel(api, twilio, "Sends and receives SMS via")
-Rel(api, outlook, "Sends email via")
-Rel(api, calendar, "Reads/writes events to")
-Rel(api, obsidian, "Reads/writes long-term notes to")
-Rel(obsidian, obsidian_ext, "Syncs with")
-Rel(api, budget, "Fetches budget info from")
+Rel(user, agent_core_service, "Interacts with (e.g., via SMS/Twilio)")
+Rel(agent_core_service, db, "Reads/writes core data to")
+Rel(agent_core_service, twilio, "Sends/Receives SMS via")
+Rel(agent_core_service, outlook, "Sends/Receives Email via")
+Rel(agent_core_service, calendar, "Manages Calendar via")
+Rel(agent_core_service, obsidian, "Manages Notes via")
+Rel(agent_core_service, budget, "Reads Budget via")
+Rel(agent_core_service, wikipedia, "Searches Wikipedia via")
+Rel(agent_core_service, gemini, "Uses LLM via")
+Rel(agent_core_service, scheduled_tasks_service, "Triggers / Manages")
+
+Rel(scheduled_tasks_service, db, "Reads/Writes task data")
+Rel(scheduled_tasks_service, agent_core_service, "Uses Tools / LLM via")
+Rel(scheduled_tasks_service, outlook, "Sends reports/notifications via")
+Rel(scheduled_tasks_service, calendar, "Updates/Reads calendar for planning")
+Rel(scheduled_tasks_service, budget, "Reads budget data for reporting")

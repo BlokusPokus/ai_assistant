@@ -1,91 +1,53 @@
 C4Component
 
-title Backend API (FastAPI) - Component Diagram
+title Agent Core Service - Component Diagram
 
-Container_Boundary(api_boundary, "⚙️ Backend API") {
+Container_Boundary(agent_core_boundary, "⚙️ Agent Core Service (agent_core)") {
 
-Component(userController, "UserController", "FastAPI Router", "Manages user profile endpoints and routes user input to the Agent")
-
-Component(agentCore, "AgentCore", "Python module", "Determines user intent and orchestrates actions using internal and external tools")
-
-Component(authComponent, "AuthComponent", "OAuth2/JWT", "Handles login, tokens, and auth checks")
-
-Component(scheduler, "SchedulerComponent", "Python module", "Manages reminders and calendar sync")
-
-Component(expenses, "ExpenseTrackerComponent", "Python module", "Tracks expenses and syncs with Budget App")
-
-Component(grocery, "GroceryIntelligenceComponent", "Python module", "Processes grocery data and suggests optimizations")
-
-Component(notes, "NotesComponent", "Python module", "Saves/retrieves notes to/from Obsidian")
-
-Component(notifications, "NotificationService", "Python service", "Sends SMS and email")
-
-Component(calendarSync, "CalendarIntegration", "Python module", "Integrates with Outlook Calendar")
-
-Component(tasks, "TaskDispatcher", "Celery Client", "Dispatches tasks to background worker, both scheduled and on-demand")
-
-Component(dal, "DataAccessLayer", "SQLAlchemy or similar", "Abstracts access to PostgreSQL database")
+Component(input_handler, "Input Handler", "Python Module(s)", "Receives external events (e.g., Twilio webhook via communication/twilio_integration) or user commands, routes to CoreLogic")
+Component(core_logic, "Core Logic", "Python (core.py, graph_runner.py)", "Orchestrates LLM, tools, and memory based on input")
+Component(llm_component, "LLM Component", "Python (llm/_)", "Manages interaction with Gemini (prompting, planning, function calling)")
+Component(memory_component, "Memory Component", "Python (memory/_)", "Manages conversation history, state, and DB interaction via DAL")
+Component(tools_component, "Tools Component", "Python (tools/_)", "Collection of tools for specific tasks (Calendar, Email, Notes, Expense, Grocery, SMS, Wikipedia, etc.)")
+Component(scheduler_config, "Scheduler Config", "Python/Celery Beat", "Defines schedules and triggers TaskDispatcher")
+Component(task_dispatcher, "Task Dispatcher", "Celery Client", "Dispatches background tasks (on-demand or scheduled) to the Scheduled Tasks Service")
+Component(dal, "Data Access Layer", "Python (memory/_ or dedicated)", "Abstracts database access, used by Memory Component")
 
 }
 
-Container_Boundary(g, "⚙️ Backend PI") {
-
+Container_Boundary(external_deps, "External Dependencies") {
 Container_Ext(db, "💾 Database", "PostgreSQL")
-
-Container_Ext(worker, "⏱️ Background Worker", "Python + Celery", "Executes user-triggered and periodic tasks like reminders, syncing, and grocery analysis")
-
-Container_Ext(obsidian, "📔 Obsidian Integration", "Local File System")
-
-System_Ext(twilio, "📱 Twilio", "SMS communication")
-
-System_Ext(outlook, "📧 Outlook", "Email service")
-
-System_Ext(calendar, "📅 Outlook Calendar", "Schedules and events")
-
-System_Ext(budget, "💰 Budget App", "Budget tracking")
-
+Container_Ext(scheduled_tasks_cont, "📅 Scheduled Tasks Service", "Python/Celery Container", "Executes periodic tasks (schedule_tools/\*)")
+System_Ext(gemini_ext, "✨ Gemini LLM", "Google Generative AI")
+System_Ext(twilio_ext, "📱 Twilio", "SMS communication")
+System_Ext(outlook_ext, "📧 Outlook", "Email service")
+System_Ext(calendar_ext, "📅 Outlook Calendar", "Schedules and events")
+System_Ext(obsidian_ext, "📓 Obsidian", "Knowledge Management")
+System_Ext(budget_ext, "💰 Budget App", "Budget tracking")
+System_Ext(wikipedia_ext, "🌐 Wikipedia", "Information lookup")
 }
 
-Rel(userController, authComponent, "Delegates auth to")
+Rel(input_handler, core_logic, "Passes user input/events to")
+Rel(input_handler, tools_component, "Uses SMS tool (Twilio) for input")
 
-Rel(userController, agentCore, "Delegates user intent to")
+Rel(core_logic, llm_component, "Uses for planning and generation")
+Rel(core_logic, memory_component, "Uses to read/write state")
+Rel(core_logic, tools_component, "Selects and executes tools")
+Rel(core_logic, task_dispatcher, "Dispatches on-demand background tasks via")
 
-Rel(agentCore, scheduler, "Triggers scheduling tasks")
+Rel(llm_component, gemini_ext, "Sends requests to / Receives responses from")
 
-Rel(agentCore, calendarSync, "Syncs calendar data with")
+Rel(memory_component, dal, "Uses to persist/retrieve state")
 
-Rel(agentCore, expenses, "Manages budget interactions")
+Rel(tools_component, calendar_ext, "Uses Calendar Tool")
+Rel(tools_component, outlook_ext, "Uses Email Tool")
+Rel(tools_component, twilio_ext, "Uses SMS Tool")
+Rel(tools_component, obsidian_ext, "Uses Notes Tool")
+Rel(tools_component, budget_ext, "Uses Expense Tool")
+Rel(tools_component, wikipedia_ext, "Uses Wikipedia Tool")
 
-Rel(agentCore, grocery, "Triggers grocery intelligence")
+Rel(scheduler_config, task_dispatcher, "Schedules tasks via")
 
-Rel(agentCore, notes, "Manages long-term notes")
+Rel(task_dispatcher, scheduled_tasks_cont, "Dispatches jobs to")
 
-Rel(agentCore, notifications, "Sends messages via")
-
-Rel(agentCore, tasks, "Dispatches background tasks to")
-
-Rel(scheduler, calendarSync, "Uses")
-
-Rel(scheduler, tasks, "Schedules background jobs via")
-
-Rel(scheduler, dal, "Reads/writes schedules via")
-
-Rel(expenses, budget, "Fetches budget data from")
-
-Rel(expenses, dal, "Stores expense data")
-
-Rel(grocery, dal, "Reads grocery data from DB")
-
-Rel(grocery, tasks, "Triggers grocery analysis")
-
-Rel(notes, obsidian, "Stores/retrieves notes via")
-
-Rel(notifications, twilio, "Sends/receives SMS")
-
-Rel(notifications, outlook, "Sends emails")
-
-Rel(calendarSync, calendar, "Syncs with")
-
-Rel(tasks, worker, "Dispatches jobs to")
-
-Rel(dal, db, "Executes queries")
+Rel(dal, db, "Executes queries against")

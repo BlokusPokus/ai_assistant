@@ -6,12 +6,19 @@ from .ms_graph import get_access_token
 from dotenv import load_dotenv
 
 
-class EmailTool(Tool):
-    def __init__(self, name: str = "email"):
-        super().__init__(
-            name=name,
-            func=self.read_recent_emails,  # Default function
-            description="Tool for reading and sending emails",
+class EmailTool:
+    def __init__(self):
+        load_dotenv()
+        self.ms_graph_url = "https://graph.microsoft.com/v1.0"
+        self._access_token = None
+        self.scopes = ["Mail.Read", "Mail.ReadWrite", "Mail.Send", "User.Read"]
+        self._initialize_token()
+
+        # Create individual tools
+        self.read_emails_tool = Tool(
+            name="read_emails",
+            func=self.read_recent_emails,
+            description="Read recent emails from your inbox",
             parameters={
                 "count": {
                     "type": "integer",
@@ -23,19 +30,6 @@ class EmailTool(Tool):
                 }
             }
         )
-        load_dotenv()  # Ensure environment variables are loaded
-        self.ms_graph_url = "https://graph.microsoft.com/v1.0"
-        self._access_token = None
-        # Reuse the comprehensive scope list from ms_graph.py
-        self.scopes = [
-            "Mail.Read",
-            "Mail.ReadWrite",
-            "Mail.Send",
-            "User.Read"
-        ]
-
-        # Initialize token right away using the existing refresh token
-        self._initialize_token()
 
     def _initialize_token(self):
         """Initialize the access token using environment variables"""
@@ -54,12 +48,16 @@ class EmailTool(Tool):
             self.scopes
         )
 
-    async def read_recent_emails(self, count: int = 5, batch_size: int = 2) -> List[Dict[str, Any]]:
+    async def read_recent_emails(self, count: float, batch_size: float) -> List[Dict[str, Any]]:
         """
         Read recent emails using the pagination logic from emails.py
         """
         if not self._access_token:
             self._initialize_token()
+
+        # Convert float to int
+        count = int(count)
+        batch_size = int(batch_size)
 
         headers = {"Authorization": f"Bearer {self._access_token}"}
         emails = []
@@ -98,3 +96,7 @@ class EmailTool(Tool):
                     break
 
         return emails[:count]
+
+    def __iter__(self):
+        """Makes the class iterable to return all tools"""
+        return iter([self.read_emails_tool])

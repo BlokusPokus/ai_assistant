@@ -8,6 +8,8 @@ Injects into Gemini calls.
 
 from agent_core.tools.base import ToolRegistry
 from agent_core.types.state import AgentState
+from typing import Dict, Any
+from datetime import datetime
 
 
 class PromptBuilder:
@@ -32,74 +34,64 @@ class PromptBuilder:
         """
         self.tool_registry = tool_registry
 
-    def build(self, state: 'AgentState') -> str:
-        """
-        Builds a complete prompt for the LLM by combining multiple components.
+    def build(self, state: AgentState) -> str:
+        """Build prompt from current state."""
+        current_time = datetime.now()
+        base_prompt = f"""
+Current date and time: {current_time.strftime('%Y-%m-%d %H:%M')}
 
-        Input:
-            state: AgentState object containing:
-                - user_input: Current user message
-                - memory_context: List of relevant memory items
-                - history: List of previous actions and their results
+User request: {state.user_input}
 
-        Output:
-            str: A formatted prompt string containing:
-                1. System context and instructions
-                2. Available tools and their descriptions
-                3. Relevant memory context
-                4. Conversation history
-                5. Current user input
-                6. Final instruction for decision making
+Previous actions and results:
+{self._format_history(state.conversation_history)}
 
-        Description:
-            Constructs a comprehensive prompt by:
-            1. Adding system context about the AI's role
-            2. Including available tools and their parameters
-            3. Adding relevant memory items for context
-            4. Including previous actions and their results
-            5. Adding the current user input
-            6. Finishing with decision-making instruction
+Current status:
+- Steps taken so far: {state.step_count}
+- Last tool used: {state.last_tool_result if state.last_tool_result else 'None'}
 
-            The resulting prompt helps the LLM understand the context
-            and make informed decisions about whether to use tools
-            or respond directly.
-        """
-        # Build system context
-        prompt = [
-            "You are an AI assistant that helps users by either responding directly or using tools.",
-            "Always try to use tools when available and appropriate.",
-            "\nAvailable tools and their descriptions:",
-        ]
+Available tools:
+{self._format_tools()}
 
-        # Add tool descriptions
+Instructions:
+1. Review what has been done so far
+2. Evaluate if the user's request is fully addressed
+3. If needed, use additional tools to complete the request
+4. Only give a final answer when ALL necessary actions are complete
+5. When giving a final answer, summarize all actions taken
+6. When scheduling events:
+   - Use the current date and time as reference
+   - Schedule events in the near future unless specified otherwise
+   - Default to business hours (9 AM - 5 PM) if no specific time given
+
+How would you like to proceed? You can:
+1. Use another tool if more actions are needed
+2. Give a final answer if the request is fully addressed
+3. Ask for clarification if needed
+
+Remember: Before asking new questions, acknowledge previous actions and explain why additional information is needed.
+"""
+        return base_prompt
+
+    def _format_history(self, history: list) -> str:
+        """Format conversation history for prompt."""
+        if not history:
+            return "No previous actions"
+
+        formatted = []
+        for entry in history:
+            if entry["role"] == "assistant":
+                formatted.append(f"Assistant: {entry['content']}")
+            elif entry["role"] == "tool":
+                formatted.append(f"Tool ({entry['name']}): {entry['content']}")
+
+        return "\n".join(formatted)
+
+    def _format_tools(self) -> str:
+        """Format available tools for prompt."""
         tool_schema = self.tool_registry.get_schema()
         if not tool_schema:
-            prompt.append("No tools are currently available.")
+            return "No tools are currently available."
         else:
-            for name, info in tool_schema.items():
-                desc = info.get('description', 'No description available')
-                params = info.get('parameters', {}).get('properties', {})
-                param_desc = [f"  - {p}: {details.get('description', 'No description')}"
-                              for p, details in params.items()]
-
-                prompt.append(f"- {name}: {desc}")
-                if param_desc:
-                    prompt.extend(param_desc)
-
-        prompt.append("\nContext from memory:")
-        # Add memory context
-        for mem in state.memory_context:
-            prompt.append(f"- {mem}")
-
-        # Add conversation history
-        if state.history:
-            prompt.append("\nPrevious actions:")
-            for action, result in state.history:
-                prompt.append(f"Tool: {action.name}")
-                prompt.append(f"Result: {result}")
-
-        # Add current user input
-        prompt.append(f"\nUser input: {state.user_input}")
-        prompt.append("\nDecide whether to respond directly or use a tool.")
-
-        return "\n".join(prompt)
+            tool_descriptions = [f"- {name}: {info.get('description', 'No description available')}"
+                                 for name, info in tool_schema.items()]
+            return "\n".join(tool_descriptions)
