@@ -1,15 +1,17 @@
 """
 Handles fallback summarization logic.
 """
+from datetime import datetime
+from database.session import AsyncSessionLocal
+from database.models.memory_chunk import MemoryChunk
+from database.crud.utils import add_record, filter_by
 
-from memory.memory_storage import InMemoryStorage
 
-
-def generate_summary(messages: list) -> str:
+async def generate_summary(messages: list) -> str:
     """
     Generate a summary from a message list.
 
-    Args:
+    Args: 
         messages (list): List of message dicts
 
     Returns:
@@ -28,7 +30,7 @@ def generate_summary(messages: list) -> str:
     return '. '.join(summary) + '.'
 
 
-def summarize_and_archive(conversation_id: str) -> str:
+async def summarize_and_archive(conversation_id: str) -> str:
     """
     Generate and save a summary for a conversation.
 
@@ -38,11 +40,28 @@ def summarize_and_archive(conversation_id: str) -> str:
     Returns:
         str: The generated summary
     """
-    storage = InMemoryStorage()
-    # Fetch conversation data using the storage interface
-    conversation_data = storage.query(conversation_id, "fetch_conversation")
-    # Generate summary
-    summary = generate_summary(conversation_data)
-    # Store the summary
-    storage.add(conversation_id, summary, {"type": "summary"})
-    return summary
+    async with AsyncSessionLocal() as session:
+        # Fetch conversation messages
+        records = await filter_by(
+            session,
+            MemoryChunk,
+            meta_data__conversation_id=conversation_id,
+            meta_data__type="message"
+        )
+
+        # Generate summary
+        messages = [{"text": record.content} for record in records]
+        summary = await generate_summary(messages)
+
+        # Store the summary
+        data = {
+            "content": summary,
+            "meta_data": {
+                "conversation_id": conversation_id,
+                "type": "summary",
+                "created_at": datetime.utcnow().isoformat()
+            }
+        }
+        await add_record(session, MemoryChunk, data)
+
+        return summary

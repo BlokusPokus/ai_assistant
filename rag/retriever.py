@@ -1,4 +1,3 @@
-
 """
 Handles semantic search and retrieval from embedded knowledge sources.
 """
@@ -6,12 +5,16 @@ Handles semantic search and retrieval from embedded knowledge sources.
 from typing import List, Dict
 import hashlib
 import numpy as np
+from sqlalchemy import select
+from database.session import AsyncSessionLocal
+from database.models.memory_chunk import MemoryChunk
+from database.models.memory_metadata import MemoryMetadata
 
 # Simulated in-memory vector store
 vector_store = []
 
 
-def fake_embed(text: str) -> List[float]:
+async def fake_embed(text: str) -> List[float]:
     """
     A fake embedding generator (replace with real LLM-based embeddings).
     """
@@ -28,30 +31,78 @@ def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
     return float(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
 
 
-def embed_and_index(document: str, metadata: Dict) -> None:
+async def embed_and_index(document: str, metadata: Dict) -> None:
     """
-    Embed and store a document in the vector store with metadata.
+    Embed and store a document with metadata.
     """
-    embedding = fake_embed(document)
-    vector_store.append({
-        "embedding": embedding,
-        "document": document,
-        "metadata": metadata
-    })
+    async with AsyncSessionLocal() as session:
+        # Generate embedding
+        embedding = await fake_embed(document)
+
+        # Create memory chunk
+        chunk_data = {
+            "content": document,
+            "embedding": str(embedding),  # Convert embedding to string
+            # Ensure integer user_id
+            "user_id": int(metadata.get("user_id", 0))
+        }
+        chunk = await session.execute(
+            select(MemoryChunk).where(
+                MemoryChunk.content == document,
+                MemoryChunk.user_id == chunk_data["user_id"]
+            )
+        )
+
+        # Add metadata
+        for key, value in metadata.items():
+            meta_data = {
+                "chunk_id": chunk.id,
+                "key": key,
+                "value": str(value)
+            }
+            await session.execute(
+                select(MemoryMetadata).where(
+                    MemoryMetadata.chunk_id == chunk.id,
+                    MemoryMetadata.key == key
+                )
+            )
 
 
-def query_knowledge_base(user_id: str, input_text: str) -> List[Dict]:
+async def query_knowledge_base(user_id: str, input_text: str) -> List[Dict]:
     """
-    Retrieve relevant documents from the vector store based on semantic similarity.
+    Retrieve relevant documents based on semantic similarity.
     """
-    query_vector = fake_embed(input_text)
-    scored = []
+    async with AsyncSessionLocal() as session:
+        # Convert user_id to integer
+        user_id_int = int(user_id)
 
-    for entry in vector_store:
-        if entry["metadata"].get("user_id") == user_id:
-            similarity = cosine_similarity(query_vector, entry["embedding"])
-            scored.append((similarity, entry))
+        # Get query embedding
+        query_vector = await fake_embed(input_text)
 
-    # Return top 3 matches
-    scored.sort(key=lambda x: x[0], reverse=True)
-    return [entry for _, entry in scored[:3]]
+        # Get all documents for user
+        stmt = (
+            select(MemoryChunk)
+            .where(MemoryChunk.user_id == user_id_int)
+            .join(MemoryMetadata)
+        )
+
+        result = await session.execute(stmt)
+        chunks = result.scalars().all()
+
+        # Calculate similarities
+        scored = []
+        for chunk in chunks:
+            if chunk.embedding:  # Check if embedding exists
+                # Convert string back to list
+                chunk_embedding = eval(chunk.embedding)
+                similarity = cosine_similarity(query_vector, chunk_embedding)
+                scored.append((similarity, {
+                    "content": chunk.content,
+                    "metadata": {
+                        meta.key: meta.value for meta in chunk.meta_entries
+                    }
+                }))
+
+        # Sort by similarity and return top 3
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [entry for _, entry in scored[:3]]

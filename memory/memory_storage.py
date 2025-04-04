@@ -1,214 +1,190 @@
+"""
+Memory storage operations using the new database structure.
+"""
 from datetime import datetime, timezone
-from typing import Optional, List
-import json
+from typing import Optional, List, Dict
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
-from memory.client import MemoryRecord
-
-# Simulated in-memory DB for the purpose of demonstration
-db = {
-    "conversation_state": {},  # conversation_id -> {"state": ..., "last_updated": ...}
-    # user_id -> [{"topic": ..., "summary": ..., "timestamp": ...}]
-    "summaries": {},
-    "ltm": []                  # list of long-term memory entries
-}
+from database.session import AsyncSessionLocal
+from database.models.memory_chunk import MemoryChunk
+from database.models.memory_metadata import MemoryMetadata
+from database.crud.utils import add_record, filter_by, get_by_field
+from sqlalchemy import desc
 
 
-def load_state(self, conversation_id: str) -> dict:
-    """
-    Load the state from the database using the conversation_id.
-
-    Args:
-        conversation_id (str): The ID of the conversation.
-
-    Returns:
-        dict: The agent state or an empty dictionary if not found.
-    """
-    # Step 2: Query the database for records with the given conversation_id
-    session = self.client.Session()
-    results = session.query(MemoryRecord).filter(
-        MemoryRecord.meta_data['conversation_id'].astext == conversation_id
-    ).all()
-    session.close()
-
-    # Step 3: Deserialize the results into a state
-    if results:
-        # Assuming the first result contains the necessary state
-        state_data = results[0].meta_data
-        return state_data
-    else:
-        # Return an empty dictionary if no records are found
-        return {}
-
-
-def save_state(self, conversation_id: str, state: dict) -> None:
-    """
-    Save short-term memory state and update timestamp.
-
-    Args:
-        conversation_id (str): The ID of the conversation.
-        state (dict): The state to be saved.
-
-    Returns:
-        None
-    """
-    # Step 2: Update the database with the new state
-    session = self.client.Session()
-    existing_record = session.query(MemoryRecord).filter(
-        MemoryRecord.meta_data['conversation_id'].astext == conversation_id
-    ).first()
-
-    if existing_record:
-        # Update existing record
-        existing_record.meta_data = state
-        existing_record.meta_data['last_updated'] = datetime.now(timezone.utc)
-    else:
-        # Create a new record if it doesn't exist
-        new_record = MemoryRecord(
-            meta_data={
-                'conversation_id': conversation_id,
-                **state,
-                'last_updated': datetime.now(timezone.utc)
-            }
-        )
-        session.add(new_record)
-
-    session.commit()
-    session.close()
-
-
-def get_conversation_timestamp(self, conversation_id: str) -> Optional[datetime]:
-    """
-    Retrieve the last updated timestamp for a conversation.
-
-    Args:
-        conversation_id (str): The ID of the conversation.
-
-    Returns:
-        Optional[datetime]: The last updated timestamp or None if not found.
-    """
-    session = self.client.Session()
-    record = session.query(MemoryRecord).filter(
-        MemoryRecord.meta_data['conversation_id'].astext == conversation_id
-    ).first()
-    session.close()
-
-    if record:
-        return record.meta_data.get('last_updated')
-    return None
-
-
-def store_summary(self, conversation_id: str, summary: str) -> None:
-    """
-    Store a fallback summary for a given conversation.
-
-    Args:
-        conversation_id (str): The ID of the conversation.
-        summary (str): The summary to be stored.
-
-    Returns:
-        None
-    """
-    session = self.client.Session()
-    # Assuming you have a way to map conversation_id to user_id
-    user_id = self.get_user_id_from_conversation(conversation_id)
-
-    # Create a new record for the summary
-    summary_record = MemoryRecord(
-        user_id=user_id,
-        content=summary,
-        meta_data={
-            'conversation_id': conversation_id,
-            'timestamp': datetime.now(timezone.utc)
+async def save_state(conversation_id: str, state: dict) -> None:
+    """Save or update conversation state."""
+    async with AsyncSessionLocal() as session:
+        # Create memory chunk
+        chunk_data = {
+            "content": str(state),
+            "embedding": None,  # JSON compatible null
+            "created_at": datetime.utcnow()
         }
-    )
-    session.add(summary_record)
-    session.commit()
-    session.close()
+        chunk = await add_record(session, MemoryChunk, chunk_data)
+
+        # Add metadata entries
+        metadata_entries = [
+            {"chunk_id": chunk.id, "key": "conversation_id", "value": conversation_id},
+            {"chunk_id": chunk.id, "key": "type", "value": "state"},
+            {"chunk_id": chunk.id, "key": "last_updated",
+                "value": datetime.utcnow().isoformat()}
+        ]
+
+        for entry in metadata_entries:
+            await add_record(session, MemoryMetadata, entry)
 
 
-def load_latest_summary(self, user_id: str, topic: Optional[str] = None) -> str:
-    """
-    Load the latest summary for a given user/topic.
-
-    Args:
-        user_id (str): The ID of the user.
-        topic (Optional[str]): The topic to filter summaries.
-
-    Returns:
-        str: The latest summary text or an empty string if not found.
-    """
-    session = self.client.Session()
-    query = session.query(MemoryRecord).filter(
-        MemoryRecord.user_id == user_id
-    )
-
-    if topic:
-        query = query.filter(MemoryRecord.meta_data['topic'].astext == topic)
-
-    # Order by timestamp descending to get the latest summary
-    summary_record = query.order_by(
-        MemoryRecord.meta_data['timestamp'].desc()
-    ).first()
-
-    session.close()
-
-    if summary_record:
-        return summary_record.content
-    return ""
+async def load_state(conversation_id: str) -> dict:
+    """Load conversation state from database."""
+    async with AsyncSessionLocal() as session:
+        record = await get_by_field(
+            session,
+            MemoryChunk,
+            field="meta_data->>'conversation_id'",
+            value=conversation_id
+        )
+        return record.content if record else {}
 
 
-def add_ltm_entry(self, entry: dict) -> None:
-    """
-    Add a structured long-term memory entry.
-
-    Args:
-        entry (dict): The entry to be added.
-
-    Returns:
-        None
-    """
-    entry["timestamp"] = datetime.now(timezone.utc)
-
-    session = self.client.Session()
-    ltm_record = MemoryRecord(
-        user_id=entry.get("user_id"),
-        content=entry.get("content"),
-        meta_data=entry
-    )
-    session.add(ltm_record)
-    session.commit()
-    session.close()
-
-
-def query_ltm(self, user_id: str, topic: Optional[str] = None, tags: Optional[List[str]] = None) -> List[dict]:
-    """
-    Query long-term memory for relevant entries.
-
-    Args:
-        user_id (str): The ID of the user.
-        topic (Optional[str]): The topic to filter entries.
-        tags (Optional[List[str]]): The tags to filter entries.
-
-    Returns:
-        List[dict]: A list of matching LTM entries.
-    """
-    session = self.client.Session()
-    query = session.query(MemoryRecord).filter(
-        MemoryRecord.user_id == user_id
-    )
-
-    if topic:
-        query = query.filter(MemoryRecord.meta_data['topic'].astext == topic)
-
-    if tags:
-        query = query.filter(
-            MemoryRecord.meta_data['tags'].astext.contains(tags)
+async def get_conversation_timestamp(conversation_id: str) -> Optional[datetime]:
+    """Get last update time for a conversation."""
+    async with AsyncSessionLocal() as session:
+        # Query for metadata with conversation_id
+        stmt = (
+            select(MemoryMetadata)
+            .where(
+                MemoryMetadata.key == "conversation_id",
+                MemoryMetadata.value == conversation_id
+            )
+            .join(MemoryChunk)
+            .options(joinedload(MemoryMetadata.chunk))
         )
 
-    results = query.all()
-    session.close()
+        result = await session.execute(stmt)
+        metadata = result.scalar_one_or_none()
 
-    return [record.meta_data for record in results]
+        if metadata and metadata.chunk:
+            # Find the last_updated metadata for this chunk
+            for meta in metadata.chunk.meta_entries:
+                if meta.key == "last_updated":
+                    return datetime.fromisoformat(meta.value)
+        return None
+
+
+async def store_summary(user_id: str, summary: str) -> None:
+    """Store conversation summary."""
+    async with AsyncSessionLocal() as session:
+        # Convert user_id string to int
+        user_id_int = int(user_id)
+
+        # Create memory chunk
+        chunk_data = {
+            "user_id": user_id_int,  # Now using integer
+            "content": summary,
+            "created_at": datetime.utcnow()
+        }
+        chunk = await add_record(session, MemoryChunk, chunk_data)
+
+        # Add metadata
+        metadata = {
+            "chunk_id": chunk.id,
+            "key": "type",
+            "value": "summary"
+        }
+        await add_record(session, MemoryMetadata, metadata)
+
+
+async def load_latest_summary(user_id: str) -> str:
+    """Load most recent summary."""
+    async with AsyncSessionLocal() as session:
+        # Convert user_id string to int
+        user_id_int = int(user_id)
+
+        # Query for summary type metadata
+        stmt = (
+            select(MemoryChunk)
+            .join(MemoryMetadata)
+            .where(
+                MemoryChunk.user_id == user_id_int,  # Now using integer
+                MemoryMetadata.key == "type",
+                MemoryMetadata.value == "summary"
+            )
+            .order_by(desc(MemoryChunk.created_at))
+            .limit(1)
+        )
+
+        result = await session.execute(stmt)
+        chunk = result.scalar_one_or_none()
+        return chunk.content if chunk else ""
+
+
+async def query_ltm(user_id: str, tags: List[str] = None) -> List[Dict]:
+    """Query long-term memory with optional tags."""
+    async with AsyncSessionLocal() as session:
+        # Convert user_id string to int
+        user_id_int = int(user_id)
+
+        # Base query
+        stmt = (
+            select(MemoryChunk)
+            .join(MemoryMetadata)
+            .where(
+                MemoryChunk.user_id == user_id_int,  # Now using integer
+                MemoryMetadata.key == "type",
+                MemoryMetadata.value == "ltm"
+            )
+        )
+
+        # Add tag filtering if specified
+        if tags:
+            # Add additional joins for tag metadata
+            stmt = stmt.join(MemoryMetadata,
+                             MemoryMetadata.key == "tag",
+                             MemoryMetadata.value.in_(tags))
+
+        result = await session.execute(stmt)
+        chunks = result.scalars().all()
+
+        # Format results
+        return [{"content": chunk.content, "metadata": {
+            meta.key: meta.value for meta in chunk.meta_entries
+        }} for chunk in chunks]
+
+
+async def add_ltm_entry(user_id: str, entry: dict) -> None:
+    """Add a structured long-term memory entry."""
+    async with AsyncSessionLocal() as session:
+        # Convert user_id string to int
+        user_id_int = int(user_id)
+
+        # Create the memory chunk
+        chunk_data = {
+            "user_id": user_id_int,  # Now using integer
+            "content": entry.get("content"),
+            "created_at": datetime.utcnow()
+        }
+        chunk = await add_record(session, MemoryChunk, chunk_data)
+
+        # Add metadata entries
+        metadata_entries = [
+            {"chunk_id": chunk.id, "key": "type", "value": "ltm"},
+            {"chunk_id": chunk.id, "key": "timestamp",
+             "value": datetime.now(timezone.utc).isoformat()}
+        ]
+
+        # Add any additional metadata from entry
+        for key, value in entry.items():
+            if key != "content":
+                metadata_entries.append({
+                    "chunk_id": chunk.id,
+                    "key": key,
+                    "value": str(value)
+                })
+
+        for metadata in metadata_entries:
+            await add_record(session, MemoryMetadata, metadata)
 
 
 # def save_conversation_state(conversation_id: str, state: dict) -> None:

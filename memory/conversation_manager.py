@@ -1,57 +1,76 @@
-from datetime import datetime, timedelta, timezone
+"""
+Manages conversation state, IDs, and archival logic.
+Uses the new database structure for persistence.
+"""
+from datetime import datetime, timedelta
 import hashlib
+from typing import Optional
 
 from memory.memory_storage import store_summary
 from memory.summary_engine import summarize_and_archive
-"""
-Handles conversation ID generation and expiration logic.
-"""
-
-CONVERSATION_TTL_MINUTES = 30
 
 
-def get_conversation_id(user_id: str, input_text: str) -> str:
+def get_conversation_id(user_id: str, message: str) -> str:
     """
-    Generate or retrieve the appropriate conversation ID.
+    Generate a unique conversation ID using SHA256 hash.
+    This ensures consistent IDs for the same user+message combination.
 
     Args:
-        user_id (str): ID of the user
-        input_text (str): Current input message
+        user_id (str): Unique identifier for the user
+        message (str): The message content
 
     Returns:
-        str: Conversation ID
+        str: SHA256 hash to use as conversation ID
     """
-    hash_input = f"{user_id}-{input_text[:50]}"
+    # Combine user_id and message with a colon separator
+    hash_input = f"{user_id}:{message}"
+    # Generate SHA256 hash and return as hex string
     return hashlib.sha256(hash_input.encode()).hexdigest()
 
 
-def should_resume_conversation(timestamp: datetime) -> bool:
+def should_resume_conversation(last_timestamp: Optional[datetime]) -> bool:
     """
-    Decide whether a conversation should be resumed or reset.
+    Determine if a conversation should be resumed based on its last activity.
+    Uses a 30-minute window for conversation continuity.
+
+    Logic:
+    1. If no timestamp exists (new conversation) -> False
+    2. If last activity was < 30 mins ago -> True
+    3. If last activity was > 30 mins ago -> False
 
     Args:
-        timestamp (datetime): Time of last interaction
+        last_timestamp: When the conversation was last updated (from database)
 
     Returns:
-        bool: True if still valid, False if expired
+        bool: True if conversation should be resumed
     """
-    if timestamp is None:
+    # Handle case where no previous conversation exists
+    if not last_timestamp:
         return False
-    else:
-        return (datetime.now(timezone.utc) - timestamp) < timedelta(minutes=CONVERSATION_TTL_MINUTES)
+
+    # Define cutoff time (30 minutes ago)
+    cutoff = datetime.utcnow() - timedelta(minutes=30)
+
+    # Compare last activity to cutoff
+    # If last_timestamp > cutoff, the conversation is recent enough to resume
+    return last_timestamp > cutoff
 
 
-def expire_conversation(conversation_id: str) -> None:
+async def archive_conversation(conversation_id: str, user_id: str) -> None:
     """
-    Expire a conversation and trigger summarization if needed.
+    Archive a conversation by generating and storing a summary.
+    This is an async operation because it involves database access.
+
+    Steps:
+    1. Generate summary from conversation messages
+    2. Store the summary for future context
 
     Args:
-        conversation_id (str): ID to expire
+        conversation_id: ID of conversation to archive
+        user_id: User the conversation belongs to
     """
-    try:
-        summary = summarize_and_archive(conversation_id)
-        store_summary(conversation_id, summary)
-        print(
-            f"[ConversationManager] Expired and summarized conversation {conversation_id}")
-    except Exception as e:
-        print(f"[ConversationManager] Error during expiration: {e}")
+    # Generate summary (async operation)
+    summary = await summarize_and_archive(conversation_id)
+
+    # Store the summary in the database (async operation)
+    await store_summary(user_id, summary)

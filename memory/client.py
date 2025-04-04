@@ -1,177 +1,146 @@
 """
 Vector database client interfaces and implementations.
 """
+from datetime import datetime
 import logging
-from typing import List, Dict, Any
+from typing import List, Optional
 import numpy as np
-from sqlalchemy import create_engine, Column, Integer, String, JSON
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
+from database.models.memory_chunk import MemoryChunk
+from database.session import AsyncSessionLocal
+from database.crud.utils import add_record, filter_by
 from memory.interface import MemoryInterface
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-Base = declarative_base()
-
-
-class MemoryRecord(Base):
-    """
-    SQLAlchemy ORM model for memory records.
-    Represents a table in the database to store vector embeddings and associated data.
-    """
-    __tablename__ = 'memory_records'
-    id = Column(Integer, primary_key=True)
-    vector = Column(JSON)  # Store vector as JSON
-    document = Column(String)
-    meta_data = Column(JSON)
-    user_id = Column(Integer)
-    content = Column(String)
-
 
 class MemoryDBClient:
-    """Base interface for memory database clients"""
+    """
+    Handles database operations for memory storage and retrieval.
 
-    def __init__(self, db_url: str):
-        """
-        Initialize the SQLAlchemy engine and session.
+    Inputs:
+    - embedding_model: Model with `.embed_text(text) -> list[float]` method
 
-        Args:
-            db_url (str): Database connection URL.
-        """
-        self.engine = create_engine(db_url)
-        Base.metadata.create_all(self.engine)
-        self.Session = sessionmaker(bind=self.engine)
-        logger.info("Initialized MemoryDBClient with database URL: %s", db_url)
+    Core responsibilities:
+    - Embedding content
+    - Using CRUD utils for database operations
+    """
+
+    def __init__(self, embedding_model=None):
+        self.embedding_model = embedding_model
+        logger.info("MemoryDBClient initialized")
 
     def embed_text(self, text: str) -> np.ndarray:
         """
-        Convert text to vector embeddings.
+        Converts input text into an embedding vector.
 
         Args:
-            text (str): The input text to be embedded.
+            text (str): Input string to embed.
 
         Returns:
-            np.ndarray: A numpy array representing the text embedding.
+            np.ndarray: Embedding as numpy array.
         """
-        # Use your embedding model here
-        # Example using a hypothetical embedding model
         embedding = self.embedding_model.embed_text(text)
-        logger.debug("Embedded text: %s", text)
         return np.array(embedding)
 
-    def add_record(self, user_id: int, content: str, metadata: dict):
+    async def add_record(self, user_id: int, content: str, vector: np.ndarray, metadata: dict) -> None:
         """
-        Add a record to the database.
+        Stores a new memory record using the CRUD utils.
 
         Args:
-            user_id (int): The ID of the user associated with the record.
-            content (str): The content to be stored.
-            metadata (dict): Additional metadata for the record.
+            user_id (int): User this content belongs to.
+            content (str): Original text.
+            vector (np.ndarray): Embedding of the content.
+            metadata (dict): Additional contextual metadata.
 
         Returns:
             None
         """
-        session = self.Session()
-        memory_record = MemoryRecord(
-            user_id=user_id,
-            content=content,
-            meta_data=metadata
-        )
-        session.add(memory_record)
-        session.commit()
-        session.close()
-        logger.info("Added record for user_id: %d with content: %s",
-                    user_id, content)
+        async with AsyncSessionLocal() as session:
+            data = {
+                "user_id": user_id,
+                "content": content,
+                "embedding": vector.tolist(),  # Convert numpy array to list
+                "created_at": datetime.utcnow()
+            }
+            await add_record(session, MemoryChunk, data)
+            logger.info("Added memory record for user_id=%d", user_id)
 
-    def query_records(self, user_id: int, query: str, n_results: int):
+    async def query_records(self, user_id: int, query: str, n_results: int) -> List[MemoryChunk]:
         """
-        Query the database for similar records.
+        Queries memory records using CRUD utils.
 
         Args:
-            user_id (int): The ID of the user to query records for.
-            query (str): The search query string.
-            n_results (int): The number of results to return.
+            user_id (int): The user to restrict results to.
+            query (str): Text query to search for in content.
+            n_results (int): Max number of results to return.
 
         Returns:
-            List[MemoryRecord]: A list of memory records matching the query.
+            List[MemoryChunk]: Matching memory records.
         """
-        session = self.Session()
-        # Implement a simple text search logic
-        results = session.query(MemoryRecord).filter(
-            MemoryRecord.user_id == user_id,
-            MemoryRecord.content.ilike(f"%{query}%")
-        ).limit(n_results).all()
-        session.close()
-        logger.info("Queried records for user_id: %d with query: '%s', found: %d results",
-                    user_id, query, len(results))
-        return results
+        async with AsyncSessionLocal() as session:
+            # Note: This is a simplified query. You might want to add vector similarity search
+            records = await filter_by(
+                session,
+                MemoryChunk,
+                user_id=user_id,
+                limit=n_results
+            )
+            logger.info("Found %d matching records for query='%s'",
+                        len(records), query)
+            return records
 
 
 class VectorMemory(MemoryInterface):
-    def __init__(self, client: MemoryDBClient):
-        """
-        Initialize VectorMemory with a database client.
+    """
+    High-level memory component used by the agent.
 
-        Args:
-            client (MemoryDBClient): The database client to use.
-        """
+    Wraps the database client to:
+    - Automatically embed new inputs
+    - Fetch similar memory records for reasoning
+
+    Args:
+        client (MemoryDBClient): Underlying storage and embedder.
+        user_id (int): The user associated with this memory instance.
+    """
+
+    def __init__(self, client: MemoryDBClient, user_id: int):
         self.client = client
+        self.user_id = user_id
 
-    def add(self, content: str, metadata: dict):
+    async def add(self, content: str, metadata: dict) -> None:
         """
-        Add content to the memory database.
+        Adds new content to long-term memory.
+
+        Steps:
+        - Embed the text
+        - Store the vector and metadata
 
         Args:
-            content (str): The content to be added.
-            metadata (dict): Additional metadata for the content.
+            content (str): Text to remember.
+            metadata (dict): Context about the content (e.g. source, type).
 
         Returns:
             None
         """
         vector = self.client.embed_text(content)
-        self.client.add_record(vector, content, metadata)
+        await self.client.add_record(self.user_id, content, vector, metadata)
 
-    def query(self, query: str, k: int):
+    async def query(self, query: str, k: int) -> List[MemoryChunk]:
         """
-        Query the memory database.
+        Retrieves memory records similar to a given query.
+
+        (Currently uses simple ILIKE search, not vector similarity.)
 
         Args:
-            query (str): The search query string.
-            k (int): The number of results to return.
+            query (str): Text to search for.
+            k (int): Max number of results.
 
         Returns:
-            List[MemoryRecord]: A list of memory records matching the query.
+            List[MemoryChunk]: Relevant past memory chunks.
         """
-        query_vector = self.client.embed_text(query)
-        return self.client.query_records(query_vector, n_results=k)
-
-
-def save_to_database(entry: dict) -> None:
-    """
-    Save an entry to the database.
-
-    Args:
-        entry (dict): The entry to be saved.
-
-    Returns:
-        None
-    """
-    # Implementation for database storage
-    pass
-
-
-def query_database(query: dict) -> list:
-    """
-    Query the database for entries.
-
-    Args:
-        query (dict): The query parameters.
-
-    Returns:
-        list: A list of query results.
-    """
-    # Implementation for database querying
-    pass
+        return await self.client.query_records(self.user_id, query, k)
