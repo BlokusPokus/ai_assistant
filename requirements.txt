@@ -1,3 +1,51 @@
-google-generativeai  # For Gemini LLM
-jsonschema          # For tool validation
-pydantic            # For data models 
+# Core web framework
+fastapi>=0.104.1
+uvicorn>=0.24.0
+python-multipart>=0.0.6
+
+# Authentication and Security
+PyJWT>=2.8.0
+bcrypt>=4.1.2
+passlib>=1.7.4
+
+# Database
+sqlalchemy>=2.0.39
+asyncpg>=0.30.0
+psycopg2-binary>=2.9.10
+
+# HTTP and API
+aiohttp>=3.11.14
+aiohttp-retry>=2.9.1
+httpx>=0.28.1
+requests>=2.32.3
+
+# Google AI services
+google-generativeai>=0.8.4
+google-ai-generativelanguage>=0.6.15
+google-api-python-client>=2.165.0
+google-auth>=2.38.0
+
+# Twilio integration
+twilio>=8.10.0
+
+# Data processing
+pydantic>=2.7.0
+pydantic-settings>=2.10.1
+numpy>=2.2.4
+
+# Utilities
+python-dotenv>=1.0.0
+click>=8.2.1
+tqdm>=4.67.1
+
+# Development and testing
+pytest>=8.4.1
+pytest-asyncio>=1.1.0
+pylint>=3.3.6
+isort>=6.0.1
+
+# Redis (if you're using it)
+redis>=6.2.0
+
+# Celery (if you're using it for background tasks)
+celery>=5.5.3

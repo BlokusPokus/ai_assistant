@@ -2,14 +2,24 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Run Agent",
+      "type": "python",
+      "request": "launch",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      },
+      "program": "src/personal_assistant/core/agent.py",
+      "args": []
+    },
+    {
       "name": "Debug Agent Core",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/agent_core/core.py",
+      "program": "${workspaceFolder}/src/personal_assistant/core/agent.py",
       "console": "integratedTerminal",
       "justMyCode": false,
       "env": {
-        "PYTHONPATH": "${workspaceFolder}"
+        "PYTHONPATH": "${workspaceFolder}/src"
       }
     },
     {
@@ -20,7 +30,7 @@
       "console": "integratedTerminal",
       "justMyCode": false,
       "env": {
-        "PYTHONPATH": "${workspaceFolder}"
+        "PYTHONPATH": "${workspaceFolder}/src"
       }
     },
     {
@@ -33,6 +43,17 @@
         "doc/container_diagram.md"
       ],
       "renderType": "markdown"
+    },
+    {
+      "name": "Debug FastAPI (Uvicorn)",
+      "type": "python",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["src.apps.fastapi_app.main:app", "--reload"],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      },
+      "jinja": true
     }
   ]
 }
