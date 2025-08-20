@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Integer, String, Boolean, Text
+from sqlalchemy import Column, DateTime, Integer, String, Boolean, Text, ForeignKey
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -27,6 +27,11 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow,
                         onupdate=datetime.utcnow)
 
+    # RBAC fields
+    default_role_id = Column(Integer, ForeignKey('roles.id'), nullable=True)
+    role_assigned_at = Column(DateTime, nullable=True)
+    role_assigned_by = Column(Integer, ForeignKey('users.id'), nullable=True)
+
     # Add relationship to memory chunks
     memory_chunks = relationship(
         "MemoryChunk", back_populates="user", cascade="all, delete-orphan")
@@ -46,3 +51,17 @@ class User(Base):
     # Add relationship to security events
     security_events = relationship(
         "SecurityEvent", back_populates="user", cascade="all, delete-orphan")
+
+    # RBAC relationships - simplified to avoid circular references
+    user_roles = relationship(
+        "UserRole",
+        foreign_keys="UserRole.user_id",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    access_audit_logs = relationship(
+        "AccessAuditLog",
+        foreign_keys="AccessAuditLog.user_id",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )

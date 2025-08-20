@@ -18,6 +18,7 @@ from personal_assistant.database.session import AsyncSessionLocal
 from personal_assistant.database.models.users import User
 from personal_assistant.database.models.mfa_models import SecurityEvent
 from personal_assistant.auth.session_service import SessionService
+from personal_assistant.auth.decorators import require_permission, require_ownership
 from personal_assistant.config.redis import get_async_session_redis
 
 # Create router
@@ -92,6 +93,7 @@ async def get_session_service() -> SessionService:
 
 
 @router.get("/", response_model=List[SessionInfo])
+@require_permission("user", "read")
 async def get_user_sessions(
     request: Request,
     current_user: User = Depends(get_current_user),
@@ -154,6 +156,7 @@ async def get_session_stats(
 
 
 @router.delete("/{session_id}")
+@require_permission("user", "update")
 async def invalidate_session(
     session_id: str,
     request: Request,

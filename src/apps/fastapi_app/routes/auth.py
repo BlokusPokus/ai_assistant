@@ -20,6 +20,7 @@ from personal_assistant.database.models.auth_tokens import AuthToken
 from personal_assistant.auth.jwt_service import jwt_service
 from personal_assistant.auth.password_service import password_service
 from personal_assistant.auth.auth_utils import AuthUtils, security
+from personal_assistant.auth.decorators import require_permission, require_ownership
 from personal_assistant.config.settings import settings
 
 # Create router
@@ -411,7 +412,10 @@ async def logout(
 
 
 @router.get("/me", response_model=UserResponse)
+@require_permission("user", "read")
 async def get_current_user_info(
+    request: Request,
+    db: AsyncSession = Depends(AsyncSessionLocal),
     current_user: User = Depends(get_current_user)
 ):
     """

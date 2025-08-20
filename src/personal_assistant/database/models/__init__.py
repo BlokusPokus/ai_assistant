@@ -26,6 +26,9 @@ from .user_settings import UserSetting
 # New MFA and Session Management models
 from .mfa_models import MFAConfiguration, UserSession, SecurityEvent
 
+# RBAC models
+from .rbac_models import Role, Permission, RolePermission, UserRole, AccessAuditLog
+
 __all__ = [
     "Base",
     "User",
@@ -52,5 +55,11 @@ __all__ = [
     "UserSetting",
     "MFAConfiguration",
     "UserSession",
-    "SecurityEvent"
+    "SecurityEvent",
+    # RBAC models
+    "Role",
+    "Permission",
+    "RolePermission",
+    "UserRole",
+    "AccessAuditLog"
 ]

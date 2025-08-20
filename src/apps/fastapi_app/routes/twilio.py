@@ -2,13 +2,50 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import PlainTextResponse
 from typing import Optional
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 from personal_assistant.config.settings import settings
 from personal_assistant.llm.gemini import GeminiLLM
 from personal_assistant.tools import create_tool_registry
 from personal_assistant.communication.twilio_integration.twilio_client import TwilioService
+from personal_assistant.auth.decorators import require_permission
+from personal_assistant.database.session import AsyncSessionLocal
+from personal_assistant.database.models.users import User
 from personal_assistant.core import AgentCore
 from fastapi.responses import Response
 router = APIRouter(prefix="/twilio", tags=["twilio"])
+
+# Database dependency
+
+
+async def get_db() -> AsyncSession:
+    """Get database session."""
+    async with AsyncSessionLocal() as session:
+        yield session
+
+# Authentication dependency
+
+
+async def get_current_user(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+) -> User:
+    """Get current authenticated user."""
+    if not hasattr(request.state, 'authenticated') or not request.state.authenticated:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required"
+        )
+
+    user_id = request.state.user_id
+    user = await db.get(User, user_id)
+
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="User not found"
+        )
+
+    return user
 
 # Dependency to get TwilioService instance
 
@@ -44,8 +81,11 @@ async def twilio_webhook(
 
 
 @router.post("/send", response_model=dict)
+@require_permission("system", "send_sms")
 async def send_sms(
+    request_obj: Request,
     request: SMSRequest,
+    current_user: User = Depends(get_current_user),
     twilio_service: TwilioService = Depends(get_twilio_service)
 ):
     """

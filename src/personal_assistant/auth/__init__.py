@@ -1,16 +1,54 @@
 """
-Authentication module for the Personal Assistant platform.
+Authentication and Authorization Module.
 
-This module provides JWT-based authentication, password management,
-and user authentication services.
+This module provides comprehensive authentication and authorization
+services including JWT tokens, MFA, sessions, and RBAC.
 """
 
-from .jwt_service import JWTService
-from .password_service import PasswordService
+from .jwt_service import jwt_service
+from .password_service import password_service
+from .mfa_service import MFAService
+from .sms_mfa import SMSMFAService
+from .session_service import SessionService
 from .auth_utils import AuthUtils
+from .permission_service import PermissionService
+from .decorators import (
+    require_permission,
+    require_role,
+    require_ownership,
+    require_any_role,
+    require_user_permission,
+    require_memory_permission,
+    require_task_permission,
+    require_note_permission,
+    require_event_permission,
+    require_system_permission,
+    require_rbac_permission,
+    require_admin,
+    require_premium,
+    require_authenticated
+)
 
 __all__ = [
-    "JWTService",
-    "PasswordService",
-    "AuthUtils"
+    "jwt_service",
+    "password_service",
+    "MFAService",
+    "SMSMFAService",
+    "SessionService",
+    "AuthUtils",
+    "PermissionService",
+    "require_permission",
+    "require_role",
+    "require_ownership",
+    "require_any_role",
+    "require_user_permission",
+    "require_memory_permission",
+    "require_task_permission",
+    "require_note_permission",
+    "require_event_permission",
+    "require_system_permission",
+    "require_rbac_permission",
+    "require_admin",
+    "require_premium",
+    "require_authenticated"
 ]

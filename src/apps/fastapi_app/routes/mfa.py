@@ -21,6 +21,7 @@ from personal_assistant.database.models.mfa_models import MFAConfiguration, Secu
 from personal_assistant.auth.mfa_service import MFAService
 from personal_assistant.auth.sms_mfa import SMSMFAService
 from personal_assistant.auth.jwt_service import jwt_service
+from personal_assistant.auth.decorators import require_permission
 from personal_assistant.config.settings import settings
 
 # Create router
@@ -120,6 +121,7 @@ sms_mfa_service = SMSMFAService()  # TODO: Inject actual Twilio client
 
 
 @router.post("/setup/totp", response_model=TOTPSetupResponse)
+@require_permission("user", "update")
 async def setup_totp(
     request: Request,
     current_user: User = Depends(get_current_user),
@@ -443,7 +445,9 @@ async def verify_backup_code(
 
 
 @router.get("/status", response_model=MFAStatusResponse)
+@require_permission("user", "read")
 async def get_mfa_status(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -483,7 +487,9 @@ async def get_mfa_status(
 
 
 @router.post("/disable")
+@require_permission("user", "update")
 async def disable_mfa(
+    request_obj: Request,
     request: DisableMFARequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
