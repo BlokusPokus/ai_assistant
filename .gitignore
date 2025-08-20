@@ -2,6 +2,7 @@
 # 🚫 FILES TO IGNORE (Never commit these)
 # ========================================
 
+.personal_assistant/tasks/
 # Python bytecode and cache
 __pycache__/
 *.py[cod]

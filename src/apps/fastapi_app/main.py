@@ -6,6 +6,7 @@ from personal_assistant.config.settings import settings
 from apps.fastapi_app.middleware.auth import AuthMiddleware
 from apps.fastapi_app.middleware.rate_limiting import RateLimitingMiddleware
 from apps.fastapi_app.routes import twilio, auth, mfa, sessions, rbac
+from personal_assistant.config.monitoring import monitoring_router
 
 app = FastAPI(
     title="Personal Assistant API",
@@ -34,6 +35,9 @@ app.include_router(auth.router)
 app.include_router(mfa.router)
 app.include_router(sessions.router)
 app.include_router(rbac.router)
+
+# Include health monitoring router
+app.include_router(monitoring_router)
 
 # TODO: Add these routes when they are created
 # from .routes import events, users
