@@ -1,31 +1,202 @@
-# Ignore Python bytecode
+# ========================================
+# 🚫 FILES TO IGNORE (Never commit these)
+# ========================================
+
+# Python bytecode and cache
 __pycache__/
 *.py[cod]
-
-# Ignore environment files
-.env
-
-# Ignore logs
-*.log
-
-# Ignore virtual environments
-venv/
-env/
-venv_personal_assistant/
-
-# Ignore system files
-.DS_Store
-
-# Ignore IDE/editor specific files
-.vscode/
-.idea/
-
-# Ignore compiled libraries
+*$py.class
 *.so
 *.dylib
 *.dll
-
-# Ignore test coverage files
+.pytest_cache/
 .coverage
 *.cover
-coverage.xml 
+coverage.xml
+htmlcov/
+*.egg-info/
+personal_assistant.egg-info/
+
+# Virtual environments
+venv/
+env/
+venv_personal_assistant/
+.venv/
+.env/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+*.env
+config/*.env
+!config/env.example
+
+# Logs and temporary files
+*.log
+logs/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.psql
+*.postgresql
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# ========================================
+# 🗑️ FILES SAFE TO DELETE (Clean up these)
+# ========================================
+
+# Temporary test files
+test_*.py
+*_test.py
+test_fix.py
+test_rag_improvements.py
+test_ltm_tool_fix.py
+test_phase3_features.py
+test_ltm_debug.py
+test_ltm_tag_system.py
+test_basic_ltm.py
+test_ltm_integration_simple.py
+example_ltm_workflow.py
+test_agent_ltm_integration.py
+fix_all_imports.py
+fix_imports.py
+test_internet_youtube_tools.py
+test_real_memory.py
+test_memory_debug.py
+test_duckduckgo_integration.py
+cleanup_old_ai_tasks.py
+check_ai_tasks.py
+test_research_tool.py
+test_youtube_tool.py
+test_duckduckgo_standalone.py
+test_duckduckgo_simple.py
+test_prompt_formatting.py
+test_task_processing.py
+test_logging_setup.py
+test_tool_registry.py
+test_reminder_tool.py
+test_ai_scheduler.py
+test_state_management_phase2.py
+test_state_management_phase1.py
+test_integration.py
+test_state_loading.py
+test_content_truncation.py
+test_memory_storage.py
+test_context_loading.py
+test_conversation_continuity.py
+debug_conversation_flow.py
+test_conversation_preservation.py
+test_ltm_creation.py
+
+# Debug and analysis files
+DEBUG_SETUP.md
+DEV_SETUP.md
+MIGRATION_README.md
+memory_system_analysis.md
+PROJECT_STRUCTURE_COMPLETE.txt
+RAG_IMPROVEMENTS_SUMMARY.md
+ltm_migration.log
+database_config.example
+current_packages.txt
+refresh_token.txt
+
+# Utility scripts (keep only essential ones)
+setup_dev.py
+run_server.py
+activate_rag.py
+
+# Database schema files (keep only current versions)
+database_schema_ddl.sql
+database_schema_report.txt
+database_schema_ddl_v2.sql
+database_schema_report_v2.txt
+extract_database_schema.py
+extract_database_schema_v2.py
+database_indexes.sql
+
+# Test requirements (keep only main requirements.txt)
+requirements_internet_youtube.txt
+
+# Test utilities
+utils.py
+debug_conversation_flow.py
+
+# ========================================
+# 📝 NOTES
+# ========================================
+
+# Keep these important files:
+# - requirements.txt (main dependencies)
+# - setup.py (package configuration)
+# - README.md (project documentation)
+# - docs/ (documentation)
+# - src/ (source code)
+# - scripts/ (essential scripts)
+# - config/env.example (environment template)
+# - .gitignore (this file)
+
+# The files in "SAFE TO DELETE" section can be removed to clean up the repository
+# but they won't break the core functionality if kept. 

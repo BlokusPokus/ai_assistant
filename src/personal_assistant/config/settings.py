@@ -106,6 +106,25 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     PASSWORD_SALT_ROUNDS: int = 12
 
+    # MFA Configuration
+    MFA_TOTP_ISSUER: str = "Personal Assistant TDAH"
+    MFA_TOTP_WINDOW: int = 1                    # 30-second window tolerance
+    MFA_SMS_RATE_LIMIT: int = 3                 # Max SMS attempts per window
+    MFA_SMS_RATE_WINDOW_MINUTES: int = 10       # Rate limiting window
+    MFA_BACKUP_CODES_COUNT: int = 10            # Number of backup codes
+    MFA_TRUSTED_DEVICE_DAYS: int = 30           # Remember trusted devices
+
+    # Session Management
+    SESSION_EXPIRY_HOURS: int = 24              # Session lifetime
+    SESSION_MAX_CONCURRENT: int = 5              # Max sessions per user
+    SESSION_REDIS_DB: int = 1                    # Redis database for sessions
+    SESSION_CLEANUP_INTERVAL: int = 3600         # Cleanup interval in seconds
+
+    # Security Settings
+    SECURITY_AUDIT_ENABLED: bool = True          # Enable security event logging
+    SECURITY_IP_WHITELIST: str = ""              # IP addresses to trust
+    SECURITY_DEVICE_TRACKING: bool = True        # Track device information
+
     # Rate limiting settings
     RATE_LIMIT_LOGIN_ATTEMPTS: int = 5
     RATE_LIMIT_LOGIN_WINDOW_MINUTES: int = 15
