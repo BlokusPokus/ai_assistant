@@ -104,14 +104,14 @@
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   FastAPI App   │    │   MFA Service   │    │ Session Service │
 │                 │    │                 │    │                 │
-│  /api/v1/mfa/  │◄──►│  TOTP + SMS    │    │  Redis Storage  │
-│  /api/v1/sessions/│    │  + Backup Codes │    │  + Device Info  │
+│  /api/v1/mfa/   │◄──►│  TOTP + SMS     │    │  Redis Storage  │
+│/api/v1/sessions/│    │  + Backup Codes │    │  + Device Info  │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  PostgreSQL    │    │   Twilio SMS   │    │   Redis Cache   │
-│  MFA Tables    │    │   Integration   │    │   Sessions     │
+│  PostgreSQL     │    │   Twilio SMS    │    │   Redis Cache   │
+│  MFA Tables     │    │   Integration   │    │   Sessions      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
