@@ -1,0 +1,220 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database - Staging
+  postgres:
+    image: postgres:15-alpine
+    container_name: personal_assistant_postgres_stage
+    environment:
+      POSTGRES_DB: personal_assistant_stage
+      POSTGRES_USER: stage_user
+      POSTGRES_PASSWORD: ${STAGE_DB_PASSWORD:-stage_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data_stage:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "5433:5432" # Different port to avoid conflicts
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U stage_user -d personal_assistant_stage"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - personal_assistant_stage_network
+
+  # Redis Cache and Queue - Staging
+  redis:
+    image: redis:7-alpine
+    container_name: personal_assistant_redis_stage
+    command: redis-server --appendonly yes --requirepass ${STAGE_REDIS_PASSWORD:-stage_redis_password}
+    volumes:
+      - redis_data_stage:/data
+    ports:
+      - "6380:6379" # Different port to avoid conflicts
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - personal_assistant_stage_network
+
+  # Personal Assistant API - Staging
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production # Use production target for staging
+    container_name: personal_assistant_api_stage
+    environment:
+      - ENVIRONMENT=staging
+      - DEBUG=false
+      - REAL_DB_URL=postgresql+asyncpg://stage_user:${STAGE_DB_PASSWORD:-stage_password}@postgres:5432/personal_assistant_stage
+      - DATABASE_URL=postgresql+asyncpg://stage_user:${STAGE_DB_PASSWORD:-stage_password}@postgres:5432/personal_assistant_stage
+      - CELERY_BROKER_URL=redis://:${STAGE_REDIS_PASSWORD:-stage_redis_password}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${STAGE_REDIS_PASSWORD:-stage_redis_password}@redis:6379/0
+      - REDIS_URL=redis://:${STAGE_REDIS_PASSWORD:-stage_redis_password}@redis:6379/0
+      - DB_POOL_SIZE=20
+      - DB_MAX_OVERFLOW=30
+      - DB_POOL_TIMEOUT=30
+      - DB_POOL_RECYCLE=3600
+      - DB_POOL_PRE_PING=true
+      - DB_SLOW_QUERY_THRESHOLD_MS=100
+      - DB_TABLE_BLOAT_THRESHOLD=20.0
+      - DB_INDEX_USAGE_THRESHOLD=10.0
+      - DB_POOL_EFFICIENCY_THRESHOLD=80.0
+      - DB_QUERY_RESPONSE_P95_THRESHOLD=100
+    volumes:
+      - ../src:/app/src:ro
+      - ../config:/app/config:ro
+      - ../logs:/app/logs
+    ports:
+      - "8001:8000" # Different port to avoid conflicts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/overall"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - personal_assistant_stage_network
+
+  # Celery Worker for Background Tasks - Staging
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+    container_name: personal_assistant_worker_stage
+    environment:
+      - ENVIRONMENT=staging
+      - DEBUG=false
+      - REAL_DB_URL=postgresql+asyncpg://stage_user:${STAGE_DB_PASSWORD:-stage_password}@postgres:5432/personal_assistant_stage
+      - DATABASE_URL=postgresql+asyncpg://stage_user:${STAGE_DB_PASSWORD:-stage_password}@postgres:5432/personal_assistant_stage
+      - CELERY_BROKER_URL=redis://:${STAGE_REDIS_PASSWORD:-stage_redis_password}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${STAGE_REDIS_PASSWORD:-stage_redis_password}@redis:6379/0
+      - REDIS_URL=redis://:${STAGE_REDIS_PASSWORD:-stage_redis_password}@redis:6379/0
+    volumes:
+      - ../src:/app/src:ro
+      - ../config:/app/config:ro
+      - ../logs:/app/logs
+    command:
+      [
+        "celery",
+        "-A",
+        "personal_assistant.workers.celery_app",
+        "worker",
+        "--loglevel=info",
+        "--concurrency=2",
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - personal_assistant_stage_network
+
+  # Celery Beat Scheduler - Staging
+  scheduler:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+    container_name: personal_assistant_scheduler_stage
+    environment:
+      - ENVIRONMENT=staging
+      - DEBUG=false
+      - REAL_DB_URL=postgresql+asyncpg://stage_user:${STAGE_DB_PASSWORD:-stage_password}@postgres:5432/personal_assistant_stage
+      - DATABASE_URL=postgresql+asyncpg://stage_user:${STAGE_DB_PASSWORD:-stage_password}@postgres:5432/personal_assistant_stage
+      - CELERY_BROKER_URL=redis://:${STAGE_REDIS_PASSWORD:-stage_redis_password}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${STAGE_REDIS_PASSWORD:-stage_redis_password}@redis:6379/0
+      - REDIS_URL=redis://:${STAGE_REDIS_PASSWORD:-stage_redis_password}@redis:6379/0
+    volumes:
+      - ../src:/app/src:ro
+      - ../config:/app/config:ro
+      - ../logs:/app/logs
+    command:
+      [
+        "celery",
+        "-A",
+        "personal_assistant.workers.celery_app",
+        "beat",
+        "--loglevel=info",
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - personal_assistant_stage_network
+
+  # Monitoring Stack - Staging
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: personal_assistant_prometheus_stage
+    ports:
+      - "9091:9090" # Different port to avoid conflicts
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data_stage:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+    restart: unless-stopped
+    networks:
+      - personal_assistant_stage_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: personal_assistant_grafana_stage
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${STAGE_GRAFANA_PASSWORD:-stage_admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3001:3000" # Different port to avoid conflicts
+    volumes:
+      - grafana_data_stage:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - personal_assistant_stage_network
+
+volumes:
+  postgres_data_stage:
+    driver: local
+  redis_data_stage:
+    driver: local
+  prometheus_data_stage:
+    driver: local
+  grafana_data_stage:
+    driver: local
+
+networks:
+  personal_assistant_stage_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16

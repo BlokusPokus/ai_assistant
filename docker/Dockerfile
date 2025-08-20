@@ -15,16 +15,17 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
     gcc \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Create virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy requirements and install Python dependencies
-COPY requirements.txt .
+COPY ../requirements.txt .
 RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt
 
 # ===== STAGE 2: Production Runtime =====
 FROM python:3.11-slim as production
@@ -39,12 +40,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Create non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Install runtime dependencies
+# Install runtime dependencies (minimal set)
 RUN apt-get update && apt-get install -y \
     libpq5 \
     curl \
     && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && apt-get clean \
+    && apt-get autoremove -y
 
 # Copy virtual environment from builder stage
 COPY --from=builder /opt/venv /opt/venv
@@ -53,8 +55,8 @@ COPY --from=builder /opt/venv /opt/venv
 WORKDIR /app
 
 # Copy application code
-COPY src/ ./src/
-COPY config/ ./config/
+COPY ../src/ ./src/
+COPY ../config/ ./config/
 
 # Set proper permissions
 RUN chown -R appuser:appuser /app
@@ -82,7 +84,8 @@ USER root
 RUN apt-get update && apt-get install -y \
     git \
     vim \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Install development Python packages
 RUN pip install --no-cache-dir \
