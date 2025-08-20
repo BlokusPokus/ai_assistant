@@ -34,3 +34,15 @@ class User(Base):
     # Add relationship to auth tokens
     auth_tokens = relationship(
         "AuthToken", back_populates="user", cascade="all, delete-orphan")
+
+    # Add relationship to MFA configuration
+    mfa_configuration = relationship(
+        "MFAConfiguration", back_populates="user", uselist=False, cascade="all, delete-orphan")
+
+    # Add relationship to user sessions
+    sessions = relationship(
+        "UserSession", back_populates="user", cascade="all, delete-orphan")
+
+    # Add relationship to security events
+    security_events = relationship(
+        "SecurityEvent", back_populates="user", cascade="all, delete-orphan")

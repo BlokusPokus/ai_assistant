@@ -1,11 +1,56 @@
+# Database models
 from .base import Base
+from .users import User
+from .auth_tokens import AuthToken
+from .ltm_memory import LTMMemory
 from .memory_chunk import MemoryChunk
 from .memory_metadata import MemoryMetadata
-from .users import User
+from .event_processing_log import EventProcessingLog
+from .agent_logs import AgentLog
+from .ai_tasks import AITask
+from .task_results import TaskResult
+from .grocery_items import GroceryItem
+from .grocery_analysis import GroceryAnalysis
+from .grocery_deals import GroceryDeal
+from .expenses import Expense
+from .expense_category import ExpenseCategory
+from .notes import Note
+from .note_sync_log import NoteSyncLog
+from .events import Event
+from .event_creation_logs import EventCreationLog
+from .tasks import Task
+from .reminders import Reminder
+from .recurrence_patterns import RecurrencePattern
+from .user_settings import UserSetting
+
+# New MFA and Session Management models
+from .mfa_models import MFAConfiguration, UserSession, SecurityEvent
 
 __all__ = [
-    'MemoryChunk',
-    'MemoryMetadata',
-    'User',
-    'Base'
+    "Base",
+    "User",
+    "AuthToken",
+    "LTMMemory",
+    "MemoryChunk",
+    "MemoryMetadata",
+    "EventProcessingLog",
+    "AgentLog",
+    "AITask",
+    "TaskResult",
+    "GroceryItem",
+    "GroceryAnalysis",
+    "GroceryDeal",
+    "Expense",
+    "ExpenseCategory",
+    "Note",
+    "NoteSyncLog",
+    "Event",
+    "EventCreationLog",
+    "Task",
+    "Reminder",
+    "RecurrencePattern",
+    "UserSetting",
+    "MFAConfiguration",
+    "UserSession",
+    "SecurityEvent"
 ]

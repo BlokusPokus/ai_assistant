@@ -5,7 +5,7 @@ from personal_assistant.config.settings import settings
 
 from apps.fastapi_app.middleware.auth import AuthMiddleware
 from apps.fastapi_app.middleware.rate_limiting import RateLimitingMiddleware
-from apps.fastapi_app.routes import twilio, auth
+from apps.fastapi_app.routes import twilio, auth, mfa, sessions
 
 app = FastAPI(
     title="Personal Assistant API",
@@ -31,6 +31,8 @@ app.add_middleware(AuthMiddleware)
 app.include_router(twilio.router)
 # Remove the prefix since it's already defined in the router
 app.include_router(auth.router)
+app.include_router(mfa.router)
+app.include_router(sessions.router)
 
 # TODO: Add these routes when they are created
 # from .routes import events, users

@@ -7,6 +7,9 @@ python-multipart>=0.0.6
 PyJWT>=2.8.0
 bcrypt>=4.1.2
 passlib>=1.7.4
+pyotp>=2.9.0          # TOTP generation and validation
+qrcode[pil]>=7.4.2    # QR code generation
+cryptography>=41.0.0   # Enhanced security features
 
 # Database
 sqlalchemy>=2.0.39
