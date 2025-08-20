@@ -15,7 +15,7 @@ from typing import Optional, Dict, Any
 from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import QueuePool
+from sqlalchemy.pool import AsyncAdaptedQueuePool
 from sqlalchemy import event
 import time
 import asyncio
@@ -93,7 +93,7 @@ class DatabaseConfig:
             self.engine = create_async_engine(
                 database_url,
                 echo=os.getenv("DB_ECHO", "false").lower() == "true",
-                poolclass=QueuePool,
+                poolclass=AsyncAdaptedQueuePool,
                 pool_size=self.pool_size,
                 max_overflow=self.max_overflow,
                 pool_timeout=self.pool_timeout,
@@ -140,22 +140,25 @@ class DatabaseConfig:
         if not self.engine:
             return
 
-        @event.listens_for(self.engine, "connect")
+        # For async engines, we need to use the sync engine for event listeners
+        sync_engine = self.engine.sync_engine
+
+        @event.listens_for(sync_engine, "connect")
         def receive_connect(dbapi_connection, connection_record):
             """Log when a new connection is created."""
             logger.debug("New database connection created")
 
-        @event.listens_for(self.engine, "checkout")
+        @event.listens_for(sync_engine, "checkout")
         def receive_checkout(dbapi_connection, connection_record, connection_proxy):
             """Log when a connection is checked out."""
             logger.debug("Database connection checked out")
 
-        @event.listens_for(self.engine, "checkin")
+        @event.listens_for(sync_engine, "checkin")
         def receive_checkin(dbapi_connection, connection_record):
             """Log when a connection is checked in."""
             logger.debug("Database connection checked in")
 
-        @event.listens_for(self.engine, "close")
+        @event.listens_for(sync_engine, "close")
         def receive_close(dbapi_connection):
             """Log when a connection is closed."""
             logger.debug("Database connection closed")
@@ -217,11 +220,17 @@ class DatabaseConfig:
 
         pool = self.engine.pool
 
-        # Get pool statistics
+        # Get pool statistics - handle both sync and async pools
         checked_in = pool.checkedin()
         checked_out = pool.checkedout()
         overflow = pool.overflow()
-        invalid = pool.invalid()
+
+        # Handle invalid method availability for different pool types
+        try:
+            invalid = pool.invalid()
+        except AttributeError:
+            # AsyncAdaptedQueuePool doesn't have invalid() method
+            invalid = 0
 
         total_connections = checked_in + checked_out + overflow
         utilization_percentage = (checked_out / (self.pool_size + self.max_overflow)) * \
@@ -250,7 +259,8 @@ class DatabaseConfig:
 
             # Test connection
             async with self.get_session_context() as session:
-                await session.execute("SELECT 1")
+                from sqlalchemy import text
+                await session.execute(text("SELECT 1"))
 
             response_time = time.time() - start_time
 

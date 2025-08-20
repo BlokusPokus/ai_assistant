@@ -10,6 +10,7 @@ passlib>=1.7.4
 pyotp>=2.9.0          # TOTP generation and validation
 qrcode[pil]>=7.4.2    # QR code generation
 cryptography>=41.0.0   # Enhanced security features
+email-validator>=2.0.0 # Email validation
 
 # Database
 sqlalchemy>=2.0.39
@@ -28,6 +29,12 @@ google-ai-generativelanguage>=0.6.15
 google-api-python-client>=2.165.0
 google-auth>=2.38.0
 
+# Microsoft services
+msal>=1.28.0          # Microsoft Authentication Library
+
+# Notion integration
+notion-client>=2.2.1   # Notion API client
+
 # Twilio integration
 twilio>=8.10.0
 
@@ -40,6 +47,14 @@ numpy>=2.2.4
 python-dotenv>=1.0.0
 click>=8.2.1
 tqdm>=4.67.1
+jsonschema>=4.21.1    # JSON schema validation
+
+# Internet and search tools
+duckduckgo-search>=4.1.0  # Web search
+ddgs>=1.0.0               # Alternative web search
+
+# YouTube tools
+youtube-transcript-api>=0.6.1  # YouTube transcript extraction
 
 # Development and testing
 pytest>=8.4.1
