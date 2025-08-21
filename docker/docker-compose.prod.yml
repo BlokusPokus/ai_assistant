@@ -152,53 +152,6 @@ services:
           memory: 512M
           cpus: "0.5"
 
-  # Celery Worker for Background Tasks - Production (Scaled)
-  worker:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      target: production
-    container_name: personal_assistant_worker_prod
-    environment:
-      - ENVIRONMENT=production
-      - DEBUG=false
-      - REAL_DB_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@postgres:5432/personal_assistant_prod
-      - DATABASE_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@postgres:5432/personal_assistant_prod
-      - CELERY_BROKER_URL=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
-      - REDIS_URL=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
-    volumes:
-      - ../src:/app/src:ro
-      - ../config:/app/config:ro
-      - ../logs:/app/logs
-    command:
-      [
-        "celery",
-        "-A",
-        "personal_assistant.workers.celery_app",
-        "worker",
-        "--loglevel=info",
-        "--concurrency=4",
-        "--max-tasks-per-child=1000",
-      ]
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - personal_assistant_prod_network
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          memory: 1G
-          cpus: "1.0"
-        reservations:
-          memory: 512M
-          cpus: "0.5"
-
   # Celery Beat Scheduler - Production
   scheduler:
     build:
@@ -333,6 +286,241 @@ services:
       - "16686:16686"
       - "14268:14268"
       - "14250:14250"
+    restart: unless-stopped
+    networks:
+      - personal_assistant_prod_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+
+  # AI Task Worker - Production
+  ai_worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+    container_name: personal_assistant_ai_worker_prod
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - REAL_DB_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@postgres:5432/personal_assistant_prod
+      - DATABASE_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@postgres:5432/personal_assistant_prod
+      - CELERY_BROKER_URL=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+      - REDIS_URL=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+    volumes:
+      - ../src:/app/src:ro
+      - ../config:/app/config:ro
+      - ../logs:/app/logs
+    command:
+      [
+        "celery",
+        "-A",
+        "personal_assistant.workers.celery_app",
+        "worker",
+        "--queues=ai_tasks",
+        "--loglevel=info",
+        "--concurrency=1",
+        "--max-tasks-per-child=1000",
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - personal_assistant_prod_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+
+  # Email Task Worker - Production
+  email_worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+    container_name: personal_assistant_email_worker_prod
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - REAL_DB_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@postgres:5432/personal_assistant_prod
+      - DATABASE_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@postgres:5432/personal_assistant_prod
+      - CELERY_BROKER_URL=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+      - REDIS_URL=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+    volumes:
+      - ../src:/app/src:ro
+      - ../config:/app/config:ro
+      - ../logs:/app/logs
+    command:
+      [
+        "celery",
+        "-A",
+        "personal_assistant.workers.celery_app",
+        "worker",
+        "--queues=email_tasks",
+        "--loglevel=info",
+        "--concurrency=4",
+        "--max-tasks-per-child=1000",
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - personal_assistant_prod_network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+
+  # File Task Worker - Production
+  file_worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+    container_name: personal_assistant_file_worker_prod
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - REAL_DB_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@postgres:5432/personal_assistant_prod
+      - DATABASE_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@postgres:5432/personal_assistant_prod
+      - CELERY_BROKER_URL=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+      - REDIS_URL=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+    volumes:
+      - ../src:/app/src:ro
+      - ../config:/app/config:ro
+      - ../logs:/app/logs
+    command:
+      [
+        "celery",
+        "-A",
+        "personal_assistant.workers.celery_app",
+        "worker",
+        "--queues=file_tasks",
+        "--loglevel=info",
+        "--concurrency=2",
+        "--max-tasks-per-child=1000",
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - personal_assistant_prod_network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+
+  # Sync Task Worker - Production
+  sync_worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+    container_name: personal_assistant_sync_worker_prod
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - REAL_DB_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@postgres:5432/personal_assistant_prod
+      - DATABASE_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@postgres:5432/personal_assistant_prod
+      - CELERY_BROKER_URL=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+      - REDIS_URL=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+    volumes:
+      - ../src:/app/src:ro
+      - ../config:/app/config:ro
+      - ../logs:/app/logs
+    command:
+      [
+        "celery",
+        "-A",
+        "personal_assistant.workers.celery_app",
+        "worker",
+        "--queues=sync_tasks",
+        "--loglevel=info",
+        "--concurrency=2",
+        "--max-tasks-per-child=1000",
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - personal_assistant_prod_network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+
+  # Maintenance Task Worker - Production
+  maintenance_worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+    container_name: personal_assistant_maintenance_worker_prod
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - REAL_DB_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@postgres:5432/personal_assistant_prod
+      - DATABASE_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@postgres:5432/personal_assistant_prod
+      - CELERY_BROKER_URL=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+      - REDIS_URL=redis://:${PROD_REDIS_PASSWORD}@redis:6379/0
+    volumes:
+      - ../src:/app/src:ro
+      - ../config:/app/config:ro
+      - ../logs:/app/logs
+    command:
+      [
+        "celery",
+        "-A",
+        "personal_assistant.workers.celery_app",
+        "worker",
+        "--queues=maintenance_tasks",
+        "--loglevel=info",
+        "--concurrency=1",
+        "--max-tasks-per-child=1000",
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - personal_assistant_prod_network

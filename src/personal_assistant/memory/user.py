@@ -7,14 +7,13 @@ from ..database.models.users import (
 )
 from ..database.session import AsyncSessionLocal
 
-# WILL NEED TO CHANGE THIS TO PHONE NUMBER
-
 
 async def get_user_id_by_phone(phone_number: str) -> int | None:
+    """Get user ID by phone number."""
     async with AsyncSessionLocal() as session:
         result = await session.execute(
-            select(User).where(User.id == 4)
+            select(User.id).where(User.phone_number == phone_number)
         )
-        user = result.scalar_one_or_none()
+        user_id = result.scalar_one_or_none()
 
-        return user.id if user else None
+        return user_id

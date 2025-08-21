@@ -134,7 +134,7 @@ class Settings(BaseSettings):
     # Vector database settings
     VECTOR_DB_URL: str = "http://localhost:6333"
     MAX_MEMORY_RESULTS: int = 15
-    LOOP_LIMIT: int = 20
+    LOOP_LIMIT: int = 4
 
     # State management settings
     DEFAULT_MAX_MEMORY_CONTEXT_SIZE: int = 20  # Maximum items in memory_context
