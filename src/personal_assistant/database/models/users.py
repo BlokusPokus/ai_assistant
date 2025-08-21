@@ -11,6 +11,8 @@ class User(Base):
 
     id = Column(Integer, primary_key=True)
     email = Column(String, unique=True, nullable=False)
+    # Phone number for authentication
+    phone_number = Column(String(20), unique=True, nullable=True)
     full_name = Column(String)
     hashed_password = Column(String, nullable=False)  # Store bcrypt hash
     is_active = Column(Boolean, default=True)  # Account status

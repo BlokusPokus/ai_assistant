@@ -151,7 +151,7 @@ class TaskScheduler:
 
             # Get all active tasks
             active_tasks = await self.task_manager.get_user_tasks(
-                user_id=4,  # TODO: Get from context
+                user_id=126,  # TODO: Get from context
                 status='active',
                 limit=1000
             )
@@ -186,7 +186,7 @@ class TaskScheduler:
         try:
             # Create a test reminder
             test_task = await self.task_manager.create_reminder(
-                user_id=4,
+                user_id=126,
                 title="Test AI Task",
                 remind_at=datetime.utcnow() + timedelta(minutes=2),
                 description="This is a test AI task for debugging",

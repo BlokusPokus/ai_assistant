@@ -364,45 +364,52 @@ async def load_state(conversation_id: str) -> AgentState:
 async def get_conversation_timestamp(user_id: str, conversation_id: str) -> Optional[datetime]:
     """Get last update time for a conversation for a specific user."""
     try:
+        # Get user_id as int for query
+        user_id_int = int(user_id)
+
         async with AsyncSessionLocal() as session:
-            # Get the chunk_id for this conversation AND user
-            stmt = (
-                select(MemoryChunk.id)
-                .join(MemoryMetadata, MemoryMetadata.chunk_id == MemoryChunk.id)
-                .where(
-                    MemoryChunk.user_id == int(
-                        user_id),
-                    MemoryMetadata.key == "conversation_id",
-                    MemoryMetadata.value == conversation_id
+            try:
+                # Get the chunk_id for this conversation AND user
+                stmt = (
+                    select(MemoryChunk.id)
+                    .join(MemoryMetadata, MemoryMetadata.chunk_id == MemoryChunk.id)
+                    .where(
+                        MemoryChunk.user_id == user_id_int,
+                        MemoryMetadata.key == "conversation_id",
+                        MemoryMetadata.value == conversation_id
+                    )
+                    .order_by(desc(MemoryChunk.created_at))
+                    .limit(1)
                 )
-                .order_by(desc(MemoryChunk.created_at))
-                .limit(1)
-            )
-            result = await session.execute(stmt)
-            chunk_id = result.scalar_one_or_none()
+                result = await session.execute(stmt)
+                chunk_id = result.scalar_one_or_none()
 
-            if not chunk_id:
-                logger.info(
-                    f"No chunk found for conversation {conversation_id} and user {user_id}")
+                if not chunk_id:
+                    logger.info(
+                        f"No chunk found for conversation {conversation_id} and user {user_id}")
+                    return None
+
+                # Get the actual timestamp from the memory_chunks table instead of metadata
+                stmt = (
+                    select(MemoryChunk.created_at)
+                    .where(MemoryChunk.id == chunk_id)
+                )
+                result = await session.execute(stmt)
+                timestamp = result.scalar_one_or_none()
+
+                if not timestamp:
+                    logger.warning(
+                        f"No timestamp found for conversation {conversation_id} and user {user_id}")
+                    return None
+
+                # The timestamp from the database is already timezone-aware
+                logger.debug(
+                    f"Successfully loaded timestamp for conversation {conversation_id} and user {user_id}: {timestamp}")
+                return timestamp
+            except Exception as e:
+                logger.error(
+                    f"Database error while getting timestamp for conversation {conversation_id} and user {user_id}: {e}")
                 return None
-
-            # Get the actual timestamp from the memory_chunks table instead of metadata
-            stmt = (
-                select(MemoryChunk.created_at)
-                .where(MemoryChunk.id == chunk_id)
-            )
-            result = await session.execute(stmt)
-            timestamp = result.scalar_one_or_none()
-
-            if not timestamp:
-                logger.warning(
-                    f"No timestamp found for conversation {conversation_id} and user {user_id}")
-                return None
-
-            # The timestamp from the database is already timezone-aware
-            logger.debug(
-                f"Successfully loaded timestamp for conversation {conversation_id} and user {user_id}: {timestamp}")
-            return timestamp
 
     except Exception as e:
         logger.error(

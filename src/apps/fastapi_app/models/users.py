@@ -15,6 +15,7 @@ class UserResponse(BaseModel):
 
     id: int
     email: str
+    phone_number: Optional[str]
     full_name: Optional[str]
     is_active: bool
     is_verified: bool
@@ -28,12 +29,27 @@ class UserUpdateRequest(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     email: Optional[EmailStr] = None
+    phone_number: Optional[str] = None
 
     @validator('email')
     def validate_email(cls, v):
         if v is not None:
             # Basic email validation is handled by EmailStr
             pass
+        return v
+
+    @validator('phone_number')
+    def validate_phone_number(cls, v):
+        if v is not None:
+            # Basic phone number validation - remove spaces and dashes
+            v = v.replace(' ', '').replace(
+                '-', '').replace('(', '').replace(')', '')
+            if not v.startswith('+') and not v.isdigit():
+                raise ValueError(
+                    "Phone number must start with + or contain only digits")
+            if len(v) < 10 or len(v) > 15:
+                raise ValueError(
+                    "Phone number must be between 10 and 15 characters")
         return v
 
     @validator('first_name', 'last_name')
@@ -102,6 +118,7 @@ class UserListResponse(BaseModel):
 class UserCreateRequest(BaseModel):
     """Request model for creating a new user (admin only)."""
     email: EmailStr
+    phone_number: Optional[str] = None
     full_name: str
     password: str
     is_active: bool = True
@@ -113,6 +130,20 @@ class UserCreateRequest(BaseModel):
             raise ValueError("Password must be at least 8 characters long")
         if len(v) > 128:
             raise ValueError("Password too long (max 128 characters)")
+        return v
+
+    @validator('phone_number')
+    def validate_phone_number(cls, v):
+        if v is not None:
+            # Basic phone number validation - remove spaces and dashes
+            v = v.replace(' ', '').replace(
+                '-', '').replace('(', '').replace(')', '')
+            if not v.startswith('+') and not v.isdigit():
+                raise ValueError(
+                    "Phone number must start with + or contain only digits")
+            if len(v) < 10 or len(v) > 15:
+                raise ValueError(
+                    "Phone number must be between 10 and 15 characters")
         return v
 
     @validator('full_name')

@@ -6,10 +6,35 @@ database configuration with connection pooling.
 """
 
 import sys
+import logging
 from personal_assistant.config.database import (
     get_session,
     get_session_context,
     db_config
+)
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+import os
+
+DATABASE_URL = os.getenv(
+    "REAL_DB_URL") or "postgresql+asyncpg://ianleblanc:password@localhost:5432/postgres"
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+# Create async engine
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,  # Re-enabled to see full SQL logs
+)
+
+# Create async session factory
+AsyncSessionLocal = sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autocommit=False,
+    autoflush=False
 )
 
 # Re-export for backward compatibility
@@ -50,6 +75,26 @@ def _get_session_factory():
             return None
     return db_config.session_factory
 
+
+async def _ensure_database_initialized():
+    """Ensure database is initialized in async context."""
+    if db_config.session_factory is None:
+        await db_config._ensure_initialized()
+
+
+def get_db():
+    """
+    FastAPI dependency function that returns an AsyncSession.
+
+    This is a synchronous wrapper that FastAPI can use with Depends().
+    It will be called for each request and return the session.
+    """
+    async def _get_db():
+        return AsyncSessionLocal()
+
+    return _get_db
+
+
 # Export the engine and session factory with lazy initialization
 
 
@@ -57,10 +102,7 @@ def engine():
     return _get_engine()
 
 
-def AsyncSessionLocal():
-    return _get_session_factory()
-
-
 # Add these to the module's __dict__ for proper attribute access
 sys.modules[__name__].engine = engine
 sys.modules[__name__].AsyncSessionLocal = AsyncSessionLocal
+sys.modules[__name__].get_db = get_db

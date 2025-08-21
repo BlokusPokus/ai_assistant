@@ -277,9 +277,8 @@ class LTMTool:
             if not 0.0 <= confidence_score <= 1.0:
                 return f"Error: Confidence score must be between 0.0 and 1.0, got {confidence_score}"
 
-            # TODO: Get user_id from agent context - for now use a default
-            # This should be passed from the agent when the tool is called
-            user_id = "4"  # Default user ID - should be dynamic
+            # Get user ID from context or use default
+            user_id = "126"  # Default user ID - should be dynamic
             logger.warning(
                 f"Using hardcoded user_id: {user_id}. This should be passed from agent context.")
 
@@ -355,7 +354,7 @@ class LTMTool:
         """
         try:
             # For now, use a default user_id
-            user_id = "1"  # Default user ID
+            user_id = "126"  # Default user ID
 
             memories = await search_ltm_memories(
                 user_id=user_id,
@@ -400,7 +399,7 @@ class LTMTool:
         """
         try:
             # For now, use a default user_id
-            user_id = "4"  # Default user ID
+            user_id = "126"  # Default user ID
             logger.info(
                 f"Getting relevant memories for user {user_id} with context: {context[:100]}...")
 
@@ -447,7 +446,7 @@ class LTMTool:
         """
         try:
             # For now, use a default user_id
-            user_id = "1"  # Default user ID
+            user_id = "126"  # Default user ID
 
             success = await delete_ltm_memory(
                 user_id=user_id,
@@ -472,7 +471,7 @@ class LTMTool:
         """
         try:
             # For now, use a default user_id
-            user_id = "1"  # Default user ID
+            user_id = "126"  # Default user ID
 
             stats = await get_ltm_memory_stats(user_id=user_id)
 
@@ -508,7 +507,7 @@ class LTMTool:
         """
         try:
             # TODO: Get user_id from agent context - for now use a default
-            user_id = "4"  # Default user ID - should be dynamic
+            user_id = "126"  # Default user ID - should be dynamic
             logger.warning(
                 f"Using hardcoded user_id: {user_id}. This should be passed from agent context.")
 
@@ -579,7 +578,7 @@ class LTMTool:
         """
         try:
             # TODO: Get user_id from agent context - for now use a default
-            user_id = "4"  # Default user ID - should be dynamic
+            user_id = "126"  # Default user ID - should be dynamic
             logger.warning(
                 f"Using hardcoded user_id: {user_id}. This should be passed from agent context.")
 
@@ -632,7 +631,7 @@ class LTMTool:
         """
         try:
             # TODO: Get user_id from agent context - for now use a default
-            user_id = "4"  # Default user ID - should be dynamic
+            user_id = "126"  # Default user ID - should be dynamic
             logger.warning(
                 f"Using hardcoded user_id: {user_id}. This should be passed from agent context.")
 

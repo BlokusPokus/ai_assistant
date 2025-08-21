@@ -113,7 +113,7 @@ class ReminderTool:
             self._task_manager = AITaskManager()
         return self._task_manager
 
-    async def set_reminder(self, text: str, time: str, channel: Optional[str] = "sms", user_id: int = 4) -> str:
+    async def set_reminder(self, text: str, time: str, channel: Optional[str] = "sms", user_id: int = 126) -> str:
         """Set a new reminder using the AI task system"""
         try:
             # Validate input parameters using internal functions
@@ -156,7 +156,7 @@ class ReminderTool:
             logger.error(f"Error setting reminder: {e}")
             return f"❌ Error setting reminder: {str(e)}"
 
-    async def list_reminders(self, status: Optional[str] = "active", user_id: int = 4) -> str:
+    async def list_reminders(self, status: Optional[str] = "active", user_id: int = 126) -> str:
         """List active reminders using the AI task system"""
         try:
             # Validate input parameters using internal functions
@@ -193,7 +193,7 @@ class ReminderTool:
             logger.error(f"Error listing reminders: {e}")
             return f"❌ Error listing reminders: {str(e)}"
 
-    async def delete_reminder(self, reminder_id: int, user_id: int = 4) -> str:
+    async def delete_reminder(self, reminder_id: int, user_id: int = 126) -> str:
         """Delete a reminder by ID"""
         try:
             # Validate input parameters using internal functions

@@ -63,6 +63,26 @@ class UserService:
             logger.error(f"Error retrieving user by email {email}: {e}")
             return None
 
+    async def get_user_by_phone(self, phone_number: str) -> Optional[User]:
+        """
+        Get user by phone number.
+
+        Args:
+            phone_number: User phone number to retrieve
+
+        Returns:
+            User object if found, None otherwise
+        """
+        try:
+            result = await self.db.execute(
+                select(User).where(User.phone_number == phone_number)
+            )
+            return result.scalar_one_or_none()
+        except Exception as e:
+            logger.error(
+                f"Error retrieving user by phone number {phone_number}: {e}")
+            return None
+
     async def list_users(self, skip: int = 0, limit: int = 100) -> tuple[List[User], int]:
         """
         List users with pagination.
@@ -364,6 +384,7 @@ class UserService:
             # Create user object
             new_user = User(
                 email=user_data['email'],
+                phone_number=user_data.get('phone_number'),
                 full_name=user_data['full_name'],
                 hashed_password=hashed_password,
                 is_active=user_data.get('is_active', True),
@@ -383,6 +404,8 @@ class UserService:
             logger.error(f"Integrity error creating user: {e}")
             if "email" in str(e).lower():
                 raise ValueError("User with this email already exists")
+            if "phone_number" in str(e).lower():
+                raise ValueError("User with this phone number already exists")
             raise ValueError("Failed to create user due to data constraints")
         except Exception as e:
             await self.db.rollback()
