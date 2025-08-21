@@ -11,13 +11,12 @@ This module provides:
 
 import logging
 import asyncio
-from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime, timedelta
+from typing import Dict, Any, List, Optional
+from datetime import datetime
 from dataclasses import dataclass
-from sqlalchemy import text, inspect
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from personal_assistant.config.database import db_config
-from personal_assistant.config.settings import settings
 import os
 
 logger = logging.getLogger(__name__)

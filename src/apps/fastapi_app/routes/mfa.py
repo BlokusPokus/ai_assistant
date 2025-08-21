@@ -9,8 +9,7 @@ This module provides endpoints for:
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import HTTPBearer
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional, List
@@ -20,9 +19,7 @@ from personal_assistant.database.models.users import User
 from personal_assistant.database.models.mfa_models import MFAConfiguration, SecurityEvent
 from personal_assistant.auth.mfa_service import MFAService
 from personal_assistant.auth.sms_mfa import SMSMFAService
-from personal_assistant.auth.jwt_service import jwt_service
 from personal_assistant.auth.decorators import require_permission
-from personal_assistant.config.settings import settings
 
 # Create router
 router = APIRouter(prefix="/api/v1/mfa", tags=["MFA"])

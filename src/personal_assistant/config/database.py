@@ -20,7 +20,7 @@ from sqlalchemy import event
 import time
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
