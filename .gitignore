@@ -107,52 +107,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# ========================================
-# 🗑️ FILES SAFE TO DELETE (Clean up these)
-# ========================================
-
-# Temporary test files
-test_*.py
-*_test.py
-test_fix.py
-test_rag_improvements.py
-test_ltm_tool_fix.py
-test_phase3_features.py
-test_ltm_debug.py
-test_ltm_tag_system.py
-test_basic_ltm.py
-test_ltm_integration_simple.py
-example_ltm_workflow.py
-test_agent_ltm_integration.py
-fix_all_imports.py
-fix_imports.py
-test_internet_youtube_tools.py
-test_real_memory.py
-test_memory_debug.py
-test_duckduckgo_integration.py
-cleanup_old_ai_tasks.py
-check_ai_tasks.py
-test_research_tool.py
-test_youtube_tool.py
-test_duckduckgo_standalone.py
-test_duckduckgo_simple.py
-test_prompt_formatting.py
-test_task_processing.py
-test_logging_setup.py
-test_tool_registry.py
-test_reminder_tool.py
-test_ai_scheduler.py
-test_state_management_phase2.py
-test_state_management_phase1.py
-test_integration.py
-test_state_loading.py
-test_content_truncation.py
-test_memory_storage.py
-test_context_loading.py
-test_conversation_continuity.py
-debug_conversation_flow.py
-test_conversation_preservation.py
-test_ltm_creation.py
 
 # Debug and analysis files
 DEBUG_SETUP.md
