@@ -203,3 +203,14 @@ debug_conversation_flow.py
 
 # The files in "SAFE TO DELETE" section can be removed to clean up the repository
 # but they won't break the core functionality if kept. 
+
+# SSL Certificates and Keys
+docker/nginx/ssl/*/*.pem
+docker/nginx/ssl/*/*.key
+docker/nginx/ssl/*/*.crt
+docker/nginx/ssl/*/*.p12
+docker/nginx/ssl/*/*.pfx
+
+# Keep directory structure but ignore actual certificates
+!docker/nginx/ssl/*/
+!docker/nginx/ssl/*/.gitkeep 
