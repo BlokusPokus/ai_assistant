@@ -7,9 +7,7 @@ logout, and token refresh operations.
 
 from datetime import timedelta, datetime
 import secrets
-from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
-from fastapi.security import HTTPBearer
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
@@ -19,8 +17,8 @@ from personal_assistant.database.models.users import User
 from personal_assistant.database.models.auth_tokens import AuthToken
 from personal_assistant.auth.jwt_service import jwt_service
 from personal_assistant.auth.password_service import password_service
-from personal_assistant.auth.auth_utils import AuthUtils, security
-from personal_assistant.auth.decorators import require_permission, require_ownership
+from personal_assistant.auth.auth_utils import AuthUtils
+from personal_assistant.auth.decorators import require_permission
 from personal_assistant.config.settings import settings
 
 # Create router

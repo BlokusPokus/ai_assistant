@@ -18,7 +18,6 @@ Usage:
 
 import sys
 import subprocess
-import os
 from pathlib import Path
 
 # Add the src directory to the Python path
