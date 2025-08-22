@@ -56,6 +56,16 @@ class TokenResponse(BaseModel):
     expires_in: int
 
 
+class AuthResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    user: UserResponse
+    mfa_required: bool = False
+    mfa_setup_required: bool = False
+
+
 class PasswordResetRequest(BaseModel):
     email: EmailStr
 
@@ -117,13 +127,13 @@ async def get_current_user(
 @router.post("/register", response_model=UserResponse)
 async def register(
     user_data: UserRegister,
-    db: AsyncSession = Depends(AsyncSessionLocal)
+    db: AsyncSession = Depends(get_db)
 ):
     """Register a new user."""
     try:
         # Check if user already exists
         result = await db.execute(select(User).where(User.email == user_data.email))
-        existing_user = await result.scalar_one_or_none()
+        existing_user = result.scalar_one_or_none()
 
         if existing_user:
             raise HTTPException(
@@ -131,12 +141,8 @@ async def register(
                 detail="Email already registered"
             )
 
-        # Validate password strength
-        if not password_service._validate_password(user_data.password):
-            raise HTTPException(
-                status_code=400,
-                detail="Password does not meet security requirements"
-            )
+        # Validate password strength (this will raise HTTPException if invalid)
+        password_service._validate_password(user_data.password)
 
         # Hash password
         hashed_password = password_service.hash_password(user_data.password)
@@ -179,18 +185,18 @@ async def register(
         )
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=AuthResponse)
 async def login(
     user_data: UserLogin,
     request: Request,
     response: Response,
-    db: AsyncSession = Depends(AsyncSessionLocal)
+    db: AsyncSession = Depends(get_db)
 ):
     """Authenticate user and return JWT tokens."""
     try:
         # Find user by email
         result = await db.execute(select(User).where(User.email == user_data.email))
-        user = await result.scalar_one_or_none()
+        user = result.scalar_one_or_none()
 
         if not user:
             raise HTTPException(
@@ -239,9 +245,19 @@ async def login(
 
         # Generate tokens
         access_token = jwt_service.create_access_token(
-            data={"sub": user.email})
+            data={
+                "sub": user.email,
+                "user_id": user.id,
+                "email": user.email,
+                "full_name": user.full_name
+            })
         refresh_token = jwt_service.create_refresh_token(
-            data={"sub": user.email})
+            data={
+                "sub": user.email,
+                "user_id": user.id,
+                "email": user.email,
+                "full_name": user.full_name
+            })
 
         # Store refresh token in database
         auth_token = AuthToken(
@@ -274,11 +290,19 @@ async def login(
             max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
         )
 
-        return TokenResponse(
+        return AuthResponse(
             access_token=access_token,
             refresh_token=refresh_token,
             token_type="bearer",
-            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            user=UserResponse(
+                id=user.id,
+                email=user.email,
+                full_name=user.full_name,
+                created_at=user.created_at.isoformat()
+            ),
+            mfa_required=False,
+            mfa_setup_required=False
         )
 
     except HTTPException:
@@ -413,7 +437,7 @@ async def logout(
 @require_permission("user", "read")
 async def get_current_user_info(
     request: Request,
-    db: AsyncSession = Depends(AsyncSessionLocal),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -436,7 +460,7 @@ async def get_current_user_info(
 @router.post("/forgot-password", response_model=dict)
 async def forgot_password(
     request: PasswordResetRequest,
-    db: AsyncSession = Depends(AsyncSessionLocal)
+    db: AsyncSession = Depends(get_db)
 ):
     """Request a password reset for a user."""
     try:
@@ -476,7 +500,7 @@ async def forgot_password(
 @router.post("/reset-password", response_model=dict)
 async def reset_password(
     request: PasswordReset,
-    db: AsyncSession = Depends(AsyncSessionLocal)
+    db: AsyncSession = Depends(get_db)
 ):
     """Reset password using reset token."""
     try:
@@ -493,12 +517,8 @@ async def reset_password(
             raise HTTPException(
                 status_code=400, detail="Invalid or expired reset token")
 
-        # Validate new password
-        if not password_service._validate_password(request.new_password):
-            raise HTTPException(
-                status_code=400,
-                detail="Password does not meet security requirements"
-            )
+        # Validate new password (this will raise HTTPException if invalid)
+        password_service._validate_password(request.new_password)
 
         # Hash new password and clear reset token
         user.hashed_password = password_service.hash_password(
@@ -521,7 +541,7 @@ async def reset_password(
 @router.post("/verify-email", response_model=dict)
 async def verify_email(
     request: EmailVerification,
-    db: AsyncSession = Depends(AsyncSessionLocal)
+    db: AsyncSession = Depends(get_db)
 ):
     """Verify user email using verification token."""
     try:
@@ -557,7 +577,7 @@ async def verify_email(
 @router.post("/resend-verification", response_model=dict)
 async def resend_verification(
     request: PasswordResetRequest,  # Reuse email model
-    db: AsyncSession = Depends(AsyncSessionLocal)
+    db: AsyncSession = Depends(get_db)
 ):
     """Resend email verification token."""
     try:
