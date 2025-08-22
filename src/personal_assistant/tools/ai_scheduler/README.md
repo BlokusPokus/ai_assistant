@@ -1,4 +1,4 @@
-# Calendar Scheduler Implementation
+<!-- # Calendar Scheduler Implementation
 
 This module implements a database-first calendar scheduler that runs every 10 minutes to check for upcoming events and trigger intelligent agent responses.
 
@@ -255,4 +255,4 @@ python -c "import asyncio; from agent_core.tools.ai_calendar.db_queries import g
 
 # Test scheduler configuration
 python -c "from agent_core.tools.ai_calendar.scheduler import create_scheduler; print(create_scheduler().get_status())"
-```
+``` -->
