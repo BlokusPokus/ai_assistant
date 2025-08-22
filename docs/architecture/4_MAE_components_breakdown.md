@@ -32,7 +32,8 @@ graph TB
         NGINX[🛡️ Nginx Proxy<br/>TLS 1.3, HTTP/2<br/>Rate Limiting]
         API[🚀 FastAPI Backend<br/>Port 8000]
         AGENT[🧠 Agent Service<br/>Port 8001<br/>Orchestration centrale]
-        WORKERS[⚙️ Background Workers<br/>Port 8002<br/>Tâches asynchrones]
+        OAUTH_MGR[🔑 OAuth Manager<br/>Port 8002<br/>Gestion OAuth progressive]
+        WORKERS[⚙️ Background Workers<br/>Port 8003<br/>Tâches asynchrones]
     end
 
     subgraph "Zone Données - Sécurité maximale"
@@ -60,20 +61,25 @@ graph TB
     %% Routage vers applications avec isolation
     NGINX --> API
     NGINX --> AGENT
+    NGINX --> OAUTH_MGR
     NGINX --> WORKERS
 
     %% Communication inter-services (zone applications)
     API --> AGENT
+    API --> OAUTH_MGR
     AGENT --> POSTGRES
     AGENT --> REDIS
     AGENT --> WORKERS
+    AGENT --> OAUTH_MGR
 
     WORKERS --> POSTGRES
     WORKERS --> REDIS
+    WORKERS --> OAUTH_MGR
 
     %% Monitoring de tous les services
     API --> PROMETHEUS
     AGENT --> PROMETHEUS
+    OAUTH_MGR --> PROMETHEUS
     WORKERS --> PROMETHEUS
     POSTGRES --> PROMETHEUS
     REDIS --> PROMETHEUS
@@ -94,7 +100,7 @@ graph TB
 
     class USERS,PARTNERS,TWILIO internet
     class CDN,WAF,LOAD_BALANCER dmz
-    class NGINX,API,AGENT,WORKERS apps
+    class NGINX,API,AGENT,OAUTH_MGR,WORKERS apps
     class POSTGRES,REDIS,BACKUP data
     class PROMETHEUS,GRAFANA,LOKI,JAEGER monitoring
 ```
@@ -120,6 +126,7 @@ L'architecture réseau suit le principe de **défense en profondeur** avec plusi
 - **Nginx Proxy** : TLS 1.3, HTTP/2, rate limiting, compression, protection contre la surcharge
 - **FastAPI Backend** : Service d'API principal avec authentification et gestion des utilisateurs
 - **Agent Service** : Orchestration centrale de l'assistant TDAH, gestion des outils et de la mémoire
+- **OAuth Manager** : **Gestion des intégrations OAuth progressives, activation granulaire des fonctionnalités, isolation stricte des tokens par utilisateur**
 - **Background Workers** : Tâches asynchrones (rappel, synchronisation, planification)
 
 #### **4. Zone Données - Sécurité maximale**
@@ -157,6 +164,7 @@ graph TB
     subgraph "Services conteneurisés (ports exposés localement)"
         DEV_API[🚀 FastAPI Dev<br/>Port 8000<br/>Hot Reload Activé]
         DEV_AGENT[🧠 Agent Service Dev<br/>Port 8001]
+        DEV_OAUTH[🔑 OAuth Manager Dev<br/>Port 8002<br/>Gestion OAuth locale]
         DEV_POSTGRES[🗄️ PostgreSQL Dev<br/>Port 5432<br/>Base locale]
         DEV_REDIS[🔴 Redis Dev<br/>Port 6379<br/>Cache local]
     end
@@ -172,6 +180,7 @@ graph TB
     DEV_TERMINAL --> DEV_DOCKER
     DEV_DOCKER --> DEV_API
     DEV_DOCKER --> DEV_AGENT
+    DEV_DOCKER --> DEV_OAUTH
     DEV_DOCKER --> DEV_POSTGRES
     DEV_DOCKER --> DEV_REDIS
 
@@ -189,7 +198,7 @@ graph TB
     classDef files fill:#fff3e0
 
     class DEV_USER,DEV_TERMINAL,DEV_DOCKER dev
-    class DEV_API,DEV_AGENT,DEV_POSTGRES,DEV_REDIS services
+    class DEV_API,DEV_AGENT,DEV_OAUTH,DEV_POSTGRES,DEV_REDIS services
     class DEV_SRC,DEV_ENV,DEV_LOGS files
 ```
 
@@ -206,7 +215,8 @@ graph TB
         STAGE_NGINX[🛡️ Nginx Stage<br/>Ports 80/443<br/>TLS Stage]
         STAGE_API[🚀 FastAPI Stage<br/>Port 8000<br/>Authentification]
         STAGE_AGENT[🧠 Agent Service Stage<br/>Port 8001]
-        STAGE_WORKERS[⚙️ Workers Stage<br/>Port 8002]
+        STAGE_OAUTH[🔑 OAuth Manager Stage<br/>Port 8002<br/>Gestion OAuth]
+        STAGE_WORKERS[⚙️ Workers Stage<br/>Port 8003]
         STAGE_POSTGRES[🗄️ PostgreSQL Stage<br/>Port 5432<br/>Données de test]
         STAGE_REDIS[🔴 Redis Stage<br/>Port 6379<br/>Cache stage]
     end
@@ -227,12 +237,17 @@ graph TB
     STAGE_NETWORK --> STAGE_NGINX
     STAGE_NGINX --> STAGE_API
     STAGE_NGINX --> STAGE_AGENT
+    STAGE_NGINX --> STAGE_OAUTH
     STAGE_NGINX --> STAGE_WORKERS
 
     STAGE_API --> STAGE_AGENT
     STAGE_AGENT --> STAGE_POSTGRES
     STAGE_AGENT --> STAGE_REDIS
+    STAGE_AGENT --> STAGE_OAUTH
     STAGE_AGENT --> STAGE_WORKERS
+
+    STAGE_OAUTH --> STAGE_POSTGRES
+    STAGE_OAUTH --> STAGE_REDIS
 
     STAGE_WORKERS --> STAGE_POSTGRES
     STAGE_WORKERS --> STAGE_REDIS
@@ -240,6 +255,7 @@ graph TB
     %% Monitoring
     STAGE_API --> STAGE_PROMETHEUS
     STAGE_AGENT --> STAGE_PROMETHEUS
+    STAGE_OAUTH --> STAGE_PROMETHEUS
     STAGE_WORKERS --> STAGE_PROMETHEUS
     STAGE_POSTGRES --> STAGE_PROMETHEUS
     STAGE_REDIS --> STAGE_PROMETHEUS
@@ -250,6 +266,7 @@ graph TB
     STAGE_WAF --> STAGE_NGINX
     STAGE_SECRETS --> STAGE_API
     STAGE_SECRETS --> STAGE_AGENT
+    STAGE_SECRETS --> STAGE_OAUTH
     STAGE_BACKUP --> STAGE_POSTGRES
 
     %% Styling
@@ -259,7 +276,7 @@ graph TB
     classDef security fill:#fff3e0
 
     class STAGE_SERVER,STAGE_NETWORK server
-    class STAGE_NGINX,STAGE_API,STAGE_AGENT,STAGE_WORKERS,STAGE_POSTGRES,STAGE_REDIS services
+    class STAGE_NGINX,STAGE_API,STAGE_AGENT,STAGE_OAUTH,STAGE_WORKERS,STAGE_POSTGRES,STAGE_REDIS services
     class STAGE_PROMETHEUS,STAGE_GRAFANA monitoring
     class STAGE_WAF,STAGE_SECRETS,STAGE_BACKUP security
 ```
@@ -285,9 +302,12 @@ graph TB
         PROD_AGENT1[🧠 Agent Service Prod 1<br/>Port 8001<br/>Orchestration]
         PROD_AGENT2[🧠 Agent Service Prod 2<br/>Port 8001<br/>Orchestration]
 
-        PROD_WORKERS1[⚙️ Workers Prod 1<br/>Port 8002<br/>Tâches asynchrones]
-        PROD_WORKERS2[⚙️ Workers Prod 2<br/>Port 8002<br/>Tâches asynchrones]
-        PROD_WORKERS3[⚙️ Workers Prod 3<br/>Port 8002<br/>Tâches asynchrones]
+        PROD_OAUTH1[🔑 OAuth Manager Prod 1<br/>Port 8002<br/>Gestion OAuth progressive]
+        PROD_OAUTH2[🔑 OAuth Manager Prod 2<br/>Port 8002<br/>Gestion OAuth progressive]
+
+        PROD_WORKERS1[⚙️ Workers Prod 1<br/>Port 8003<br/>Tâches asynchrones]
+        PROD_WORKERS2[⚙️ Workers Prod 2<br/>Port 8003<br/>Tâches asynchrones]
+        PROD_WORKERS3[⚙️ Workers Prod 3<br/>Port 8003<br/>Tâches asynchrones]
     end
 
     subgraph "Base de données haute disponibilité"
@@ -318,19 +338,30 @@ graph TB
 
     PROD_NGINX1 --> PROD_API1
     PROD_NGINX1 --> PROD_AGENT1
+    PROD_NGINX1 --> PROD_OAUTH1
     PROD_NGINX2 --> PROD_API2
     PROD_NGINX2 --> PROD_AGENT2
+    PROD_NGINX2 --> PROD_OAUTH2
 
     PROD_API1 --> PROD_AGENT1
+    PROD_API1 --> PROD_OAUTH1
     PROD_API2 --> PROD_AGENT2
+    PROD_API2 --> PROD_OAUTH2
 
     PROD_AGENT1 --> PROD_POSTGRES_MASTER
     PROD_AGENT2 --> PROD_POSTGRES_MASTER
     PROD_AGENT1 --> PROD_REDIS_MASTER
     PROD_AGENT2 --> PROD_REDIS_MASTER
+    PROD_AGENT1 --> PROD_OAUTH1
+    PROD_AGENT2 --> PROD_OAUTH2
 
     PROD_AGENT1 --> PROD_WORKERS1
     PROD_AGENT2 --> PROD_WORKERS2
+
+    PROD_OAUTH1 --> PROD_POSTGRES_MASTER
+    PROD_OAUTH2 --> PROD_POSTGRES_MASTER
+    PROD_OAUTH1 --> PROD_REDIS_MASTER
+    PROD_OAUTH2 --> PROD_REDIS_MASTER
 
     PROD_WORKERS1 --> PROD_POSTGRES_MASTER
     PROD_WORKERS2 --> PROD_POSTGRES_MASTER
@@ -349,6 +380,8 @@ graph TB
     PROD_API2 --> PROD_PROMETHEUS
     PROD_AGENT1 --> PROD_PROMETHEUS
     PROD_AGENT2 --> PROD_PROMETHEUS
+    PROD_OAUTH1 --> PROD_PROMETHEUS
+    PROD_OAUTH2 --> PROD_PROMETHEUS
     PROD_WORKERS1 --> PROD_PROMETHEUS
     PROD_WORKERS2 --> PROD_PROMETHEUS
     PROD_WORKERS3 --> PROD_PROMETHEUS
@@ -365,6 +398,9 @@ graph TB
     PROD_SECRETS --> PROD_API2
     PROD_SECRETS --> PROD_AGENT1
     PROD_SECRETS --> PROD_AGENT2
+    PROD_SECRETS --> PROD_OAUTH1
+    PROD_SECRETS --> PROD_OAUTH2
+
     PROD_BACKUP --> PROD_POSTGRES_MASTER
 
     %% Styling
@@ -375,7 +411,7 @@ graph TB
     classDef security fill:#fff3e0
 
     class PROD_LB,PROD_SERVER1,PROD_SERVER2,PROD_DB_SERVER infrastructure
-    class PROD_NGINX1,PROD_NGINX2,PROD_API1,PROD_API2,PROD_AGENT1,PROD_AGENT2,PROD_WORKERS1,PROD_WORKERS2,PROD_WORKERS3 services
+    class PROD_NGINX1,PROD_NGINX2,PROD_API1,PROD_API2,PROD_AGENT1,PROD_AGENT2,PROD_OAUTH1,PROD_OAUTH2,PROD_WORKERS1,PROD_WORKERS2,PROD_WORKERS3 services
     class PROD_POSTGRES_MASTER,PROD_POSTGRES_REPLICA,PROD_REDIS_MASTER,PROD_REDIS_REPLICA database
     class PROD_PROMETHEUS,PROD_GRAFANA,PROD_LOKI,PROD_JAEGER monitoring
     class PROD_WAF,PROD_SECRETS,PROD_BACKUP,PROD_CDN security
@@ -550,28 +586,28 @@ La stratégie de déploiement suit une approche incrémentale avec des jalons cl
 
 #### **Phase 2.5: Multi-User Architecture (Novembre 2024)** ⭐ **CRITIQUE**
 
-**🚨 DÉCISION ARCHITECTURALE PRISE**: **Solution 1: Numéros dédiés par utilisateur** ⭐ **APPROUVÉE**
+**🚨 DÉCISION ARCHITECTURALE PRISE**: **Solution 1: Numéro unique avec identification utilisateur** ⭐ **APPROUVÉE**
 
 **Objectifs**:
 
-- **Système de routage SMS** pour support multi-utilisateurs
-- **Gestion des numéros Twilio** par utilisateur (coût: ~$1/mois/utilisateur)
-- **Isolation des données** par utilisateur
-- **Gestion des coûts** et optimisation des ressources Twilio
+- **Système d'identification utilisateur** par numéro de téléphone
+- **Gestion d'un seul numéro Twilio** (coût: ~$1/mois total)
+- **Isolation stricte des données** par utilisateur
+- **Scalabilité** vers 1000+ utilisateurs avec coûts optimisés
 
 **🚨 Décision architecturale critique - Évolutivité SMS:**
 
-**Problème identifié**: L'architecture SMS actuelle (un seul numéro Twilio) ne peut pas évoluer vers un modèle multi-utilisateurs.
+**Problème identifié**: L'architecture SMS actuelle (un seul numéro Twilio) doit évoluer vers un modèle multi-utilisateurs avec identification utilisateur.
 
-**✅ Solution choisie**: **Numéros dédiés par utilisateur** - APPROUVÉE
+**✅ Solution choisie**: **Numéro unique avec identification utilisateur** - APPROUVÉE
 
 **Justification**:
 
-- **Isolation parfaite** des données utilisateur
-- **Expérience utilisateur** identique à l'actuelle
-- **Sécurité maximale** avec séparation des conversations
-- **Scalabilité** jusqu'à 1000+ utilisateurs
-- **Coûts acceptables** pour 100-500 utilisateurs ($100-500/mois)
+- **Coûts optimisés** : Un seul numéro Twilio (~$1/mois)
+- **Simplicité opérationnelle** : Gestion d'un seul webhook
+- **Scalabilité** : Support de 1000+ utilisateurs avec identification
+- **Expérience utilisateur** : Interface SMS familière et simple
+- **Isolation des données** : Séparation stricte des conversations par utilisateur
 
 **Architecture technique**:
 
@@ -583,38 +619,34 @@ graph TB
         USER3[👤 Utilisateur 3<br/>+1-555-0103]
     end
 
-    subgraph "Twilio Numbers"
-        TWILIO1[📱 +1-555-0101<br/>Webhook: /webhook/user1]
-        TWILIO2[📱 +1-555-0102<br/>Webhook: /webhook/user2]
-        TWILIO3[📱 +1-555-0103<br/>Webhook: /webhook/user3]
+    subgraph "Twilio Single Number"
+        TWILIO[📱 +1-555-0000<br/>Webhook: /webhook/sms<br/>Identification par numéro]
     end
 
     subgraph "SMS Router Service"
-        ROUTER[🔄 SMS Router<br/>Identification utilisateur<br/>Routage vers Agent]
+        ROUTER[🔄 SMS Router<br/>Identification utilisateur<br/>Routage vers Agent<br/>Isolation des données]
     end
 
-    subgraph "Agent Service"
-        AGENT[🧠 Agent Service<br/>Isolation par utilisateur<br/>LTM séparé]
+    subgraph "Agent Service Multi-Users"
+        AGENT[🧠 Agent Service<br/>Isolation par utilisateur<br/>LTM séparé<br/>Contexte utilisateur]
     end
 
-    USER1 --> TWILIO1
-    USER2 --> TWILIO2
-    USER3 --> TWILIO3
+    USER1 --> TWILIO
+    USER2 --> TWILIO
+    USER3 --> TWILIO
 
-    TWILIO1 --> ROUTER
-    TWILIO2 --> ROUTER
-    TWILIO3 --> ROUTER
-
+    TWILIO --> ROUTER
     ROUTER --> AGENT
 ```
 
 **Alternatives rejetées**:
 
-1. **Numéro partagé avec identification** 🔄 **Rejetée**
+1. **Numéros dédiés par utilisateur** 🔄 **Rejetée**
 
-   - Complexité de parsing des SMS
-   - Risque de confusion entre utilisateurs
-   - Maintenance complexe
+   - Coûts élevés : $1/mois par numéro Twilio
+   - Complexité : Gestion de multiples webhooks
+   - Maintenance : Rotation et gestion des numéros
+   - Non-scalable : Coûts prohibitifs pour 1000+ utilisateurs
 
 2. **Interface web principale + SMS secondaire** 🎯 **Phase 3**
    - Perte de l'interface SMS principale
@@ -630,7 +662,7 @@ graph TB
 **Nouveaux composants**:
 
 - **SMS Router Service** : Port 8003, routage des SMS par utilisateur
-- **Twilio Number Manager** : Gestion des numéros et webhooks
+- **User Identification Service** : Service de reconnaissance des numéros de téléphone
 - **User SMS Analytics** : Métriques d'utilisation SMS par utilisateur
 - **Cost Management** : Suivi des coûts Twilio et optimisation
 

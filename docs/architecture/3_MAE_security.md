@@ -6,45 +6,48 @@
 
 **Tableau 3.1.1 - Exigences de conformité et réglementations**
 
-| Réglementation/Standard | Applicabilité     | Exigences clés                                                                                              | Statut de conformité         |
-| ----------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **GDPR (UE)**           | ✅ Obligatoire    | • Consentement explicite<br>• Droit à l'oubli<br>• Portabilité des données<br>• Notification des violations | 🔄 En cours d'implémentation |
-| **CCPA (Californie)**   | ✅ Obligatoire    | • Transparence des données<br>• Droit de suppression<br>• Non-discrimination                                | 🔄 En cours d'implémentation |
-| **PIPEDA (Canada)**     | ✅ Obligatoire    | • Consentement<br>• Limitation de la collecte<br>• Accès et correction                                      | 🔄 En cours d'implémentation |
-| **SOC 2 Type II**       | 🎯 Cible 2025     | • Sécurité<br>• Disponibilité<br>• Traitement<br>• Confidentialité<br>• Intégrité                           | ❌ Non implémenté            |
-| **ISO 27001**           | 🎯 Cible 2026     | • Système de gestion de la sécurité<br>• Contrôles de sécurité<br>• Évaluation des risques                  | ❌ Non implémenté            |
-| **HIPAA**               | ❌ Non applicable | • Pas de données médicales sensibles<br>• Assistant de productivité uniquement                              | ✅ Conforme par design       |
+| Réglementation/Standard | Applicabilité     | Exigences clés                                                                                                                                                        | Statut de conformité         |
+| ----------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **GDPR (UE)**           | ✅ Obligatoire    | • Consentement explicite<br>• Droit à l'oubli<br>• Portabilité des données<br>• Notification des violations<br>• **Isolation stricte des données multi-utilisateurs** | 🔄 En cours d'implémentation |
+| **CCPA (Californie)**   | ✅ Obligatoire    | • Transparence des données<br>• Droit de suppression<br>• Non-discrimination<br>• **Isolation des données par utilisateur**                                           | 🔄 En cours d'implémentation |
+| **PIPEDA (Canada)**     | ✅ Obligatoire    | • Consentement<br>• Limitation de la collecte<br>• Accès et correction<br>• **Séparation des données utilisateur**                                                    | 🔄 En cours d'implémentation |
+| **SOC 2 Type II**       | 🎯 Cible 2025     | • Sécurité<br>• Disponibilité<br>• Traitement<br>• Confidentialité<br>• Intégrité<br>• **Gestion multi-utilisateurs**                                                 | ❌ Non implémenté            |
+| **ISO 27001**           | 🎯 Cible 2026     | • Système de gestion de la sécurité<br>• Contrôles de sécurité<br>• Évaluation des risques<br>• **Isolation des données**                                             | ❌ Non implémenté            |
+| **HIPAA**               | ❌ Non applicable | • Pas de données médicales sensibles<br>• Assistant de productivité uniquement<br>• **Données utilisateur isolées**                                                   | ✅ Conforme par design       |
 
 **Exigences de conformité détaillées:**
 
 #### **GDPR (Règlement Général sur la Protection des Données)**
 
 - **Article 5 - Principes de traitement**: Licéité, loyauté, transparence, limitation des finalités, minimisation des données, exactitude, limitation de la conservation, intégrité et confidentialité
-- **Article 6 - Base légale**: Consentement explicite de l'utilisateur pour le traitement des données
-- **Article 17 - Droit à l'oubli**: Suppression complète des données utilisateur sur demande
-- **Article 20 - Portabilité**: Export des données dans un format structuré et lisible par machine
-- **Article 32 - Sécurité**: Chiffrement des données, authentification forte, audit trail
+- **Article 6 - Base légale**: Consentement explicite de l'utilisateur pour le traitement des données **et pour chaque intégration OAuth**
+- **Article 17 - Droit à l'oubli**: Suppression complète des données utilisateur sur demande **avec isolation stricte multi-utilisateurs**
+- **Article 20 - Portabilité**: Export des données dans un format structuré et lisible par machine **par utilisateur isolé**
+- **Article 25 - Protection des données dès la conception**: **Isolation stricte des données par utilisateur dès la conception**
+- **Article 32 - Sécurité**: Chiffrement des données, authentification forte, audit trail, **isolation stricte des données multi-utilisateurs**
 
 #### **CCPA (California Consumer Privacy Act)**
 
-- **Section 1798.100**: Droit de savoir quelles données personnelles sont collectées
-- **Section 1798.105**: Droit de suppression des données personnelles
-- **Section 1798.110**: Droit de connaître les catégories de données collectées
-- **Section 1798.115**: Droit de connaître les catégories de données vendues
-- **Section 1798.125**: Non-discrimination pour l'exercice des droits
+- **Section 1798.100**: Droit de savoir quelles données personnelles sont collectées **par utilisateur isolé**
+- **Section 1798.105**: Droit de suppression des données personnelles **avec isolation stricte des données**
+- **Section 1798.110**: Droit de connaître les catégories de données collectées **par utilisateur**
+- **Section 1798.115**: Droit de connaître les catégories de données vendues **par utilisateur**
+- **Section 1798.125**: Non-discrimination pour l'exercice des droits **avec isolation des données multi-utilisateurs**
 
 ### 3.1.2 Mitigation des risques de sécurité identifiés
 
 **Tableau 3.1.2 - Analyse des risques de sécurité et mitigation**
 
-| Risque                               | Probabilité | Impact     | Niveau de risque | Mesures de mitigation                                                                                       | Responsable  |
-| ------------------------------------ | ----------- | ---------- | ---------------- | ----------------------------------------------------------------------------------------------------------- | ------------ |
-| **Violation de données utilisateur** | Moyenne     | Très élevé | **Élevé**        | • Chiffrement AES-256<br>• Isolation stricte des données<br>• Audit trail complet<br>• Tests de pénétration | CISO         |
-| **Attaque par injection SQL**        | Faible      | Élevé      | **Moyen**        | • Requêtes préparées<br>• Validation des entrées<br>• WAF avec règles OWASP<br>• Tests automatisés          | Développeurs |
-| **Exposition des clés API**          | Moyenne     | Élevé      | **Moyen**        | • Gestion des secrets Docker<br>• Rotation automatique<br>• Accès restreint<br>• Monitoring des accès       | DevOps       |
-| **Attaque par déni de service**      | Moyenne     | Moyen      | **Moyen**        | • Rate limiting Nginx<br>• Protection DDoS<br>• Monitoring des ressources<br>• Auto-scaling                 | DevOps       |
-| **Violation de l'authentification**  | Faible      | Très élevé | **Moyen**        | • MFA optionnel<br>• Sessions sécurisées<br>• Gestion des tokens JWT<br>• Détection d'anomalies             | Développeurs |
-| **Exposition des données LTM**       | Faible      | Élevé      | **Moyen**        | • Chiffrement au repos<br>• Isolation par utilisateur<br>• Audit des accès<br>• Tests de sécurité           | Développeurs |
+| Risque                                  | Probabilité | Impact     | Niveau de risque | Mesures de mitigation                                                                                                                                    | Responsable  |
+| --------------------------------------- | ----------- | ---------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| **Violation de données utilisateur**    | Moyenne     | Très élevé | **Élevé**        | • Chiffrement AES-256<br>• **Isolation stricte des données multi-utilisateurs**<br>• Audit trail complet<br>• Tests de pénétration                       | CISO         |
+| **Attaque par injection SQL**           | Faible      | Élevé      | **Moyen**        | • Requêtes préparées<br>• Validation des entrées<br>• WAF avec règles OWASP<br>• Tests automatisés                                                       | Développeurs |
+| **Exposition des clés API**             | Moyenne     | Élevé      | **Moyen**        | • Gestion des secrets Docker<br>• Rotation automatique<br>• Accès restreint<br>• Monitoring des accès                                                    | DevOps       |
+| **Exposition des tokens OAuth**         | Moyenne     | Élevé      | **Moyen**        | • **Chiffrement des tokens OAuth par utilisateur**<br>• **Isolation stricte des tokens**<br>• Rotation automatique<br>• Audit des accès OAuth            | Développeurs |
+| **Attaque par déni de service**         | Moyenne     | Moyen      | **Moyen**        | • Rate limiting Nginx<br>• Protection DDoS<br>• Monitoring des ressources<br>• Auto-scaling                                                              | DevOps       |
+| **Violation de l'authentification**     | Faible      | Très élevé | **Moyen**        | • MFA optionnel<br>• Sessions sécurisées<br>• Gestion des tokens JWT<br>• Détection d'anomalies                                                          | Développeurs |
+| **Exposition des données LTM**          | Faible      | Élevé      | **Moyen**        | • Chiffrement au repos<br>• **Isolation stricte par utilisateur**<br>• Audit des accès<br>• Tests de sécurité                                            | Développeurs |
+| **Fuite de données entre utilisateurs** | Faible      | Très élevé | **Moyen**        | • **Isolation stricte des données par utilisateur**<br>• **Validation des accès multi-utilisateurs**<br>• Tests d'isolation<br>• Audit des accès croisés | CISO         |
 
 **Stratégie de mitigation globale:**
 
@@ -59,13 +62,13 @@
 
 **Tableau 3.2.1 - Classification des données par niveau de sensibilité**
 
-| Niveau de sensibilité    | Description                                       | Exemples de données                                                                | Contrôles de sécurité requis                                                            | Rétention                   |
-| ------------------------ | ------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------- |
-| **Données publiques**    | Informations non sensibles                        | • Documentation produit<br>• Guides utilisateur<br>• Informations marketing        | • Validation des entrées<br>• Protection contre le spam                                 | Illimitée                   |
-| **Données internes**     | Informations de l'organisation                    | • Métriques de performance<br>• Logs système<br>• Configuration                    | • Accès authentifié<br>• Audit des accès                                                | 2 ans                       |
-| **Données personnelles** | Informations identifiant l'utilisateur            | • Nom, email, profil<br>• Préférences utilisateur<br>• Historique des interactions | • Chiffrement en transit et au repos<br>• Isolation stricte<br>• Consentement explicite | Selon demande utilisateur   |
-| **Données sensibles**    | Informations nécessitant une protection renforcée | • Tokens d'API<br>• Clés de chiffrement<br>• Données d'authentification            | • Chiffrement AES-256<br>• Accès restreint<br>• Rotation automatique                    | Selon politique de sécurité |
-| **Données critiques**    | Informations essentielles au fonctionnement       | • Configuration système<br>• Clés de chiffrement maîtres<br>• Sauvegardes système  | • Chiffrement maximum<br>• Accès privilégié<br>• Sauvegarde sécurisée                   | Permanente                  |
+| Niveau de sensibilité    | Description                                       | Exemples de données                                                                                                       | Contrôles de sécurité requis                                                                                    | Rétention                   |
+| ------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| **Données publiques**    | Informations non sensibles                        | • Documentation produit<br>• Guides utilisateur<br>• Informations marketing                                               | • Validation des entrées<br>• Protection contre le spam                                                         | Illimitée                   |
+| **Données internes**     | Informations de l'organisation                    | • Métriques de performance<br>• Logs système<br>• Configuration                                                           | • Accès authentifié<br>• Audit des accès                                                                        | 2 ans                       |
+| **Données personnelles** | Informations identifiant l'utilisateur            | • Nom, email, profil<br>• Préférences utilisateur<br>• Historique des interactions<br>• **Numéros de téléphone SMS**      | • Chiffrement en transit et au repos<br>• **Isolation stricte multi-utilisateurs**<br>• Consentement explicite  | Selon demande utilisateur   |
+| **Données sensibles**    | Informations nécessitant une protection renforcée | • **Tokens OAuth par utilisateur**<br>• **Refresh tokens OAuth**<br>• Clés de chiffrement<br>• Données d'authentification | • Chiffrement AES-256<br>• **Isolation stricte par utilisateur**<br>• Accès restreint<br>• Rotation automatique | Selon politique de sécurité |
+| **Données critiques**    | Informations essentielles au fonctionnement       | • Configuration système<br>• Clés de chiffrement maîtres<br>• Sauvegardes système                                         | • Chiffrement maximum<br>• Accès privilégié<br>• Sauvegarde sécurisée                                           | Permanente                  |
 
 **Catégorisation par domaine fonctionnel:**
 
@@ -83,9 +86,10 @@
 
 #### **Données d'intégration (APIs tierces)**
 
-- **Tokens d'accès**: Clés API, tokens OAuth, refresh tokens
-- **Configuration**: Paramètres de connexion, endpoints
-- **Métadonnées**: Statut de synchronisation, dernière mise à jour
+- **Tokens d'accès**: **Tokens OAuth par utilisateur et par service**, refresh tokens, clés API
+- **Configuration**: Paramètres de connexion OAuth, endpoints, scopes autorisés
+- **Métadonnées**: Statut de synchronisation, dernière mise à jour, **activation granulaire des fonctionnalités**
+- **Consentements OAuth**: **Gestion des consentements par utilisateur et par service**, révocations
 
 #### **Données système (Infrastructure)**
 
@@ -97,14 +101,14 @@
 
 **Tableau 3.2.2 - Cycle de vie des données et mécanismes de gestion**
 
-| Phase du cycle de vie | Mécanismes de gestion                                                              | Contrôles de sécurité                                                                    | Rétention             | Disposition                                                                          |
-| --------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------ |
-| **Collecte**          | • Consentement explicite<br>• Minimisation des données<br>• Validation des entrées | • Chiffrement en transit (TLS 1.3)<br>• Validation des sources<br>• Audit de la collecte | N/A                   | N/A                                                                                  |
-| **Traitement**        | • Isolation par utilisateur<br>• Chiffrement au repos<br>• Contrôle d'accès        | • Chiffrement AES-256<br>• RBAC strict<br>• Audit des opérations                         | Selon type de données | N/A                                                                                  |
-| **Stockage**          | • Base de données chiffrée<br>• Sauvegardes sécurisées<br>• Réplication sécurisée  | • Chiffrement au repos<br>• Accès restreint<br>• Monitoring continu                      | Selon politique       | N/A                                                                                  |
-| **Partage**           | • Isolation stricte<br>• Pas de partage inter-utilisateur<br>• Export contrôlé     | • Validation des destinataires<br>• Chiffrement des exports<br>• Audit des partages      | N/A                   | N/A                                                                                  |
-| **Archivage**         | • Chiffrement des archives<br>• Accès restreint<br>• Rotation automatique          | • Chiffrement AES-256<br>• Contrôle d'accès<br>• Monitoring des accès                    | Selon politique       | N/A                                                                                  |
-| **Suppression**       | • Suppression sécurisée<br>• Audit de suppression<br>• Confirmation utilisateur    | • Overwriting sécurisé<br>• Audit trail<br>• Validation de suppression                   | N/A                   | • Suppression physique<br>• Overwriting des données<br>• Confirmation de destruction |
+| Phase du cycle de vie | Mécanismes de gestion                                                                                                                          | Contrôles de sécurité                                                                                                                        | Rétention             | Disposition                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------ |
+| **Collecte**          | • Consentement explicite<br>• Minimisation des données<br>• Validation des entrées<br>• **Consentement OAuth par service**                     | • Chiffrement en transit (TLS 1.3)<br>• Validation des sources<br>• Audit de la collecte<br>• **Validation des consentements OAuth**         | N/A                   | N/A                                                                                  |
+| **Traitement**        | • **Isolation stricte par utilisateur**<br>• Chiffrement au repos<br>• Contrôle d'accès<br>• **Validation des tokens OAuth**                   | • Chiffrement AES-256<br>• **RBAC strict multi-utilisateurs**<br>• Audit des opérations<br>• **Isolation des contextes OAuth**               | Selon type de données | N/A                                                                                  |
+| **Stockage**          | • Base de données chiffrée<br>• Sauvegardes sécurisées<br>• Réplication sécurisée<br>• **Isolation des tokens OAuth**                          | • Chiffrement au repos<br>• **Accès restreint par utilisateur**<br>• Monitoring continu<br>• **Validation des accès OAuth**                  | Selon politique       | N/A                                                                                  |
+| **Partage**           | • **Isolation stricte multi-utilisateurs**<br>• Pas de partage inter-utilisateur<br>• Export contrôlé<br>• **Pas de partage des tokens OAuth** | • **Validation des destinataires par utilisateur**<br>• Chiffrement des exports<br>• Audit des partages<br>• **Isolation des données OAuth** | N/A                   | N/A                                                                                  |
+| **Archivage**         | • Chiffrement des archives<br>• Accès restreint<br>• Rotation automatique                                                                      | • Chiffrement AES-256<br>• Contrôle d'accès<br>• Monitoring des accès                                                                        | Selon politique       | N/A                                                                                  |
+| **Suppression**       | • Suppression sécurisée<br>• Audit de suppression<br>• Confirmation utilisateur                                                                | • Overwriting sécurisé<br>• Audit trail<br>• Validation de suppression                                                                       | N/A                   | • Suppression physique<br>• Overwriting des données<br>• Confirmation de destruction |
 
 **Mécanismes de gestion spécifiques:**
 
@@ -114,6 +118,9 @@
 - **Granularité**: Consentement par type de données et finalité
 - **Révocation**: Possibilité de retirer le consentement à tout moment
 - **Audit**: Traçabilité complète des consentements et révocations
+- **Consentement OAuth**: **Consentement explicite par service OAuth et par utilisateur**
+- **Activation granulaire**: **Activation des fonctionnalités selon les services OAuth connectés**
+- **Révocation OAuth**: **Possibilité de révoquer l'accès à chaque service OAuth individuellement**
 
 #### **Minimisation des données**
 
@@ -345,15 +352,17 @@ def verify_password(password, hashed):
 
 **Tableau 3.4.1 - Matrice des permissions RBAC**
 
-| Ressource                 | Rôle Standard         | Rôle Premium              | Rôle Administrateur          |
-| ------------------------- | --------------------- | ------------------------- | ---------------------------- |
-| **Profil utilisateur**    | R/W (propre profil)   | R/W (propre profil)       | R/W (tous les profils)       |
-| **Données LTM**           | R/W (propres données) | R/W (propres données)     | R (toutes les données)       |
-| **Objectifs et tâches**   | R/W (propres données) | R/W (propres données)     | R (toutes les données)       |
-| **Intégrations externes** | R/W (propres données) | R/W (propres données)     | R (toutes les données)       |
-| **Métriques système**     | Aucun accès           | R (métriques utilisateur) | R/W (toutes les métriques)   |
-| **Logs système**          | Aucun accès           | Aucun accès               | R (tous les logs)            |
-| **Configuration**         | Aucun accès           | Aucun accès               | R/W (toute la configuration) |
+| Ressource                 | Rôle Standard              | Rôle Premium               | Rôle Administrateur          |
+| ------------------------- | -------------------------- | -------------------------- | ---------------------------- |
+| **Profil utilisateur**    | R/W (propre profil)        | R/W (propre profil)        | R/W (tous les profils)       |
+| **Données LTM**           | R/W (propres données)      | R/W (propres données)      | R (toutes les données)       |
+| **Objectifs et tâches**   | R/W (propres données)      | R/W (propres données)      | R (toutes les données)       |
+| **Intégrations externes** | R/W (propres données)      | R/W (propres données)      | R (toutes les données)       |
+| **Intégrations OAuth**    | R/W (propres intégrations) | R/W (propres intégrations) | R (toutes les intégrations)  |
+| **Tokens OAuth**          | R (propres tokens)         | R (propres tokens)         | R (tous les tokens)          |
+| **Métriques système**     | Aucun accès                | R (métriques utilisateur)  | R/W (toutes les métriques)   |
+| **Logs système**          | Aucun accès                | Aucun accès                | R (tous les logs)            |
+| **Configuration**         | Aucun accès                | Aucun accès                | R/W (toute la configuration) |
 
 #### **ABAC (Attribute-Based Access Control)**
 
@@ -382,6 +391,16 @@ def check_access(user, resource, action, context):
     if (resource.owner_id != user.id and
         user.role != "administrator"):
         return False, "Accès limité aux données de l'utilisateur"
+
+    # Politique: Accès aux fonctionnalités OAuth selon les services connectés
+    if (resource.type == "oauth_feature" and
+        resource.service not in user.connected_oauth_services):
+        return False, "Fonctionnalité non disponible - service OAuth non connecté"
+
+    # Politique: Validation des tokens OAuth pour les actions sensibles
+    if (action.sensitivity == "high" and
+        not user.has_valid_oauth_token(resource.service)):
+        return False, "Token OAuth expiré ou invalide pour cette action"
 
     return True, "Accès autorisé"
 ```
@@ -425,7 +444,7 @@ def check_access(user, resource, action, context):
 - **Filtrage géographique**: Blocage des accès depuis certaines régions
 
 ```nginx
-# Configuration de protection DDoS
+# Configuration de protection DDoS et OAuth
 http {
     # Limitation du nombre de connexions par IP
     limit_conn_zone $binary_remote_addr zone=conn_limit_per_ip:10m;
@@ -435,6 +454,10 @@ http {
     limit_req_zone $binary_remote_addr zone=req_limit_per_ip:10m rate=10r/s;
     limit_req zone=req_limit_per_ip burst=20 nodelay;
 
+    # Limitation spécifique pour les endpoints OAuth
+    limit_req_zone $binary_remote_addr zone=oauth_limit_per_ip:10m rate=2r/s;
+    limit_req zone=oauth_limit_per_ip burst=5 nodelay;
+
     # Blocage des User-Agents suspects
     if ($http_user_agent ~* (bot|crawler|spider|scraper)) {
         return 403;
@@ -443,6 +466,11 @@ http {
     # Blocage des méthodes HTTP dangereuses
     if ($request_method !~ ^(GET|POST|PUT|DELETE)$) {
         return 405;
+    }
+
+    # Protection contre les attaques OAuth
+    if ($request_uri ~* "/oauth/.*callback") {
+        limit_req zone=oauth_limit_per_ip burst=3 nodelay;
     }
 }
 ```
@@ -657,6 +685,12 @@ class SecurityAlerting:
             self.send_alert('critical', 'Accès non autorisé aux données', event)
         elif event.type == 'api_abuse' and event.rate > 100:
             self.send_alert('medium', 'Utilisation abusive de l\'API', event)
+        elif event.type == 'oauth_token_exposure' and event.user_id != event.token_owner:
+            self.send_alert('critical', 'Exposition de token OAuth non autorisée', event)
+        elif event.type == 'oauth_integration_abuse' and event.rate > 50:
+            self.send_alert('high', 'Utilisation abusive des intégrations OAuth', event)
+        elif event.type == 'cross_user_data_access' and event.source_user != event.target_user:
+            self.send_alert('critical', 'Tentative d\'accès croisé aux données utilisateur', event)
 ```
 
 ## 3.8 Tests ETTIC

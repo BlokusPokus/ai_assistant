@@ -6,10 +6,13 @@ Cette sous-section résume les principaux changements requis aux infrastructures
 
 ### Vue - Aperçu technique cible
 
+- **Architecture multi-utilisateurs** avec isolation stricte des données par utilisateur
+- **Authentification OAuth progressive** par service (Notion, Google, Microsoft, YouTube)
+- **Stratégie SMS unique** : Un numéro Twilio avec identification utilisateur par numéro de téléphone
 - Architecture conteneurisée (Docker) pour tous les services applicatifs
 - Services principaux: API Backend (FastAPI), Service Agent (LLM orchestration), Workers asynchrones (scheduler/arrière-plan), Base de données PostgreSQL, Cache/Queue Redis, Proxy inverse (TLS), Observabilité (metrics/logs/traces), Gestion des secrets
 - Intégrations externes: LLM (Gemini), Calendrier/Emails (Graph/Gmail), Notion/YouTube/Internet Tools; toutes les intégrations protégées par timeouts, retries, rate-limiting et circuit breakers
-- Sécurité: TLS en transit, chiffrement au repos (DB), tokens d'API stockés de façon sécurisée, isolation stricte des données par utilisateur (multi-utilisateurs individuels, pas de collaboration d'équipe)
+- Sécurité: TLS en transit, chiffrement au repos (DB), **tokens OAuth stockés de façon sécurisée par utilisateur**, isolation stricte des données par utilisateur (multi-utilisateurs individuels, pas de collaboration d'équipe)
 - Déploiement: Docker containers, orchestrés par un compose/stacks (évolution possible vers orchestrateur géré ultérieurement)
 - Environnements: Dev/Stage/Prod (détails en 2.3), avec variables d'environnement et gestion de secrets séparée
 
@@ -80,53 +83,58 @@ En général, le schéma d'implémentation de la plateforme d'infrastructure Pro
 ```mermaid
 graph TB
     %% External Users and Services
-    subgraph "External"
-        USER[👤 Utilisateur TDAH]
-        TWILIO[📱 Twilio SMS]
-        GEMINI[🤖 Google Gemini API]
-        GRAPH[📅 Microsoft Graph API]
-        GMAIL[📧 Gmail API]
-        NOTION[📝 Notion API]
-        YOUTUBE[🎥 YouTube API]
-        INTERNET[🌐 Internet APIs]
+    subgraph "External Multi-Users"
+        USER1[👤 Utilisateur TDAH 1]
+        USER2[👤 Utilisateur TDAH 2]
+        USER3[👤 Utilisateur TDAH 3]
+        TWILIO[📱 Twilio SMS<br/>Numéro unique + Identification]
+        GEMINI[🤖 Google Gemini API<br/>Clé API organisation]
+        GRAPH[📅 Microsoft Graph API<br/>OAuth par utilisateur]
+        GMAIL[📧 Gmail API<br/>OAuth par utilisateur]
+        NOTION[📝 Notion API<br/>OAuth par utilisateur]
+        YOUTUBE[🎥 YouTube API<br/>OAuth par utilisateur]
+        INTERNET[🌐 Internet APIs<br/>Recherche publique]
     end
 
     %% Load Balancer and Security Layer
     subgraph "Security & Load Balancing"
         NGINX[🛡️ Nginx Proxy<br/>TLS 1.3, Rate Limiting<br/>HTTP/2, Compression]
-        WAF[🛡️ WAF Rules<br/>DDoS Protection]
+        WAF[🛡️ WAF Rules<br/>DDoS Protection<br/>Multi-utilisateurs]
     end
 
     %% Main Application Services
-    subgraph "Application Services"
-        API[🚀 FastAPI Backend<br/>Authentication, Rate Limiting<br/>User Management, RBAC]
-        AGENT[�� Agent Service<br/>AgentCore + Runner + Planner<br/>Orchestration centrale, ToolRegistry]
-        WORKERS[⚙️ Background Workers<br/>Celery + Redis Queue<br/>Tâches asynchrones, Rappels, Sync]
+    subgraph "Application Services Multi-Users"
+        API[🚀 FastAPI Backend<br/>Authentication OAuth, Rate Limiting<br/>User Management, RBAC, Isolation]
+        AGENT[🧠 Agent Service<br/>AgentCore + Runner + Planner<br/>Orchestration centrale, ToolRegistry<br/>Contexte utilisateur isolé]
+        WORKERS[⚙️ Background Workers<br/>Celery + Redis Queue<br/>Tâches asynchrones, Rappels, Sync<br/>OAuth refresh, Isolation]
+        OAUTH_MGR[🔑 OAuth Manager<br/>Gestion progressive<br/>Activation granulaire<br/>Isolation utilisateur]
     end
 
     %% Data Layer
-    subgraph "Data Layer"
-        POSTGRES[(🗄️ PostgreSQL<br/>User Data, LTM, Events<br/>Encrypted at Rest)]
-        REDIS[(🔴 Redis<br/>Cache, Sessions, Queue<br/>Rate Limiting Data)]
+    subgraph "Data Layer Multi-Users"
+        POSTGRES[(🗄️ PostgreSQL<br/>User Data, LTM, Events<br/>Encrypted at Rest<br/>Isolation stricte par utilisateur)]
+        REDIS[(🔴 Redis<br/>Cache, Sessions, Queue<br/>Rate Limiting Data<br/>Isolation par utilisateur)]
     end
 
     %% Monitoring and Observability
-    subgraph "Observability"
-        PROMETHEUS[📊 Prometheus<br/>Metrics Collection]
-        GRAFANA[📈 Grafana<br/>Dashboards, Alerts]
-        LOKI[📝 Loki<br/>Log Aggregation]
-        JAEGER[🔍 Jaeger<br/>Distributed Tracing]
+    subgraph "Observability Multi-Users"
+        PROMETHEUS[📊 Prometheus<br/>Metrics Collection<br/>Par utilisateur]
+        GRAFANA[📈 Grafana<br/>Dashboards, Alerts<br/>Multi-utilisateurs]
+        LOKI[📝 Loki<br/>Log Aggregation<br/>Isolation utilisateur]
+        JAEGER[🔍 Jaeger<br/>Distributed Tracing<br/>Contexte utilisateur]
     end
 
     %% CI/CD and Management
     subgraph "DevOps & Management"
-        DOCKER[🐳 Docker Compose<br/>Orchestration, Secrets]
-        CI_CD[🔄 CI/CD Pipeline<br/>Build, Test, Deploy]
-        BACKUP[💾 Backup Service<br/>Encrypted Backups<br/>RPO: 24h, RTO: 30m]
+        DOCKER[🐳 Docker Compose<br/>Orchestration, Secrets<br/>Multi-utilisateurs]
+        CI_CD[🔄 CI/CD Pipeline<br/>Build, Test, Deploy<br/>Tests multi-utilisateurs]
+        BACKUP[💾 Backup Service<br/>Encrypted Backups<br/>RPO: 24h, RTO: 30m<br/>Isolation utilisateur]
     end
 
-    %% ===== FLUX PRINCIPAL : Utilisateur → API → AGENT =====
-    USER --> NGINX
+    %% ===== FLUX PRINCIPAL : Multi-utilisateurs avec OAuth =====
+    USER1 --> NGINX
+    USER2 --> NGINX
+    USER3 --> NGINX
     TWILIO --> NGINX
 
     NGINX --> WAF
@@ -134,11 +142,18 @@ graph TB
 
     %% ===== AGENT EST LE POINT CENTRAL D'ORCHESTRATION =====
     API --> AGENT
+    API --> OAUTH_MGR
 
     %% ===== AGENT ORCHESTRE TOUS LES SERVICES ET OUTILS =====
     AGENT --> GEMINI
     AGENT --> POSTGRES
     AGENT --> REDIS
+
+    %% ===== OAuth Manager gère les intégrations par utilisateur =====
+    OAUTH_MGR --> GRAPH
+    OAUTH_MGR --> GMAIL
+    OAUTH_MGR --> NOTION
+    OAUTH_MGR --> YOUTUBE
 
     %% ===== AGENT COORDONNE AVEC LES WORKERS POUR LES TÂCHES ASYNCHRONES =====
     AGENT --> WORKERS
@@ -156,6 +171,7 @@ graph TB
     API --> PROMETHEUS
     AGENT --> PROMETHEUS
     WORKERS --> PROMETHEUS
+    OAUTH_MGR --> PROMETHEUS
     POSTGRES --> PROMETHEUS
     REDIS --> PROMETHEUS
 
@@ -167,6 +183,7 @@ graph TB
     DOCKER --> API
     DOCKER --> AGENT
     DOCKER --> WORKERS
+    DOCKER --> OAUTH_MGR
     DOCKER --> POSTGRES
     DOCKER --> REDIS
 
@@ -180,13 +197,15 @@ graph TB
     classDef data fill:#e8f5e8
     classDef monitoring fill:#fce4ec
     classDef devops fill:#f1f8e9
+    classDef oauth fill:#ffebee
 
-    class USER,TWILIO,GEMINI,GRAPH,GMAIL,NOTION,YOUTUBE,INTERNET external
+    class USER1,USER2,USER3,TWILIO,GEMINI,GRAPH,GMAIL,NOTION,YOUTUBE,INTERNET external
     class NGINX,WAF security
-    class API,AGENT,WORKERS app
+    class API,AGENT,WORKERS,OAUTH_MGR app
     class POSTGRES,REDIS data
     class PROMETHEUS,GRAFANA,LOKI,JAEGER monitoring
     class DOCKER,CI_CD,BACKUP devops
+    class OAUTH_MGR oauth
 ```
 
 ### 2.2.2 Description des noeuds technologiques de traitement
@@ -265,6 +284,22 @@ services:
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - DATABASE_URL=postgresql://user:pass@postgres:5432/personal_assistant
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  oauth_manager:
+    build: ./src
+    environment:
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/personal_assistant
+      - REDIS_URL=redis://redis:6379
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - NOTION_CLIENT_ID=${NOTION_CLIENT_ID}
+      - NOTION_CLIENT_SECRET=${NOTION_CLIENT_SECRET}
     depends_on:
       - postgres
       - redis
@@ -364,9 +399,14 @@ http {
         server agent:8001;
     }
 
+    upstream oauth_backend {
+        server oauth_manager:8002;
+    }
+
     # Rate limiting
     limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
     limit_req_zone $binary_remote_addr zone=agent:10m rate=5r/s;
+    limit_req_zone $binary_remote_addr zone=oauth:10m rate=2r/s;
 
     server {
         listen 80;
@@ -397,6 +437,16 @@ http {
         location /agent/ {
             limit_req zone=agent burst=10 nodelay;
             proxy_pass http://agent_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # OAuth routes
+        location /oauth/ {
+            limit_req zone=oauth burst=10 nodelay;
+            proxy_pass http://oauth_backend;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -434,6 +484,11 @@ scrape_configs:
       - targets: ["agent:8001"]
     metrics_path: "/metrics"
 
+  - job_name: "oauth-manager"
+    static_configs:
+      - targets: ["oauth_manager:8002"]
+    metrics_path: "/metrics"
+
   - job_name: "postgres"
     static_configs:
       - targets: ["postgres:5432"]
@@ -445,9 +500,9 @@ scrape_configs:
 
 ### 2.2.5 Défis d'évolutivité SMS et solutions
 
-**🚨 DÉCISION ARCHITECTURALE PRISE**: **Solution 1: Numéros dédiés par utilisateur** ⭐ **APPROUVÉE ET IMPLÉMENTÉE**
+**🚨 DÉCISION ARCHITECTURALE PRISE**: **Solution 1: Numéro unique avec identification utilisateur** ⭐ **APPROUVÉE ET IMPLÉMENTÉE**
 
-**Enjeu critique identifié**: L'architecture SMS actuelle (un seul numéro Twilio) ne peut pas évoluer vers un modèle multi-utilisateurs.
+**Enjeu critique identifié**: L'architecture SMS actuelle (un seul numéro Twilio) doit évoluer vers un modèle multi-utilisateurs avec identification utilisateur.
 
 #### **2.2.5.1 Problème d'évolutivité SMS**
 
@@ -459,28 +514,28 @@ scrape_configs:
 
 **Défi multi-utilisateurs**:
 
-- **Multiple utilisateurs** nécessitent **multiple numéros de téléphone**
-- **Coûts Twilio** → ~$1/mois par numéro + coûts d'utilisation
-- **Complexité opérationnelle** → Gestion de multiples webhooks et routage
+- **Multiple utilisateurs** nécessitent **identification et routage des SMS**
+- **Coûts Twilio** → Un seul numéro (~$1/mois) + coûts d'utilisation
+- **Complexité opérationnelle** → Gestion de l'identification utilisateur et routage
 - **Isolation des données** → Séparation stricte des conversations par utilisateur
 
 #### **2.2.5.2 Solutions d'évolutivité SMS**
 
-**✅ Solution 1: Numéros dédiés par utilisateur** ⭐ **APPROUVÉE - Phase 2**
+**✅ Solution 1: Numéro unique avec identification utilisateur** ⭐ **APPROUVÉE - Phase 2**
 
 **Avantages**:
 
-- **Isolation parfaite** des données utilisateur
-- **Expérience utilisateur** identique à l'actuelle
-- **Sécurité maximale** avec séparation des conversations
-- **Scalabilité** jusqu'à 1000+ utilisateurs
-- **Simplicité de maintenance** par rapport aux solutions complexes
+- **Coûts optimisés** : Un seul numéro Twilio (~$1/mois)
+- **Simplicité opérationnelle** : Gestion d'un seul webhook
+- **Scalabilité** : Support de 1000+ utilisateurs avec identification
+- **Expérience utilisateur** : Interface SMS familière et simple
+- **Isolation des données** : Séparation stricte des conversations par utilisateur
 
 **Inconvénients**:
 
-- **Coûts** : $1/mois par numéro Twilio
-- **Complexité** : Gestion de multiples webhooks
-- **Maintenance** : Rotation et gestion des numéros
+- **Complexité technique** : Système d'identification utilisateur
+- **Maintenance** : Gestion de l'identification et du routage
+- **Limitations** : Dépendance de la reconnaissance du numéro de téléphone
 
 **Architecture technique approuvée**:
 
@@ -492,45 +547,40 @@ graph TB
         USER3[👤 Utilisateur 3<br/>+1-555-0103]
     end
 
-    subgraph "Twilio Numbers"
-        TWILIO1[📱 +1-555-0101<br/>Webhook: /webhook/user1]
-        TWILIO2[📱 +1-555-0102<br/>Webhook: /webhook/user2]
-        TWILIO3[📱 +1-555-0103<br/>Webhook: /webhook/user3]
+    subgraph "Twilio Single Number"
+        TWILIO[📱 +1-555-0000<br/>Webhook: /webhook/sms<br/>Identification par numéro]
     end
 
     subgraph "SMS Router Service"
-        ROUTER[🔄 SMS Router<br/>Identification utilisateur<br/>Routage vers Agent]
+        ROUTER[🔄 SMS Router<br/>Identification utilisateur<br/>Routage vers Agent<br/>Isolation des données]
     end
 
-    subgraph "Agent Service"
-        AGENT[🧠 Agent Service<br/>Isolation par utilisateur<br/>LTM séparé]
+    subgraph "Agent Service Multi-Users"
+        AGENT[🧠 Agent Service<br/>Isolation par utilisateur<br/>LTM séparé<br/>Contexte utilisateur]
     end
 
-    USER1 --> TWILIO1
-    USER2 --> TWILIO2
-    USER3 --> TWILIO3
+    USER1 --> TWILIO
+    USER2 --> TWILIO
+    USER3 --> TWILIO
 
-    TWILIO1 --> ROUTER
-    TWILIO2 --> ROUTER
-    TWILIO3 --> ROUTER
-
+    TWILIO --> ROUTER
     ROUTER --> AGENT
 ```
 
-**Solution 2: Numéro partagé avec identification** 🔄 **Rejetée - Phase 2**
+**Solution 2: Numéros dédiés par utilisateur** 🔄 **Rejetée - Phase 2**
 
 **Avantages**:
 
-- **Coûts réduits** : Un seul numéro Twilio
-- **Simplicité** : Gestion d'un seul webhook
-- **Rapidité** : Déploiement plus rapide
+- **Isolation parfaite** des données utilisateur
+- **Expérience utilisateur** identique à l'actuelle
+- **Sécurité maximale** avec séparation des conversations
 
 **Inconvénients**:
 
-- **Complexité** : Identification utilisateur par SMS
-- **Expérience utilisateur** : Moins intuitive
-- **Sécurité** : Risque de confusion entre utilisateurs
-- **Maintenance** : Gestion des codes utilisateur et parsing
+- **Coûts élevés** : $1/mois par numéro Twilio
+- **Complexité** : Gestion de multiples webhooks
+- **Maintenance** : Rotation et gestion des numéros
+- **Non-scalable** : Coûts prohibitifs pour 1000+ utilisateurs
 
 **Solution 3: Interface web principale + SMS secondaire** 🎯 **Phase 3**
 
@@ -548,12 +598,12 @@ graph TB
 
 #### **2.2.5.3 Recommandation architecturale**
 
-**✅ Phase 2 (Enterprise) - Solution 1: Numéros dédiés - APPROUVÉE**
+**✅ Phase 2 (Enterprise) - Solution 1: Numéro unique avec identification - APPROUVÉE**
 
-- **Justification** : Maintien de l'expérience utilisateur actuelle
-- **Coûts** : Acceptables pour 100-500 utilisateurs ($100-500/mois)
+- **Justification** : Maintien de l'expérience utilisateur actuelle avec coûts optimisés
+- **Coûts** : Acceptables pour 1000+ utilisateurs (1 numéro ~$1/mois)
 - **Complexité** : Gérée par l'équipe DevOps
-- **Sécurité** : Isolation parfaite des données
+- **Sécurité** : Isolation parfaite des données via identification
 - **Statut** : **DÉCISION PRISE - Implémentation en cours**
 
 **Phase 3 (SaaS) - Solution 3: Interface web + SMS secondaire**
@@ -568,22 +618,22 @@ graph TB
 **Modifications requises dans Phase 2**:
 
 1. **Service de routage SMS** : Nouveau composant pour identifier et router les SMS
-2. **Gestion des numéros Twilio** : Service de provisionnement et gestion des numéros
+2. **Système d'identification utilisateur** : Reconnaissance du numéro de téléphone
 3. **Isolation des données** : Renforcement de la séparation des données par utilisateur
-4. **Monitoring SMS** : Métriques par numéro et par utilisateur
+4. **Monitoring SMS** : Métriques par utilisateur et par numéro de téléphone
 5. **Gestion des coûts** : Monitoring des coûts Twilio par utilisateur
 
 **Nouveaux composants à ajouter**:
 
 - **SMS Router Service** : Port 8003, routage des SMS par utilisateur
-- **Twilio Number Manager** : Gestion des numéros et webhooks
+- **User Identification Service** : Service de reconnaissance des numéros de téléphone
 - **User SMS Analytics** : Métriques d'utilisation SMS par utilisateur
 - **Cost Management** : Suivi des coûts Twilio et optimisation
 
 **Modifications des composants existants**:
 
-- **FastAPI Backend** : Ajout des endpoints de gestion des numéros SMS
-- **Database Models** : Extension des modèles utilisateur pour les numéros SMS
+- **FastAPI Backend** : Ajout des endpoints de gestion de l'identification SMS
+- **Database Models** : Extension des modèles utilisateur pour les numéros de téléphone
 - **Monitoring** : Ajout des métriques SMS et coûts Twilio
 
 #### **2.2.5.5 Plan d'implémentation détaillé**
@@ -593,43 +643,43 @@ graph TB
 1. **Création du SMS Router Service**
 
    - Port 8003, service FastAPI dédié
-   - Gestion des webhooks multiples
-   - Routage basé sur l'URL du webhook
+   - Gestion de l'identification utilisateur par numéro de téléphone
+   - Routage basé sur l'identification utilisateur
 
-2. **Twilio Number Manager**
+2. **User Identification Service**
 
-   - API pour provisionner de nouveaux numéros
-   - Gestion des webhooks par numéro
-   - Monitoring des coûts par numéro
+   - API pour associer numéros de téléphone et utilisateurs
+   - Gestion des numéros de téléphone multiples par utilisateur
+   - Validation et vérification des numéros
 
 3. **Database Schema Updates**
    - Table `user_phone_numbers` pour associer utilisateurs et numéros
    - Table `sms_usage_logs` pour le suivi des coûts
-   - Table `webhook_configurations` pour la gestion des webhooks
+   - Table `user_identification_logs` pour l'audit de l'identification
 
 **Phase 2.2: Intégration et Tests**
 
 1. **Tests d'intégration**
 
-   - Simulation de multiples numéros Twilio
-   - Validation du routage des SMS
+   - Simulation de multiples utilisateurs avec un seul numéro Twilio
+   - Validation du routage des SMS par identification
    - Tests de performance avec charge
 
 2. **Monitoring et Alertes**
    - Métriques de performance du router
    - Alertes sur les coûts Twilio
-   - Surveillance de la qualité des webhooks
+   - Surveillance de la qualité de l'identification
 
 **Phase 2.3: Déploiement et Migration**
 
 1. **Migration des utilisateurs existants**
 
-   - Attribution de numéros dédiés
+   - Attribution de numéros de téléphone uniques
    - Migration des conversations existantes
    - Tests de validation post-migration
 
 2. **Documentation et Formation**
-   - Guide d'administration des numéros
+   - Guide d'administration de l'identification SMS
    - Procédures de gestion des coûts
    - Formation de l'équipe DevOps
 
@@ -668,6 +718,22 @@ services:
     ports:
       - "8000:8000" # Expose API locally
 
+  oauth_manager:
+    build: ./src
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://dev_user:dev_pass@postgres:5432/personal_assistant_dev
+      - REDIS_URL=redis://redis:6379
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - NOTION_CLIENT_ID=${NOTION_CLIENT_ID}
+    volumes:
+      - ./src:/app/src # Hot reload
+    ports:
+      - "8002:8002" # Expose OAuth Manager locally
+
   postgres:
     image: postgres:15-alpine
     environment:
@@ -676,8 +742,6 @@ services:
       - POSTGRES_PASSWORD=dev_pass
     ports:
       - "5432:5432" # Expose DB locally
-    volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
@@ -706,6 +770,11 @@ REDIS_URL=redis://localhost:6379
 GEMINI_API_KEY=your_test_gemini_key
 TWILIO_ACCOUNT_SID=your_test_twilio_sid
 TWILIO_AUTH_TOKEN=your_test_twilio_token
+
+# OAuth Client IDs (development)
+MICROSOFT_CLIENT_ID=your_dev_microsoft_client_id
+GOOGLE_CLIENT_ID=your_dev_google_client_id
+NOTION_CLIENT_ID=your_dev_notion_client_id
 
 # Logging
 LOG_TO_FILE=false
@@ -747,6 +816,19 @@ services:
       - LOG_LEVEL=INFO
       - DATABASE_URL=postgresql://stage_user:${DB_PASSWORD}@postgres:5432/personal_assistant_stage
       - REDIS_URL=redis://redis:6379
+    secrets:
+      - db_password
+    restart: unless-stopped
+
+  oauth_manager:
+    build: ./src
+    environment:
+      - ENVIRONMENT=staging
+      - DATABASE_URL=postgresql://stage_user:${DB_PASSWORD}@postgres:5432/personal_assistant_stage
+      - REDIS_URL=redis:redis:6379
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - NOTION_CLIENT_ID=${NOTION_CLIENT_ID}
     secrets:
       - db_password
     restart: unless-stopped
@@ -811,6 +893,11 @@ GEMINI_API_KEY=your_staging_gemini_key
 TWILIO_ACCOUNT_SID=your_staging_twilio_sid
 TWILIO_AUTH_TOKEN=your_staging_twilio_token
 
+# OAuth Client IDs (staging)
+MICROSOFT_CLIENT_ID=your_staging_microsoft_client_id
+GOOGLE_CLIENT_ID=your_staging_google_client_id
+NOTION_CLIENT_ID=your_staging_notion_client_id
+
 # Monitoring
 GRAFANA_PASSWORD=secure_grafana_password
 
@@ -873,6 +960,27 @@ services:
     secrets:
       - db_password
       - gemini_api_key
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+
+  oauth_manager:
+    build: ./src
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://prod_user:${DB_PASSWORD}@postgres:5432/personal_assistant_prod
+      - REDIS_URL=redis://redis:6379
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - NOTION_CLIENT_ID=${NOTION_CLIENT_ID}
+      - NOTION_CLIENT_SECRET=${NOTION_CLIENT_SECRET}
+    secrets:
+      - db_password
+      - microsoft_client_secret
+      - google_client_secret
+      - notion_client_secret
     restart: unless-stopped
     deploy:
       replicas: 2
@@ -957,6 +1065,8 @@ services:
       sh -c '
       while true; do
         pg_dump -h postgres -U prod_user -d personal_assistant_prod > /backups/backup_$(date +%Y%m%d_%H%M%S).sql
+        # Backup OAuth Manager data
+        pg_dump -h postgres -U prod_user -d personal_assistant_prod -t oauth_tokens -t oauth_integrations > /backups/oauth_backup_$(date +%Y%m%d_%H%M%S).sql
         sleep 86400
       done
       '
@@ -978,6 +1088,12 @@ secrets:
     file: ./secrets/prod/gemini_api_key.txt
   redis_password:
     file: ./secrets/prod/redis_password.txt
+  microsoft_client_secret:
+    file: ./secrets/prod/microsoft_client_secret.txt
+  google_client_secret:
+    file: ./secrets/prod/google_client_secret.txt
+  notion_client_secret:
+    file: ./secrets/prod/notion_client_secret.txt
 ```
 
 **Variables d'environnement (.env.prod)**:
@@ -998,6 +1114,11 @@ REDIS_PASSWORD=very_secure_redis_password
 GEMINI_API_KEY=your_production_gemini_key
 TWILIO_ACCOUNT_SID=your_production_twilio_sid
 TWILIO_AUTH_TOKEN=your_production_twilio_token
+
+# OAuth Client IDs (production)
+MICROSOFT_CLIENT_ID=your_production_microsoft_client_id
+GOOGLE_CLIENT_ID=your_production_google_client_id
+NOTION_CLIENT_ID=your_production_notion_client_id
 
 # Monitoring
 GRAFANA_PASSWORD=very_secure_grafana_password
@@ -1032,13 +1153,19 @@ secrets/
 ├── stage/
 │   ├── db_password.txt
 │   ├── redis_password.txt
-│   └── grafana_password.txt
+│   ├── grafana_password.txt
+│   ├── microsoft_client_secret.txt
+│   ├── google_client_secret.txt
+│   └── notion_client_secret.txt
 └── prod/
     ├── db_password.txt
     ├── api_secret_key.txt
     ├── gemini_api_key.txt
     ├── redis_password.txt
-    └── grafana_password.txt
+    ├── grafana_password.txt
+    ├── microsoft_client_secret.txt
+    ├── google_client_secret.txt
+    └── notion_client_secret.txt
 ```
 
 #### **Rotation des secrets**
@@ -1047,12 +1174,14 @@ secrets/
 - **Clés API externes**: Rotation selon la politique des fournisseurs
 - **Clés de chiffrement**: Rotation tous les 365 jours
 - **Mots de passe d'administration**: Rotation tous les 180 jours
+- **Secrets OAuth clients**: Rotation tous les 180 jours
+- **Tokens OAuth utilisateur**: Rotation selon la politique des fournisseurs (Microsoft: 90 jours, Google: 1 an, Notion: permanent)
 
 #### **Sécurité des environnements**
 
-- **Development**: Variables en clair dans .env (pas de secrets)
-- **Staging**: Secrets gérés via Docker secrets, chiffrement des données
-- **Production**: Secrets gérés via Docker secrets, chiffrement complet, rotation automatique
+- **Development**: Variables en clair dans .env (pas de secrets), **OAuth client IDs en clair pour développement**
+- **Staging**: Secrets gérés via Docker secrets, chiffrement des données, **OAuth client secrets sécurisés**
+- **Production**: Secrets gérés via Docker secrets, chiffrement complet, rotation automatique, **OAuth client secrets avec rotation automatique**
 
 ### 2.3.3 Déploiement et maintenance
 
@@ -1101,6 +1230,7 @@ fi
 | ------------------------------ | ------- | ----------- | --------- | ------------------------------------------------------------------------------- |
 | **FastAPI Backend (API)**      | OTR     | PDR 2       | PDR 2     | **Critique** - Service principal d'authentification et gestion des utilisateurs |
 | **Agent Service (LLM)**        | OTR     | PDR 2       | PDR 2     | **Critique** - Service principal d'assistance TDAH et orchestration LLM         |
+| **OAuth Manager**              | OTR     | PDR 2       | PDR 2     | **Critique** - Gestion des intégrations OAuth et activation granulaire          |
 | **Background Workers**         | OTR     | PDR 2       | PDR 2     | **Élevée** - Synchronisation des données et rappels automatiques                |
 | **Base de données PostgreSQL** | OTR     | PDR 2       | PDR 2     | **Critique** - Stockage des données utilisateur et mémoire LTM                  |
 | **Cache Redis**                | OTR     | PDR 2       | PDR 2     | **Élevée** - Performance et sessions utilisateur                                |
@@ -1128,7 +1258,7 @@ fi
 
 #### **Mécanismes de résilience**
 
-- **Redondance des services**: Réplication des instances API (2), Agent (2), Workers (3)
+- **Redondance des services**: Réplication des instances API (2), Agent (2), **OAuth Manager (2)**, Workers (3)
 - **Load balancing**: Distribution automatique de la charge via Nginx
 - **Circuit breakers**: Protection contre les défaillances des APIs externes
 - **Retry avec backoff exponentiel**: Gestion des erreurs temporaires

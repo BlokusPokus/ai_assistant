@@ -21,6 +21,7 @@ graph TB
 
     subgraph "Infrastructure as Code"
         DOCKER[🐳 Docker Compose<br/>Multi-Environnements<br/>Secrets Gérés]
+        OAUTH_CONFIG[🔑 Configuration OAuth<br/>Multi-Fournisseurs<br/>Isolation Utilisateur]
         MONITORING[📊 Stack Monitoring<br/>Prometheus + Grafana<br/>Alertes Automatiques]
         SECURITY[🛡️ Sécurité<br/>TLS + Chiffrement<br/>WAF + DDoS Protection]
     end
@@ -37,6 +38,7 @@ graph TB
     STAGE --> DOCKER
     PROD --> DOCKER
 
+    DOCKER --> OAUTH_CONFIG
     DOCKER --> MONITORING
     DOCKER --> SECURITY
 ```
@@ -49,12 +51,12 @@ La stratégie de déploiement suit une approche DevOps moderne avec pipeline CI/
 
 **Tableau 6.1.1 - Plan de déploiement par phases**
 
-| Phase                                   | Objectifs                                                                              | Durée        | Livrables                                                                                    | Critères de succès                                                                            |
-| --------------------------------------- | -------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **Phase 1: Préparation Infrastructure** | • Provisionnement des serveurs<br>• Configuration Docker<br>• Mise en place monitoring | 2-3 semaines | • Serveurs configurés<br>• Docker Compose opérationnel<br>• Monitoring basique               | • Tests de connectivité réussis<br>• Docker containers fonctionnels<br>• Métriques collectées |
-| **Phase 2: Déploiement Staging**        | • Déploiement des services<br>• Tests d'intégration<br>• Validation sécurité           | 2-3 semaines | • Environnement staging opérationnel<br>• Tests automatisés validés<br>• Rapport de sécurité | • Tous les tests passent<br>• Performance conforme aux SLAs<br>• Sécurité validée             |
-| **Phase 3: Déploiement Production**     | • Déploiement production<br>• Tests de charge<br>• Mise en service                     | 1-2 semaines | • Production opérationnelle<br>• Monitoring complet<br>• Documentation utilisateur           | • Uptime > 99.5%<br>• Performance validée<br>• Utilisateurs formés                            |
-| **Phase 4: Optimisation**               | • Tuning des performances<br>• Optimisation coûts<br>• Plan d'évolution                | 2-4 semaines | • Performance optimisée<br>• Coûts maîtrisés<br>• Roadmap d'évolution                        | • Latence < 2s P95<br>• Coûts dans le budget<br>• Plan d'évolution validé                     |
+| Phase                                   | Objectifs                                                                                                                              | Durée        | Livrables                                                                                                                        | Critères de succès                                                                                                                |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Phase 1: Préparation Infrastructure** | • Provisionnement des serveurs<br>• Configuration Docker<br>• Mise en place monitoring<br>• **Configuration OAuth multi-fournisseurs** | 2-3 semaines | • Serveurs configurés<br>• Docker Compose opérationnel<br>• Monitoring basique<br>• **Gestionnaire OAuth configuré**             | • Tests de connectivité réussis<br>• Docker containers fonctionnels<br>• Métriques collectées<br>• **Intégrations OAuth testées** |
+| **Phase 2: Déploiement Staging**        | • Déploiement des services<br>• Tests d'intégration<br>• Validation sécurité<br>• **Tests OAuth multi-utilisateurs**                   | 2-3 semaines | • Environnement staging opérationnel<br>• Tests automatisés validés<br>• Rapport de sécurité<br>• **Validation isolation OAuth** | • Tous les tests passent<br>• Performance conforme aux SLAs<br>• Sécurité validée<br>• **Isolation multi-utilisateurs validée**   |
+| **Phase 3: Déploiement Production**     | • Déploiement production<br>• Tests de charge<br>• Mise en service<br>• **Activation OAuth progressive**                               | 1-2 semaines | • Production opérationnelle<br>• Monitoring complet<br>• Documentation utilisateur<br>• **Gestion OAuth en production**          | • Uptime > 99.5%<br>• Performance validée<br>• Utilisateurs formés<br>• **OAuth fonctionnel en production**                       |
+| **Phase 4: Optimisation**               | • Tuning des performances<br>• Optimisation coûts<br>• Plan d'évolution                                                                | 2-4 semaines | • Performance optimisée<br>• Coûts maîtrisés<br>• Roadmap d'évolution                                                            | • Latence < 2s P95<br>• Coûts dans le budget<br>• Plan d'évolution validé                                                         |
 
 ## **📋 Plan de déploiement détaillé par phases**
 
@@ -74,6 +76,7 @@ La stratégie de déploiement suit une approche DevOps moderne avec pipeline CI/
   - Mise en place du pare-feu avec règles de sécurité
   - Configuration DNS interne et externe
   - Installation et configuration de Nginx avec TLS 1.3
+  - **Configuration des règles de sécurité OAuth et multi-utilisateurs**
 
 - **Jour 5**: Configuration Docker et Docker Compose
   - Installation Docker 24.x et Docker Compose
@@ -114,6 +117,8 @@ La stratégie de déploiement suit une approche DevOps moderne avec pipeline CI/
 
   - Mise en place de l'authentification multi-facteurs (MFA)
   - Configuration RBAC avec rôles utilisateur, premium, administrateur
+  - **Configuration du gestionnaire OAuth avec isolation multi-utilisateurs**
+  - **Intégration des fournisseurs OAuth (Google, Microsoft, Notion, YouTube)**
   - Intégration avec les fournisseurs d'identité (optionnel)
   - Configuration des sessions sécurisées
 
@@ -138,12 +143,15 @@ La stratégie de déploiement suit une approche DevOps moderne avec pipeline CI/
 
   - Déploiement de l'API FastAPI avec authentification
   - Déploiement du service Agent Core avec LLM
+  - **Déploiement du gestionnaire OAuth avec isolation multi-utilisateurs**
   - Déploiement des Celery Workers avec Redis
   - Configuration des services d'intégration (Twilio, Gemini, etc.)
+  - **Configuration des fournisseurs OAuth (Google, Microsoft, Notion, YouTube)**
 
 - **Jour 5**: Tests d'intégration de base
   - Tests de connexion entre services
   - Validation des appels API externes
+  - **Tests des intégrations OAuth avec isolation multi-utilisateurs**
   - Tests de performance des services
   - Validation de la gestion des erreurs
 
@@ -175,6 +183,7 @@ La stratégie de déploiement suit une approche DevOps moderne avec pipeline CI/
 
   - Tests de pénétration approfondis
   - Validation de la gestion des secrets
+  - **Tests de sécurité OAuth et isolation multi-utilisateurs**
   - Tests de conformité GDPR
   - Audit de sécurité complet
 
@@ -213,6 +222,7 @@ La stratégie de déploiement suit une approche DevOps moderne avec pipeline CI/
 
   - Déploiement de l'API FastAPI en production
   - Déploiement du service Agent Core
+  - **Déploiement du gestionnaire OAuth en production**
   - Déploiement des Celery Workers
   - Configuration des services d'intégration
 
@@ -366,6 +376,20 @@ services:
     depends_on:
       - api
       - agent
+      - oauth_manager
+    restart: unless-stopped
+
+  oauth_manager:
+    image: personal-assistant/oauth-manager:latest
+    environment:
+      - OAUTH_ENCRYPTION_KEY_FILE=/run/secrets/oauth_encryption_key
+      - OAUTH_DB_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - OAUTH_REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+    secrets:
+      - oauth_encryption_key
+    depends_on:
+      - postgres
+      - redis
     restart: unless-stopped
 
 volumes:
@@ -375,6 +399,8 @@ volumes:
 secrets:
   db_password:
     file: ./secrets/${ENVIRONMENT}/db_password.txt
+  oauth_encryption_key:
+    file: ./secrets/${ENVIRONMENT}/oauth_encryption_key.txt
 ```
 
 #### **Configuration par environnement**
@@ -426,6 +452,17 @@ DB_PASSWORD=secure_password
 # Redis
 REDIS_PASSWORD=secure_redis_password
 
+# **Configuration OAuth**
+OAUTH_ENCRYPTION_KEY=your_oauth_encryption_key_here
+GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+NOTION_CLIENT_ID=${NOTION_CLIENT_ID}
+NOTION_CLIENT_SECRET=${NOTION_CLIENT_SECRET}
+YOUTUBE_CLIENT_ID=${YOUTUBE_CLIENT_ID}
+YOUTUBE_CLIENT_SECRET=${YOUTUBE_CLIENT_SECRET}
+
 # Nginx
 NGINX_PORT_HTTP=80
 NGINX_PORT_HTTPS=443
@@ -453,6 +490,7 @@ LOKI_PORT=3100
 - **Tests de base de données**: Connexion et requêtes de base
 - **Tests d'APIs**: Validation des endpoints critiques
 - **Tests de monitoring**: Vérification de la collecte des métriques
+- **Tests OAuth**: **Validation des intégrations OAuth et isolation multi-utilisateurs**
 
 #### **Tests de performance**
 
@@ -467,6 +505,7 @@ LOKI_PORT=3100
 - **Tests de vulnérabilités**: Scan des composants et dépendances
 - **Tests de conformité**: Vérification des exigences réglementaires
 - **Tests de chiffrement**: Validation des mécanismes cryptographiques
+- **Tests OAuth**: **Validation de l'isolation multi-utilisateurs et de la sécurité des tokens**
 
 ### 6.3.2 Validation post-déploiement
 
@@ -480,6 +519,7 @@ def comprehensive_health_check():
         'api': check_api_health(),
         'database': check_database_health(),
         'redis': check_redis_health(),
+        'oauth_manager': check_oauth_manager_health(),
         'monitoring': check_monitoring_health(),
         'external_apis': check_external_apis_health()
     }
@@ -500,6 +540,23 @@ def check_api_health():
         return response.status_code == 200
     except Exception as e:
         logger.error(f"API health check failed: {e}")
+        return False
+
+def check_oauth_manager_health():
+    """Vérification de la santé du gestionnaire OAuth"""
+    try:
+        # Test de connexion à la base de données OAuth
+        oauth_db_status = check_oauth_database_connection()
+
+        # Test des intégrations OAuth actives
+        oauth_integrations_status = check_oauth_integrations()
+
+        # Test de l'isolation multi-utilisateurs
+        multi_user_isolation_status = check_multi_user_isolation()
+
+        return all([oauth_db_status, oauth_integrations_status, multi_user_isolation_status])
+    except Exception as e:
+        logger.error(f"OAuth Manager health check failed: {e}")
         return False
 ```
 
