@@ -9,7 +9,16 @@ import { useAuthStore } from '@/stores/authStore';
 import LandingPage from '@/pages/LandingPage';
 import LoginPage from '@/pages/LoginPage';
 import MFASetupPage from '@/pages/MFASetupPage';
-import DashboardPage from '@/pages/DashboardPage';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import {
+  DashboardHome,
+  ProfilePage,
+  SettingsPage,
+  SecurityPage,
+  ChatPage,
+  CalendarPage,
+  NotesPage,
+} from '@/pages/dashboard';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 function App() {
@@ -56,14 +65,23 @@ function App() {
             }
           />
 
+          {/* Dashboard Routes with Layout */}
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <DashboardPage />
+                <DashboardLayout />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route index element={<DashboardHome />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="security" element={<SecurityPage />} />
+            <Route path="chat" element={<ChatPage />} />
+            <Route path="calendar" element={<CalendarPage />} />
+            <Route path="notes" element={<NotesPage />} />
+          </Route>
 
           {/* Catch-all route - redirect to landing */}
           <Route path="*" element={<Navigate to="/" replace />} />
