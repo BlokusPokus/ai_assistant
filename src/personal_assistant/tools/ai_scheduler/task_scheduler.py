@@ -11,11 +11,17 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 from .ai_task_manager import AITaskManager
-from .ai_task_scheduler import (
-    process_due_ai_tasks,
-    test_scheduler_connection,
-)
-from .celery_config import app
+# Note: Task execution functions have been migrated to workers system
+# from .ai_task_scheduler import (
+#     process_due_ai_tasks,
+#     test_scheduler_connection,
+# )
+# Import the new workers Celery app
+try:
+    from ...workers.celery_app import app
+except ImportError:
+    # Fallback if workers system is not available
+    app = None
 
 logger = logging.getLogger(__name__)
 
@@ -85,11 +91,12 @@ class TaskScheduler:
                 'celery_app': 'ai_scheduler',
                 'queues': ['ai_tasks'],
                 'tasks': [
-                    'process_due_ai_tasks',
-                    'test_scheduler_connection',
-                    'cleanup_old_logs',
-                    'create_ai_reminder',
-                    'create_periodic_ai_task'
+                    # NOTE: Tasks migrated to workers system
+                    'workers.tasks.ai_tasks.process_due_ai_tasks',
+                    'workers.tasks.ai_tasks.test_scheduler_connection',
+                    'workers.tasks.ai_tasks.cleanup_old_logs',
+                    'workers.tasks.ai_tasks.create_ai_reminder',
+                    'workers.tasks.ai_tasks.create_periodic_ai_task'
                 ]
             }
 
@@ -116,11 +123,12 @@ class TaskScheduler:
                 'timestamp': datetime.utcnow().isoformat(),
                 'queues': ['ai_tasks'],
                 'tasks': [
-                    'process_due_ai_tasks',
-                    'test_scheduler_connection',
-                    'cleanup_old_logs',
-                    'create_ai_reminder',
-                    'create_periodic_ai_task'
+                    # NOTE: Tasks migrated to workers system
+                    'workers.tasks.ai_tasks.process_due_ai_tasks',
+                    'workers.tasks.ai_tasks.test_scheduler_connection',
+                    'workers.tasks.ai_tasks.cleanup_old_logs',
+                    'workers.tasks.ai_tasks.create_ai_reminder',
+                    'workers.tasks.ai_tasks.create_periodic_ai_task'
                 ]
             }
 

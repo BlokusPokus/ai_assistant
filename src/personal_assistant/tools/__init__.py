@@ -11,7 +11,6 @@ from .emails.email_tool import EmailTool
 from .internet.internet_tool import InternetTool
 from .ltm.ltm_tool import LTMTool
 from .notion_pages.notion_pages_tool import NotionPagesTool
-from .reminder.reminder_tool import ReminderTool
 from .research.research_tool import ResearchTool
 from .youtube.youtube_tool import YouTubeTool
 
@@ -47,10 +46,10 @@ def create_tool_registry() -> ToolRegistry:
         registry.register(tool)
 
     # Register reminder tools
-    reminder_tool = ReminderTool()
-    for tool in reminder_tool:
-        tool.set_category("Reminders")
-        registry.register(tool)
+    # reminder_tool = ReminderTool()
+    # for tool in reminder_tool:
+    #     tool.set_category("Reminders")
+    #     registry.register(tool)
 
     # Register LTM tools
     ltm_tool = LTMTool()
@@ -91,7 +90,7 @@ __all__ = [
     'CalendarTool',
     'EmailTool',
     'NotionPagesTool',
-    'ReminderTool',
+    # 'ReminderTool', # Removed - now redundant
     'InternetTool',
     'YouTubeTool',
     # 'ResearchTool',

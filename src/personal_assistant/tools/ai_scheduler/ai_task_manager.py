@@ -422,3 +422,270 @@ class AITaskManager:
             ai_context=ai_context,
             notification_channels=notification_channels or ['sms']
         )
+
+    # Enhanced reminder methods with validation and formatting
+    async def create_reminder_with_validation(
+        self,
+        text: str,
+        time: str,
+        channel: Optional[str] = "sms",
+        user_id: int = 126
+    ) -> Dict[str, Any]:
+        """
+        Create a reminder with full validation and user-friendly interface.
+
+        Args:
+            text: Reminder text
+            time: Time in ISO format (YYYY-MM-DDTHH:MM:SS)
+            channel: Notification channel (sms, email, in_app)
+            user_id: User ID
+
+        Returns:
+            Dict with success status and response message
+        """
+        try:
+            # Validate input parameters
+            validation_result = self._validate_reminder_inputs(
+                text, time, channel, user_id)
+            if not validation_result['is_valid']:
+                return {
+                    'success': False,
+                    'message': validation_result['error_msg']
+                }
+
+            # Parse time
+            remind_at = validation_result['remind_at']
+            channel = validation_result['channel']
+            user_id = validation_result['user_id']
+
+            # Create the reminder task
+            task = await self.create_reminder(
+                user_id=user_id,
+                title=text,
+                remind_at=remind_at,
+                description=text,
+                notification_channels=[channel]
+            )
+
+            return {
+                'success': True,
+                'message': self._format_reminder_response(text, remind_at, task.id),
+                'task_id': task.id
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error setting reminder: {e}")
+            return {
+                'success': False,
+                'message': f"❌ Error setting reminder: {str(e)}"
+            }
+
+    async def list_user_reminders(
+        self,
+        status: Optional[str] = "active",
+        user_id: int = 126
+    ) -> Dict[str, Any]:
+        """
+        List user reminders with formatting.
+
+        Args:
+            status: Filter by status (active, completed, failed, paused)
+            user_id: User ID
+
+        Returns:
+            Dict with success status and formatted response
+        """
+        try:
+            # Validate status
+            if status and status not in ['active', 'completed', 'failed', 'paused']:
+                return {
+                    'success': False,
+                    'message': f"❌ Error: Invalid status '{status}'. Valid statuses are: active, completed, failed, paused"
+                }
+
+            # Get user's reminder tasks
+            tasks = await self.get_user_tasks(
+                user_id=user_id,
+                status=status,
+                task_type='reminder',
+                limit=50
+            )
+
+            if not tasks:
+                return {
+                    'success': True,
+                    'message': f"No {status} reminders found."
+                }
+
+            # Format the response
+            result = self._format_reminder_list_header(status, len(tasks))
+            for task in tasks:
+                result += self._format_reminder_item(task)
+
+            return {
+                'success': True,
+                'message': result
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error listing reminders: {e}")
+            return {
+                'success': False,
+                'message': f"❌ Error listing reminders: {str(e)}"
+            }
+
+    async def delete_user_reminder(
+        self,
+        reminder_id: int,
+        user_id: int = 126
+    ) -> Dict[str, Any]:
+        """
+        Delete a user reminder with validation.
+
+        Args:
+            reminder_id: Reminder ID to delete
+            user_id: User ID
+
+        Returns:
+            Dict with success status and response message
+        """
+        try:
+            # Validate reminder_id
+            try:
+                reminder_id = int(reminder_id)
+            except (ValueError, TypeError):
+                return {
+                    'success': False,
+                    'message': f"❌ Error: reminder_id must be a valid integer, got '{reminder_id}'"
+                }
+
+            # Check if the reminder exists and belongs to the user
+            user_tasks = await self.get_user_tasks(
+                user_id=user_id,
+                task_type='reminder',
+                limit=100
+            )
+
+            if not any(task.id == reminder_id for task in user_tasks):
+                return {
+                    'success': False,
+                    'message': f"❌ Reminder {reminder_id} not found or you don't have permission to delete it"
+                }
+
+            # Delete the task
+            success = await self.delete_task(reminder_id, user_id)
+
+            if success:
+                return {
+                    'success': True,
+                    'message': f"✅ Reminder {reminder_id} deleted successfully"
+                }
+            else:
+                return {
+                    'success': False,
+                    'message': f"❌ Failed to delete reminder {reminder_id}"
+                }
+
+        except Exception as e:
+            self.logger.error(f"Error deleting reminder: {e}")
+            return {
+                'success': False,
+                'message': f"❌ Error deleting reminder: {str(e)}"
+            }
+
+    # Private validation and formatting methods
+    def _validate_reminder_inputs(
+        self,
+        text: str,
+        time: str,
+        channel: Optional[str],
+        user_id: int
+    ) -> Dict[str, Any]:
+        """Validate reminder input parameters."""
+        # Validate text
+        if not text or not text.strip():
+            return {
+                'is_valid': False,
+                'error_msg': "❌ Error: Reminder text cannot be empty"
+            }
+
+        # Validate time
+        if not time or not time.strip():
+            return {
+                'is_valid': False,
+                'error_msg': "❌ Error: Time cannot be empty"
+            }
+
+        # Parse time
+        try:
+            remind_at = datetime.fromisoformat(time)
+        except ValueError:
+            return {
+                'is_valid': False,
+                'error_msg': f"❌ Error: Invalid time format '{time}'. Please use ISO format (YYYY-MM-DDTHH:MM:SS)"
+            }
+
+        # Validate channel
+        valid_channels = ['sms', 'email', 'in_app']
+        if channel and channel not in valid_channels:
+            return {
+                'is_valid': False,
+                'error_msg': f"❌ Error: Invalid channel '{channel}'. Valid channels are: {', '.join(valid_channels)}"
+            }
+        channel = channel if channel else "sms"
+
+        # Validate user_id
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return {
+                'is_valid': False,
+                'error_msg': f"❌ Error: user_id must be a valid integer, got '{user_id}'"
+            }
+
+        return {
+            'is_valid': True,
+            'remind_at': remind_at,
+            'channel': channel,
+            'user_id': user_id,
+            'error_msg': None
+        }
+
+    def _format_reminder_response(self, text: str, remind_at: datetime, task_id: int) -> str:
+        """Format successful reminder creation response."""
+        return f"✅ Reminder set: '{text}' for {remind_at.strftime('%Y-%m-%d %H:%M')} (ID: {task_id})"
+
+    def _format_reminder_list_header(self, status: str, count: int) -> str:
+        """Format reminder list header."""
+        return f"📋 {status.title()} reminders ({count} found):\n\n"
+
+    def _format_reminder_item(self, task: AITask) -> str:
+        """Format individual reminder item for display."""
+        status_emoji = self._get_status_emoji(task.status)
+        next_run = self._format_next_run_time(task.next_run_at)
+
+        result = f"{status_emoji} **{task.title}** (ID: {task.id})\n"
+        result += f"   📅 Next run: {next_run}\n"
+        result += f"   📝 Status: {task.status}\n"
+
+        if task.description and task.description != task.title:
+            result += f"   📄 Description: {task.description}\n"
+
+        result += "\n"
+        return result
+
+    def _get_status_emoji(self, status: str) -> str:
+        """Get appropriate emoji for reminder status."""
+        emoji_map = {
+            "active": "⏰",
+            "completed": "✅",
+            "failed": "❌",
+            "paused": "⏸️"
+        }
+        return emoji_map.get(status, "📝")
+
+    def _format_next_run_time(self, next_run_at) -> str:
+        """Format next run time for display."""
+        if next_run_at:
+            return next_run_at.strftime('%Y-%m-%d %H:%M')
+        return "No schedule"
