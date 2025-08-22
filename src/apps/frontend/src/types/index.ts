@@ -118,3 +118,6 @@ export interface Toast {
   message?: string;
   duration?: number;
 }
+
+// Export auth types
+export * from './auth';

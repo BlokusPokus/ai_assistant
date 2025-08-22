@@ -65,12 +65,15 @@ class PasswordService:
             # If there's any error in verification, return False
             return False
 
-    def _validate_password(self, password: str) -> None:
+    def _validate_password(self, password: str) -> bool:
         """
         Validate password strength.
 
         Args:
             password: Password to validate
+
+        Returns:
+            True if password meets requirements
 
         Raises:
             HTTPException: If password doesn't meet requirements
@@ -108,6 +111,8 @@ class PasswordService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Password must contain at least one special character"
             )
+
+        return True
 
     def get_password_strength(self, password: str) -> Tuple[int, str]:
         """

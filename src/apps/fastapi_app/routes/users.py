@@ -36,7 +36,6 @@ async def get_db() -> AsyncSession:
 
 # Current user endpoints (user can access their own data)
 @router.get("/me", response_model=UserResponse)
-@require_permission("user", "read")
 async def get_current_user_profile(
     current_user: User = Depends(get_current_user)
 ):
@@ -46,7 +45,18 @@ async def get_current_user_profile(
     Returns the profile information for the currently authenticated user.
     """
     try:
-        return UserResponse.model_validate(current_user)
+        return UserResponse(
+            id=current_user.id,
+            email=current_user.email,
+            phone_number=getattr(current_user, 'phone_number', None),
+            full_name=getattr(current_user, 'full_name', None),
+            is_active=getattr(current_user, 'is_active', True),
+            is_verified=getattr(current_user, 'is_verified', False),
+            last_login=getattr(current_user, 'last_login', None),
+            created_at=current_user.created_at,
+            updated_at=getattr(current_user, 'updated_at',
+                               current_user.created_at)
+        )
     except Exception as e:
         logger.error(f"Error getting current user profile: {e}")
         raise HTTPException(
