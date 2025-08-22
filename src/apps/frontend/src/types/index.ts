@@ -121,3 +121,5 @@ export interface Toast {
 
 // Export auth types
 export * from './auth';
+// Export profile types
+export * from './profile';

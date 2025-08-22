@@ -73,8 +73,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const user = await authService.register(userData);
-
+          await authService.register(userData);
           // Registration successful - don't automatically log in
           // User needs to log in separately with their credentials
           set({
