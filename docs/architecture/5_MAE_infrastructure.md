@@ -25,6 +25,7 @@ graph TB
         NGINX[🛡️ Nginx Proxy<br/>TLS 1.3<br/>HTTP/2]
         API[🚀 FastAPI Backend]
         AGENT[🧠 Agent Service]
+        OAUTH_MGR[🔑 OAuth Manager<br/>Gestion OAuth progressive]
         WORKERS[⚙️ Background Workers]
     end
 
@@ -47,17 +48,24 @@ graph TB
     LOAD_BALANCER --> NGINX
     NGINX --> API
     NGINX --> AGENT
+    NGINX --> OAUTH_MGR
     NGINX --> WORKERS
 
     API --> POSTGRES
     API --> REDIS
+    API --> OAUTH_MGR
     AGENT --> POSTGRES
     AGENT --> REDIS
+    AGENT --> OAUTH_MGR
     WORKERS --> POSTGRES
     WORKERS --> REDIS
+    WORKERS --> OAUTH_MGR
+    OAUTH_MGR --> POSTGRES
+    OAUTH_MGR --> REDIS
 
     API --> PROMETHEUS
     AGENT --> PROMETHEUS
+    OAUTH_MGR --> PROMETHEUS
     WORKERS --> PROMETHEUS
     POSTGRES --> PROMETHEUS
     REDIS --> PROMETHEUS
@@ -70,12 +78,12 @@ graph TB
 
 **Explication de l'architecture réseau**:
 
-L'architecture réseau suit le principe de défense en profondeur avec plusieurs zones de sécurité :
+L'architecture réseau suit le principe de défense en profondeur avec plusieurs zones de sécurité, **optimisée pour l'isolation multi-utilisateurs et la gestion OAuth progressive** :
 
 1. **Zone publique (DMZ)**: CDN, WAF et load balancer exposés à Internet
-2. **Zone applications**: Services applicatifs avec accès contrôlé
-3. **Zone données**: Base de données et stockage avec accès restreint
-4. **Zone monitoring**: Outils de surveillance avec accès privilégié
+2. **Zone applications**: Services applicatifs avec accès contrôlé, **incluant le gestionnaire OAuth pour l'isolation des intégrations par utilisateur**
+3. **Zone données**: Base de données et stockage avec accès restreint, **isolation stricte des données par utilisateur**
+4. **Zone monitoring**: Outils de surveillance avec accès privilégié, **métriques OAuth par utilisateur**
 
 ### 5.1.2 Composants de sécurité réseau
 
@@ -99,6 +107,14 @@ L'architecture réseau suit le principe de défense en profondeur avec plusieurs
 - **Health checks**: Vérification continue de l'état des services
 - **SSL termination**: Gestion centralisée des certificats TLS
 - **Sticky sessions**: Maintien des sessions utilisateur
+
+#### **5.1.2.4 Sécurité OAuth et Multi-utilisateurs**
+
+- **Isolation des tokens OAuth**: Séparation stricte des tokens par utilisateur
+- **Rate limiting OAuth**: Limitation des appels OAuth par utilisateur et par service
+- **Validation des scopes**: Vérification des permissions OAuth pour chaque action
+- **Audit des intégrations**: Traçabilité complète des connexions OAuth par utilisateur
+- **Protection contre l'abus**: Détection des tentatives d'utilisation abusive des intégrations OAuth
 
 ## 5.2 Spécification Réseaux/Télécom
 
@@ -126,7 +142,8 @@ L'architecture réseau suit le principe de défense en profondeur avec plusieurs
 **Zone Applications (10.0.2.0/24)**:
 
 - **10.0.2.1-10.0.2.20**: Services FastAPI et Agent
-- **10.0.2.21-10.0.2.40**: Workers et services asynchrones
+- **10.0.2.21-10.0.2.30**: **OAuth Manager et gestion des intégrations**
+- **10.0.2.31-10.0.2.40**: Workers et services asynchrones
 - **10.0.2.41-10.0.2.50**: Services d'intégration
 
 **Zone Données (10.0.3.0/24)**:
@@ -156,6 +173,7 @@ L'architecture réseau suit le principe de défense en profondeur avec plusieurs
 
 - **personal-assistant.com**: Domaine principal de production
 - **api.personal-assistant.com**: API publique
+- **oauth.personal-assistant.com**: **Gestionnaire OAuth et intégrations**
 - **admin.personal-assistant.com**: Interface d'administration
 
 **Configuration DNS**:
@@ -171,6 +189,7 @@ L'architecture réseau suit le principe de défense en profondeur avec plusieurs
 
 - **postgres.internal**: Base de données PostgreSQL
 - **redis.internal**: Cache Redis
+- **oauth-manager.internal**: **Gestionnaire OAuth et intégrations**
 - **prometheus.internal**: Collecte de métriques
 - **grafana.internal**: Interface de monitoring
 
@@ -218,6 +237,14 @@ L'architecture réseau suit le principe de défense en profondeur avec plusieurs
 - **Sécurité**: Protection par WAF et règles de pare-feu
 - **Performance**: Pas de surcharge due à la traduction d'adresses
 - **Monitoring**: Surveillance directe des connexions entrantes
+
+#### **5.2.4.3 NAT pour les intégrations OAuth**
+
+- **Connexions sortantes OAuth**: Traduction des adresses IP pour les appels vers les APIs externes
+- **Isolation des connexions**: Séparation des connexions OAuth par utilisateur
+- **Logs OAuth**: Journalisation spécifique des connexions OAuth sortantes
+- **Monitoring OAuth**: Surveillance de la bande passante utilisée par les intégrations OAuth
+- **Rate limiting OAuth**: Contrôle du nombre de connexions OAuth simultanées par utilisateur
 
 ## 5.3 Spécification Téléphonie/VoIP
 

@@ -6,17 +6,23 @@
 
 **Tableau 6.1.1 - Règles de microsegmentation**
 
-| Source              | Destination         | Protocole | Port            | Justification             |
-| ------------------- | ------------------- | --------- | --------------- | ------------------------- |
-| **Internet**        | **Load Balancer**   | TCP       | 80, 443         | Accès public aux services |
-| **Load Balancer**   | **Nginx Proxy**     | TCP       | 80, 443         | Routage des requêtes      |
-| **Nginx Proxy**     | **FastAPI Backend** | TCP       | 8000            | Communication API         |
-| **Nginx Proxy**     | **Agent Service**   | TCP       | 8001            | Communication Agent       |
-| **FastAPI Backend** | **PostgreSQL**      | TCP       | 5432            | Accès base de données     |
-| **FastAPI Backend** | **Redis**           | TCP       | 6379            | Accès cache               |
-| **Agent Service**   | **PostgreSQL**      | TCP       | 5432            | Accès base de données     |
-| **Agent Service**   | **Redis**           | TCP       | 6379            | Accès cache               |
-| **Monitoring**      | **Tous services**   | TCP       | Ports métriques | Collecte de métriques     |
+| Source              | Destination         | Protocole | Port            | Justification                         |
+| ------------------- | ------------------- | --------- | --------------- | ------------------------------------- |
+| **Internet**        | **Load Balancer**   | TCP       | 80, 443         | Accès public aux services             |
+| **Load Balancer**   | **Nginx Proxy**     | TCP       | 80, 443         | Routage des requêtes                  |
+| **Nginx Proxy**     | **FastAPI Backend** | TCP       | 8000            | Communication API                     |
+| **Nginx Proxy**     | **Agent Service**   | TCP       | 8001            | Communication Agent                   |
+| **Nginx Proxy**     | **OAuth Manager**   | TCP       | 8002            | **Gestion des intégrations OAuth**    |
+| **FastAPI Backend** | **PostgreSQL**      | TCP       | 5432            | Accès base de données                 |
+| **FastAPI Backend** | **Redis**           | TCP       | 6379            | Accès cache                           |
+| **FastAPI Backend** | **OAuth Manager**   | TCP       | 8002            | **Validation des intégrations OAuth** |
+| **Agent Service**   | **PostgreSQL**      | TCP       | 5432            | Accès base de données                 |
+| **Agent Service**   | **Redis**           | TCP       | 6379            | Accès cache                           |
+| **Agent Service**   | **OAuth Manager**   | TCP       | 8002            | **Accès aux intégrations OAuth**      |
+| **OAuth Manager**   | **PostgreSQL**      | TCP       | 5432            | **Stockage des tokens OAuth**         |
+| **OAuth Manager**   | **Redis**           | TCP       | 6379            | **Cache des tokens OAuth**            |
+| **OAuth Manager**   | **Internet**        | TCP       | 443             | **Appels vers APIs externes OAuth**   |
+| **Monitoring**      | **Tous services**   | TCP       | Ports métriques | Collecte de métriques                 |
 
 ### 6.1.2 Pare-feu applicatif
 
@@ -31,6 +37,7 @@
 **Règles sortantes**:
 
 - **APIs externes**: Accès aux services tiers requis
+- **APIs OAuth externes**: **Accès aux fournisseurs OAuth (Google, Microsoft, Notion, YouTube)**
 - **DNS**: Résolution DNS externe
 - **NTP**: Synchronisation temporelle
 - **Logs**: Envoi des logs de sécurité
@@ -39,6 +46,8 @@
 
 - **Intrusion Detection**: Détection des tentatives d'intrusion
 - **Anomaly Detection**: Détection des comportements anormaux
+- **OAuth Abuse Detection**: **Détection de l'utilisation abusive des intégrations OAuth**
+- **Cross-User Access Detection**: **Détection des tentatives d'accès croisé aux données utilisateur**
 - **Threat Intelligence**: Intégration des feeds de menaces
 - **Automated Response**: Réponse automatique aux menaces
 
@@ -59,6 +68,10 @@
 - **Trafic bloqué**: Volume de trafic rejeté par le WAF
 - **Anomalies détectées**: Comportements suspects identifiés
 - **Vulnérabilités**: Scans de vulnérabilités détectés
+- **OAuth Intégrations**: **Nombre d'intégrations OAuth actives par utilisateur**
+- **OAuth API Calls**: **Volume d'appels vers les APIs OAuth externes**
+- **OAuth Token Refresh**: **Fréquence de renouvellement des tokens OAuth**
+- **Cross-User Access Attempts**: **Tentatives d'accès croisé aux données utilisateur**
 
 ### 6.2.2 Alertes réseau
 
@@ -93,6 +106,13 @@
 - **Intrusion**: Isolation des services compromis
 - **Malware**: Nettoyage et restauration depuis sauvegarde
 - **Ransomware**: Restauration complète depuis sauvegarde
+
+#### **6.3.1.3 Attaques OAuth et multi-utilisateurs**
+
+- **Compromission des tokens OAuth**: **Révocation immédiate et régénération des tokens**
+- **Fuite de données multi-utilisateurs**: **Isolation immédiate et investigation forensique**
+- **Abus des intégrations OAuth**: **Limitation des appels API et investigation utilisateur**
+- **Tentatives d'accès croisé**: **Blocage des utilisateurs suspects et audit complet**
 
 ### 6.3.2 Procédures de récupération
 

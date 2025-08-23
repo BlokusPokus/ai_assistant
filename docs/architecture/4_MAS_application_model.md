@@ -9,56 +9,75 @@ Cette vue permet d'identifier le contexte global de la solution.
 ```mermaid
 graph TB
     subgraph "Environnement externe"
-        USERS[👥 Utilisateurs TDAH]
-        PARTNERS[🤝 Partenaires APIs]
-        REGULATORS[📋 Régulateurs]
+        USERS[👥 Utilisateurs TDAH Multi-utilisateurs]
+        PARTNERS[🤝 Partenaires APIs OAuth]
+        REGULATORS[📋 Régulateurs Multi-utilisateurs]
     end
 
-    subgraph "Solution - Assistant Personnel TDAH"
-        FRONTEND[💻 Interface utilisateur]
-        BACKEND[�� Services backend]
-        DATABASE[(🗄️ Base de données)]
-        CACHE[(🔴 Cache Redis)]
-        MONITORING[📊 Monitoring]
+    subgraph "Solution - Assistant Personnel TDAH Multi-utilisateurs"
+        FRONTEND[💻 Interface utilisateur Multi-utilisateurs]
+        BACKEND[🧠 Services backend Multi-utilisateurs]
+        OAUTH_MGR[🔑 Gestionnaire OAuth progressif]
+        DATABASE[(🗄️ Base de données Multi-utilisateurs)]
+        CACHE[(🔴 Cache Redis Multi-utilisateurs)]
+        MONITORING[📊 Monitoring Multi-utilisateurs]
     end
 
-    subgraph "Infrastructure"
-        DOCKER[🐳 Docker Compose]
-        SECURITY[🛡️ Sécurité]
-        BACKUP[💾 Sauvegarde]
+    subgraph "Infrastructure Multi-utilisateurs"
+        DOCKER[🐳 Docker Compose Multi-utilisateurs]
+        SECURITY[🛡️ Sécurité Multi-utilisateurs]
+        BACKUP[💾 Sauvegarde Multi-utilisateurs]
     end
 
     USERS --> FRONTEND
-    PARTNERS --> BACKEND
+    PARTNERS --> OAUTH_MGR
     REGULATORS --> SECURITY
 
     FRONTEND --> BACKEND
-    BACKEND --> DATABASE
-    BACKEND --> CACHE
-    BACKEND --> MONITORING
+    FRONTEND --> AUTH_SERVICE
+    FRONTEND --> OAUTH_MANAGER
 
-    BACKEND --> DOCKER
-    DATABASE --> BACKUP
-    CACHE --> SECURITY
+    AUTH_SERVICE --> USER_SERVICE
+    USER_SERVICE --> OAUTH_MANAGER
+    OAUTH_MANAGER --> INTEGRATION_SERVICE
+
+    CONVERSATION_SERVICE --> AGENT_SERVICE
+    AGENT_SERVICE --> MEMORY_SERVICE
+    AGENT_SERVICE --> PLANNING_SERVICE
+    AGENT_SERVICE --> OAUTH_MANAGER
+
+    INTEGRATION_SERVICE --> OAUTH_DB
+    NOTIFICATION_SERVICE --> CACHE_DB
+
+    AUTH_SERVICE --> USER_DB
+    USER_SERVICE --> USER_DB
+    MEMORY_SERVICE --> LTM_DB
+    PLANNING_SERVICE --> LTM_DB
+    OAUTH_MANAGER --> OAUTH_DB
+
+    BACKEND --> DOCKER_ORCHESTRATION
+    USER_DB --> BACKUP_SYSTEM
+    OAUTH_DB --> BACKUP_SYSTEM
+    LTM_DB --> BACKUP_SYSTEM
 ```
 
 **Explication de la solution:**
 
-La solution est conçue comme un écosystème intégré où chaque composant contribue à l'expérience utilisateur optimale, avec une architecture modulaire permettant l'évolution et la maintenance.
+La solution est conçue comme un écosystème intégré **multi-utilisateurs** où chaque composant contribue à l'expérience utilisateur optimale, avec une **architecture modulaire permettant l'évolution et la maintenance**. Le système supporte **l'isolation stricte des données par utilisateur** et **l'intégration OAuth progressive** pour activer les fonctionnalités selon les besoins de chaque utilisateur.
 
 **Description des impacts de la solution**
 
-| Volets            | Impacts                                                              |
-| ----------------- | -------------------------------------------------------------------- |
-| **Affaires**      | Amélioration de la productivité TDAH, création de valeur utilisateur |
-| **Applicative**   | Architecture modulaire, évolutivité, maintenabilité                  |
-| **Technologique** | Conteneurisation, monitoring avancé, sécurité renforcée              |
-| **Sécurité**      | Isolation des données, chiffrement, authentification                 |
-| **Conformité**    | Respect GDPR, audit trails, gestion des données personnelles         |
-| **Données**       | Propriété utilisateur, portabilité, droit à l'oubli                  |
-| **Risques**       | Gestion des dépendances externes, résilience, backup                 |
-| **Évolution**     | Architecture extensible, microservices futurs, scalabilité           |
-| **Résilience**    | Redondance, failover, dégradation gracieuse                          |
+| Volets            | Impacts                                                                                                           |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Affaires**      | Amélioration de la productivité TDAH, création de valeur utilisateur, **scalabilité multi-utilisateurs**          |
+| **Applicative**   | Architecture modulaire, évolutivité, maintenabilité, **isolation stricte des données par utilisateur**            |
+| **Technologique** | Conteneurisation, monitoring avancé, sécurité renforcée, **gestion OAuth progressive**                            |
+| **Sécurité**      | **Isolation stricte des données multi-utilisateurs**, chiffrement, authentification, **gestion des tokens OAuth** |
+| **Conformité**    | Respect GDPR, audit trails, gestion des données personnelles, **isolation multi-utilisateurs**                    |
+| **Données**       | Propriété utilisateur, portabilité, droit à l'oubli, **isolation stricte par utilisateur**                        |
+| **Risques**       | Gestion des dépendances externes, résilience, backup, **gestion des risques multi-utilisateurs**                  |
+| **Évolution**     | Architecture extensible, microservices futurs, scalabilité, **support de 1000+ utilisateurs**                     |
+| **Résilience**    | Redondance, failover, dégradation gracieuse, **isolation des pannes par utilisateur**                             |
 
 ### 4.2.2 Vue applicative
 
@@ -75,21 +94,23 @@ graph TB
     end
 
     subgraph "Couche logique métier"
-        AUTH_SERVICE[🔐 Service d'authentification]
-        USER_SERVICE[👤 Service de gestion utilisateur]
-        CONVERSATION_SERVICE[💬 Service de conversation]
-        AGENT_SERVICE[🧠 Service Agent LLM]
-        MEMORY_SERVICE[🧠 Service de mémoire LTM]
-        PLANNING_SERVICE[📅 Service de planification]
-        INTEGRATION_SERVICE[🔗 Service d'intégration]
-        NOTIFICATION_SERVICE[🔔 Service de notifications]
+        AUTH_SERVICE[🔐 Service d'authentification Multi-utilisateurs]
+        USER_SERVICE[👤 Service de gestion utilisateur Multi-utilisateurs]
+        OAUTH_MANAGER[🔑 Gestionnaire OAuth progressif]
+        CONVERSATION_SERVICE[💬 Service de conversation Multi-utilisateurs]
+        AGENT_SERVICE[🧠 Service Agent LLM Multi-utilisateurs]
+        MEMORY_SERVICE[🧠 Service de mémoire LTM Multi-utilisateurs]
+        PLANNING_SERVICE[📅 Service de planification Multi-utilisateurs]
+        INTEGRATION_SERVICE[🔗 Service d'intégration OAuth]
+        NOTIFICATION_SERVICE[🔔 Service de notifications Multi-utilisateurs]
     end
 
-    subgraph "Couche données"
-        USER_DB[(👤 Base utilisateurs)]
-        LTM_DB[(🧠 Base LTM)]
-        CACHE_DB[(🔴 Cache Redis)]
-        FILE_STORAGE[(📁 Stockage fichiers)]
+    subgraph "Couche données Multi-utilisateurs"
+        USER_DB[(👤 Base utilisateurs Multi-utilisateurs)]
+        OAUTH_DB[(🔑 Base OAuth Multi-utilisateurs)]
+        LTM_DB[(🧠 Base LTM Multi-utilisateurs)]
+        CACHE_DB[(🔴 Cache Redis Multi-utilisateurs)]
+        FILE_STORAGE[(📁 Stockage fichiers Multi-utilisateurs)]
     end
 
     subgraph "Couche infrastructure"
@@ -104,20 +125,25 @@ graph TB
     API_GATEWAY --> AUTH_SERVICE
 
     AUTH_SERVICE --> USER_SERVICE
+    USER_SERVICE --> OAUTH_MANAGER
     USER_SERVICE --> CONVERSATION_SERVICE
     CONVERSATION_SERVICE --> AGENT_SERVICE
     AGENT_SERVICE --> MEMORY_SERVICE
+    AGENT_SERVICE --> OAUTH_MANAGER
     AGENT_SERVICE --> INTEGRATION_SERVICE
 
     PLANNING_SERVICE --> NOTIFICATION_SERVICE
     INTEGRATION_SERVICE --> EXTERNAL_APIS
+    OAUTH_MANAGER --> EXTERNAL_APIS
 
     AUTH_SERVICE --> USER_DB
+    OAUTH_MANAGER --> OAUTH_DB
     MEMORY_SERVICE --> LTM_DB
     CONVERSATION_SERVICE --> CACHE_DB
     INTEGRATION_SERVICE --> FILE_STORAGE
 
     USER_DB --> BACKUP_SYSTEM
+    OAUTH_DB --> BACKUP_SYSTEM
     LTM_DB --> BACKUP_SYSTEM
     CACHE_DB --> SECURITY_LAYER
     FILE_STORAGE --> SECURITY_LAYER
@@ -125,21 +151,21 @@ graph TB
 
 **Explication de la vue applicative:**
 
-L'architecture applicative suit le pattern en couches avec une séparation claire des responsabilités, permettant la maintenance, l'évolution et la scalabilité.
+L'architecture applicative suit le pattern en couches avec une séparation claire des responsabilités, permettant la maintenance, l'évolution et la scalabilité. **L'architecture multi-utilisateurs assure l'isolation stricte des données par utilisateur**, tandis que **le gestionnaire OAuth progressif permet l'activation granulaire des fonctionnalités** selon les services connectés par chaque utilisateur.
 
 **Description des impacts de la vue applicative**
 
-| Volets            | Impacts                               | Catégorisation de l'impact                        |
-| ----------------- | ------------------------------------- | ------------------------------------------------- |
-| **Affaires**      | Amélioration de la productivité TDAH  | **Élevé** - Impact direct sur l'utilisateur final |
-| **Applicative**   | Architecture modulaire et extensible  | **Élevé** - Facilité de maintenance et évolution  |
-| **Technologique** | Conteneurisation et monitoring        | **Moyen** - Infrastructure moderne et robuste     |
-| **Sécurité**      | Isolation et chiffrement des données  | **Élevé** - Protection des données personnelles   |
-| **Conformité**    | Traçabilité et audit                  | **Moyen** - Respect des réglementations           |
-| **Données**       | Propriété et portabilité utilisateur  | **Élevé** - Contrôle total des données            |
-| **Risques**       | Gestion des dépendances et résilience | **Moyen** - Réduction des risques opérationnels   |
-| **Évolution**     | Scalabilité et microservices futurs   | **Élevé** - Croissance et adaptation              |
-| **Résilience**    | Redondance et failover                | **Moyen** - Continuité de service                 |
+| Volets            | Impacts                                                                           | Catégorisation de l'impact                        |
+| ----------------- | --------------------------------------------------------------------------------- | ------------------------------------------------- |
+| **Affaires**      | Amélioration de la productivité TDAH, **scalabilité multi-utilisateurs**          | **Élevé** - Impact direct sur l'utilisateur final |
+| **Applicative**   | Architecture modulaire et extensible, **isolation stricte des données**           | **Élevé** - Facilité de maintenance et évolution  |
+| **Technologique** | Conteneurisation et monitoring, **gestion OAuth progressive**                     | **Moyen** - Infrastructure moderne et robuste     |
+| **Sécurité**      | **Isolation stricte des données multi-utilisateurs**, chiffrement des données     | **Élevé** - Protection des données personnelles   |
+| **Conformité**    | Traçabilité et audit, **isolation multi-utilisateurs**                            | **Moyen** - Respect des réglementations           |
+| **Données**       | Propriété et portabilité utilisateur, **isolation stricte par utilisateur**       | **Élevé** - Contrôle total des données            |
+| **Risques**       | Gestion des dépendances et résilience, **gestion des risques multi-utilisateurs** | **Moyen** - Réduction des risques opérationnels   |
+| **Évolution**     | Scalabilité et microservices futurs, **support de 1000+ utilisateurs**            | **Élevé** - Croissance et adaptation              |
+| **Résilience**    | Redondance et failover, **isolation des pannes par utilisateur**                  | **Moyen** - Continuité de service                 |
 
 ### 4.2.3 Volumétrie applicables aux différentes composantes applicatives
 
@@ -147,16 +173,17 @@ Cette section contient la traduction des volumétries précisées dans le regist
 
 **Tableau 4.2.3 - Volumétrie des composantes applicatives**
 
-| Composante applicative         | Unité de mesure         | Volumétrie                              |
-| ------------------------------ | ----------------------- | --------------------------------------- |
-| **Service d'authentification** | Requêtes/sec            | 10-50 req/s (pic: 100 req/s)            |
-| **Service de conversation**    | Sessions simultanées    | 100-500 utilisateurs (pic: 1000)        |
-| **Service Agent LLM**          | Appels LLM/sec          | 5-20 appels/sec (pic: 50 appels/sec)    |
-| **Service de mémoire LTM**     | Opérations DB/sec       | 50-200 op/sec (pic: 500 op/sec)         |
-| **Service d'intégration**      | Appels API externes/sec | 20-100 appels/sec (pic: 200 appels/sec) |
-| **Base de données PostgreSQL** | Connexions simultanées  | 50-200 connexions (pic: 500)            |
-| **Cache Redis**                | Opérations/sec          | 1000-5000 op/sec (pic: 10000 op/sec)    |
-| **Stockage de fichiers**       | Espace disque           | 100 GB - 1 TB (croissance: 50 GB/mois)  |
+| Composante applicative         | Unité de mesure         | Volumétrie                                   |
+| ------------------------------ | ----------------------- | -------------------------------------------- |
+| **Service d'authentification** | Requêtes/sec            | 10-50 req/s (pic: 100 req/s)                 |
+| **Gestionnaire OAuth**         | Connexions OAuth/sec    | 5-20 connexions/sec (pic: 50 connexions/sec) |
+| **Service de conversation**    | Sessions simultanées    | 100-500 utilisateurs (pic: 1000)             |
+| **Service Agent LLM**          | Appels LLM/sec          | 5-20 appels/sec (pic: 50 appels/sec)         |
+| **Service de mémoire LTM**     | Opérations DB/sec       | 50-200 op/sec (pic: 500 op/sec)              |
+| **Service d'intégration**      | Appels API externes/sec | 20-100 appels/sec (pic: 200 appels/sec)      |
+| **Base de données PostgreSQL** | Connexions simultanées  | 50-200 connexions (pic: 500)                 |
+| **Cache Redis**                | Opérations/sec          | 1000-5000 op/sec (pic: 10000 op/sec)         |
+| **Stockage de fichiers**       | Espace disque           | 100 GB - 1 TB (croissance: 50 GB/mois)       |
 
 ### 4.2.4 Tableau récapitulatif des accès
 
@@ -164,12 +191,12 @@ Cette section est destinée à documenter les contrôles et mécanismes d'accès
 
 **Tableau 4.2.4 - Contrôles d'accès par profil**
 
-| Type d'acteur               | Profil applicatif           | Contraintes d'accès                                       | Cas d'utilisation                                  |
-| --------------------------- | --------------------------- | --------------------------------------------------------- | -------------------------------------------------- |
-| **Utilisateur authentifié** | Profil utilisateur standard | RBAC individuel, accès à ses propres données uniquement   | Conversation, planification, gestion des objectifs |
-| **Utilisateur premium**     | Profil utilisateur avancé   | RBAC étendu, accès aux fonctionnalités premium            | Analytics avancés, intégrations étendues           |
-| **Administrateur système**  | Profil administrateur       | RBAC administrateur, accès aux métriques et logs          | Monitoring, maintenance, support utilisateur       |
-| **Service système**         | Profil service technique    | Authentification par clé API, accès limité aux ressources | Intégrations, synchronisation, backup              |
+| Type d'acteur               | Profil applicatif           | Contraintes d'accès                                                                  | Cas d'utilisation                                              |
+| --------------------------- | --------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| **Utilisateur authentifié** | Profil utilisateur standard | **RBAC individuel, accès à ses propres données uniquement, isolation stricte**       | Conversation, planification, gestion des objectifs             |
+| **Utilisateur premium**     | Profil utilisateur avancé   | **RBAC étendu, accès aux fonctionnalités premium, intégrations OAuth étendues**      | Analytics avancés, intégrations étendues, **OAuth progressif** |
+| **Administrateur système**  | Profil administrateur       | **RBAC administrateur, accès aux métriques et logs, isolation multi-utilisateurs**   | Monitoring, maintenance, support utilisateur                   |
+| **Service système**         | Profil service technique    | **Authentification par clé API, accès limité aux ressources, isolation des données** | Intégrations, synchronisation, backup                          |
 
 ## 4.3 Information et données
 
@@ -181,50 +208,58 @@ Cette vue permet de comprendre le séquencement des flux de données et l'intég
 
 ```mermaid
 sequenceDiagram
-    participant U as Utilisateur TDAH
+    participant U as Utilisateur TDAH Multi-utilisateur
     participant SMS as Interface SMS<br/>Twilio Webhooks
     participant WEB as Interface Web<br/>Responsive + PWA
     participant MOBILE as Interface Mobile<br/>Native App
     participant API as API Gateway<br/>FastAPI + Nginx
-    participant AUTH as Auth Service<br/>MFA + RBAC
-    participant AGENT as Agent Core<br/>LLM Orchestration
-    participant LTM as LTM Service<br/>Mémoire à long terme
-    participant RAG as RAG System<br/>Recherche sémantique
-    participant WORKERS as Celery Workers<br/>Tâches asynchrones
-    participant DB as PostgreSQL<br/>Données utilisateur
-    participant CACHE as Redis<br/>Cache + Queue
-    participant EXT as APIs Externes<br/>Gemini, Graph, Notion
+    participant AUTH as Auth Service<br/>MFA + RBAC Multi-utilisateurs
+    participant OAUTH as OAuth Manager<br/>Gestion progressive
+    participant AGENT as Agent Core<br/>LLM Orchestration Multi-utilisateurs
+    participant LTM as LTM Service<br/>Mémoire à long terme Multi-utilisateurs
+    participant RAG as RAG System<br/>Recherche sémantique Multi-utilisateurs
+    participant WORKERS as Celery Workers<br/>Tâches asynchrones Multi-utilisateurs
+    participant DB as PostgreSQL<br/>Données utilisateur Multi-utilisateurs
+    participant CACHE as Redis<br/>Cache + Queue Multi-utilisateurs
+    participant EXT as APIs Externes<br/>Gemini, Graph, Notion OAuth
 
-    Note over U,EXT: === FLUX PRINCIPAL : Interface utilisateur multiple ===
+    Note over U,EXT: === FLUX PRINCIPAL : Interface utilisateur multiple Multi-utilisateurs ===
 
     alt Interface SMS (Principale - Phase 1)
         U->>SMS: Envoi SMS
         SMS->>API: Webhook Twilio
         API->>AUTH: Validation (si authentifié)
-    API->>AGENT: Routage vers Agent
+        API->>AGENT: Routage vers Agent
     else Interface Web (Phase 2)
         U->>WEB: Requête HTTP/HTTPS
         WEB->>API: Requête authentifiée
         API->>AUTH: Validation token + MFA
+        API->>OAUTH: Vérification OAuth
         API->>AGENT: Routage vers Agent
     else Interface Mobile (Phase 3)
         U->>MOBILE: Requête native
         MOBILE->>API: Requête authentifiée
         API->>AUTH: Validation token + MFA
+        API->>OAUTH: Vérification OAuth
         API->>AGENT: Routage vers Agent
     end
 
-    Note over AGENT,EXT: === FLUX AGENT CORE : Orchestration intelligente ===
+    Note over AGENT,EXT: === FLUX AGENT CORE : Orchestration intelligente Multi-utilisateurs ===
 
-    AGENT->>LTM: Récupération contexte utilisateur
-    LTM->>DB: Requête données LTM
-    DB->>LTM: Données contextuelles
-    LTM->>AGENT: Contexte complet
+    AGENT->>LTM: Récupération contexte utilisateur isolé
+    LTM->>DB: Requête données LTM par utilisateur
+    DB->>LTM: Données contextuelles isolées
+    LTM->>AGENT: Contexte complet utilisateur
 
-    AGENT->>RAG: Recherche sémantique
-    RAG->>DB: Requête vectorielle
-    DB->>RAG: Résultats enrichis
-    RAG->>AGENT: Contexte RAG
+    AGENT->>RAG: Recherche sémantique par utilisateur
+    RAG->>DB: Requête vectorielle isolée
+    DB->>RAG: Résultats enrichis par utilisateur
+    RAG->>AGENT: Contexte RAG utilisateur
+
+    AGENT->>OAUTH: Vérification intégrations OAuth
+    OAUTH->>EXT: Appels APIs externes OAuth
+    EXT->>OAUTH: Réponses OAuth
+    OAUTH->>AGENT: Données intégrations OAuth
 
     Note over AGENT,EXT: === FLUX DÉCISION ET EXÉCUTION ===
 
