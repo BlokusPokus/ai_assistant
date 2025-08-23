@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { useProfileStore } from '@/stores/profileStore';
+import { useOAuthStore } from '@/stores/oauthStore';
 import {
   Brain,
   MessageSquare,
@@ -12,16 +13,19 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
+  Link,
 } from 'lucide-react';
 
 const DashboardHome: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { fetchProfile } = useProfileStore();
+  const { integrations, loadMockData } = useOAuthStore();
 
   useEffect(() => {
     fetchProfile();
-  }, [fetchProfile]);
+    loadMockData();
+  }, [fetchProfile, loadMockData]);
 
   const quickActions = [
     {
@@ -44,6 +48,13 @@ const DashboardHome: React.FC = () => {
       description: 'Access your saved notes and documents',
       action: () => navigate('/dashboard/notes'),
       color: 'bg-purple-100 text-purple-600',
+    },
+    {
+      icon: Link,
+      title: 'Integrations',
+      description: 'Manage your OAuth connections',
+      action: () => navigate('/dashboard/integrations'),
+      color: 'bg-orange-100 text-orange-600',
     },
     {
       icon: Settings,
@@ -101,11 +112,11 @@ const DashboardHome: React.FC = () => {
       bgColor: 'bg-blue-100',
     },
     {
-      name: 'Security',
-      status: 'MFA Enabled',
-      icon: CheckCircle,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
+      name: 'OAuth Integrations',
+      status: `${integrations.filter(i => i.status === 'connected').length} Connected`,
+      icon: Link,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-100',
     },
   ];
 
@@ -186,11 +197,11 @@ const DashboardHome: React.FC = () => {
         <h2 className="text-xl font-semibold text-gray-900 mb-4">
           Quick Actions
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {quickActions.map((action, index) => (
             <div
               key={index}
-              className="cursor-pointer group"
+              className="group cursor-pointer transform transition-all duration-200"
               onClick={action.action}
             >
               <Card

@@ -18,6 +18,7 @@ import {
   ChatPage,
   CalendarPage,
   NotesPage,
+  OAuthIntegrationsPage,
 } from '@/pages/dashboard';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
@@ -81,6 +82,7 @@ function App() {
             <Route path="chat" element={<ChatPage />} />
             <Route path="calendar" element={<CalendarPage />} />
             <Route path="notes" element={<NotesPage />} />
+            <Route path="integrations" element={<OAuthIntegrationsPage />} />
           </Route>
 
           {/* Catch-all route - redirect to landing */}

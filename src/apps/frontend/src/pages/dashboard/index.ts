@@ -5,3 +5,4 @@ export { default as SecurityPage } from './SecurityPage';
 export { default as ChatPage } from './ChatPage';
 export { default as CalendarPage } from './CalendarPage';
 export { default as NotesPage } from './NotesPage';
+export { default as OAuthIntegrationsPage } from '../../components/oauth/OAuthIntegrationsPage';

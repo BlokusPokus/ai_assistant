@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Link,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useDashboardStore } from '@/stores/dashboardStore';
@@ -54,6 +55,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
       label: 'Notes',
       href: '/dashboard/notes',
       icon: FileText,
+    },
+    {
+      label: 'Integrations',
+      href: '/dashboard/integrations',
+      icon: Link,
     },
     {
       label: 'Profile',
