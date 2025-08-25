@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui';
 import {
   Brain,
@@ -13,6 +13,7 @@ import {
   ChevronRight,
   LogOut,
   Link,
+  Key,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useDashboardStore } from '@/stores/dashboardStore';
@@ -60,6 +61,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
       label: 'Integrations',
       href: '/dashboard/integrations',
       icon: Link,
+    },
+    {
+      label: 'OAuth Settings',
+      href: '/dashboard/oauth-settings',
+      icon: Key,
     },
     {
       label: 'Profile',

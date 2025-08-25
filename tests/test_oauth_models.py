@@ -65,7 +65,7 @@ class TestOAuthModels:
         )
         session.add(integration)
         session.commit()
-        
+
         assert integration.id is not None
         assert integration.provider == "google"
         assert integration.status == "active"
@@ -81,7 +81,7 @@ class TestOAuthModels:
         )
         session.add(integration)
         session.commit()
-        
+
         token = OAuthToken(
             integration_id=integration.id,
             token_type="access",
@@ -91,7 +91,7 @@ class TestOAuthModels:
         )
         session.add(token)
         session.commit()
-        
+
         assert token.id is not None
         assert token.token_type == "access"
         assert token.is_valid is True
@@ -109,7 +109,7 @@ class TestOAuthModels:
         )
         session.add(scope)
         session.commit()
-        
+
         assert scope.id is not None
         assert scope.provider == "google"
         assert scope.scope_name == "openid"
@@ -125,7 +125,7 @@ class TestOAuthModels:
         )
         session.add(integration)
         session.commit()
-        
+
         # Then create a scope
         scope = OAuthScope(
             provider="google",
@@ -135,7 +135,7 @@ class TestOAuthModels:
         )
         session.add(scope)
         session.commit()
-        
+
         consent = OAuthConsent(
             integration_id=integration.id,
             scope_id=scope.id,
@@ -147,7 +147,7 @@ class TestOAuthModels:
         )
         session.add(consent)
         session.commit()
-        
+
         assert consent.id is not None
         assert consent.consent_status == "granted"
         assert consent.ip_address == "192.168.1.1"
@@ -165,7 +165,7 @@ class TestOAuthModels:
         )
         session.add(log)
         session.commit()
-        
+
         assert log.id is not None
         assert log.action == "oauth_authorization"
         assert log.status == "success"
@@ -183,7 +183,7 @@ class TestOAuthModels:
         )
         session.add(state)
         session.commit()
-        
+
         assert state.id is not None
         assert state.state_token == "random_state_token_123"
         assert state.provider == "google"
@@ -199,7 +199,7 @@ class TestOAuthModels:
         )
         session.add(integration)
         session.commit()
-        
+
         # Create token for this integration
         token = OAuthToken(
             integration_id=integration.id,
@@ -209,7 +209,7 @@ class TestOAuthModels:
         )
         session.add(token)
         session.commit()
-        
+
         # Test relationship
         assert len(integration.tokens) == 1
         assert integration.tokens[0].id == token.id
@@ -225,11 +225,11 @@ class TestOAuthModels:
         )
         session.add(integration)
         session.commit()  # Should work as we have the minimum required fields
-        
+
         # Test enum-like constraints
         integration.status = "invalid_status"
         session.commit()  # SQLite doesn't enforce enum constraints, so this works
-        
+
         # Test that we can modify the integration
         assert integration.status == "invalid_status"
 
@@ -242,7 +242,7 @@ class TestOAuthModels:
         )
         session.add(integration)
         session.commit()
-        
+
         # Test __repr__ method
         repr_str = repr(integration)
         assert "OAuthIntegration" in repr_str

@@ -16,63 +16,31 @@ Description:
     and provides default values for various settings.
 """
 import os
-from pathlib import Path
 from pydantic_settings import BaseSettings
 from typing import Optional
 from dotenv import load_dotenv
 
-
-def find_env_file(env_name: str) -> Optional[Path]:
-    """
-    Find environment file by searching multiple possible locations.
-
-    Args:
-        env_name: Name of the environment file (e.g., 'development.env')
-
-    Returns:
-        Path to the environment file if found, None otherwise
-    """
-    # Get the current working directory
-    cwd = Path.cwd()
-
-    # Possible locations to search for config files
-    search_paths = [
-        # Current working directory
-        cwd / "config" / env_name,
-        # Current working directory + config
-        cwd / env_name,
-        # Project root (assuming we're in src/apps/fastapi_app or similar)
-        cwd.parent.parent.parent / "config" / env_name,
-        # Project root + config
-        cwd.parent.parent.parent / env_name,
-        # Absolute path from project root
-        Path(__file__).parent.parent.parent / "config" / env_name,
-        # Absolute path from project root + config
-        Path(__file__).parent.parent.parent / env_name,
-    ]
-
-    # Search for the environment file
-    for path in search_paths:
-        if path.exists():
-            return path
-
-    return None
-
-
 # Load environment-specific config file
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
-env_filename = f"{ENVIRONMENT}.env"
 
-# Try to find and load the environment file
-env_file = find_env_file(env_filename)
-if env_file:
-    print(f"🔧 Loading environment from: {env_file}")
-    load_dotenv(env_file)
+# Get the project root directory (3 levels up from this file: src/personal_assistant/config/ -> project_root/)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+config_file = os.path.join(PROJECT_ROOT, "config", f"{ENVIRONMENT}.env")
+
+# Load the appropriate config file
+if os.path.exists(config_file):
+    load_dotenv(config_file)
+    print(f"🔧 Loaded config from: {config_file}")
 else:
-    print(f"⚠️  Environment file not found: {env_filename}")
-    print(f"🔍 Searched in: {Path.cwd()}")
     # Fallback to root .env file
-    load_dotenv()
+    fallback_env = os.path.join(PROJECT_ROOT, ".env")
+    if os.path.exists(fallback_env):
+        load_dotenv(fallback_env)
+        print(f"🔧 Loaded fallback config from: {fallback_env}")
+    else:
+        print(f"⚠️  No config file found at: {config_file} or {fallback_env}")
+        load_dotenv()  # Load from environment variables only
 
 
 class Settings(BaseSettings):
@@ -209,7 +177,7 @@ class Settings(BaseSettings):
     RAG_MAX_RESULTS: int = 5  # Maximum results to return from RAG queries
 
     class Config:
-        env_file = env_file
+        env_file = config_file
         case_sensitive = False
         extra = "allow"  # Allow extra fields from environment variables
 

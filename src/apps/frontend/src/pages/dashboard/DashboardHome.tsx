@@ -14,6 +14,7 @@ import {
   Clock,
   CheckCircle,
   Link,
+  Key,
 } from 'lucide-react';
 
 const DashboardHome: React.FC = () => {
@@ -55,6 +56,13 @@ const DashboardHome: React.FC = () => {
       description: 'Manage your OAuth connections',
       action: () => navigate('/dashboard/integrations'),
       color: 'bg-orange-100 text-orange-600',
+    },
+    {
+      icon: Key,
+      title: 'OAuth Settings',
+      description: 'Advanced OAuth management and analytics',
+      action: () => navigate('/dashboard/oauth-settings'),
+      color: 'bg-indigo-100 text-indigo-600',
     },
     {
       icon: Settings,

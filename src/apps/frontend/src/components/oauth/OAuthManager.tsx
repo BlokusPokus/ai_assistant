@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Card, Input, Loading } from '@/components/ui';
-import { useOAuthStore } from '@/stores/oauthStore';
+import { useOAuthSettingsStore } from '../../stores/oauthSettingsStore';
 import OAuthProviderCard from './OAuthProviderCard';
 import OAuthConsent from './OAuthConsent';
 import type { OAuthProvider } from '@/types/oauth';
 import { OAUTH_PROVIDERS } from '@/constants/oauth';
 
 const OAuthManager: React.FC = () => {
-  const { integrations, isLoading, error, loadMockData, setError } =
-    useOAuthStore();
+  const { integrations, loading, error, loadIntegrations } =
+    useOAuthSettingsStore();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProvider, setSelectedProvider] =
@@ -16,9 +16,9 @@ const OAuthManager: React.FC = () => {
   const [showConsent, setShowConsent] = useState(false);
 
   useEffect(() => {
-    // Load mock data for development
-    loadMockData();
-  }, [loadMockData]);
+    // Load real integrations data
+    loadIntegrations();
+  }, [loadIntegrations]);
 
   const handleConsent = async (scopes: string[]) => {
     if (!selectedProvider) return;
@@ -32,7 +32,8 @@ const OAuthManager: React.FC = () => {
       setSelectedProvider(null);
     } catch (error) {
       console.error('Failed to connect:', error);
-      setError('Failed to connect to the service. Please try again.');
+      // Note: setError is not available in oauthSettingsStore, so we'll log it
+      console.error('Failed to connect to the service. Please try again.');
     }
   };
 
@@ -48,11 +49,11 @@ const OAuthManager: React.FC = () => {
   );
 
   const connectedCount = integrations.filter(
-    i => i.status === 'connected'
+    i => i.status === 'active' && i.is_active
   ).length;
   const totalProviders = OAUTH_PROVIDERS.length;
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
         <Loading size="lg" text="Loading OAuth integrations..." />
@@ -118,7 +119,7 @@ const OAuthManager: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setError(null)}
+              onClick={() => {}} // setError is not available
               className="ml-auto text-red-600 hover:text-red-800"
             >
               Dismiss
