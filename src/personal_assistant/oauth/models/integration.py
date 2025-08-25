@@ -36,7 +36,8 @@ class OAuthIntegration(Base):
     error_count = Column(Integer, default=0)  # Number of consecutive errors
 
     # Relationships
-    user = relationship("User", back_populates="oauth_integrations")
+    # Removed back_populates to avoid circular import issues
+    user = relationship("User")
     tokens = relationship(
         "OAuthToken", back_populates="integration", cascade="all, delete-orphan")
     consents = relationship(

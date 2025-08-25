@@ -30,19 +30,19 @@ class TestOAuthProviders:
     def test_google_oauth_provider(self):
         """Test Google OAuth provider."""
         provider = GoogleOAuthProvider(**self.config)
-        
+
         # Test provider attributes
         assert provider.provider_name == "google"
         assert provider.client_id == "test_client_id"
         assert provider.client_secret == "test_client_secret"
         assert provider.redirect_uri == "https://example.com/callback"
-        
+
         # Test authorization URL generation
         auth_url = provider.get_authorization_url(
             state="test_state",
             scopes=["openid", "email"]
         )
-        
+
         assert "accounts.google.com" in auth_url
         assert "response_type=code" in auth_url
         assert "client_id=test_client_id" in auth_url
@@ -52,18 +52,18 @@ class TestOAuthProviders:
     def test_microsoft_oauth_provider(self):
         """Test Microsoft OAuth provider."""
         provider = MicrosoftOAuthProvider(**self.config)
-        
+
         # Test provider attributes
         assert provider.provider_name == "microsoft"
         assert provider.client_id == "test_client_id"
         assert provider.client_secret == "test_client_secret"
-        
+
         # Test authorization URL generation
         auth_url = provider.get_authorization_url(
             state="test_state",
             scopes=["openid", "email"]
         )
-        
+
         assert "login.microsoftonline.com" in auth_url
         assert "response_type=code" in auth_url
         assert "client_id=test_client_id" in auth_url
@@ -72,18 +72,18 @@ class TestOAuthProviders:
     def test_notion_oauth_provider(self):
         """Test Notion OAuth provider."""
         provider = NotionOAuthProvider(**self.config)
-        
+
         # Test provider attributes
         assert provider.provider_name == "notion"
         assert provider.client_id == "test_client_id"
         assert provider.client_secret == "test_client_secret"
-        
+
         # Test authorization URL generation
         auth_url = provider.get_authorization_url(
             state="test_state",
             scopes=["read", "write"]
         )
-        
+
         assert "api.notion.com" in auth_url
         assert "response_type=code" in auth_url
         assert "client_id=test_client_id" in auth_url
@@ -92,18 +92,18 @@ class TestOAuthProviders:
     def test_youtube_oauth_provider(self):
         """Test YouTube OAuth provider."""
         provider = YouTubeOAuthProvider(**self.config)
-        
+
         # Test provider attributes
         assert provider.provider_name == "youtube"
         assert provider.client_id == "test_client_id"
         assert provider.client_secret == "test_client_secret"
-        
+
         # Test authorization URL generation
         auth_url = provider.get_authorization_url(
             state="test_state",
             scopes=["https://www.googleapis.com/auth/youtube.readonly"]
         )
-        
+
         assert "accounts.google.com" in auth_url
         assert "response_type=code" in auth_url
         assert "client_id=test_client_id" in auth_url
@@ -112,47 +112,47 @@ class TestOAuthProviders:
     def test_provider_token_exchange(self):
         """Test token exchange functionality."""
         provider = GoogleOAuthProvider(**self.config)
-        
-        # Test placeholder implementation (actual HTTP calls not implemented yet)
-        tokens = provider.exchange_code_for_tokens("test_auth_code")
-        
-        # Should return placeholder values
-        assert tokens["access_token"] == "placeholder_access_token"
-        assert tokens["refresh_token"] == "placeholder_refresh_token"
-        assert tokens["expires_in"] == 3600
-        assert tokens["token_type"] == "Bearer"
+
+        # Test that real HTTP calls fail with invalid credentials (expected behavior)
+        with pytest.raises(Exception) as exc_info:
+            tokens = provider.exchange_code_for_tokens("test_auth_code")
+
+        # Should fail with invalid client error
+        assert "invalid_client" in str(exc_info.value)
 
     def test_provider_token_refresh(self):
         """Test token refresh functionality."""
         provider = GoogleOAuthProvider(**self.config)
-        
-        # Test placeholder implementation (actual HTTP calls not implemented yet)
-        tokens = provider.refresh_access_token("test_refresh_token")
-        
-        # Should return placeholder values
-        assert tokens["access_token"] == "placeholder_new_access_token"
-        assert tokens["expires_in"] == 3600
-        assert tokens["token_type"] == "Bearer"
+
+        # Test that real HTTP calls fail with invalid credentials (expected behavior)
+        with pytest.raises(Exception) as exc_info:
+            tokens = provider.refresh_access_token("test_refresh_token")
+
+        # Should fail with invalid client error
+        assert "invalid_client" in str(exc_info.value)
 
     def test_provider_error_handling(self):
         """Test error handling in providers."""
         provider = GoogleOAuthProvider(**self.config)
-        
-        # Test that invalid code doesn't raise exception (placeholder implementation)
-        # In a real implementation, this would raise an exception
-        tokens = provider.exchange_code_for_tokens("invalid_code")
-        assert tokens is not None  # Should return placeholder tokens
+
+        # Test that invalid code raises exception (real implementation behavior)
+        with pytest.raises(Exception) as exc_info:
+            tokens = provider.exchange_code_for_tokens("invalid_code")
+
+        # Should fail with invalid client error
+        assert "invalid_client" in str(exc_info.value)
 
     def test_provider_scope_validation(self):
         """Test scope validation in providers."""
         provider = GoogleOAuthProvider(**self.config)
-        
+
         # Test valid scopes
-        valid_scopes = ["openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"]
+        valid_scopes = ["openid", "https://www.googleapis.com/auth/userinfo.email",
+                        "https://www.googleapis.com/auth/userinfo.profile"]
         is_valid, invalid_scopes = provider.validate_scopes(valid_scopes)
         assert is_valid is True
         assert len(invalid_scopes) == 0
-        
+
         # Test invalid scopes
         invalid_scopes = ["invalid_scope", "another_invalid"]
         is_valid, invalid_scopes = provider.validate_scopes(invalid_scopes)
