@@ -67,3 +67,11 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+
+    # OAuth relationships - commented out to avoid circular import issues in tests
+    # oauth_integrations = relationship(
+    #     "OAuthIntegration",
+    #     back_populates="user",
+    #     cascade="all, delete-orphan",
+    #     lazy="dynamic"
+    # )

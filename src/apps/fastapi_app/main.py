@@ -1,12 +1,16 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer
 
 from personal_assistant.config.settings import settings
 
 from apps.fastapi_app.middleware.auth import AuthMiddleware
 from apps.fastapi_app.middleware.rate_limiting import RateLimitingMiddleware
-from apps.fastapi_app.routes import twilio, auth, mfa, sessions, rbac, users
+from apps.fastapi_app.routes import twilio, auth, mfa, sessions, rbac, users, oauth
 from personal_assistant.config.monitoring import monitoring_router
+
+# Create security scheme
+security = HTTPBearer()
 
 app = FastAPI(
     title="Personal Assistant API",
@@ -36,6 +40,7 @@ app.include_router(mfa.router)
 app.include_router(sessions.router)
 app.include_router(rbac.router)
 app.include_router(users.router)
+app.include_router(oauth.router)
 
 # Include health monitoring router
 app.include_router(monitoring_router)

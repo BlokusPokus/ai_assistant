@@ -159,7 +159,7 @@ class DatabaseConfig:
             logger.debug("Database connection checked in")
 
         @event.listens_for(sync_engine, "close")
-        def receive_close(dbapi_connection):
+        def receive_close(dbapi_connection, connection_record):
             """Log when a connection is closed."""
             logger.debug("Database connection closed")
 
