@@ -213,25 +213,41 @@ class OAuthIntegrationService:
             # Add updated_at timestamp
             kwargs["updated_at"] = datetime.utcnow()
 
-            query = update(OAuthIntegration).where(
-                OAuthIntegration.id == integration_id
-            ).values(**kwargs)
+            # Filter out problematic fields that might cause SQLAlchemy issues
+            safe_fields = {}
+            json_fields = {}
 
-            print(f"🔍 DEBUG: Executing update query")
-            await db.execute(query)
-            print(f"🔍 DEBUG: Update query executed, committing")
+            for key, value in kwargs.items():
+                if key in ['provider_metadata', 'scopes']:
+                    # Handle JSON/ARRAY fields separately
+                    json_fields[key] = value
+                else:
+                    safe_fields[key] = value
+
+            # Update safe fields first
+            if safe_fields:
+                query = update(OAuthIntegration).where(
+                    OAuthIntegration.id == integration_id
+                ).values(**safe_fields)
+
+                print(f"🔍 DEBUG: Executing update query for safe fields")
+                await db.execute(query)
+
+            # Handle JSON fields separately if needed
+            if json_fields:
+                # Get the current integration to update JSON fields
+                integration = await self.get_integration(db, integration_id)
+                if integration:
+                    for key, value in json_fields.items():
+                        setattr(integration, key, value)
+                    print(f"🔍 DEBUG: Updated JSON fields directly")
+
+            print(f"🔍 DEBUG: Update completed, committing")
             await db.commit()
             print(f"🔍 DEBUG: Commit successful")
 
-            # Instead of fetching the updated integration (which can cause greenlet_spawn issues),
-            # we'll create a minimal integration object with the updated data
-            print(f"🔍 DEBUG: Creating updated integration object")
-            updated_integration = OAuthIntegration(
-                id=integration_id,
-                **kwargs
-            )
-            print(f"🔍 DEBUG: Updated integration object created successfully")
-            return updated_integration
+            # Return the updated integration
+            return await self.get_integration(db, integration_id)
 
         except Exception as e:
             print(f"🔍 ERROR: Failed to update integration: {e}")
@@ -302,7 +318,8 @@ class OAuthIntegrationService:
             }
 
             if reason:
-                update_data["metadata"] = {"deactivation_reason": reason}
+                update_data["provider_metadata"] = {
+                    "deactivation_reason": reason}
 
             return await self.update_integration(db, integration_id, **update_data)
 
@@ -328,20 +345,31 @@ class OAuthIntegrationService:
             True if integration was revoked
         """
         try:
+            print(
+                f"🔍 DEBUG: Starting revoke_integration for ID: {integration_id}")
+
             # Update integration status
+            print(f"🔍 DEBUG: Updating integration status to revoked")
             await self.update_integration(
                 db,
                 integration_id,
                 status="revoked",
-                metadata={"revocation_reason": reason} if reason else None
+                provider_metadata={
+                    "revocation_reason": reason} if reason else None
             )
+            print(f"🔍 DEBUG: Integration status updated successfully")
 
             # Revoke all tokens
+            print(
+                f"🔍 DEBUG: Revoking all tokens for integration {integration_id}")
             from personal_assistant.oauth.services.token_service import OAuthTokenService
             token_service = OAuthTokenService()
             await token_service.revoke_all_tokens(db, integration_id)
+            print(f"🔍 DEBUG: All tokens revoked successfully")
 
             # Revoke all consents
+            print(
+                f"🔍 DEBUG: Revoking all consents for integration {integration_id}")
             from personal_assistant.oauth.services.consent_service import OAuthConsentService
             consent_service = OAuthConsentService()
             await consent_service.revoke_all_user_consents(
@@ -350,10 +378,17 @@ class OAuthIntegrationService:
                 integration_id=integration_id,
                 reason=reason
             )
+            print(f"🔍 DEBUG: All consents revoked successfully")
 
+            print(
+                f"🔍 DEBUG: Integration {integration_id} revoked successfully")
             return True
 
         except Exception as e:
+            print(f"❌ DEBUG: Error in revoke_integration: {e}")
+            print(f"❌ DEBUG: Error type: {type(e)}")
+            import traceback
+            print(f"❌ DEBUG: Traceback: {traceback.format_exc()}")
             raise OAuthIntegrationError(f"Failed to revoke integration: {e}")
 
     async def sync_integration(

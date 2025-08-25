@@ -135,7 +135,7 @@ class OAuthTokenService:
         self,
         db: AsyncSession,
         integration_id: int,
-        token_type: str = "access_token"
+        token_type: str
     ) -> Optional[OAuthToken]:
         """
         Get a valid token for an integration.
@@ -154,12 +154,16 @@ class OAuthTokenService:
                 OAuthToken.token_type == token_type,
                 (OAuthToken.expires_at.is_(None) |
                  (OAuthToken.expires_at > datetime.utcnow()))
-            )
+            ).order_by(OAuthToken.created_at.desc())  # Get the most recent token
 
             result = await db.execute(query)
-            token = result.scalar_one_or_none()
+            tokens = result.scalars().all()
 
-            return token
+            if not tokens:
+                return None
+
+            # Return the most recent valid token
+            return tokens[0]
 
         except Exception as e:
             raise OAuthTokenError(

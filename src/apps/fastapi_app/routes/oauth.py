@@ -179,6 +179,18 @@ async def initiate_oauth_flow(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+    except OAuthProviderError as e:
+        # Handle missing OAuth credentials gracefully
+        if "OAuth credentials not configured" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"OAuth service temporarily unavailable: {str(e)}. Please contact your administrator."
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -283,21 +295,50 @@ async def refresh_integration_tokens(
     """
     Refresh tokens for an OAuth integration.
     """
+    print(f"🔍 ROUTE DEBUG: Starting refresh for integration {integration_id}")
+
     try:
+        print(f"🔍 ROUTE DEBUG: Calling oauth_manager.refresh_integration_tokens")
         success = await oauth_manager.refresh_integration_tokens(
             db=db,
             integration_id=integration_id
         )
 
+        print(
+            f"🔍 ROUTE DEBUG: oauth_manager returned: {success} (type: {type(success)})")
+
         if success:
+            print(f"🔍 ROUTE DEBUG: Success case - returning 200")
             return {"message": "Tokens refreshed successfully"}
         else:
+            print(f"🔍 ROUTE DEBUG: Failure case - raising 400 error")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to refresh tokens"
             )
 
+    except OAuthProviderError as e:
+        print(f"🔍 ROUTE DEBUG: Caught OAuthProviderError: {e}")
+        # Handle missing OAuth credentials gracefully
+        if "OAuth credentials not configured" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"OAuth service temporarily unavailable: {str(e)}. Please contact your administrator."
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+    except HTTPException as e:
+        print(
+            f"🔍 ROUTE DEBUG: Caught HTTPException: {e.status_code} - {e.detail}")
+        raise
     except Exception as e:
+        print(f"🔍 ROUTE DEBUG: Caught unexpected Exception: {e}")
+        print(f"🔍 ROUTE DEBUG: Exception type: {type(e)}")
+        import traceback
+        print(f"🔍 ROUTE DEBUG: Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to refresh tokens: {str(e)}"

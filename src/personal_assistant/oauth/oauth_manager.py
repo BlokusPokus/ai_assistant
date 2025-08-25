@@ -82,13 +82,21 @@ class OAuthManager:
             OAuth provider instance
 
         Raises:
-            OAuthProviderError: If provider is not supported
+            OAuthProviderError: If provider is not supported or credentials are missing
         """
         if provider_name not in self.providers:
             raise OAuthProviderError(f"Unsupported provider: {provider_name}")
 
         provider_class = self.providers[provider_name]
         config = self.provider_configs[provider_name]
+
+        # Validate that required credentials are present
+        if not config["client_id"] or not config["client_secret"]:
+            raise OAuthProviderError(
+                f"OAuth credentials not configured for {provider_name}. "
+                f"Please set {provider_name.upper()}_OAUTH_CLIENT_ID and "
+                f"{provider_name.upper()}_OAUTH_CLIENT_SECRET environment variables."
+            )
 
         return provider_class(
             client_id=config["client_id"],
@@ -219,34 +227,22 @@ class OAuthManager:
             Dictionary containing integration details
         """
         try:
-            print(
-                f"🔍 DEBUG: Starting OAuth callback for provider: {provider_name}")
-
             # Validate state token (don't mark as used yet)
-            print(f"🔍 DEBUG: Validating state token: {state_token}")
             state = await self.security_service.validate_state(
                 db=db,
                 state_token=state_token,
                 provider=provider_name,
                 mark_used=False  # Don't mark as used until flow completes
             )
-            print(
-                f"🔍 DEBUG: State validation successful, user_id: {state.user_id}")
 
             # Get provider
-            print(f"🔍 DEBUG: Getting provider: {provider_name}")
             provider = self.get_provider(provider_name)
-            print(f"🔍 DEBUG: Provider obtained successfully")
 
             # Exchange code for tokens
-            print(f"🔍 DEBUG: Exchanging code for tokens")
             tokens = provider.exchange_code_for_tokens(
                 authorization_code, **kwargs)
-            print(f"🔍 DEBUG: Token exchange successful: {list(tokens.keys())}")
 
             # Check if integration already exists
-            print(
-                f"🔍 DEBUG: Checking for existing integration for user: {state.user_id}, provider: {provider_name}")
             existing_integration = await self.integration_service.get_integration_by_user_and_provider(
                 db=db,
                 user_id=state.user_id,
@@ -254,8 +250,6 @@ class OAuthManager:
             )
 
             if existing_integration:
-                print(
-                    f"🔍 DEBUG: Found existing integration: {existing_integration.id}, updating it")
                 # Update existing integration
                 integration = await self.integration_service.update_integration(
                     db=db,
@@ -265,10 +259,7 @@ class OAuthManager:
                     provider_metadata=tokens,
                     status="pending"
                 )
-                print(
-                    f"🔍 DEBUG: Existing integration updated successfully: {integration.id}")
             else:
-                print(f"🔍 DEBUG: No existing integration found, creating new one")
                 # Create new integration
                 integration = await self.integration_service.create_integration(
                     db=db,
@@ -278,23 +269,15 @@ class OAuthManager:
                     scopes=state.scopes if state.scopes else [],
                     provider_metadata=tokens
                 )
-                print(
-                    f"🔍 DEBUG: New integration created successfully: {integration.id}")
 
             # Store tokens
-            print(f"🔍 DEBUG: Storing tokens for integration: {integration.id}")
             try:
                 stored_tokens = await self.token_service.store_tokens(
                     db=db,
                     integration_id=integration.id,
                     tokens=tokens
                 )
-                print(f"🔍 DEBUG: Tokens stored successfully")
             except Exception as token_error:
-                print(f"🔍 ERROR: Failed to store tokens: {token_error}")
-                print(f"🔍 ERROR Type: {type(token_error)}")
-                import traceback
-                print(f"🔍 ERROR Traceback: {traceback.format_exc()}")
                 raise
 
             # Record consents for requested scopes
@@ -306,20 +289,13 @@ class OAuthManager:
                     pass
 
             # Activate integration
-            print(f"🔍 DEBUG: Activating integration: {integration.id}")
             try:
                 await self.integration_service.activate_integration(
                     db=db,
                     integration_id=integration.id,
                     provider_user_id=tokens.get("provider_user_id")
                 )
-                print(f"🔍 DEBUG: Integration activated successfully")
             except Exception as activation_error:
-                print(
-                    f"🔍 ERROR: Failed to activate integration: {activation_error}")
-                print(f"🔍 ERROR Type: {type(activation_error)}")
-                import traceback
-                print(f"🔍 ERROR Traceback: {traceback.format_exc()}")
                 raise
 
             # Log security event
@@ -375,19 +351,43 @@ class OAuthManager:
             # Get integration
             integration = await self.integration_service.get_integration(db, integration_id)
             if not integration:
+                print(f"⚠️  DEBUG: Integration {integration_id} not found")
                 return False
 
+            print(
+                f"🔍 DEBUG: Found integration {integration_id} for provider {integration.provider}")
+
             # Get provider
-            provider = self.get_provider(integration.provider)
+            try:
+                provider = self.get_provider(integration.provider)
+                print(f"🔍 DEBUG: Got provider for {integration.provider}")
+            except Exception as e:
+                print(f"❌ DEBUG: Error getting provider: {e}")
+                raise
+
+            # Check if refresh token exists
+            from personal_assistant.oauth.services.token_service import OAuthTokenService
+            token_service = OAuthTokenService()
+            refresh_token = await token_service.get_valid_token(db, integration_id, "refresh_token")
+
+            if not refresh_token:
+                # No refresh token available - this integration cannot be refreshed
+                print(
+                    f"⚠️  No refresh token available for integration {integration_id} ({integration.provider})")
+                print(f"🔍 DEBUG: About to return False")
+                return False
+
+            print(f"🔍 DEBUG: Found refresh token, proceeding with refresh")
 
             # Refresh tokens
-            new_token = await self.token_service.refresh_access_token(
+            new_token = await token_service.refresh_access_token(
                 db=db,
                 integration_id=integration_id,
                 provider=provider
             )
 
             if new_token:
+                print(f"🔍 DEBUG: Token refresh successful")
                 # Update integration
                 await self.integration_service.update_integration(
                     db=db,
@@ -407,20 +407,31 @@ class OAuthManager:
 
                 return True
 
+            print(f"⚠️  DEBUG: Token refresh returned no new token")
             return False
 
         except Exception as e:
+            print(f"❌ DEBUG: Exception in refresh_integration_tokens: {e}")
+            print(f"❌ DEBUG: Exception type: {type(e)}")
+            import traceback
+            print(f"❌ DEBUG: Traceback: {traceback.format_exc()}")
+
             # Log security event
             if 'integration' in locals():
-                await self.security_service.log_security_event(
-                    db=db,
-                    user_id=integration.user_id,
-                    action="error",  # Use valid action from database constraint
-                    status="failure",
-                    provider=integration.provider,
-                    integration_id=integration_id,
-                    error_message=str(e)
-                )
+                try:
+                    await self.security_service.log_security_event(
+                        db=db,
+                        user_id=integration.user_id,
+                        action="error",  # Use valid action from database constraint
+                        status="failure",
+                        provider=integration.provider,
+                        integration_id=integration_id,
+                        error_message=str(e)
+                    )
+                    print(f"🔍 DEBUG: Security event logged successfully")
+                except Exception as log_error:
+                    print(
+                        f"❌ DEBUG: Failed to log security event: {log_error}")
             raise
 
     async def revoke_integration(

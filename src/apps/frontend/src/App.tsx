@@ -7,6 +7,7 @@ import {
 } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import LandingPage from '@/pages/LandingPage';
+import WaitListLandingPage from '@/pages/WaitListLandingPage';
 import LoginPage from '@/pages/LoginPage';
 import MFASetupPage from '@/pages/MFASetupPage';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
@@ -20,6 +21,7 @@ import {
   NotesPage,
   OAuthIntegrationsPage,
 } from '@/pages/dashboard';
+import { OAuthSettingsPage } from '@/components/oauth-settings';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 function App() {
@@ -37,6 +39,21 @@ function App() {
           {/* Public Routes */}
           <Route
             path="/"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <WaitListLandingPage
+                  onJoinWaitlist={email => {
+                    console.log('Joined waitlist:', email);
+                    // Add your waitlist logic here
+                  }}
+                  onSignIn={() => (window.location.href = '/login')}
+                />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/original"
             element={
               <ProtectedRoute requireAuth={false}>
                 <LandingPage
@@ -83,6 +100,7 @@ function App() {
             <Route path="calendar" element={<CalendarPage />} />
             <Route path="notes" element={<NotesPage />} />
             <Route path="integrations" element={<OAuthIntegrationsPage />} />
+            <Route path="oauth-settings" element={<OAuthSettingsPage />} />
           </Route>
 
           {/* Catch-all route - redirect to landing */}
