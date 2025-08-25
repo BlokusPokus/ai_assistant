@@ -67,3 +67,8 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+
+    # OAuth relationships
+    oauth_integrations = relationship(
+        "OAuthIntegration", back_populates="user", cascade="all, delete-orphan"
+    )

@@ -29,6 +29,16 @@ from .mfa_models import MFAConfiguration, UserSession, SecurityEvent
 # RBAC models
 from .rbac_models import Role, Permission, RolePermission, UserRole, AccessAuditLog
 
+# OAuth models - imported separately when needed to avoid circular imports
+# from personal_assistant.oauth.models import (
+#     OAuthIntegration,
+#     OAuthToken,
+#     OAuthScope,
+#     OAuthConsent,
+#     OAuthAuditLog,
+#     OAuthState
+# )
+
 __all__ = [
     "Base",
     "User",
@@ -61,5 +71,12 @@ __all__ = [
     "Permission",
     "RolePermission",
     "UserRole",
-    "AccessAuditLog"
+    "AccessAuditLog",
+    # OAuth models - imported separately when needed to avoid circular imports
+    # "OAuthIntegration",
+    # "OAuthToken",
+    # "OAuthScope",
+    # "OAuthConsent",
+    # "OAuthAuditLog",
+    # "OAuthState"
 ]
