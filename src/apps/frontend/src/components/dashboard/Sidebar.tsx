@@ -110,11 +110,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
           {/* Header */}
           <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
             <div className="flex items-center space-x-2">
-              <Brain className="h-8 w-8 text-blue-600" />
+              <img src="/image.png" alt="App Logo" className="h-12 w-12" />
               {!isCollapsed && (
-                <span className="text-lg font-bold text-gray-900">
-                  TDAH Assistant
-                </span>
+                <span className="text-lg font-bold text-gray-900">Bloop</span>
               )}
             </div>
             <Button

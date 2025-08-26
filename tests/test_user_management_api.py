@@ -210,17 +210,15 @@ class TestUserModels:
         """Test UserUpdateRequest model validation."""
         # Valid update request
         update_data = {
-            "first_name": "Updated",
-            "last_name": "Name"
+            "full_name": "Updated Name"
         }
         update_request = UserUpdateRequest(**update_data)
-        assert update_request.first_name == "Updated"
-        assert update_request.last_name == "Name"
+        assert update_request.full_name == "Updated Name"
 
     def test_user_update_request_empty_names(self):
         """Test UserUpdateRequest validation for empty names."""
         with pytest.raises(ValueError, match="Name cannot be empty"):
-            UserUpdateRequest(first_name="   ")
+            UserUpdateRequest(full_name="   ")
 
     def test_user_preferences_update_request_validation(self):
         """Test UserPreferencesUpdateRequest validation."""
@@ -272,7 +270,7 @@ class TestUserAPIEndpoints:
         mock_service_instance.update_user.return_value = MOCK_USER
         mock_user_service.return_value = mock_service_instance
 
-        update_data = {"first_name": "Updated"}
+        update_data = {"full_name": "Updated"}
         response = client.put("/api/v1/users/me", json=update_data)
 
         # Should return 401 due to missing authentication

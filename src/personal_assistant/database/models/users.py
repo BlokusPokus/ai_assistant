@@ -75,3 +75,11 @@ class User(Base):
     #     cascade="all, delete-orphan",
     #     lazy="dynamic"
     # )
+
+    # SMS Router relationships
+    phone_mappings = relationship(
+        "UserPhoneMapping", back_populates="user", cascade="all, delete-orphan"
+    )
+    sms_usage_logs = relationship(
+        "SMSUsageLog", back_populates="user", cascade="all, delete-orphan"
+    )
