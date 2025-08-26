@@ -3,6 +3,7 @@ import {
   ProfileForm,
   SettingsForm,
   SecuritySettings,
+  PhoneManagement,
 } from '@/components/profile';
 
 const ProfilePage: React.FC = () => {
@@ -23,6 +24,9 @@ const ProfilePage: React.FC = () => {
 
       {/* Security Settings */}
       <SecuritySettings />
+
+      {/* Phone Management */}
+      <PhoneManagement />
     </div>
   );
 };
