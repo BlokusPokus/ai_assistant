@@ -6,7 +6,7 @@ from personal_assistant.config.settings import settings
 
 from apps.fastapi_app.middleware.auth import AuthMiddleware
 from apps.fastapi_app.middleware.rate_limiting import RateLimitingMiddleware
-from apps.fastapi_app.routes import twilio, auth, mfa, sessions, rbac, users, oauth
+from apps.fastapi_app.routes import twilio, auth, mfa, sessions, rbac, users, oauth, sms_router
 from personal_assistant.config.monitoring import monitoring_router
 
 # Create security scheme
@@ -41,6 +41,9 @@ app.include_router(sessions.router)
 app.include_router(rbac.router)
 app.include_router(users.router)
 app.include_router(oauth.router)
+
+# Add SMS Router routes
+app.include_router(sms_router.router)
 
 # Include health monitoring router
 app.include_router(monitoring_router)

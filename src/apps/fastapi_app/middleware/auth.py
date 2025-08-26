@@ -39,6 +39,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/api/v1/auth/refresh",
             "/webhook/twilio",  # Keep Twilio webhook accessible
             "/twilio/sms",      # Keep Twilio SMS webhook accessible
+            "/sms-router/webhook/sms",  # SMS Router webhook for Twilio
+            "/sms-router/webhook/health",  # SMS Router health check
         ]
 
     async def dispatch(self, request: Request, call_next):

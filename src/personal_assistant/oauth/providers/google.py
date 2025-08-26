@@ -14,7 +14,7 @@ from .base import BaseOAuthProvider
 class GoogleOAuthProvider(BaseOAuthProvider):
     """
     Google OAuth 2.0 provider implementation.
-    
+
     Supports Google APIs including Calendar, Drive, Gmail, and YouTube Data API.
     """
 
@@ -35,19 +35,19 @@ class GoogleOAuthProvider(BaseOAuthProvider):
         return "https://www.googleapis.com/oauth2/v2/userinfo"
 
     def get_authorization_url(
-        self, 
-        state: str, 
+        self,
+        state: str,
         scopes: List[str],
         **kwargs
     ) -> str:
         """
         Generate Google OAuth authorization URL.
-        
+
         Args:
             state: CSRF protection state parameter
             scopes: List of requested OAuth scopes
             **kwargs: Additional parameters (access_type, prompt, etc.)
-            
+
         Returns:
             Complete authorization URL
         """
@@ -60,27 +60,27 @@ class GoogleOAuthProvider(BaseOAuthProvider):
             "access_type": kwargs.get("access_type", "offline"),
             "prompt": kwargs.get("prompt", "consent"),
         }
-        
+
         # Add additional parameters if provided
         for key, value in kwargs.items():
             if key not in ["access_type", "prompt"]:
                 params[key] = value
-        
+
         query_string = urllib.parse.urlencode(params)
         return f"{self.authorization_url}?{query_string}"
 
     def exchange_code_for_tokens(
-        self, 
+        self,
         authorization_code: str,
         **kwargs
     ) -> Dict[str, Any]:
         """
         Exchange authorization code for Google OAuth tokens.
-        
+
         Args:
             authorization_code: Authorization code from OAuth callback
             **kwargs: Additional parameters
-            
+
         Returns:
             Dictionary containing tokens and metadata
         """
@@ -93,7 +93,7 @@ class GoogleOAuthProvider(BaseOAuthProvider):
                 "grant_type": "authorization_code",
                 "redirect_uri": self.redirect_uri,
             }
-            
+
             # Make the HTTP POST request to Google's token endpoint
             response = requests.post(
                 self.token_url,
@@ -101,13 +101,14 @@ class GoogleOAuthProvider(BaseOAuthProvider):
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
                 timeout=30
             )
-            
+
             if response.status_code != 200:
-                raise Exception(f"Google OAuth token exchange failed: {response.status_code} - {response.text}")
-            
+                raise Exception(
+                    f"Google OAuth token exchange failed: {response.status_code} - {response.text}")
+
             # Parse the response
             token_data = response.json()
-            
+
             # Extract user info if we have an access token
             user_info = {}
             if "access_token" in token_data:
@@ -116,7 +117,7 @@ class GoogleOAuthProvider(BaseOAuthProvider):
                 except Exception as e:
                     # Log the error but don't fail the token exchange
                     print(f"Warning: Failed to get user info: {e}")
-            
+
             # Return the complete token data
             return {
                 "access_token": token_data.get("access_token"),
@@ -130,22 +131,23 @@ class GoogleOAuthProvider(BaseOAuthProvider):
                 # Include the full response for debugging
                 "raw_response": token_data
             }
-            
+
         except Exception as e:
-            raise Exception(f"Failed to exchange authorization code for tokens: {e}")
+            raise Exception(
+                f"Failed to exchange authorization code for tokens: {e}")
 
     def refresh_access_token(
-        self, 
+        self,
         refresh_token: str,
         **kwargs
     ) -> Dict[str, Any]:
         """
         Refresh Google OAuth access token.
-        
+
         Args:
             refresh_token: Valid refresh token
             **kwargs: Additional parameters
-            
+
         Returns:
             Dictionary containing new tokens and metadata
         """
@@ -157,7 +159,7 @@ class GoogleOAuthProvider(BaseOAuthProvider):
                 "refresh_token": refresh_token,
                 "grant_type": "refresh_token",
             }
-            
+
             # Make the HTTP POST request to Google's token endpoint
             response = requests.post(
                 self.token_url,
@@ -165,13 +167,14 @@ class GoogleOAuthProvider(BaseOAuthProvider):
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
                 timeout=30
             )
-            
+
             if response.status_code != 200:
-                raise Exception(f"Google OAuth token refresh failed: {response.status_code} - {response.text}")
-            
+                raise Exception(
+                    f"Google OAuth token refresh failed: {response.status_code} - {response.text}")
+
             # Parse the response
             token_data = response.json()
-            
+
             return {
                 "access_token": token_data.get("access_token"),
                 "refresh_token": refresh_token,  # Keep the original refresh token
@@ -179,22 +182,22 @@ class GoogleOAuthProvider(BaseOAuthProvider):
                 "expires_in": token_data.get("expires_in", 3600),
                 "scope": token_data.get("scope", ""),
             }
-            
+
         except Exception as e:
             raise Exception(f"Failed to refresh access token: {e}")
 
     def get_user_info(
-        self, 
+        self,
         access_token: str,
         **kwargs
     ) -> Dict[str, Any]:
         """
         Get Google user information.
-        
+
         Args:
             access_token: Valid access token
             **kwargs: Additional parameters
-            
+
         Returns:
             Dictionary containing user information
         """
@@ -205,27 +208,28 @@ class GoogleOAuthProvider(BaseOAuthProvider):
                 headers={"Authorization": f"Bearer {access_token}"},
                 timeout=30
             )
-            
+
             if response.status_code != 200:
-                raise Exception(f"Failed to get user info: {response.status_code} - {response.text}")
-            
+                raise Exception(
+                    f"Failed to get user info: {response.status_code} - {response.text}")
+
             return response.json()
-            
+
         except Exception as e:
             raise Exception(f"Failed to get user info: {e}")
 
     def validate_token(
-        self, 
+        self,
         access_token: str,
         **kwargs
     ) -> bool:
         """
         Validate Google OAuth access token.
-        
+
         Args:
             access_token: Access token to validate
             **kwargs: Additional parameters
-            
+
         Returns:
             True if token is valid, False otherwise
         """

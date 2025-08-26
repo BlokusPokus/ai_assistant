@@ -57,31 +57,32 @@ def require_user_permission(resource_type: str, action: str):
         """Check if current user has permission for specific resource and action."""
         try:
             from personal_assistant.auth.permission_service import PermissionService
-            
+
             permission_service = PermissionService(db)
             has_permission = await permission_service.check_permission(
                 user_id=current_user.id,
                 resource_type=resource_type,
                 action=action
             )
-            
+
             if not has_permission:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"Insufficient permissions. Required: {resource_type}:{action}"
                 )
-            
+
             return True
-            
+
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error checking permission {resource_type}:{action} for user {current_user.id}: {e}")
+            logger.error(
+                f"Error checking permission {resource_type}:{action} for user {current_user.id}: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Permission check failed"
             )
-    
+
     return _check_permission
 
 
