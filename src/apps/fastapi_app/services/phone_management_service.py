@@ -29,7 +29,8 @@ class PhoneManagementService:
         self.db = db
         self.phone_validator = PhoneValidator()
         # Initialize TwilioService for verification SMS
-        self.twilio_service = TwilioService(agent_core=None)  # We don't need AgentCore for this service
+        # We don't need AgentCore for this service
+        self.twilio_service = TwilioService(agent_core=None)
 
     async def get_user_phone_numbers(self, user_id: int) -> List[Dict[str, Any]]:
         """
@@ -62,7 +63,7 @@ class PhoneManagementService:
             # Add primary phone from users table if exists
             if primary_phone:
                 phone_numbers.append({
-                    'id': 'primary',
+                    'id': 0,  # Use 0 to represent primary phone from users table
                     'user_id': user_id,
                     'phone_number': primary_phone,
                     'is_primary': True,
@@ -88,13 +89,14 @@ class PhoneManagementService:
             return phone_numbers
 
         except Exception as e:
-            logger.error(f"Error getting phone numbers for user {user_id}: {e}")
+            logger.error(
+                f"Error getting phone numbers for user {user_id}: {e}")
             return []
 
     async def add_user_phone_number(
-        self, 
-        user_id: int, 
-        phone_number: str, 
+        self,
+        user_id: int,
+        phone_number: str,
         is_primary: bool = False,
         verification_method: str = 'sms'
     ) -> Optional[Dict[str, Any]]:
@@ -112,7 +114,8 @@ class PhoneManagementService:
         """
         try:
             # Validate phone number format
-            normalized_phone = self.phone_validator.normalize_phone_number(phone_number)
+            normalized_phone = self.phone_validator.normalize_phone_number(
+                phone_number)
             if not normalized_phone:
                 logger.error(f"Invalid phone number format: {phone_number}")
                 return None
@@ -136,7 +139,8 @@ class PhoneManagementService:
             existing_mapping = existing_mapping.scalar_one_or_none()
 
             if existing_primary == normalized_phone or existing_mapping:
-                logger.warning(f"Phone number {normalized_phone} already exists for user {user_id}")
+                logger.warning(
+                    f"Phone number {normalized_phone} already exists for user {user_id}")
                 return None
 
             # Check if phone number is used by another user
@@ -153,7 +157,8 @@ class PhoneManagementService:
             other_user_mapping = other_user_mapping.scalar_one_or_none()
 
             if other_user_primary or other_user_mapping:
-                logger.warning(f"Phone number {normalized_phone} already used by another user")
+                logger.warning(
+                    f"Phone number {normalized_phone} already used by another user")
                 return None
 
             # Create new phone mapping
@@ -169,7 +174,8 @@ class PhoneManagementService:
             await self.db.commit()
             await self.db.refresh(new_mapping)
 
-            logger.info(f"Added phone number {normalized_phone} for user {user_id}")
+            logger.info(
+                f"Added phone number {normalized_phone} for user {user_id}")
 
             return {
                 'id': new_mapping.id,
@@ -183,7 +189,8 @@ class PhoneManagementService:
             }
 
         except IntegrityError as e:
-            logger.error(f"Integrity error adding phone number for user {user_id}: {e}")
+            logger.error(
+                f"Integrity error adding phone number for user {user_id}: {e}")
             await self.db.rollback()
             return None
         except Exception as e:
@@ -192,9 +199,9 @@ class PhoneManagementService:
             return None
 
     async def update_user_phone_number(
-        self, 
-        user_id: int, 
-        phone_id: int, 
+        self,
+        user_id: int,
+        phone_id: int,
         updates: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         """
@@ -222,15 +229,18 @@ class PhoneManagementService:
             mapping = mapping_result.scalar_one_or_none()
 
             if not mapping:
-                logger.warning(f"Phone mapping {phone_id} not found for user {user_id}")
+                logger.warning(
+                    f"Phone mapping {phone_id} not found for user {user_id}")
                 return None
 
             # Update fields
             update_data = {}
             if 'phone_number' in updates:
-                normalized_phone = self.phone_validator.normalize_phone_number(updates['phone_number'])
+                normalized_phone = self.phone_validator.normalize_phone_number(
+                    updates['phone_number'])
                 if not normalized_phone:
-                    logger.error(f"Invalid phone number format: {updates['phone_number']}")
+                    logger.error(
+                        f"Invalid phone number format: {updates['phone_number']}")
                     return None
                 update_data['phone_number'] = normalized_phone
 
@@ -267,7 +277,8 @@ class PhoneManagementService:
             }
 
         except Exception as e:
-            logger.error(f"Error updating phone mapping {phone_id} for user {user_id}: {e}")
+            logger.error(
+                f"Error updating phone mapping {phone_id} for user {user_id}: {e}")
             await self.db.rollback()
             return None
 
@@ -296,7 +307,8 @@ class PhoneManagementService:
             mapping = mapping_result.scalar_one_or_none()
 
             if not mapping:
-                logger.warning(f"Phone mapping {phone_id} not found for user {user_id}")
+                logger.warning(
+                    f"Phone mapping {phone_id} not found for user {user_id}")
                 return False
 
             # Delete the mapping
@@ -307,7 +319,8 @@ class PhoneManagementService:
             return True
 
         except Exception as e:
-            logger.error(f"Error deleting phone mapping {phone_id} for user {user_id}: {e}")
+            logger.error(
+                f"Error deleting phone mapping {phone_id} for user {user_id}: {e}")
             await self.db.rollback()
             return False
 
@@ -336,7 +349,8 @@ class PhoneManagementService:
             mapping = mapping_result.scalar_one_or_none()
 
             if not mapping:
-                logger.warning(f"Phone mapping {phone_id} not found for user {user_id}")
+                logger.warning(
+                    f"Phone mapping {phone_id} not found for user {user_id}")
                 return False
 
             # Set all other mappings to non-primary
@@ -360,11 +374,13 @@ class PhoneManagementService:
 
             await self.db.commit()
 
-            logger.info(f"Set phone mapping {phone_id} as primary for user {user_id}")
+            logger.info(
+                f"Set phone mapping {phone_id} as primary for user {user_id}")
             return True
 
         except Exception as e:
-            logger.error(f"Error setting primary phone for user {user_id}: {e}")
+            logger.error(
+                f"Error setting primary phone for user {user_id}: {e}")
             await self.db.rollback()
             return False
 
@@ -381,26 +397,30 @@ class PhoneManagementService:
         """
         try:
             # Generate 6-digit verification code
-            verification_code = ''.join(secrets.choice('0123456789') for _ in range(6))
+            verification_code = ''.join(
+                secrets.choice('0123456789') for _ in range(6))
 
             # Store verification code (in a real implementation, this would go to a separate table)
             # For now, we'll just log it
-            logger.info(f"Generated verification code {verification_code} for user {user_id}")
+            logger.info(
+                f"Generated verification code {verification_code} for user {user_id}")
 
             # Send verification SMS
             await self.twilio_service.send_verification_sms(phone_number, verification_code)
 
-            logger.info(f"Sent verification code to {phone_number} for user {user_id}")
+            logger.info(
+                f"Sent verification code to {phone_number} for user {user_id}")
             return verification_code
 
         except Exception as e:
-            logger.error(f"Error sending verification code to {phone_number} for user {user_id}: {e}")
+            logger.error(
+                f"Error sending verification code to {phone_number} for user {user_id}: {e}")
             return None
 
     async def verify_phone_number(
-        self, 
-        user_id: int, 
-        phone_number: str, 
+        self,
+        user_id: int,
+        phone_number: str,
         verification_code: str
     ) -> bool:
         """
@@ -429,7 +449,8 @@ class PhoneManagementService:
             mapping = mapping_result.scalar_one_or_none()
 
             if not mapping:
-                logger.warning(f"Phone mapping not found for user {user_id} and phone {phone_number}")
+                logger.warning(
+                    f"Phone mapping not found for user {user_id} and phone {phone_number}")
                 return False
 
             # Mark as verified
@@ -441,10 +462,12 @@ class PhoneManagementService:
 
             await self.db.commit()
 
-            logger.info(f"Verified phone number {phone_number} for user {user_id}")
+            logger.info(
+                f"Verified phone number {phone_number} for user {user_id}")
             return True
 
         except Exception as e:
-            logger.error(f"Error verifying phone number {phone_number} for user {user_id}: {e}")
+            logger.error(
+                f"Error verifying phone number {phone_number} for user {user_id}: {e}")
             await self.db.rollback()
             return False
