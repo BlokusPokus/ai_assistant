@@ -54,7 +54,8 @@ def require_permission(resource_type: str, action: str):
             user_id = request.state.user_id
 
             # Get database session
-            async with AsyncSessionLocal() as db:
+            db = AsyncSessionLocal()
+            try:
                 permission_service = PermissionService(db)
 
                 # Check permission
@@ -80,6 +81,8 @@ def require_permission(resource_type: str, action: str):
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail=f"Insufficient permissions. Required: {resource_type}:{action}"
                     )
+            finally:
+                await db.close()
 
             # User has permission, proceed with the endpoint
             return await func(*args, **kwargs)
@@ -124,7 +127,8 @@ def require_role(role_name: str):
             user_id = request.state.user_id
 
             # Get database session and check role
-            async with AsyncSessionLocal() as db:
+            db = AsyncSessionLocal()
+            try:
                 permission_service = PermissionService(db)
 
                 # Check role
@@ -149,6 +153,8 @@ def require_role(role_name: str):
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail=f"Role required: {role_name}"
                     )
+            finally:
+                await db.close()
 
             # User has role, proceed with the endpoint
             return await func(*args, **kwargs)
@@ -203,7 +209,8 @@ def require_ownership(resource_type: str, action: str, resource_id_param: str = 
                 )
 
             # Get database session and check ownership
-            async with AsyncSessionLocal() as db:
+            db = AsyncSessionLocal()
+            try:
                 permission_service = PermissionService(db)
 
                 # Check permission and ownership
@@ -231,6 +238,8 @@ def require_ownership(resource_type: str, action: str, resource_id_param: str = 
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail=f"Insufficient permissions or ownership: {resource_type}:{action}"
                     )
+            finally:
+                await db.close()
 
             # User has permission and ownership, proceed with endpoint
             return await func(*args, **kwargs)
@@ -275,7 +284,8 @@ def require_any_role(*role_names: str):
             user_id = request.state.user_id
 
             # Get database session and check roles
-            async with AsyncSessionLocal() as db:
+            db = AsyncSessionLocal()
+            try:
                 permission_service = PermissionService(db)
                 has_any_role = False
                 roles_checked = []
@@ -303,6 +313,8 @@ def require_any_role(*role_names: str):
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail=f"One of these roles required: {', '.join(role_names)}"
                     )
+            finally:
+                await db.close()
 
             # User has required role, proceed with endpoint
             return await func(*args, **kwargs)

@@ -26,8 +26,7 @@ class UserResponse(BaseModel):
 
 class UserUpdateRequest(BaseModel):
     """Request model for updating user profile."""
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
+    full_name: Optional[str] = None
     email: Optional[EmailStr] = None
     phone_number: Optional[str] = None
 
@@ -52,13 +51,13 @@ class UserUpdateRequest(BaseModel):
                     "Phone number must be between 10 and 15 characters")
         return v
 
-    @validator('first_name', 'last_name')
-    def validate_names(cls, v):
+    @validator('full_name')
+    def validate_full_name(cls, v):
         if v is not None:
             if len(v.strip()) == 0:
-                raise ValueError("Name cannot be empty")
+                raise ValueError("Full name cannot be empty")
             if len(v) > 100:
-                raise ValueError("Name too long (max 100 characters)")
+                raise ValueError("Full name too long (max 100 characters)")
         return v.strip() if v else v
 
 
