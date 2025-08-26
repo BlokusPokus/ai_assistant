@@ -109,7 +109,8 @@ class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
 
         # Check primary phone
         primary_phone = result[0]
-        self.assertEqual(primary_phone['id'], 'primary')
+        # Primary phone from users table has ID 0
+        self.assertEqual(primary_phone['id'], 0)
         self.assertEqual(primary_phone['phone_number'], "+1234567890")
         self.assertTrue(primary_phone['is_primary'])
         self.assertTrue(primary_phone['is_verified'])

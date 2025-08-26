@@ -749,18 +749,22 @@ async def get_user_phone_numbers(
     try:
         phone_service = PhoneManagementService(db)
         phone_numbers = await phone_service.get_user_phone_numbers(current_user.id)
-        
+
         # Find primary phone ID
         primary_phone_id = None
         for phone in phone_numbers:
             if phone['is_primary']:
-                primary_phone_id = phone['id']
+                # If ID is 0, it means it's the primary phone from users table
+                # We'll set primary_phone_id to None since it doesn't have a mapping record
+                if phone['id'] != 0:
+                    primary_phone_id = phone['id']
                 break
-        
+
         return PhoneNumberListResponse(
             phone_numbers=[
                 PhoneNumberResponse(
-                    id=phone['id'] if phone['id'] != 'primary' else 0,
+                    # ID is already 0 for primary phone from users table
+                    id=phone['id'],
                     user_id=phone['user_id'],
                     phone_number=phone['phone_number'],
                     is_primary=phone['is_primary'],
@@ -775,7 +779,8 @@ async def get_user_phone_numbers(
             primary_phone_id=primary_phone_id
         )
     except Exception as e:
-        logger.error(f"Error getting phone numbers for user {current_user.id}: {e}")
+        logger.error(
+            f"Error getting phone numbers for user {current_user.id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve phone numbers"
@@ -795,20 +800,20 @@ async def add_user_phone_number(
     """
     try:
         phone_service = PhoneManagementService(db)
-        
+
         new_phone = await phone_service.add_user_phone_number(
             user_id=current_user.id,
             phone_number=phone_data.phone_number,
             is_primary=phone_data.is_primary,
             verification_method='sms'
         )
-        
+
         if not new_phone:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to add phone number. It may already exist or be invalid."
             )
-        
+
         return PhoneNumberResponse(
             id=new_phone['id'],
             user_id=new_phone['user_id'],
@@ -822,7 +827,8 @@ async def add_user_phone_number(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error adding phone number for user {current_user.id}: {e}")
+        logger.error(
+            f"Error adding phone number for user {current_user.id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to add phone number"
@@ -843,28 +849,28 @@ async def update_user_phone_number(
     """
     try:
         phone_service = PhoneManagementService(db)
-        
+
         # Convert Pydantic model to dict, excluding None values
         update_data = phone_data.model_dump(exclude_unset=True)
-        
+
         if not update_data:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No valid data provided for update"
             )
-        
+
         updated_phone = await phone_service.update_user_phone_number(
             user_id=current_user.id,
             phone_id=phone_id,
             updates=update_data
         )
-        
+
         if not updated_phone:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Phone number not found or you don't have permission to update it"
             )
-        
+
         return PhoneNumberResponse(
             id=updated_phone['id'],
             user_id=updated_phone['user_id'],
@@ -878,7 +884,8 @@ async def update_user_phone_number(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error updating phone number {phone_id} for user {current_user.id}: {e}")
+        logger.error(
+            f"Error updating phone number {phone_id} for user {current_user.id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update phone number"
@@ -898,31 +905,32 @@ async def delete_user_phone_number(
     """
     try:
         phone_service = PhoneManagementService(db)
-        
+
         # Get phone number before deletion for response
         phone_numbers = await phone_service.get_user_phone_numbers(current_user.id)
-        phone_to_delete = next((p for p in phone_numbers if p['id'] == phone_id), None)
-        
+        phone_to_delete = next(
+            (p for p in phone_numbers if p['id'] == phone_id), None)
+
         if not phone_to_delete:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Phone number not found or you don't have permission to delete it"
             )
-        
+
         success = await phone_service.delete_user_phone_number(
             user_id=current_user.id,
             phone_id=phone_id
         )
-        
+
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to delete phone number"
             )
-        
+
         # Get remaining phone count
         remaining_phones = await phone_service.get_user_phone_numbers(current_user.id)
-        
+
         return PhoneNumberDeleteResponse(
             success=True,
             message="Phone number deleted successfully",
@@ -932,7 +940,8 @@ async def delete_user_phone_number(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting phone number {phone_id} for user {current_user.id}: {e}")
+        logger.error(
+            f"Error deleting phone number {phone_id} for user {current_user.id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete phone number"
@@ -952,18 +961,18 @@ async def set_primary_phone_number(
     """
     try:
         phone_service = PhoneManagementService(db)
-        
+
         success = await phone_service.set_primary_phone_number(
             user_id=current_user.id,
             phone_id=phone_id
         )
-        
+
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Phone number not found or you don't have permission to modify it"
             )
-        
+
         return {
             "success": True,
             "message": "Primary phone number updated successfully",
@@ -972,7 +981,8 @@ async def set_primary_phone_number(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error setting primary phone {phone_id} for user {current_user.id}: {e}")
+        logger.error(
+            f"Error setting primary phone {phone_id} for user {current_user.id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to set primary phone number"
@@ -992,29 +1002,30 @@ async def request_phone_verification(
     """
     try:
         phone_service = PhoneManagementService(db)
-        
+
         # Check if phone number belongs to user
         phone_numbers = await phone_service.get_user_phone_numbers(current_user.id)
-        phone_exists = any(p['phone_number'] == verification_request.phone_number for p in phone_numbers)
-        
+        phone_exists = any(
+            p['phone_number'] == verification_request.phone_number for p in phone_numbers)
+
         if not phone_exists:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Phone number not found in your profile"
             )
-        
+
         # Send verification code
         verification_code = await phone_service.send_verification_code(
             user_id=current_user.id,
             phone_number=verification_request.phone_number
         )
-        
+
         if not verification_code:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to send verification code"
             )
-        
+
         return PhoneNumberVerificationResponse(
             success=True,
             message="Verification code sent successfully",
@@ -1025,7 +1036,8 @@ async def request_phone_verification(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error requesting verification for user {current_user.id}: {e}")
+        logger.error(
+            f"Error requesting verification for user {current_user.id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to request verification"
@@ -1045,30 +1057,31 @@ async def verify_phone_number_code(
     """
     try:
         phone_service = PhoneManagementService(db)
-        
+
         # Check if phone number belongs to user
         phone_numbers = await phone_service.get_user_phone_numbers(current_user.id)
-        phone_exists = any(p['phone_number'] == verification_code.phone_number for p in phone_numbers)
-        
+        phone_exists = any(
+            p['phone_number'] == verification_code.phone_number for p in phone_numbers)
+
         if not phone_exists:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Phone number not found in your profile"
             )
-        
+
         # Verify the code
         success = await phone_service.verify_phone_number(
             user_id=current_user.id,
             phone_number=verification_code.phone_number,
             verification_code=verification_code.verification_code
         )
-        
+
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid verification code or verification failed"
             )
-        
+
         return PhoneNumberVerificationResponse(
             success=True,
             message="Phone number verified successfully",
@@ -1079,7 +1092,8 @@ async def verify_phone_number_code(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error verifying phone number for user {current_user.id}: {e}")
+        logger.error(
+            f"Error verifying phone number for user {current_user.id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to verify phone number"
