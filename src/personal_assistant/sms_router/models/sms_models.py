@@ -40,6 +40,7 @@ class SMSUsageLog(Base):
     success = Column(Boolean, default=True)
     processing_time_ms = Column(Integer)
     error_message = Column(Text)
+    country_code = Column(String(10), default="US")  # Country code for pricing
     sms_metadata = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow)
 

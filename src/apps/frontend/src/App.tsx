@@ -20,6 +20,8 @@ import {
   CalendarPage,
   NotesPage,
   OAuthIntegrationsPage,
+  SMSAnalyticsPage,
+  AdminAnalyticsPage,
 } from '@/pages/dashboard';
 import { OAuthSettingsPage } from '@/components/oauth-settings';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -41,13 +43,16 @@ function App() {
             path="/"
             element={
               <ProtectedRoute requireAuth={false}>
-                <WaitListLandingPage
-                  onJoinWaitlist={email => {
-                    console.log('Joined waitlist:', email);
-                    // Add your waitlist logic here
-                  }}
-                  onSignIn={() => (window.location.href = '/login')}
-                />
+                <LandingPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/waitlist"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <WaitListLandingPage />
               </ProtectedRoute>
             }
           />
@@ -56,10 +61,7 @@ function App() {
             path="/original"
             element={
               <ProtectedRoute requireAuth={false}>
-                <LandingPage
-                  onGetStarted={() => (window.location.href = '/login')}
-                  onSignIn={() => (window.location.href = '/login')}
-                />
+                <WaitListLandingPage />
               </ProtectedRoute>
             }
           />
@@ -101,6 +103,8 @@ function App() {
             <Route path="notes" element={<NotesPage />} />
             <Route path="integrations" element={<OAuthIntegrationsPage />} />
             <Route path="oauth-settings" element={<OAuthSettingsPage />} />
+            <Route path="sms-analytics" element={<SMSAnalyticsPage />} />
+            <Route path="admin-analytics" element={<AdminAnalyticsPage />} />
           </Route>
 
           {/* Catch-all route - redirect to landing */}

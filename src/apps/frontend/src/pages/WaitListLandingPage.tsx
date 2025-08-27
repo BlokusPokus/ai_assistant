@@ -1,654 +1,509 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Card } from '@/components/ui';
-import {
-  Brain,
-  Clock,
-  Target,
-  Sparkles,
-  CheckCircle,
-  Zap,
-  Calendar,
-  MessageSquare,
-  Users,
-  Star,
-  ArrowRight,
-  Play,
-  Pause,
-  RotateCcw,
-  Lightbulb,
-  TrendingUp,
-  Shield,
-  Heart,
-  Eye,
-  MousePointer,
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { Button, Card, Input } from '@/components/ui';
 
-interface WaitListLandingPageProps {
-  onJoinWaitlist?: (email: string) => void;
-  onSignIn?: () => void;
-}
-
-const WaitListLandingPage: React.FC<WaitListLandingPageProps> = ({
-  onJoinWaitlist,
-  onSignIn,
-}) => {
+const WaitListLandingPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [currentSpot, setCurrentSpot] = useState(1247);
-  const [activeSection, setActiveSection] = useState(0);
-  const [isTyping, setIsTyping] = useState(false);
-  const [typedText, setTypedText] = useState('');
-  const [showNotification, setShowNotification] = useState(false);
 
-  // ADHD-friendly: Auto-scroll through sections to maintain engagement
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveSection(prev => (prev + 1) % 4);
-    }, 8000); // Change every 8 seconds - ADHD-friendly timing
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // ADHD-friendly: Typing animation for main headline
-  useEffect(() => {
-    const fullText = 'Finally, an AI that gets your brain';
-    let index = 0;
-
-    setIsTyping(true);
-    const timer = setInterval(() => {
-      if (index < fullText.length) {
-        setTypedText(fullText.slice(0, index + 1));
-        index++;
-      } else {
-        setIsTyping(false);
-        clearInterval(timer);
-      }
-    }, 100); // Fast typing - keeps ADHD minds engaged
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (onJoinWaitlist) {
-      onJoinWaitlist(email);
-    }
-    setIsSubmitted(true);
-    setCurrentSpot(prev => prev + 1);
-    setShowNotification(true);
+    if (!email) return;
 
-    // ADHD-friendly: Clear notification after 5 seconds
-    setTimeout(() => setShowNotification(false), 5000);
+    try {
+      // TODO: Implement actual waitlist submission
+      console.log('Submitting email:', email);
+      setIsSubmitted(true);
+      setEmail('');
+    } catch (error) {
+      console.error('Failed to submit:', error);
+    }
   };
 
-  // ADHD-specific challenges with more relatable language
-  const adhdChallenges = [
+  const quickStats = [
+    { number: '2,500+', label: 'Waitlist Members' },
+    { number: '15+', label: 'Beta Testers' },
+    { number: '98%', label: 'Satisfaction Rate' },
+  ];
+
+  const urgencyStats = [
+    { number: '47', label: 'Spots Left' },
+    { number: 'Q1 2025', label: 'Launch Date' },
+    { number: 'Free', label: 'Beta Access' },
+  ];
+
+  const adhdStruggles = [
     {
-      icon: Clock,
-      title: 'Time Blindness',
+      icon: '😰',
+      title: 'Overwhelmed by Life',
       description:
-        'Lose track of time? Our AI keeps you on schedule with gentle nudges',
-      color: 'from-orange-400 to-red-500',
-      symptom: 'Hours feel like minutes',
-      solution: 'Smart time tracking with gentle reminders',
+        'Too many things to remember, too many deadlines to track, too many apps to manage.',
+      impact: 'Causes daily stress and anxiety',
     },
     {
-      icon: Target,
-      title: 'Task Paralysis',
+      icon: '😤',
+      title: 'Fighting Your Tools',
       description:
-        'Overwhelmed by choices? We break everything into bite-sized steps',
-      color: 'from-purple-400 to-pink-500',
-      symptom: 'Too many options = doing nothing',
-      solution: 'One task at a time, broken down for you',
+        'Productivity apps that make you feel stupid for forgetting things or getting distracted.',
+      impact: 'Creates negative self-talk',
     },
     {
-      icon: RotateCcw,
-      title: 'Executive Dysfunction',
+      icon: '😵',
+      title: 'Information Overload',
       description:
-        'Stuck starting tasks? We provide the structure your brain needs',
-      color: 'from-blue-400 to-cyan-500',
-      symptom: "Know what to do, can't start",
-      solution: 'We give you the first step, then the next',
+        'Important emails get buried, crucial tasks get forgotten, and nothing feels organized.',
+      impact: 'Leads to decision paralysis',
     },
     {
-      icon: Pause,
-      title: 'Hyperfocus',
-      description: 'Get lost in work? We help you maintain healthy boundaries',
-      color: 'from-green-400 to-emerald-500',
-      symptom: "Suddenly it's 3 AM",
-      solution: 'Gentle breaks and time awareness',
+      icon: '😔',
+      title: 'Feeling Like a Failure',
+      description:
+        "When you can't keep up with neurotypical productivity standards, it's easy to feel inadequate.",
+      impact: 'Damages self-confidence',
     },
   ];
 
-  // ADHD-friendly: Simple, clear steps
-  const howItWorks = [
+  const bloopSolutions = [
     {
-      step: '01',
-      title: 'Share Your Brain',
-      description: 'Tell us about your ADHD patterns, preferences, and goals',
-      icon: Brain,
-      detail: 'Quick 2-minute setup',
-    },
-    {
-      step: '02',
-      title: 'Get Your AI Sidekick',
+      icon: '🎯',
+      title: 'One Place for Everything',
       description:
-        'We create a personalized assistant that understands your unique mind',
-      icon: Sparkles,
-      detail: 'Ready in under 24 hours',
+        'All your tasks, emails, and reminders in one intelligent interface that adapts to you.',
+      benefit: 'No more app switching',
     },
     {
-      step: '03',
-      title: 'Transform Your Life',
-      description: 'Watch as chaos becomes clarity, one task at a time',
-      icon: Star,
-      detail: 'See results in the first week',
+      icon: '🧠',
+      title: 'AI That Gets You',
+      description:
+        'Our AI understands ADHD thinking patterns and works with your brain, not against it.',
+      benefit: 'Finally feel understood',
+    },
+    {
+      icon: '⚡',
+      title: 'Smart Automation',
+      description:
+        'Let AI handle the boring stuff while you focus on what you do best.',
+      benefit: 'Save 3+ hours daily',
+    },
+    {
+      icon: '🎨',
+      title: 'Your Way, Always',
+      description:
+        'Customize everything to match your unique preferences and workflow.',
+      benefit: 'Create your perfect system',
     },
   ];
 
-  // ADHD-friendly: Real, relatable testimonials
+  const exclusiveBenefits = [
+    {
+      icon: '🏆',
+      title: 'Lifetime Discount',
+      description:
+        '50% off forever for early adopters who believe in our mission.',
+      value: 'Save $300+ annually',
+    },
+    {
+      icon: '🚀',
+      title: 'Early Access',
+      description:
+        'Be among the first to experience the future of ADHD-friendly productivity.',
+      value: 'Exclusive beta features',
+    },
+    {
+      icon: '💬',
+      title: 'Direct Input',
+      description:
+        "Help shape Bloop's features and make it perfect for your needs.",
+      value: 'Influence product roadmap',
+    },
+    {
+      icon: '🎁',
+      title: 'Bonus Features',
+      description:
+        "Access to premium features that won't be available to regular users.",
+      value: '$200+ value',
+    },
+  ];
+
   const testimonials = [
     {
-      name: 'Alex, 28',
-      role: 'Software Developer',
-      content:
-        'Finally, someone who gets that my brain works differently. This assistant has been a game-changer for my productivity.',
-      rating: 5,
-      adhdType: 'Inattentive',
-      improvement: 'Focus improved by 300%',
+      quote:
+        "I've been on the waitlist for 3 months and the updates alone have given me hope. Finally, someone who understands that my brain works differently!",
+      author: 'Alex Thompson',
+      role: 'ADHD Coach',
+      waitlistTime: '3 months',
     },
     {
-      name: 'Jordan, 34',
-      role: 'Entrepreneur',
-      content:
-        'I used to spend hours just trying to figure out what to do next. Now I have a clear path forward every day.',
-      rating: 5,
-      adhdType: 'Combined',
-      improvement: 'Task completion up 250%',
+      quote:
+        'The beta access I got from the waitlist changed everything. I went from chaos to calm in just 2 weeks. Worth every day of waiting!',
+      author: 'Maria Santos',
+      role: 'Graphic Designer',
+      waitlistTime: '6 months',
     },
     {
-      name: 'Sam, 31',
-      role: 'Graduate Student',
-      content:
-        'The gentle reminders and task breakdowns have made studying actually manageable for the first time.',
-      rating: 5,
-      adhdType: 'Hyperactive',
-      improvement: 'Study sessions doubled',
+      quote:
+        'Being on the waitlist made me feel part of something special. When I finally got access, it was like Christmas morning for my productivity!',
+      author: 'David Chen',
+      role: 'Startup Founder',
+      waitlistTime: '4 months',
     },
   ];
 
-  // ADHD-friendly: Quick stats that build excitement
-  const quickStats = [
-    { number: '2,847', label: 'ADHD minds helped', icon: Brain },
-    { number: '94%', label: 'Report improved focus', icon: TrendingUp },
-    { number: '3.2x', label: 'Productivity boost', icon: Zap },
-    { number: '24hrs', label: 'Setup time', icon: Clock },
+  const faqs = [
+    {
+      question: 'How long is the waitlist?',
+      answer:
+        "Currently about 2-3 months, but we're onboarding new users every week. The sooner you join, the sooner you get access!",
+    },
+    {
+      question: "What if I don't like it?",
+      answer:
+        'No worries! You can cancel anytime during your free trial. We want you to love Bloop, not feel stuck with it.',
+    },
+    {
+      question: 'Is it really free?',
+      answer:
+        "Yes! Beta access is completely free, and you'll get 14 days of full access when you're invited. No hidden fees.",
+    },
+    {
+      question: 'What makes Bloop different?',
+      answer:
+        "We're the only AI productivity tool built specifically for ADHD minds. Every feature is designed with neurodivergent thinking in mind.",
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      {/* ADHD-friendly notification */}
-      {showNotification && (
-        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-bounce">
-          <div className="flex items-center space-x-2">
-            <CheckCircle className="w-5 h-5" />
-            <span>You're on the list! 🎉</span>
-          </div>
-        </div>
-      )}
-
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50 to-blue-100">
       {/* Navigation */}
-      <nav className="bg-white/90 backdrop-blur-md border-b border-indigo-100 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <Brain className="w-8 h-8 text-indigo-600" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full animate-pulse"></div>
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                MindMate
-              </span>
-              <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">
-                ADHD-First
-              </span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={onSignIn}>
-                Sign In
-              </Button>
-              <Button
-                variant="primary"
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-              >
-                Join Waitlist
-              </Button>
-            </div>
+      <nav className="container mx-auto px-6 py-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <img src="/orca3d.png" alt="Bloop Logo" className="w-10 h-10" />
+            <span className="text-2xl font-bold text-primary font-nunito">
+              Bloop
+            </span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <a
+              href="/"
+              className="text-primary hover:text-accent transition-colors font-medium"
+            >
+              Home
+            </a>
+            <a
+              href="/login"
+              className="text-primary hover:text-accent transition-colors font-medium"
+            >
+              Sign In
+            </a>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section - ADHD-friendly with typing animation */}
-      <section className="py-20 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-100/50 to-purple-100/50"></div>
-        <div className="container mx-auto text-center relative z-10">
-          <div className="inline-flex items-center space-x-2 bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full text-sm font-medium mb-6 animate-pulse">
-            <Sparkles className="w-4 h-4" />
-            <span>Built specifically for ADHD minds</span>
+      {/* Hero Section */}
+      <section className="container mx-auto px-6 py-20 text-center">
+        <div className="max-w-4xl mx-auto">
+          {/* Urgency Badge */}
+          <div className="inline-flex items-center space-x-2 bg-red-100 text-red-800 px-4 py-2 rounded-full text-sm font-medium mb-6 animate-pulse">
+            <span>🔥</span>
+            <span>Only 47 spots left for early access!</span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight">
-            {isTyping ? (
-              <span className="border-r-4 border-indigo-600 pr-2">
-                {typedText}
-              </span>
-            ) : (
-              <>
-                Finally, an AI that
-                <span className="block bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  gets your brain
-                </span>
-              </>
-            )}
+          <h1 className="text-5xl font-bold text-primary mb-6 font-nunito leading-tight">
+            Join the{' '}
+            <span className="text-transparent bg-gradient-to-r from-accent to-blue-400 bg-clip-text">
+              ADHD Productivity Revolution
+            </span>
           </h1>
-
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Stop fighting your ADHD. Start working with it. Our AI personal
-            assistant is designed by neurodivergent minds, for neurodivergent
-            minds. Join the waitlist and be among the first to experience true
-            productivity harmony.
+          <p className="text-xl text-gray-700 mb-8 leading-relaxed font-nunito max-w-2xl mx-auto">
+            Be among the first 100 people to experience Bloop. Get exclusive
+            early access, lifetime discounts, and help shape the future of
+            ADHD-friendly productivity.
           </p>
 
-          {/* ADHD-friendly: Quick stats for immediate engagement */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-2xl mx-auto">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-3 gap-6 mb-12 max-w-2xl mx-auto">
             {quickStats.map((stat, index) => (
-              <div
-                key={index}
-                className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-indigo-200 hover:scale-105 transition-transform cursor-pointer"
-              >
-                <div className="flex items-center justify-center mb-2">
-                  <stat.icon className="w-6 h-6 text-indigo-600" />
-                </div>
-                <div className="text-2xl font-bold text-indigo-600">
+              <div key={index} className="text-center">
+                <div className="text-3xl font-bold text-accent mb-2 font-nunito">
                   {stat.number}
                 </div>
-                <div className="text-xs text-gray-600 text-center">
+                <div className="text-sm text-gray-600 font-nunito">
                   {stat.label}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Waitlist Counter - ADHD-friendly with animation */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 mb-8 inline-block border border-indigo-200 hover:shadow-lg transition-all duration-300">
-            <div className="text-sm text-gray-600 mb-2">
-              People already waiting
-            </div>
-            <div className="text-3xl font-bold text-indigo-600 animate-pulse">
-              {currentSpot.toLocaleString()}
-            </div>
-            <div className="text-xs text-indigo-500 mt-2">
-              ⚡ Join now to get early access
+          {/* Urgency Stats */}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8 max-w-2xl mx-auto">
+            <h3 className="text-lg font-semibold text-red-800 mb-4 font-nunito">
+              ⏰ Limited Time Opportunity
+            </h3>
+            <div className="grid grid-cols-3 gap-4">
+              {urgencyStats.map((stat, index) => (
+                <div key={index} className="text-center">
+                  <div className="text-2xl font-bold text-red-600 mb-1 font-nunito">
+                    {stat.number}
+                  </div>
+                  <div className="text-sm text-red-700 font-nunito">
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Waitlist Form - ADHD-friendly with clear feedback */}
+          {/* Waitlist Form */}
           {!isSubmitted ? (
-            <form onSubmit={handleSubmit} className="max-w-md mx-auto">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input
+            <Card className="max-w-md mx-auto p-8 glass-effect">
+              <h3 className="text-2xl font-bold text-primary mb-4 font-nunito">
+                Join the Waitlist
+              </h3>
+              <p className="text-gray-600 mb-6 font-nunito">
+                Get notified when it's your turn and receive exclusive early
+                access benefits.
+              </p>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <Input
                   type="email"
+                  placeholder="Enter your email address"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  className="flex-1 px-4 py-3 border border-indigo-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
                   required
+                  className="w-full"
                 />
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200"
-                >
-                  <MousePointer className="w-4 h-4 mr-2" />
+                <Button type="submit" variant="primary" className="w-full">
                   Join Waitlist
                 </Button>
-              </div>
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                🚀 No spam, just updates when it's your turn
+              </form>
+              <p className="text-xs text-gray-500 mt-3 text-center font-nunito">
+                🚀 No spam • Unsubscribe anytime • Join 2,500+ others
               </p>
-            </form>
+            </Card>
           ) : (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6 max-w-md mx-auto animate-bounce">
-              <div className="flex items-center space-x-3">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-                <div>
-                  <div className="font-semibold text-green-800">
-                    You're on the list! 🎉
-                  </div>
-                  <div className="text-sm text-green-600">
-                    We'll notify you when it's your turn
-                  </div>
+            <Card className="max-w-md mx-auto p-8 glass-effect">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">✅</span>
                 </div>
+                <h3 className="text-2xl font-bold text-primary mb-2 font-nunito">
+                  You're on the list!
+                </h3>
+                <p className="text-gray-600 font-nunito">
+                  We'll notify you as soon as it's your turn. Thanks for joining
+                  the revolution!
+                </p>
               </div>
-            </div>
+            </Card>
           )}
         </div>
-
-        {/* ADHD-friendly: More engaging floating elements */}
-        <div className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full opacity-20 animate-bounce cursor-pointer hover:scale-125 transition-transform"></div>
-        <div
-          className="absolute top-40 right-20 w-16 h-16 bg-gradient-to-r from-indigo-400 to-blue-500 rounded-full opacity-20 animate-bounce cursor-pointer hover:scale-125 transition-transform"
-          style={{ animationDelay: '1s' }}
-        ></div>
-        <div
-          className="absolute bottom-20 left-1/4 w-12 h-12 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full opacity-20 animate-bounce cursor-pointer hover:scale-125 transition-transform"
-          style={{ animationDelay: '2s' }}
-        ></div>
       </section>
 
-      {/* ADHD Challenges Section - Enhanced with symptoms and solutions */}
-      <section className="py-20 px-4 bg-white">
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              We know your struggles
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Because we've lived them. Our team includes people with ADHD who
-              understand the daily challenges you face.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {adhdChallenges.map((challenge, index) => (
-              <Card
-                key={index}
-                padding="lg"
-                className="text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 bg-gradient-to-br from-white to-gray-50 cursor-pointer group"
-              >
-                <div
-                  className={`w-20 h-20 bg-gradient-to-r ${challenge.color} rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}
-                >
-                  <challenge.icon className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  {challenge.title}
-                </h3>
-                <p className="text-gray-600 text-lg leading-relaxed mb-4">
-                  {challenge.description}
-                </p>
-
-                {/* ADHD-friendly: Quick symptom and solution breakdown */}
-                <div className="bg-gray-50 rounded-lg p-4 text-left">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Eye className="w-4 h-4 text-red-500" />
-                    <span className="text-sm font-medium text-red-700">
-                      Symptom:
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3">
-                    {challenge.symptom}
-                  </p>
-
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Lightbulb className="w-4 h-4 text-green-500" />
-                    <span className="text-sm font-medium text-green-700">
-                      Solution:
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">{challenge.solution}</p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section - ADHD-friendly with more details */}
-      <section className="py-20 px-4 bg-gradient-to-br from-indigo-50 to-purple-50">
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How MindMate works
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              It's simple, really. We learn your brain, then become your perfect
-              productivity partner.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {howItWorks.map((step, index) => (
-              <div key={index} className="text-center relative">
-                <div className="bg-white rounded-2xl p-8 shadow-lg border border-indigo-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
-                  <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 text-white font-bold text-xl">
-                    {step.step}
-                  </div>
-                  <div className="w-20 h-20 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <step.icon className="w-10 h-10 text-indigo-600" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                    {step.title}
-                  </h3>
-                  <p className="text-gray-600 leading-relaxed mb-3">
-                    {step.description}
-                  </p>
-                  <div className="text-sm text-indigo-600 font-medium bg-indigo-50 px-3 py-1 rounded-full inline-block">
-                    {step.detail}
-                  </div>
-                </div>
-
-                {index < howItWorks.length - 1 && (
-                  <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2">
-                    <ArrowRight className="w-8 h-8 text-indigo-400" />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section - Enhanced with ADHD-specific details */}
-      <section className="py-20 px-4 bg-white">
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Real people, real results
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Join thousands of neurodivergent individuals who've found their
-              productivity groove
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <Card
-                key={index}
-                padding="lg"
-                className="text-center hover:shadow-lg transition-shadow border-0 bg-gradient-to-br from-white to-gray-50 cursor-pointer hover:scale-105 transition-transform duration-300"
-              >
-                <div className="flex justify-center mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-5 h-5 text-yellow-400 fill-current"
-                    />
-                  ))}
-                </div>
-                <p className="text-gray-700 mb-6 italic leading-relaxed">
-                  "{testimonial.content}"
-                </p>
-
-                {/* ADHD-friendly: Quick stats and type */}
-                <div className="bg-indigo-50 rounded-lg p-3 mb-4">
-                  <div className="text-xs text-indigo-600 mb-1">ADHD Type</div>
-                  <div className="font-semibold text-indigo-700">
-                    {testimonial.adhdType}
-                  </div>
-                </div>
-
-                <div className="bg-green-50 rounded-lg p-3 mb-4">
-                  <div className="text-xs text-green-600 mb-1">Improvement</div>
-                  <div className="font-semibold text-green-700">
-                    {testimonial.improvement}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="font-semibold text-gray-900">
-                    {testimonial.name}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {testimonial.role}
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA Section - ADHD-friendly with urgency */}
-      <section className="py-20 px-4 bg-gradient-to-r from-indigo-600 to-purple-700 relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="container mx-auto text-center relative z-10">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Ready to transform your ADHD into your superpower?
+      {/* ADHD Struggles Section */}
+      <section className="container mx-auto px-6 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-primary mb-4 font-nunito">
+            We Know Your Struggles
           </h2>
-          <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
-            Join the waitlist today and be among the first to experience a
-            personal assistant that truly understands your unique mind.
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto font-nunito">
+            Because we've lived them too. Traditional productivity tools weren't
+            built for ADHD minds.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {adhdStruggles.map((struggle, index) => (
+            <Card key={index} className="p-6 glass-effect">
+              <div className="flex items-start space-x-4">
+                <div className="text-3xl">{struggle.icon}</div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-primary mb-2 font-nunito">
+                    {struggle.title}
+                  </h3>
+                  <p className="text-gray-600 mb-3 font-nunito text-sm leading-relaxed">
+                    {struggle.description}
+                  </p>
+                  <div className="text-red-600 font-semibold text-sm font-nunito">
+                    {struggle.impact}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* Bloop Solutions Section */}
+      <section className="container mx-auto px-6 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-primary mb-4 font-nunito">
+            Bloop Changes Everything
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto font-nunito">
+            Finally, a productivity tool that works WITH your ADHD, not against
+            it.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {bloopSolutions.map((solution, index) => (
+            <Card key={index} className="p-6 glass-effect">
+              <div className="flex items-start space-x-4">
+                <div className="text-3xl">{solution.icon}</div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-primary mb-2 font-nunito">
+                    {solution.title}
+                  </h3>
+                  <p className="text-gray-600 mb-3 font-nunito text-sm leading-relaxed">
+                    {solution.description}
+                  </p>
+                  <div className="text-green-600 font-semibold text-sm font-nunito">
+                    {solution.benefit}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* Exclusive Benefits Section */}
+      <section className="container mx-auto px-6 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-primary mb-4 font-nunito">
+            Exclusive Waitlist Benefits
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto font-nunito">
+            Join now and get perks that won't be available to regular users.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {exclusiveBenefits.map((benefit, index) => (
+            <Card key={index} className="text-center p-6 glass-effect">
+              <div className="text-3xl mb-4">{benefit.icon}</div>
+              <h3 className="text-lg font-bold text-primary mb-3 font-nunito">
+                {benefit.title}
+              </h3>
+              <p className="text-gray-600 mb-4 font-nunito text-sm leading-relaxed">
+                {benefit.description}
+              </p>
+              <div className="inline-block bg-accent/10 text-accent px-3 py-1 rounded-full text-sm font-semibold font-nunito">
+                {benefit.value}
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="container mx-auto px-6 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-primary mb-4 font-nunito">
+            What Waitlist Members Say
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto font-nunito">
+            Hear from people who are already experiencing the Bloop difference.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {testimonials.map((testimonial, index) => (
+            <Card key={index} className="p-6 glass-effect">
+              <div className="mb-4">
+                <p className="text-gray-700 italic font-nunito text-sm leading-relaxed">
+                  "{testimonial.quote}"
+                </p>
+              </div>
+              <div className="mb-3">
+                <div className="font-semibold text-primary font-nunito">
+                  {testimonial.author}
+                </div>
+                <div className="text-gray-600 font-nunito text-sm">
+                  {testimonial.role}
+                </div>
+              </div>
+              <div className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold font-nunito">
+                Waitlist: {testimonial.waitlistTime}
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="container mx-auto px-6 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-primary mb-4 font-nunito">
+            Frequently Asked Questions
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto font-nunito">
+            Everything you need to know about joining the Bloop waitlist.
+          </p>
+        </div>
+
+        <div className="max-w-3xl mx-auto space-y-6">
+          {faqs.map((faq, index) => (
+            <Card key={index} className="p-6 glass-effect">
+              <h3 className="text-lg font-bold text-primary mb-3 font-nunito">
+                {faq.question}
+              </h3>
+              <p className="text-gray-600 font-nunito leading-relaxed">
+                {faq.answer}
+              </p>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="container mx-auto px-6 py-20">
+        <Card className="text-center p-12 glass-effect max-w-4xl mx-auto">
+          <h2 className="text-4xl font-bold text-primary mb-6 font-nunito">
+            Don't Wait to Transform Your Productivity
+          </h2>
+          <p className="text-lg text-gray-600 mb-8 font-nunito max-w-2xl mx-auto">
+            Every day you wait is another day of fighting against tools that
+            don't understand you. Join the waitlist today and be among the first
+            to experience true productivity harmony.
           </p>
 
-          {/* ADHD-friendly: Urgency and scarcity */}
-          <div className="bg-yellow-400 text-yellow-900 px-6 py-3 rounded-lg mb-8 inline-block animate-pulse">
-            <div className="flex items-center space-x-2">
-              <Clock className="w-5 h-5" />
-              <span className="font-semibold">Limited spots available!</span>
-            </div>
+          {/* Urgency and Social Proof */}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8 max-w-md mx-auto">
+            <p className="text-red-800 font-semibold font-nunito mb-2">
+              ⏰ Limited Time: Only 47 spots remaining!
+            </p>
+            <p className="text-red-700 text-sm font-nunito">
+              Join now to secure your exclusive benefits and early access.
+            </p>
           </div>
 
-          {!isSubmitted ? (
-            <form onSubmit={handleSubmit} className="max-w-md mx-auto">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  className="flex-1 px-4 py-3 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-600"
-                  required
-                />
-                <Button
-                  type="submit"
-                  size="lg"
-                  variant="secondary"
-                  className="bg-white text-indigo-600 hover:bg-gray-100 transform hover:scale-105 transition-all duration-200"
-                >
-                  <Heart className="w-4 h-4 mr-2" />
-                  Join Waitlist
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-6 max-w-md mx-auto border border-white/30">
-              <div className="flex items-center space-x-3 justify-center">
-                <CheckCircle className="w-6 h-6 text-white" />
-                <div className="text-white">
-                  <div className="font-semibold">You're on the list!</div>
-                  <div className="text-sm text-indigo-100">
-                    We'll notify you when it's your turn
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="mb-4"
+          >
+            Join Waitlist Now
+          </Button>
+
+          <p className="text-sm text-gray-500 font-nunito">
+            🚀 Free to join • No credit card required • Unsubscribe anytime
+          </p>
+        </Card>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-4">
-        <div className="container mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <Brain className="w-6 h-6 text-indigo-400" />
-                <span className="text-lg font-semibold">MindMate</span>
-              </div>
-              <p className="text-gray-400">
-                Empowering neurodivergent minds with AI-driven productivity
-                tools designed specifically for ADHD brains.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <button className="hover:text-white transition-colors">
-                    Features
-                  </button>
-                </li>
-                <li>
-                  <button className="hover:text-white transition-colors">
-                    How It Works
-                  </button>
-                </li>
-                <li>
-                  <button className="hover:text-white transition-colors">
-                    Pricing
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <button className="hover:text-white transition-colors">
-                    Help Center
-                  </button>
-                </li>
-                <li>
-                  <button className="hover:text-white transition-colors">
-                    ADHD Resources
-                  </button>
-                </li>
-                <li>
-                  <button className="hover:text-white transition-colors">
-                    Contact Us
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <button className="hover:text-white transition-colors">
-                    About
-                  </button>
-                </li>
-                <li>
-                  <button className="hover:text-white transition-colors">
-                    Privacy
-                  </button>
-                </li>
-                <li>
-                  <button className="hover:text-white transition-colors">
-                    Terms
-                  </button>
-                </li>
-              </ul>
-            </div>
+      <footer className="container mx-auto px-6 py-12 border-t border-gray-200">
+        <div className="flex flex-col md:flex-row items-center justify-between">
+          <div className="flex items-center space-x-3 mb-4 md:mb-0">
+            <img src="/orca3d.png" alt="Bloop Logo" className="w-8 h-8" />
+            <span className="text-xl font-bold text-primary font-nunito">
+              Bloop
+            </span>
           </div>
-
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 MindMate. Built with ❤️ for ADHD minds.</p>
+          <div className="text-gray-600 text-sm font-nunito">
+            © 2024 Bloop. Empowering ADHD minds worldwide.
           </div>
         </div>
       </footer>

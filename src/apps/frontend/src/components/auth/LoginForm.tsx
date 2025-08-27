@@ -1,6 +1,6 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { Button, Input, Card } from '@/components/ui';
+import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import type { LoginFormData } from '@/types/auth';
 
@@ -41,85 +41,90 @@ const LoginForm: React.FC<LoginFormProps> = ({
   };
 
   return (
-    <Card title="Sign In" padding="lg" className="max-w-md mx-auto">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Email Field */}
-        <Input
-          label="Email Address"
-          type="email"
-          placeholder="Enter your email"
-          error={errors.email?.message}
-          required
-          {...register('email', {
-            required: 'Email is required',
-            pattern: {
-              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-              message: 'Please enter a valid email address',
-            },
-          })}
-          onChange={value => handleInputChange('email', value)}
-        />
+    <Card className="max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Sign In</CardTitle>
+      </CardHeader>
+      <CardContent className="!p-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Email Field */}
+          <Input
+            label="Email Address"
+            type="email"
+            placeholder="Enter your email"
+            error={errors.email?.message}
+            required
+            {...register('email', {
+              required: 'Email is required',
+              pattern: {
+                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                message: 'Please enter a valid email address',
+              },
+            })}
+            onChange={(e) => handleInputChange('email', e.target.value)}
+          />
 
-        {/* Password Field */}
-        <Input
-          label="Password"
-          type="password"
-          placeholder="Enter your password"
-          error={errors.password?.message}
-          required
-          {...register('password', {
-            required: 'Password is required',
-            minLength: {
-              value: 8,
-              message: 'Password must be at least 8 characters',
-            },
-          })}
-          onChange={value => handleInputChange('password', value)}
-        />
+          {/* Password Field */}
+          <Input
+            label="Password"
+            type="password"
+            placeholder="Enter your password"
+            error={errors.password?.message}
+            required
+            {...register('password', {
+              required: 'Password is required',
+              minLength: {
+                value: 8,
+                message: 'Password must be at least 8 characters',
+              },
+            })}
+            onChange={(e) => handleInputChange('password', e.target.value)}
+          />
 
-        {/* Error Display */}
-        {error && (
-          <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md border border-red-200">
-            {error}
+          {/* Error Display */}
+          {error && (
+            <div className="text-red-600 text-sm bg-red-50 p-4 rounded-2xl border border-red-200">
+              {error}
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            loading={isLoading}
+            className="w-full"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Signing In...' : 'Sign In'}
+          </Button>
+
+          {/* Switch to Register */}
+          <div className="text-center pt-4">
+            <p className="text-gray-600 text-sm">
+              Don't have an account?{' '}
+              <button
+                type="button"
+                onClick={onSwitchToRegister}
+                className="text-accent hover:text-accent-light font-medium underline"
+              >
+                Sign up here
+              </button>
+            </p>
           </div>
-        )}
 
-        {/* Submit Button */}
-        <Button
-          type="submit"
-          variant="primary"
-          size="lg"
-          loading={isLoading}
-          className="w-full"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Signing In...' : 'Sign In'}
-        </Button>
-
-        {/* Switch to Register */}
-        <div className="text-center">
-          <p className="text-gray-600 text-sm">
-            Don't have an account?{' '}
+          {/* Forgot Password Link */}
+          <div className="text-center">
             <button
               type="button"
-              onClick={onSwitchToRegister}
-              className="text-blue-600 hover:text-blue-800 font-medium underline"
+              className="text-gray-500 hover:text-gray-700 text-sm underline"
             >
-              Sign up here
+              Forgot your password?
             </button>
-          </p>
-        </div>
-
-        {/* Forgot Password Link */}
-        <div className="text-center">
-          <button
-            type="button"
-            className="text-gray-500 hover:text-gray-700 text-sm underline"
-          >
-            Forgot your password?
-          </button>
-        </div>
-      </form>
+          </div>
+        </form>
+      </CardContent>
     </Card>
   );
 };

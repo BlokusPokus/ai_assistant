@@ -29,6 +29,9 @@ from .mfa_models import MFAConfiguration, UserSession, SecurityEvent
 # RBAC models
 from .rbac_models import Role, Permission, RolePermission, UserRole, AccessAuditLog
 
+# SMS Router models - import after User to avoid circular imports
+from personal_assistant.sms_router.models import SMSRouterConfig, SMSUsageLog, UserPhoneMapping
+
 # OAuth models - imported separately when needed to avoid circular imports
 # from personal_assistant.oauth.models import (
 #     OAuthIntegration,
@@ -72,6 +75,10 @@ __all__ = [
     "RolePermission",
     "UserRole",
     "AccessAuditLog",
+    # SMS Router models
+    "SMSRouterConfig",
+    "SMSUsageLog",
+    "UserPhoneMapping",
     # OAuth models - imported separately when needed to avoid circular imports
     # "OAuthIntegration",
     # "OAuthToken",

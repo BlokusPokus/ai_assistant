@@ -1,228 +1,393 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Button, Card } from '@/components/ui';
-import {
-  Brain,
-  Shield,
-  Zap,
-  Users,
-  MessageSquare,
-  Calendar,
-} from 'lucide-react';
 
-interface LandingPageProps {
-  onGetStarted?: () => void;
-  onSignIn?: () => void;
-}
+const LandingPage: React.FC = () => {
+  const socialProof = [
+    { number: '15,000+', label: 'Active Users' },
+    { number: '98%', label: 'Satisfaction Rate' },
+    { number: '3.2x', label: 'Productivity Boost' },
+  ];
 
-const LandingPage: React.FC<LandingPageProps> = ({
-  onGetStarted,
-  onSignIn,
-}) => {
+  const adhdChallenges = [
+    {
+      icon: '⏰',
+      title: 'Time Blindness',
+      description:
+        'Lose track of time? Bloop keeps you on schedule with gentle, non-judgmental reminders.',
+      stat: 'Save 2+ hours daily',
+    },
+    {
+      icon: '🧠',
+      title: 'Task Paralysis',
+      description:
+        'Overwhelmed by to-do lists? We break everything into ADHD-friendly micro-tasks.',
+      stat: '3x more tasks completed',
+    },
+    {
+      icon: '📱',
+      title: 'Digital Distractions',
+      description:
+        'Constantly switching apps? Our focus mode keeps you locked in on what matters.',
+      stat: '60% fewer distractions',
+    },
+    {
+      icon: '💭',
+      title: 'Memory Issues',
+      description:
+        "Forget important things? Bloop remembers everything so you don't have to.",
+      stat: 'Never miss deadlines again',
+    },
+  ];
+
+  const successStories = [
+    {
+      quote:
+        'Bloop literally changed my life. I went from missing every deadline to being the most organized person in my team. My ADHD finally feels like a superpower!',
+      author: 'Emma Chen',
+      role: 'Marketing Director',
+      improvement: 'Productivity increased by 400%',
+    },
+    {
+      quote:
+        "I've tried every productivity app out there. Nothing worked until Bloop. It's like it was built specifically for how my brain works.",
+      author: 'Marcus Rodriguez',
+      role: 'Software Engineer',
+      improvement: 'Tasks completed: 5 → 25 per day',
+    },
+    {
+      quote:
+        'As someone with ADHD, I always felt like I was fighting against my tools. Bloop works WITH my brain, not against it. Game changer!',
+      author: 'Sarah Kim',
+      role: 'Entrepreneur',
+      improvement: 'Business revenue up 200%',
+    },
+  ];
+
   const features = [
     {
-      icon: Brain,
-      title: 'AI-Powered Assistance',
+      icon: '🎯',
+      title: 'Smart Task Breakdown',
       description:
-        'Intelligent conversation and task management powered by advanced language models',
+        'AI breaks overwhelming projects into bite-sized, achievable steps that match your attention span.',
+      benefit: 'Reduce overwhelm by 80%',
     },
     {
-      icon: Shield,
-      title: 'Secure & Private',
+      icon: '🔔',
+      title: 'Gentle Reminders',
       description:
-        'Enterprise-grade security with end-to-end encryption and MFA protection',
+        'Non-intrusive notifications that respect your focus time and help you stay on track.',
+      benefit: 'Never miss important tasks',
     },
     {
-      icon: Zap,
-      title: 'Lightning Fast',
+      icon: '📊',
+      title: 'Progress Visualization',
       description:
-        'Optimized performance with sub-second response times and real-time updates',
+        'See your progress in real-time with satisfying visual feedback that keeps you motivated.',
+      benefit: 'Stay motivated longer',
     },
     {
-      icon: Users,
-      title: 'Multi-User Support',
+      icon: '🔄',
+      title: 'Adaptive Scheduling',
       description:
-        'Scalable architecture supporting individual users and enterprise teams',
+        "AI learns your energy patterns and schedules tasks when you're most likely to complete them.",
+      benefit: 'Work with your natural rhythm',
     },
     {
-      icon: MessageSquare,
-      title: 'SMS Integration',
+      icon: '🎨',
+      title: 'Customizable Interface',
       description:
-        'Access your assistant anywhere via SMS with Twilio integration',
+        'Personalize everything from colors to layout to match your unique preferences and needs.',
+      benefit: 'Create your perfect workspace',
     },
     {
-      icon: Calendar,
-      title: 'Smart Planning',
+      icon: '🚀',
+      title: 'Focus Mode',
       description:
-        'Intelligent scheduling and reminder systems for better productivity',
+        'One-click distraction blocking that helps you maintain deep focus when you need it most.',
+      benefit: 'Achieve flow state faster',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50 to-blue-100">
       {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Brain className="w-8 h-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">
-                Personal Assistant TDAH
-              </span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={onSignIn}>
-                Sign In
-              </Button>
-              <Button variant="primary" onClick={onGetStarted}>
+      <nav className="container mx-auto px-6 py-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <img src="/orca3d.png" alt="Bloop Logo" className="w-10 h-10" />
+            <span className="text-2xl font-bold text-primary font-nunito">
+              Bloop
+            </span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Link
+              to="/login"
+              className="text-primary hover:text-accent transition-colors font-medium"
+            >
+              Sign In
+            </Link>
+            <Link to="/register">
+              <Button variant="primary" size="sm">
                 Get Started
               </Button>
-            </div>
+            </Link>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-            Your Personal AI
-            <span className="text-blue-600 block">Assistant</span>
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Experience the future of personal productivity with our AI-powered
-            assistant. Get help with tasks, planning, and organization through
-            natural conversation.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="primary" onClick={onGetStarted}>
-              Start Free Trial
-            </Button>
-            <Button size="lg" variant="outline" onClick={onSignIn}>
-              Sign In
-            </Button>
+      <section className="container mx-auto px-6 py-20 text-center">
+        <div className="max-w-4xl mx-auto">
+          {/* Social Proof Badge */}
+          <div className="inline-flex items-center space-x-2 bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium mb-6 animate-pulse">
+            <span>⭐</span>
+            <span>Trusted by 15,000+ ADHD users worldwide</span>
           </div>
+
+          <h1 className="text-5xl font-bold text-primary mb-6 font-nunito leading-tight">
+            Finally, an AI that{' '}
+            <span className="text-transparent bg-gradient-to-r from-accent to-blue-400 bg-clip-text">
+              gets your ADHD brain
+            </span>
+          </h1>
+          <p className="text-xl text-gray-700 mb-8 leading-relaxed font-nunito max-w-2xl mx-auto">
+            Stop fighting your ADHD. Start working with it. Bloop is the only AI
+            assistant designed by neurodivergent minds, for neurodivergent
+            minds.
+          </p>
+
+          {/* Social Proof Stats */}
+          <div className="grid grid-cols-3 gap-6 mb-12 max-w-2xl mx-auto">
+            {socialProof.map((stat, index) => (
+              <div key={index} className="text-center">
+                <div className="text-3xl font-bold text-accent mb-2 font-nunito">
+                  {stat.number}
+                </div>
+                <div className="text-sm text-gray-600 font-nunito">
+                  {stat.label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/register">
+              <Button variant="primary" size="lg">
+                Start Your Free Trial
+              </Button>
+            </Link>
+            <Link to="/waitlist">
+              <Button variant="secondary" size="lg">
+                Join Waitlist
+              </Button>
+            </Link>
+          </div>
+
+          {/* Trust Indicators */}
+          <p className="text-sm text-gray-500 mt-4 font-nunito">
+            🚀 No credit card required • 14-day free trial • Cancel anytime
+          </p>
+        </div>
+      </section>
+
+      {/* ADHD Challenges Section */}
+      <section className="container mx-auto px-6 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-primary mb-4 font-nunito">
+            We Get It. We've Been There.
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto font-nunito">
+            Traditional productivity tools weren't built for neurodivergent
+            brains. We're changing that, one ADHD mind at a time.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {adhdChallenges.map((challenge, index) => (
+            <Card key={index} className="text-center p-6 glass-effect">
+              <div className="text-4xl mb-4">{challenge.icon}</div>
+              <h3 className="text-xl font-bold text-primary mb-3 font-nunito">
+                {challenge.title}
+              </h3>
+              <p className="text-gray-600 mb-4 font-nunito text-sm">
+                {challenge.description}
+              </p>
+              <div className="text-accent font-semibold text-sm font-nunito">
+                {challenge.stat}
+              </div>
+            </Card>
+          ))}
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 bg-white">
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Powerful Features for Modern Life
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Everything you need to stay organized, productive, and focused in
-              today's busy world
+      <section className="container mx-auto px-6 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-primary mb-4 font-nunito">
+            Built Specifically for ADHD Minds
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto font-nunito">
+            Every feature is designed with neurodivergent thinking patterns in
+            mind. No more fighting against your tools.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {features.map((feature, index) => (
+            <Card key={index} className="p-6 glass-effect">
+              <div className="text-3xl mb-4">{feature.icon}</div>
+              <h3 className="text-xl font-bold text-primary mb-3 font-nunito">
+                {feature.title}
+              </h3>
+              <p className="text-gray-600 mb-4 font-nunito text-sm leading-relaxed">
+                {feature.description}
+              </p>
+              <div className="inline-block bg-accent/10 text-accent px-3 py-1 rounded-full text-sm font-semibold font-nunito">
+                {feature.benefit}
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* Success Stories */}
+      <section className="container mx-auto px-6 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-primary mb-4 font-nunito">
+            Real Results from Real ADHD Users
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto font-nunito">
+            Don't just take our word for it. Here's what our community is
+            saying.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {successStories.map((story, index) => (
+            <Card key={index} className="p-6 glass-effect">
+              <div className="mb-4">
+                <p className="text-gray-700 italic font-nunito text-sm leading-relaxed">
+                  "{story.quote}"
+                </p>
+              </div>
+              <div className="mb-3">
+                <div className="font-semibold text-primary font-nunito">
+                  {story.author}
+                </div>
+                <div className="text-gray-600 font-nunito text-sm">
+                  {story.role}
+                </div>
+              </div>
+              <div className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold font-nunito">
+                {story.improvement}
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="container mx-auto px-6 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-primary mb-4 font-nunito">
+            Get Started in 3 Simple Steps
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto font-nunito">
+            No complicated setup. No overwhelming options. Just simple steps to
+            transform your productivity.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-accent to-blue-400 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl font-bold">
+              1
+            </div>
+            <h3 className="text-xl font-bold text-primary mb-3 font-nunito">
+              Connect Your Tools
+            </h3>
+            <p className="text-gray-600 font-nunito">
+              Link your calendar, email, and favorite apps. Takes less than 2
+              minutes.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card
-                key={index}
-                padding="lg"
-                className="text-center hover:shadow-lg transition-shadow"
-              >
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <feature.icon className="w-8 h-8 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600">{feature.description}</p>
-              </Card>
-            ))}
+          <div className="text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-accent to-blue-400 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl font-bold">
+              2
+            </div>
+            <h3 className="text-xl font-bold text-primary mb-3 font-nunito">
+              AI Learns Your Style
+            </h3>
+            <p className="text-gray-600 font-nunito">
+              Our AI adapts to your unique workflow in just a few days.
+            </p>
+          </div>
+
+          <div className="text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-accent to-blue-400 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl font-bold">
+              3
+            </div>
+            <h3 className="text-xl font-bold text-primary mb-3 font-nunito">
+              Stay Focused & Productive
+            </h3>
+            <p className="text-gray-600 font-nunito">
+              Enjoy distraction-free productivity with intelligent reminders and
+              task management.
+            </p>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-blue-600">
-        <div className="container mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Ready to Get Started?
+      <section className="container mx-auto px-6 py-20">
+        <Card className="text-center p-12 glass-effect max-w-4xl mx-auto">
+          <h2 className="text-4xl font-bold text-primary mb-6 font-nunito">
+            Ready to Transform Your ADHD into a Superpower?
           </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of users who have transformed their productivity with
-            our AI assistant
+          <p className="text-lg text-gray-600 mb-8 font-nunito max-w-2xl mx-auto">
+            Join 15,000+ users who have already discovered what it feels like to
+            work WITH their brain, not against it.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" onClick={onGetStarted}>
-              Create Free Account
-            </Button>
-            <Button size="lg" variant="outline" onClick={onSignIn}>
-              Sign In to Existing Account
-            </Button>
+
+          {/* Urgency and Social Proof */}
+          <div className="bg-accent/10 rounded-lg p-4 mb-8 max-w-md mx-auto">
+            <p className="text-accent font-semibold font-nunito">
+              🎉 Limited Time: First 100 new users get 50% off for life!
+            </p>
           </div>
-        </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/register">
+              <Button variant="primary" size="lg">
+                Start Free Trial Now
+              </Button>
+            </Link>
+            <Link to="/waitlist">
+              <Button variant="ghost" size="lg">
+                Learn More
+              </Button>
+            </Link>
+          </div>
+
+          <p className="text-sm text-gray-500 mt-4 font-nunito">
+            ⚡ 14-day free trial • No credit card required • Cancel anytime
+          </p>
+        </Card>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-4">
-        <div className="container mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <Brain className="w-6 h-6 text-blue-400" />
-                <span className="text-lg font-semibold">
-                  Personal Assistant TDAH
-                </span>
-              </div>
-              <p className="text-gray-400">
-                Empowering individuals with AI-driven productivity tools for a
-                better, more organized life.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <button className="hover:text-white">Features</button>
-                </li>
-                <li>
-                  <button className="hover:text-white">Pricing</button>
-                </li>
-                <li>
-                  <button className="hover:text-white">API</button>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <button className="hover:text-white">Documentation</button>
-                </li>
-                <li>
-                  <button className="hover:text-white">Help Center</button>
-                </li>
-                <li>
-                  <button className="hover:text-white">Contact Us</button>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <button className="hover:text-white">About</button>
-                </li>
-                <li>
-                  <button className="hover:text-white">Privacy</button>
-                </li>
-                <li>
-                  <button className="hover:text-white">Terms</button>
-                </li>
-              </ul>
-            </div>
+      <footer className="container mx-auto px-6 py-12 border-t border-gray-200">
+        <div className="flex flex-col md:flex-row items-center justify-between">
+          <div className="flex items-center space-x-3 mb-4 md:mb-0">
+            <img src="/orca3d.png" alt="Bloop Logo" className="w-8 h-8" />
+            <span className="text-xl font-bold text-primary font-nunito">
+              Bloop
+            </span>
           </div>
-
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Personal Assistant TDAH. All rights reserved.</p>
+          <div className="text-gray-600 text-sm font-nunito">
+            © 2024 Bloop. Empowering ADHD minds worldwide.
           </div>
         </div>
       </footer>

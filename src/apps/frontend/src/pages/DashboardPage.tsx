@@ -54,10 +54,8 @@ const DashboardPage: React.FC = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Brain className="w-8 h-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">
-                Personal Assistant TDAH
-              </span>
+              <img src="/orca3d.png" alt="App Logo" className="w-8 h-8" />
+              <span className="text-xl font-bold text-gray-900">Bloop</span>
             </div>
 
             <div className="flex items-center space-x-4">

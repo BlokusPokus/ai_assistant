@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { useOAuthSettingsStore } from "../../../stores/oauthSettingsStore";
+import React, { useState, useEffect } from 'react';
+import { useOAuthSettingsStore } from '../../../stores/oauthSettingsStore';
 import type { AuditFilters } from "../../../services/oauthSettingsService";
+import { Select } from '@/components/ui';
 
 export const AuditTab: React.FC = () => {
   const { auditLogs, loading, loadAuditLogs, exportData } =
@@ -88,33 +89,35 @@ export const AuditTab: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Provider
               </label>
-              <select
+              <Select
                 value={filters.provider || ""}
-                onChange={(e) => handleFilterChange("provider", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Providers</option>
-                <option value="google">Google</option>
-                <option value="microsoft">Microsoft</option>
-                <option value="notion">Notion</option>
-                <option value="youtube">YouTube</option>
-              </select>
+                onChange={(value) => handleFilterChange("provider", value)}
+                options={[
+                  { value: "", label: "All Providers" },
+                  { value: "google", label: "Google" },
+                  { value: "microsoft", label: "Microsoft" },
+                  { value: "notion", label: "Notion" },
+                  { value: "youtube", label: "YouTube" }
+                ]}
+                placeholder="Select provider"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Action
               </label>
-              <select
+              <Select
                 value={filters.action || ""}
-                onChange={(e) => handleFilterChange("action", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Actions</option>
-                <option value="integration_created">Integration Created</option>
-                <option value="tokens_refreshed">Tokens Refreshed</option>
-                <option value="integration_revoked">Integration Revoked</option>
-                <option value="scopes_updated">Scopes Updated</option>
-              </select>
+                onChange={(value) => handleFilterChange("action", value)}
+                options={[
+                  { value: "", label: "All Actions" },
+                  { value: "integration_created", label: "Integration Created" },
+                  { value: "tokens_refreshed", label: "Tokens Refreshed" },
+                  { value: "integration_revoked", label: "Integration Revoked" },
+                  { value: "scopes_updated", label: "Scopes Updated" }
+                ]}
+                placeholder="Select action"
+              />
             </div>
           </div>
           <div className="flex justify-end space-x-3 mt-4">
@@ -142,14 +145,16 @@ export const AuditTab: React.FC = () => {
               Export Data
             </h3>
             <div className="flex items-center space-x-3">
-              <select
+              <Select
                 value={exportFormat}
-                onChange={(e) => setExportFormat(e.target.value as "csv" | "json")}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="csv">CSV</option>
-                <option value="json">JSON</option>
-              </select>
+                onChange={(value) => setExportFormat(value as "csv" | "json")}
+                options={[
+                  { value: "csv", label: "CSV" },
+                  { value: "json", label: "JSON" }
+                ]}
+                placeholder="Select format"
+                className="w-32"
+              />
               <button
                 onClick={handleExport}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"

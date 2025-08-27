@@ -10,5 +10,8 @@ __all__ = [
     "ResponseFormatter",
     "AgentIntegrationService",
     "PhoneValidator",
-    "CacheManager"
+    "CacheManager",
+    "SMSAnalyticsService",
+    "SMSCostCalculator",
+    "SMSPerformanceMonitor"
 ]
