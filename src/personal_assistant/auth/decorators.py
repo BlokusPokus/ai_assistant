@@ -54,7 +54,19 @@ def require_permission(resource_type: str, action: str):
             user_id = request.state.user_id
 
             # Get database session
-            db = AsyncSessionLocal()
+            db = None
+            for arg in args:
+                if isinstance(arg, AsyncSession):
+                    db = arg
+                    break
+
+            if not db:
+                # If no session found in args, create a temporary one
+                db = AsyncSessionLocal()
+                should_close = True
+            else:
+                should_close = False
+
             try:
                 permission_service = PermissionService(db)
 
@@ -82,7 +94,9 @@ def require_permission(resource_type: str, action: str):
                         detail=f"Insufficient permissions. Required: {resource_type}:{action}"
                     )
             finally:
-                await db.close()
+                # Only close if we created the session
+                if should_close:
+                    await db.close()
 
             # User has permission, proceed with the endpoint
             return await func(*args, **kwargs)
@@ -127,7 +141,19 @@ def require_role(role_name: str):
             user_id = request.state.user_id
 
             # Get database session and check role
-            db = AsyncSessionLocal()
+            db = None
+            for arg in args:
+                if isinstance(arg, AsyncSession):
+                    db = arg
+                    break
+
+            if not db:
+                # If no session found in args, create a temporary one
+                db = AsyncSessionLocal()
+                should_close = True
+            else:
+                should_close = False
+
             try:
                 permission_service = PermissionService(db)
 
@@ -154,7 +180,9 @@ def require_role(role_name: str):
                         detail=f"Role required: {role_name}"
                     )
             finally:
-                await db.close()
+                # Only close if we created the session
+                if should_close:
+                    await db.close()
 
             # User has role, proceed with the endpoint
             return await func(*args, **kwargs)

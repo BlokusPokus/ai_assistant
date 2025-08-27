@@ -6,3 +6,5 @@ export { default as ChatPage } from './ChatPage';
 export { default as CalendarPage } from './CalendarPage';
 export { default as NotesPage } from './NotesPage';
 export { default as OAuthIntegrationsPage } from '../../components/oauth/OAuthIntegrationsPage';
+export { default as SMSAnalyticsPage } from './SMSAnalyticsPage';
+export { default as AdminAnalyticsPage } from './AdminAnalyticsPage';

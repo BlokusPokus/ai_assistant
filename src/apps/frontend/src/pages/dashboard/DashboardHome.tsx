@@ -4,6 +4,7 @@ import { Card } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { useProfileStore } from '@/stores/profileStore';
 import { useOAuthStore } from '@/stores/oauthStore';
+import SMSAnalyticsWidget from '@/components/dashboard/SMSAnalyticsWidget';
 import {
   Brain,
   MessageSquare,
@@ -198,6 +199,18 @@ const DashboardHome: React.FC = () => {
             </div>
           </Card>
         ))}
+      </div>
+
+      {/* SMS Analytics Section */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold text-gray-900">
+          SMS Analytics & Usage
+        </h2>
+        <SMSAnalyticsWidget 
+          timeRange="30d"
+          showCosts={true}
+          showPerformance={true}
+        />
       </div>
 
       {/* Quick Actions Grid */}

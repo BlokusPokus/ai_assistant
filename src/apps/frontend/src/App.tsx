@@ -20,6 +20,8 @@ import {
   CalendarPage,
   NotesPage,
   OAuthIntegrationsPage,
+  SMSAnalyticsPage,
+  AdminAnalyticsPage,
 } from '@/pages/dashboard';
 import { OAuthSettingsPage } from '@/components/oauth-settings';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -101,6 +103,8 @@ function App() {
             <Route path="notes" element={<NotesPage />} />
             <Route path="integrations" element={<OAuthIntegrationsPage />} />
             <Route path="oauth-settings" element={<OAuthSettingsPage />} />
+            <Route path="sms-analytics" element={<SMSAnalyticsPage />} />
+            <Route path="admin-analytics" element={<AdminAnalyticsPage />} />
           </Route>
 
           {/* Catch-all route - redirect to landing */}

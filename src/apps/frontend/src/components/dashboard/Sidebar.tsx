@@ -14,6 +14,7 @@ import {
   LogOut,
   Link,
   Key,
+  BarChart3,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useDashboardStore } from '@/stores/dashboardStore';
@@ -68,6 +69,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
       icon: Key,
     },
     {
+      label: 'SMS Analytics',
+      href: '/dashboard/sms-analytics',
+      icon: BarChart3,
+    },
+    {
+      label: 'Admin Analytics',
+      href: '/dashboard/admin-analytics',
+      icon: Shield,
+    },
+    {
       label: 'Profile',
       href: '/dashboard/profile',
       icon: User,
@@ -110,7 +121,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
           {/* Header */}
           <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
             <div className="flex items-center space-x-2">
-              <img src="/image.png" alt="App Logo" className="h-12 w-12" />
+              <img src="/orca3d.png" alt="App Logo" className="h-12 w-12" />
               {!isCollapsed && (
                 <span className="text-lg font-bold text-gray-900">Bloop</span>
               )}
