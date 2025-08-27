@@ -170,7 +170,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
         onClick={() => setMobileMenuOpen(true)}
         className="fixed top-4 left-4 z-50 lg:hidden bg-white p-2 rounded-md shadow-lg border border-gray-200"
       >
-        <Brain className="h-6 w-6 text-blue-600" />
+        <img src="/orca3d.png" alt="Menu" className="h-6 w-6" />
       </button>
     </>
   );

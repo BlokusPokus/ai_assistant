@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/stores/authStore';
-import { RefreshCw, AlertTriangle, TrendingUp, Activity, DollarSign, Clock } from 'lucide-react';
+import { RefreshCw, Download, BarChart3, TrendingUp, DollarSign, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Select } from '@/components/ui';
 
 interface SystemAnalyticsData {
   system_performance: {
@@ -303,16 +304,18 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
           </button>
           
           {/* Time range selector */}
-          <select
+          <Select
             value={selectedTimeRange}
-            onChange={(e) => setSelectedTimeRange(e.target.value as '7d' | '30d' | '90d' | '1y')}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-            <option value="90d">Last 90 days</option>
-            <option value="1y">Last year</option>
-          </select>
+            onChange={(value) => setSelectedTimeRange(value as '7d' | '30d' | '90d' | '1y')}
+            options={[
+              { value: '7d', label: 'Last 7 days' },
+              { value: '30d', label: 'Last 30 days' },
+              { value: '90d', label: 'Last 90 days' },
+              { value: '1y', label: 'Last year' }
+            ]}
+            placeholder="Select time range"
+            className="w-48"
+          />
         </div>
       </div>
 

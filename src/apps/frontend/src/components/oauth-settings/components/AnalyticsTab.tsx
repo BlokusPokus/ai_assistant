@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOAuthSettingsStore } from '../../../stores/oauthSettingsStore';
+import { Select } from '@/components/ui';
 
 const timeRanges = [
   { value: '1d', label: 'Last 24 Hours' },
@@ -24,7 +25,7 @@ export const AnalyticsTab: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
       </div>
     );
   }
@@ -39,25 +40,18 @@ export const AnalyticsTab: React.FC = () => {
 
   return (
     <div className="px-4 sm:px-0">
-      {/* Time Range Selector */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Time Range
-        </label>
-        <div className="flex space-x-2">
-          {timeRanges.map(range => (
-            <button
-              key={range.value}
-              onClick={() => handleTimeRangeChange(range.value)}
-              className={`px-3 py-2 text-sm font-medium rounded-md ${
-                timeRange === range.value
-                  ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              {range.label}
-            </button>
-          ))}
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Analytics Overview</h3>
+        
+        <div className="flex items-center space-x-4 mb-6">
+          <label className="text-sm font-medium text-gray-700">Time Range:</label>
+          <Select
+            value={timeRange}
+            onChange={handleTimeRangeChange}
+            options={timeRanges}
+            placeholder="Select time range"
+            className="w-48"
+          />
         </div>
       </div>
 

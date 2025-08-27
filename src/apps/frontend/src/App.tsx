@@ -43,13 +43,16 @@ function App() {
             path="/"
             element={
               <ProtectedRoute requireAuth={false}>
-                <WaitListLandingPage
-                  onJoinWaitlist={email => {
-                    console.log('Joined waitlist:', email);
-                    // Add your waitlist logic here
-                  }}
-                  onSignIn={() => (window.location.href = '/login')}
-                />
+                <LandingPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/waitlist"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <WaitListLandingPage />
               </ProtectedRoute>
             }
           />
@@ -58,10 +61,7 @@ function App() {
             path="/original"
             element={
               <ProtectedRoute requireAuth={false}>
-                <LandingPage
-                  onGetStarted={() => (window.location.href = '/login')}
-                  onSignIn={() => (window.location.href = '/login')}
-                />
+                <WaitListLandingPage />
               </ProtectedRoute>
             }
           />

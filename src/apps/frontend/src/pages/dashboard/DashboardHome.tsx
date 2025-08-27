@@ -109,7 +109,7 @@ const DashboardHome: React.FC = () => {
     {
       name: 'AI Assistant',
       status: 'Online & Ready',
-      icon: Brain,
+      icon: 'orca',
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
@@ -163,23 +163,28 @@ const DashboardHome: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
-        <h1 className="text-3xl font-bold mb-2">
-          Welcome back, {user?.full_name || 'User'}! 👋
-        </h1>
-        <p className="text-blue-100 text-lg">
-          Your AI assistant is ready to help you stay organized and productive.
-        </p>
-        <div className="mt-4 flex items-center space-x-2">
-          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-          <span className="text-sm text-blue-100">All systems operational</span>
+      <Card className="bg-gradient-to-r from-accent to-purple-600 text-white border-0">
+        <div className="relative z-10">
+          <h1 className="text-3xl font-bold mb-2">
+            Welcome back, {user?.full_name || 'User'}! 👋
+          </h1>
+          <p className="text-white/90 text-lg mb-4">
+            Your AI assistant is ready to help you stay organized and
+            productive.
+          </p>
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+            <span className="text-sm text-white/90">
+              All systems operational
+            </span>
+          </div>
         </div>
-      </div>
+      </Card>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <Card key={index} padding="lg" className="bg-white">
+          <Card key={index} className="bg-white">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">{stat.name}</p>
@@ -190,10 +195,10 @@ const DashboardHome: React.FC = () => {
                 </div>
               </div>
               <div
-                className={`w-12 h-12 rounded-lg flex items-center justify-center ${stat.icon === MessageSquare ? 'bg-blue-100' : stat.icon === CheckCircle ? 'bg-green-100' : stat.icon === FileText ? 'bg-purple-100' : 'bg-gray-100'}`}
+                className={`w-12 h-12 rounded-lg flex items-center justify-center ${stat.icon === MessageSquare ? 'bg-accent/10' : stat.icon === CheckCircle ? 'bg-green-100' : stat.icon === FileText ? 'bg-purple-100' : 'bg-gray-100'}`}
               >
                 <stat.icon
-                  className={`w-6 h-6 ${stat.icon === MessageSquare ? 'text-blue-600' : stat.icon === CheckCircle ? 'text-green-600' : stat.icon === FileText ? 'text-purple-600' : 'text-gray-600'}`}
+                  className={`w-6 h-6 ${stat.icon === MessageSquare ? 'text-accent' : stat.icon === CheckCircle ? 'text-green-600' : stat.icon === FileText ? 'text-purple-600' : 'text-gray-600'}`}
                 />
               </div>
             </div>
@@ -206,7 +211,7 @@ const DashboardHome: React.FC = () => {
         <h2 className="text-xl font-semibold text-gray-900">
           SMS Analytics & Usage
         </h2>
-        <SMSAnalyticsWidget 
+        <SMSAnalyticsWidget
           timeRange="30d"
           showCosts={true}
           showPerformance={true}
@@ -225,10 +230,7 @@ const DashboardHome: React.FC = () => {
               className="group cursor-pointer transform transition-all duration-200"
               onClick={action.action}
             >
-              <Card
-                padding="lg"
-                className="hover:shadow-lg transition-all duration-200 group-hover:scale-105"
-              >
+              <Card className="hover:shadow-lg transition-all duration-200 group-hover:scale-105">
                 <div className="text-center space-y-3">
                   <div
                     className={`w-12 h-12 ${action.color} rounded-full flex items-center justify-center mx-auto`}
@@ -249,46 +251,53 @@ const DashboardHome: React.FC = () => {
       {/* Recent Activity and System Status */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        <Card title="Recent Activity" padding="lg">
+        <Card className="bg-white">
           <div className="space-y-4">
-            {recentActivity.map(activity => (
-              <div
-                key={activity.id}
-                className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
-              >
+            {recentActivity.map((activity, index) => (
+              <div key={index} className="flex items-center space-x-3">
                 <div
                   className={`w-2 h-2 rounded-full ${
                     activity.status === 'success'
                       ? 'bg-green-500'
-                      : activity.status === 'info'
-                        ? 'bg-blue-500'
-                        : 'bg-gray-400'
+                      : activity.status === 'error'
+                        ? 'bg-red-500'
+                        : 'bg-blue-500'
                   }`}
                 ></div>
-                <span className="text-sm text-gray-600 flex-1">
-                  {activity.message}
-                </span>
-                <span className="text-xs text-gray-400">
-                  {activity.timestamp}
-                </span>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-900">{activity.message}</p>
+                  <p className="text-xs text-gray-500">{activity.timestamp}</p>
+                </div>
               </div>
             ))}
           </div>
         </Card>
 
         {/* System Status */}
-        <Card title="System Status" padding="lg">
+        <Card className="bg-white">
           <div className="space-y-4">
-            {systemStatus.map((system, index) => (
-              <div key={index} className="flex items-center space-x-3">
-                <div
-                  className={`w-10 h-10 ${system.bgColor} rounded-full flex items-center justify-center`}
-                >
-                  <system.icon className={`w-5 h-5 ${system.color}`} />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-900">{system.name}</h4>
-                  <p className="text-sm text-gray-600">{system.status}</p>
+            {systemStatus.map((status, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div
+                    className={`w-8 h-8 ${status.bgColor} rounded-lg flex items-center justify-center`}
+                  >
+                    {status.icon === 'orca' ? (
+                      <img
+                        src="/orca3d.png"
+                        alt="AI Assistant"
+                        className="w-4 h-4"
+                      />
+                    ) : (
+                      <status.icon className={`w-4 h-4 ${status.color}`} />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {status.name}
+                    </p>
+                    <p className="text-xs text-gray-500">{status.status}</p>
+                  </div>
                 </div>
               </div>
             ))}
@@ -297,12 +306,9 @@ const DashboardHome: React.FC = () => {
       </div>
 
       {/* Coming Soon */}
-      <Card
-        padding="lg"
-        className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200"
-      >
+      <Card className="bg-gradient-to-r from-accent/5 to-purple-50 border-accent/20">
         <div className="text-center">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-semibold text-primary mb-2">
             🚀 More Features Coming Soon!
           </h3>
           <p className="text-gray-600 mb-4">

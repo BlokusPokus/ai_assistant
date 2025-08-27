@@ -61,6 +61,25 @@ export const IntegrationsTab: React.FC = () => {
     }
   };
 
+  const getProviderLogoStyle = (providerName: string) => {
+    switch (providerName.toLowerCase()) {
+      case 'google':
+        return 'bg-gradient-to-br from-blue-500 to-blue-600';
+      case 'microsoft':
+        return 'bg-gradient-to-br from-blue-600 to-blue-700';
+      case 'notion':
+        return 'bg-gradient-to-br from-gray-800 to-gray-900';
+      case 'slack':
+        return 'bg-gradient-to-br from-purple-500 to-purple-600';
+      case 'github':
+        return 'bg-gradient-to-br from-gray-700 to-gray-800';
+      case 'discord':
+        return 'bg-gradient-to-br from-indigo-500 to-indigo-600';
+      default:
+        return 'bg-gradient-to-br from-gray-500 to-gray-600';
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -169,8 +188,8 @@ export const IntegrationsTab: React.FC = () => {
                   />
 
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                      <span className="text-lg">
+                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-sm border border-gray-200 ${getProviderLogoStyle(integration.provider)}`}>
+                      <span className="text-xl font-bold text-white">
                         {integration.provider.charAt(0).toUpperCase()}
                       </span>
                     </div>

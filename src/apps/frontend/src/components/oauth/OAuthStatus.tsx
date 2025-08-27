@@ -32,19 +32,47 @@ const OAuthStatus: React.FC<OAuthStatusProps> = ({ provider }) => {
   const healthColor = OAUTH_HEALTH_COLORS[health];
   const healthLabel = OAUTH_HEALTH_LABELS[health];
 
+  const getProviderLogoStyle = (providerName: string) => {
+    switch (providerName.toLowerCase()) {
+      case 'google':
+        return 'bg-gradient-to-br from-blue-500 to-blue-600';
+      case 'microsoft':
+        return 'bg-gradient-to-br from-blue-600 to-blue-700';
+      case 'notion':
+        return 'bg-gradient-to-br from-gray-800 to-gray-900';
+      case 'slack':
+        return 'bg-gradient-to-br from-purple-500 to-purple-600';
+      case 'github':
+        return 'bg-gradient-to-br from-gray-700 to-gray-800';
+      case 'discord':
+        return 'bg-gradient-to-br from-indigo-500 to-indigo-600';
+      default:
+        return 'bg-gradient-to-br from-gray-500 to-gray-600';
+    }
+  };
+
   return (
     <Card className="p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-medium text-gray-700">Connection Status</h4>
-        <span
-          className="px-2 py-1 text-xs font-medium rounded-full"
-          style={{
-            backgroundColor: `${healthColor}20`,
-            color: healthColor,
-          }}
-        >
-          {healthLabel}
-        </span>
+      <div className="flex items-center space-x-3 mb-3">
+        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-sm border border-gray-200 ${getProviderLogoStyle(providerConfig.name)}`}>
+          <span className="text-lg font-bold text-white">
+            {providerConfig.name.charAt(0).toUpperCase()}
+          </span>
+        </div>
+        <div>
+          <h4 className="text-sm font-medium text-gray-700">
+            Connection Status
+          </h4>
+          <span
+            className="px-2 py-1 text-xs font-medium rounded-full"
+            style={{
+              backgroundColor: `${healthColor}20`,
+              color: healthColor,
+            }}
+          >
+            {healthLabel}
+          </span>
+        </div>
       </div>
 
       <div className="space-y-2 text-sm">
