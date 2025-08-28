@@ -22,7 +22,8 @@ const OAuthProviderCard: React.FC<OAuthProviderCardProps> = ({ provider }) => {
     return null;
   }
 
-  const isConnected = integration?.status === 'active' && integration?.is_active;
+  const isConnected =
+    integration?.status === 'active' && integration?.is_active;
 
   const handleDisconnect = async () => {
     if (!integration) return;
@@ -88,7 +89,7 @@ const OAuthProviderCard: React.FC<OAuthProviderCardProps> = ({ provider }) => {
             </p>
           </div>
         </div>
-        
+
         {/* Status Badge */}
         <div className="absolute top-0 right-0">
           <span
@@ -122,13 +123,18 @@ const OAuthProviderCard: React.FC<OAuthProviderCardProps> = ({ provider }) => {
       {isConnected && integration && (
         <div className="mb-4 space-y-2">
           <div className="text-sm text-gray-600">
-            <span className="font-medium">Connected:</span> {new Date(integration.created_at).toLocaleDateString()}
+            <span className="font-medium">Connected:</span>{' '}
+            {new Date(integration.created_at).toLocaleDateString()}
           </div>
           <div className="text-sm text-gray-600">
-            <span className="font-medium">Scopes:</span> {integration.scopes?.join(', ') || 'read'}
+            <span className="font-medium">Scopes:</span>{' '}
+            {integration.scopes?.join(', ') || 'read'}
           </div>
           <div className="text-sm text-gray-600">
-            <span className="font-medium">Last Sync:</span> {integration.last_sync_at ? new Date(integration.last_sync_at).toLocaleDateString() : 'Never'}
+            <span className="font-medium">Last Sync:</span>{' '}
+            {integration.last_sync_at
+              ? new Date(integration.last_sync_at).toLocaleDateString()
+              : 'Never'}
           </div>
         </div>
       )}
