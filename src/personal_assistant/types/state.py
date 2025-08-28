@@ -699,6 +699,23 @@ class AgentState:
             # Return a default AgentState if creation fails
             return cls(user_input="")
 
+    def _make_json_safe(self, value: Any) -> Any:
+        """Convert a value to JSON-safe format for serialization."""
+        if value is None:
+            return None
+
+        try:
+            # Test if the value is JSON-serializable
+            json.dumps(value)
+            return value
+        except (TypeError, ValueError):
+            # If not serializable, convert to string
+            try:
+                return str(value)
+            except Exception:
+                # If even string conversion fails, return None
+                return None
+
     def to_dict(self) -> dict:
         """Convert state to dictionary with size limits applied"""
         self._apply_size_limits()
@@ -710,7 +727,7 @@ class AgentState:
             "step_count": self.step_count,
             "focus": self.focus,
             "conversation_history": self.conversation_history,
-            "last_tool_result": self.last_tool_result,
+            "last_tool_result": self._make_json_safe(self.last_tool_result),
             "config": {
                 "max_memory_context_size": self.config.max_memory_context_size,
                 "max_conversation_history_size": self.config.max_conversation_history_size,

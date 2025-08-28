@@ -26,7 +26,7 @@ class MemoryLifecycleManager:
     def __init__(self, config: LTMConfig = None):
         self.config = config or LTMConfig()
 
-    async def manage_memory_lifecycle(self, user_id: str) -> dict:
+    async def manage_memory_lifecycle(self, user_id: int) -> dict:
         """Manage memory lifecycle for a user"""
 
         lifecycle_report = {
@@ -58,7 +58,7 @@ class MemoryLifecycleManager:
                 f"Error in lifecycle management for user {user_id}: {e}")
             return lifecycle_report
 
-    async def _age_old_memories(self, user_id: str) -> List[dict]:
+    async def _age_old_memories(self, user_id: int) -> List[dict]:
         """Age old memories by reducing importance scores"""
 
         try:
@@ -85,7 +85,7 @@ class MemoryLifecycleManager:
             logger.error(f"Error aging memories for user {user_id}: {e}")
             return []
 
-    async def _archive_low_importance_memories(self, user_id: str) -> List[dict]:
+    async def _archive_low_importance_memories(self, user_id: int) -> List[dict]:
         """Archive low-importance old memories"""
 
         try:
@@ -110,7 +110,7 @@ class MemoryLifecycleManager:
             logger.error(f"Error archiving memories for user {user_id}: {e}")
             return []
 
-    async def _remove_duplicate_memories(self, user_id: str) -> List[dict]:
+    async def _remove_duplicate_memories(self, user_id: int) -> List[dict]:
         """Remove duplicate memories"""
 
         try:
@@ -196,7 +196,7 @@ class MemoryLifecycleManager:
 
         return False
 
-    async def _get_old_memories(self, user_id: str, days_old: int) -> List[dict]:
+    async def _get_old_memories(self, user_id: int, days_old: int) -> List[dict]:
         """Get memories older than specified days"""
 
         # This would need to be implemented with actual database queries
@@ -205,7 +205,7 @@ class MemoryLifecycleManager:
             "_get_old_memories not implemented - returning empty list")
         return []
 
-    async def _get_low_importance_old_memories(self, user_id: str, days_old: int, importance_threshold: float) -> List[dict]:
+    async def _get_low_importance_old_memories(self, user_id: int, days_old: int, importance_threshold: float) -> List[dict]:
         """Get old memories with importance below threshold"""
 
         # This would need to be implemented with actual database queries
@@ -214,7 +214,7 @@ class MemoryLifecycleManager:
             "_get_low_importance_old_memories not implemented - returning empty list")
         return []
 
-    async def _get_all_user_memories(self, user_id: str) -> List[dict]:
+    async def _get_all_user_memories(self, user_id: int) -> List[dict]:
         """Get all memories for a user"""
 
         # This would need to be implemented with actual database queries
@@ -251,7 +251,7 @@ class MemoryConsolidator:
     def __init__(self, config: LTMConfig = None):
         self.config = config or LTMConfig()
 
-    async def consolidate_user_memories(self, user_id: str) -> List[dict]:
+    async def consolidate_user_memories(self, user_id: int) -> List[dict]:
         """Consolidate user's memories to reduce redundancy"""
 
         try:
@@ -337,7 +337,7 @@ class MemoryConsolidator:
 
         return False
 
-    async def _consolidate_group(self, user_id: str, memory_group: List[dict]) -> Optional[dict]:
+    async def _consolidate_group(self, user_id: int, memory_group: List[dict]) -> Optional[dict]:
         """Consolidate a group of similar memories"""
 
         try:
@@ -414,7 +414,7 @@ class MemoryConsolidator:
 
         return list(all_tags)
 
-    async def _mark_memories_for_deletion(self, user_id: str, memory_ids: List[str]) -> bool:
+    async def _mark_memories_for_deletion(self, user_id: int, memory_ids: List[str]) -> bool:
         """Mark memories for deletion after consolidation"""
 
         try:
@@ -429,7 +429,7 @@ class MemoryConsolidator:
             logger.error(f"Error marking memories for deletion: {e}")
             return False
 
-    async def _get_all_user_memories(self, user_id: str) -> List[dict]:
+    async def _get_all_user_memories(self, user_id: int) -> List[dict]:
         """Get all memories for a user"""
 
         # This would need to be implemented with actual database queries

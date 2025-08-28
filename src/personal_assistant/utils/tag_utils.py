@@ -199,7 +199,7 @@ def validate_and_suggest_tags(tags: List[str], content: str = "") -> Dict:
     return result
 
 
-def get_tag_statistics(user_id: str) -> Dict:
+def get_tag_statistics(user_id: int) -> Dict:
     """
     Get statistics about tag usage for a user.
 

@@ -2,7 +2,23 @@
 Main AgentCore class that orchestrates memory, tools, LLM, and AgentRunner functionality.
 """
 
+from personal_assistant.prompts.enhanced_prompt_builder import EnhancedPromptBuilder
 from .runner import AgentRunner
+from .exceptions import (
+    ConversationError,
+    AgentExecutionError,
+    ValidationError,
+    MemoryError,
+    ToolExecutionError,
+    LLMError,
+    ContextError
+)
+from .logging_utils import (
+    agent_context_logger,
+    log_agent_operation,
+    log_error_with_context,
+    log_performance_metrics
+)
 from ..tools import ToolRegistry
 from ..tools.ltm.ltm_manager import (
     get_ltm_context_with_tags,
@@ -20,6 +36,7 @@ from ..memory.ltm_optimization import (
     LTMLearningManager,
 )
 import os
+import time
 
 
 logger = get_logger("core")
@@ -39,7 +56,11 @@ class AgentCore:
         api_key = os.getenv("GEMINI_API_KEY")
         llm = llm or GeminiLLM(api_key=api_key, model="gemini-2.0-flash")
         self.llm = llm
-        self.planner = LLMPlanner(self.llm, self.tools)
+
+        enhanced_prompt_builder = EnhancedPromptBuilder(self.tools)
+
+        self.planner = LLMPlanner(
+            self.llm, self.tools, prompt_builder=enhanced_prompt_builder)
         self.runner = AgentRunner(self.tools, self.planner)
 
         try:
@@ -50,36 +71,52 @@ class AgentCore:
             logger.warning(f"Failed to initialize LTM optimization: {e}")
             self.ltm_learning_manager = None
 
-    async def run(self, user_input: str, user_id: str) -> str:
+    async def run(self, user_input: str, user_id: int) -> str:
         """
         Process user input and generate a response using the agent system.
 
         Args:
             user_input: The user's message
-            user_id: Unique identifier for the user (string)
+            user_id: Unique identifier for the user (integer)
 
         Returns:
             str: Agent's response
+
+        Raises:
+            ValidationError: If user_input or user_id is invalid
+            ConversationError: If conversation management fails
+            AgentExecutionError: If agent execution fails
+            MemoryError: If memory operations fail
         """
+        # Input validation
+        if not user_input or not user_input.strip():
+            raise ValidationError(
+                "User input cannot be empty", "user_input", user_input)
+
+        if not isinstance(user_id, int) or user_id <= 0:
+            raise ValidationError(
+                f"Invalid user_id: {user_id}. Must be a positive integer.", "user_id", str(user_id))
+
+        start_time = time.time()
+        log_agent_operation(logger, user_id, "agent_run_start", {
+                            "input_length": len(user_input)})
 
         try:
-            # TODO: correct type of user_id
-            user_id_str = str(user_id)
 
-            conversation_id = await get_conversation_id(user_id_str)
+            conversation_id = await get_conversation_id(user_id)
 
             if conversation_id is None:
-                conversation_id = await create_new_conversation(user_id_str)
+                conversation_id = await create_new_conversation(user_id)
                 if conversation_id is None:
-                    error_msg = f"Failed to create new conversation for user {user_id_str}"
-                    logger.error(error_msg)
-                    return f"An error occurred: {error_msg}"
+                    raise ConversationError(
+                        f"Failed to create new conversation for user {user_id}",
+                        user_id
+                    )
                 agent_state = AgentState(user_input=user_input)
 
             else:
-                last_timestamp = await get_conversation_timestamp(user_id_str, conversation_id)
+                last_timestamp = await get_conversation_timestamp(user_id, conversation_id)
 
-                # TODO: Seems like it always returns true
                 resume_conversation = should_resume_conversation(
                     last_timestamp)
                 logger.info(f"Resume decision: {resume_conversation}")
@@ -91,52 +128,133 @@ class AgentCore:
                 else:
                     logger.info(
                         "Creating new conversation - previous one too old")
-                    conversation_id = await create_new_conversation(user_id_str)
+                    conversation_id = await create_new_conversation(user_id)
                     if conversation_id is None:
-                        logger.error(
-                            f"Failed to create new conversation for user {user_id_str}")
-                        return f"An error occurred: Failed to create new conversation for user {user_id_str}"
+                        raise ConversationError(
+                            f"Failed to create new conversation for user {user_id}",
+                            user_id
+                        )
 
                     agent_state = AgentState(user_input=user_input)
 
             agent_state.reset_for_new_message(user_input)
 
-            ltm_context = await get_ltm_context_with_tags(
-                None, logger, user_id_str, user_input,
-                agent_state.focus if hasattr(agent_state, 'focus') else None
-            )
+            try:
+                ltm_context = await get_ltm_context_with_tags(
+                    None, logger, user_id, user_input,
+                    agent_state.focus if hasattr(
+                        agent_state, 'focus') else None
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to get LTM context for user {user_id}: {e}")
+                ltm_context = None
 
-            rag_context = await query_knowledge_base(user_id_str, user_input)
+            try:
+                rag_context = await query_knowledge_base(user_id, user_input)
+            except Exception as e:
+                logger.warning(
+                    f"Failed to get RAG context for user {user_id}: {e}")
+                rag_context = []
 
             self.runner.set_context(agent_state, rag_context, ltm_context)
 
             response, updated_state = await self.runner.execute_agent_loop(user_input)
 
-            await save_state(conversation_id, updated_state, user_id_str)
+            try:
+                await save_state(conversation_id, updated_state, user_id)
+            except Exception as e:
+                logger.error(f"Failed to save state for user {user_id}: {e}")
+                # Continue execution even if state saving fails
 
             if self.ltm_learning_manager:
-                # Perform comprehensive LTM optimization
-                await self.ltm_learning_manager.optimize_after_interaction(
-                    user_id_str, user_input, response, updated_state
-                )
-
-                # Handle explicit memory requests if any
-                if self.ltm_learning_manager.is_memory_request(user_input):
-                    await self.ltm_learning_manager.handle_explicit_memory_request(
-                        user_id_str, user_input, response, f"Conversation {conversation_id}"
+                try:
+                    # Perform comprehensive LTM optimization
+                    await self.ltm_learning_manager.optimize_after_interaction(
+                        user_id, user_input, response, updated_state
                     )
 
-            await log_agent_interaction(
-                user_id=int(user_id_str),
-                user_input=updated_state.user_input,
-                agent_response=response,
-                tool_called=None,
-                tool_output=str(
-                    updated_state.last_tool_result) if updated_state.last_tool_result else None,
-                memory_used=None
-            )
+                    # Handle explicit memory requests if any
+                    if self.ltm_learning_manager.is_memory_request(user_input):
+                        await self.ltm_learning_manager.handle_explicit_memory_request(
+                            user_id, user_input, response, f"Conversation {conversation_id}"
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"LTM optimization failed for user {user_id}: {e}")
+                    # Continue execution even if LTM optimization fails
+
+            try:
+                await log_agent_interaction(
+                    user_id=user_id,  # user_id is already an integer
+                    user_input=updated_state.user_input,
+                    agent_response=response,
+                    tool_called=None,
+                    tool_output=str(
+                        updated_state.last_tool_result) if updated_state.last_tool_result else None,
+                    memory_used=None
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to log agent interaction for user {user_id}: {e}")
+                # Continue execution even if logging fails
+
+            # Log performance metrics
+            duration = time.time() - start_time
+            log_performance_metrics(logger, user_id, "agent_run_complete", duration, True,
+                                    {"response_length": len(response) if response else 0})
+
             return response
 
+        except ValidationError as e:
+            log_error_with_context(logger, e, user_id, "validation_error")
+            duration = time.time() - start_time
+            log_performance_metrics(logger, user_id, "agent_run_complete", duration, False,
+                                    {"error_type": "validation"})
+            return f"I'm sorry, but I couldn't process your request due to invalid input. Please try again. (Error: {e})"
+
+        except ConversationError as e:
+            log_error_with_context(logger, e, user_id, "conversation_error")
+            duration = time.time() - start_time
+            log_performance_metrics(logger, user_id, "agent_run_complete", duration, False,
+                                    {"error_type": "conversation"})
+            return f"I'm having trouble managing our conversation. Let me start fresh. (Error: {e})"
+
+        except MemoryError as e:
+            log_error_with_context(logger, e, user_id, "memory_error", {
+                                   "operation": e.operation})
+            duration = time.time() - start_time
+            log_performance_metrics(logger, user_id, "agent_run_complete", duration, False,
+                                    {"error_type": "memory", "operation": e.operation})
+            return f"I'm having trouble accessing your conversation history. Let me start fresh. (Error: {e})"
+
+        except ToolExecutionError as e:
+            log_error_with_context(logger, e, user_id, "tool_execution_error", {
+                                   "tool_name": e.tool_name})
+            duration = time.time() - start_time
+            log_performance_metrics(logger, user_id, "agent_run_complete", duration, False,
+                                    {"error_type": "tool_execution", "tool_name": e.tool_name})
+            return f"I encountered an issue while using a tool. Please try again in a moment. (Error: {e})"
+
+        except LLMError as e:
+            log_error_with_context(logger, e, user_id, "llm_error", {
+                                   "model": e.model, "operation": e.operation})
+            duration = time.time() - start_time
+            log_performance_metrics(logger, user_id, "agent_run_complete", duration, False,
+                                    {"error_type": "llm", "model": e.model, "operation": e.operation})
+            return f"I'm having trouble processing your request with my language model. Please try again in a moment. (Error: {e})"
+
+        except ContextError as e:
+            log_error_with_context(logger, e, user_id, "context_error", {
+                                   "context_type": e.context_type})
+            duration = time.time() - start_time
+            log_performance_metrics(logger, user_id, "agent_run_complete", duration, False,
+                                    {"error_type": "context", "context_type": e.context_type})
+            return f"I'm having trouble accessing relevant information. Please try again. (Error: {e})"
+
         except Exception as e:
-            logger.error(f"Error in AgentCore.run: {str(e)}")
-            return f"An error occurred: {str(e)}"
+            log_error_with_context(logger, e, user_id, "unexpected_error")
+            duration = time.time() - start_time
+            log_performance_metrics(logger, user_id, "agent_run_complete", duration, False,
+                                    {"error_type": "unexpected"})
+            return f"I'm experiencing technical difficulties. Please try again later. (Error: {str(e)})"

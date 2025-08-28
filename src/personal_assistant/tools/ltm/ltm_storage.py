@@ -36,7 +36,7 @@ logger = get_logger("ltm_storage")
 
 
 async def add_ltm_memory(
-    user_id: str,
+    user_id: int,
     content: str,
     tags: List[str],
     importance_score: int = 1,
@@ -116,7 +116,7 @@ async def add_ltm_memory(
 
 
 async def _add_enhanced_ltm_memory(
-    user_id: str,
+    user_id: int,
     content: str,
     tags: List[str],
     importance_score: int = 1,
@@ -172,8 +172,7 @@ async def _add_enhanced_ltm_memory(
             source_type = source_type.value
 
         async with AsyncSessionLocal() as session:
-            # Convert user_id to int
-            user_id_int = int(user_id)
+            # user_id is already an integer
 
             # Normalize and validate tags
             normalized_tags = normalize_tags(tags)
@@ -188,7 +187,7 @@ async def _add_enhanced_ltm_memory(
 
             # Create LTM memory entry
             memory_data = {
-                "user_id": user_id_int,
+                "user_id": user_id,
                 "content": content,
                 "tags": final_tags,
                 "memory_type": memory_type,
@@ -229,7 +228,7 @@ async def _add_enhanced_ltm_memory(
 
 
 async def _add_legacy_ltm_memory(
-    user_id: str,
+    user_id: int,
     content: str,
     tags: List[str],
     importance_score: int = 1,
@@ -238,8 +237,7 @@ async def _add_legacy_ltm_memory(
     """Legacy LTM memory creation for backward compatibility"""
     try:
         async with AsyncSessionLocal() as session:
-            # Convert user_id to int
-            user_id_int = int(user_id)
+            # user_id is already an integer
 
             # Normalize and validate tags
             normalized_tags = normalize_tags(tags)
@@ -254,7 +252,7 @@ async def _add_legacy_ltm_memory(
 
             # Create LTM memory entry with legacy structure
             memory_data = {
-                "user_id": user_id_int,
+                "user_id": user_id,
                 "content": content,
                 "tags": final_tags,
                 "importance_score": importance_score,
@@ -284,7 +282,7 @@ async def _add_legacy_ltm_memory(
 
 
 async def search_ltm_memories(
-    user_id: str,
+    user_id: int,
     query: str,
     limit: int = 5,
     min_importance: int = 1
@@ -347,7 +345,7 @@ async def search_ltm_memories(
 
 
 async def get_relevant_ltm_memories(
-    user_id: str,
+    user_id: int,
     context: str,
     limit: int = 3
 ) -> List[Dict[str, Any]]:
@@ -438,7 +436,7 @@ async def get_relevant_ltm_memories(
         raise
 
 
-async def delete_ltm_memory(user_id: str, memory_id: int) -> bool:
+async def delete_ltm_memory(user_id: int, memory_id: int) -> bool:
     """
     Delete an LTM memory entry.
 
@@ -480,7 +478,7 @@ async def delete_ltm_memory(user_id: str, memory_id: int) -> bool:
         return False
 
 
-async def get_ltm_memory_stats(user_id: str) -> Dict[str, Any]:
+async def get_ltm_memory_stats(user_id: int) -> Dict[str, Any]:
     """
     Get statistics about LTM memories for a user.
 

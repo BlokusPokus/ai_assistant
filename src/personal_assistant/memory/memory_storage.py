@@ -71,7 +71,7 @@ async def save_state(conversation_id: str, state: AgentState, user_id: str = Non
     logger.info(
         f"💾 Original memory context has {len(state.memory_context)} items")
     logger.info(
-        f"💾 Last tool result: {state.last_tool_result[:100] if state.last_tool_result else 'None'}...")
+        f"💾 Last tool result: {str(state.last_tool_result)[:100] if state.last_tool_result else 'None'}...")
 
     try:
         # Step 1: Optimize state before saving
@@ -328,7 +328,7 @@ async def load_state(conversation_id: str) -> AgentState:
                 logger.info(
                     f"🔍 Conversation history length: {len(state_dict.get('conversation_history', []))}")
                 logger.info(
-                    f"🔍 Last tool result: {state_dict.get('last_tool_result', 'None')[:100] if state_dict.get('last_tool_result') else 'None'}...")
+                    f"🔍 Last tool result: {str(state_dict.get('last_tool_result', 'None'))[:100] if state_dict.get('last_tool_result') else 'None'}...")
 
                 # Create AgentState from dictionary
                 # Be selective:
@@ -361,11 +361,9 @@ async def load_state(conversation_id: str) -> AgentState:
         return AgentState(user_input="")
 
 
-async def get_conversation_timestamp(user_id: str, conversation_id: str) -> Optional[datetime]:
+async def get_conversation_timestamp(user_id: int, conversation_id: str) -> Optional[datetime]:
     """Get last update time for a conversation for a specific user."""
     try:
-        # Get user_id as int for query
-        user_id_int = int(user_id)
 
         async with AsyncSessionLocal() as session:
             try:
@@ -374,7 +372,7 @@ async def get_conversation_timestamp(user_id: str, conversation_id: str) -> Opti
                     select(MemoryChunk.id)
                     .join(MemoryMetadata, MemoryMetadata.chunk_id == MemoryChunk.id)
                     .where(
-                        MemoryChunk.user_id == user_id_int,
+                        MemoryChunk.user_id == user_id,
                         MemoryMetadata.key == "conversation_id",
                         MemoryMetadata.value == conversation_id
                     )

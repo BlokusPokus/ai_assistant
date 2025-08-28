@@ -184,7 +184,7 @@ async def embed_and_index(document: str, metadata: Dict) -> None:
         logger.error(f"Error in embed_and_index: {e}")
 
 
-async def query_knowledge_base(user_id: str, input_text: str) -> List[Dict]:
+async def query_knowledge_base(user_id: int, input_text: str) -> List[Dict]:
     """
     Retrieve relevant documents based on semantic similarity.
     Enhanced to use real embeddings and prepared for Notion integration.
@@ -192,12 +192,8 @@ async def query_knowledge_base(user_id: str, input_text: str) -> List[Dict]:
     try:
         async with AsyncSessionLocal() as session:
             # ✅ INPUT VALIDATION
-            try:
-                user_id_int = int(user_id)
-                if user_id_int <= 0:
-                    raise ValueError("User ID must be positive")
-            except (ValueError, TypeError) as e:
-                logger.error(f"Invalid user_id format: {user_id}")
+            if user_id <= 0:
+                logger.error(f"Invalid user_id: {user_id} (must be positive)")
                 return []
 
             # Get query embedding using real Gemini embeddings
@@ -212,7 +208,7 @@ async def query_knowledge_base(user_id: str, input_text: str) -> List[Dict]:
             stmt = (
                 select(MemoryChunk, MemoryMetadata.key, MemoryMetadata.value)
                 .outerjoin(MemoryMetadata, MemoryChunk.id == MemoryMetadata.chunk_id)
-                .where(MemoryChunk.user_id == user_id_int)
+                .where(MemoryChunk.user_id == user_id)
                 .where(MemoryChunk.embedding.isnot(None))
             )
 
@@ -220,7 +216,7 @@ async def query_knowledge_base(user_id: str, input_text: str) -> List[Dict]:
             chunks = result.scalars().all()
 
             if not chunks:
-                logger.debug(f"No memory chunks found for user {user_id_int}")
+                logger.debug(f"No memory chunks found for user {user_id}")
                 return []
 
             # Calculate similarities
@@ -277,7 +273,7 @@ async def query_knowledge_base(user_id: str, input_text: str) -> List[Dict]:
             results = [entry for _, entry in scored[:5]]
 
             logger.info(
-                f"Retrieved {len(results)} relevant documents for user {user_id_int}")
+                f"Retrieved {len(results)} relevant documents for user {user_id}")
             return results
 
     except Exception as e:
@@ -352,7 +348,7 @@ async def generate_embeddings_for_content(content: str, metadata: Dict) -> bool:
         return False
 
 
-async def generate_missing_embeddings(user_id: str = None, batch_size: int = 10) -> Dict[str, any]:
+async def generate_missing_embeddings(user_id: int = None, batch_size: int = 10) -> Dict[str, any]:
     """
     Generate embeddings for chunks that don't have them.
 

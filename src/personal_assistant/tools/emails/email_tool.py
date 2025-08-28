@@ -29,6 +29,7 @@ from .email_internal import (
 )
 from dotenv import load_dotenv
 from personal_assistant.utils.text_cleaner import clean_html_content
+from personal_assistant.config.logging_config import get_logger
 
 # Import email-specific error handling
 from .email_error_handler import EmailErrorHandler
@@ -41,6 +42,7 @@ class EmailTool:
         self._access_token = None
         self._token_expires_at = None
         self.scopes = ["Mail.Read", "Mail.ReadWrite", "Mail.Send", "User.Read"]
+        self.logger = get_logger("tools.emails")
         self._initialize_token()
 
         # Create individual tools
@@ -108,6 +110,66 @@ class EmailTool:
             }
         )
 
+        self.get_sent_emails_tool = Tool(
+            name="get_sent_emails",
+            func=self.get_sent_emails,
+            description="Read recent emails you have sent",
+            parameters={
+                "count": {
+                    "type": "integer",
+                    "description": "Number of sent emails to fetch (default: 10)"
+                },
+                "batch_size": {
+                    "type": "integer",
+                    "description": "Number of emails per batch (default: 10)"
+                }
+            }
+        )
+
+        self.search_emails_tool = Tool(
+            name="search_emails",
+            func=self.search_emails,
+            description="Search emails by query, sender, date range, or other criteria. Uses Microsoft Graph $search parameter to search in subject, sender email, sender name, and email body content natively.",
+            parameters={
+                "query": {
+                    "type": "string",
+                    "description": "Search query (keywords, sender email, subject terms, body content - all searched natively by Microsoft Graph API)"
+                },
+                "count": {
+                    "type": "integer",
+                    "description": "Maximum number of emails to return (default: 20)"
+                },
+                "date_from": {
+                    "type": "string",
+                    "description": "Start date for search (YYYY-MM-DD format, optional)"
+                },
+                "date_to": {
+                    "type": "string",
+                    "description": "End date for search (YYYY-MM-DD format, optional)"
+                },
+                "folder": {
+                    "type": "string",
+                    "description": "Folder to search in (inbox, sentitems, drafts, etc., default: inbox)"
+                }
+            }
+        )
+
+        self.move_email_tool = Tool(
+            name="move_email",
+            func=self.move_email,
+            description="Move an email from one folder to another folder (e.g., from Inbox to Archive, or between custom folders)",
+            parameters={
+                "message_id": {
+                    "type": "string",
+                    "description": "The ID of the email message to move"
+                },
+                "destination_folder": {
+                    "type": "string",
+                    "description": "Destination folder name (e.g., 'Archive', 'Junk', 'Deleted Items', or custom folder name)"
+                }
+            }
+        )
+
     def _clean_html_content(self, html_content: str) -> str:
         """Extract clean text content from HTML, removing styling and formatting"""
         # Use the new text cleaning utility
@@ -147,6 +209,10 @@ class EmailTool:
         """
         try:
             # Validate parameters using internal functions
+            # Ensure count and batch_size are integers (handle float values from LLM)
+            count = int(count) if count else 10
+            batch_size = int(batch_size) if batch_size else 10
+
             count, batch_size = validate_email_parameters(count, batch_size)
 
             token = self._get_valid_token()
@@ -340,6 +406,368 @@ class EmailTool:
         except Exception as e:
             return EmailErrorHandler.handle_email_error(e, "get_email_content", {"message_id": message_id})
 
+    async def get_sent_emails(self, count: int = 10, batch_size: int = 10) -> List[Dict[str, Any]]:
+        """
+        Read recent emails you have sent with improved error handling and token management
+        """
+        try:
+            # Validate parameters using internal functions
+            # Ensure count and batch_size are integers (handle float values from LLM)
+            count = int(count) if count else 10
+            batch_size = int(batch_size) if batch_size else 10
+
+            count, batch_size = validate_email_parameters(count, batch_size)
+
+            token = self._get_valid_token()
+            headers = build_email_headers(token)
+            sent_emails = []
+
+            # Use Microsoft Graph to get sent emails from the Sent Items folder
+            for i in range(0, count, batch_size):
+                params = build_email_params(
+                    top=min(batch_size, count - i),
+                    select='id,subject,bodyPreview,receivedDateTime,from,toRecipients,isDraft',
+                    skip=i,
+                    orderby='sentDateTime desc'  # Order by when they were sent
+                )
+
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(
+                        f"{self.ms_graph_url}/me/mailFolders/SentItems/messages",
+                        headers=headers,
+                        params=params
+                    )
+
+                    if response.status_code != 200:
+                        return [EmailErrorHandler.handle_email_error(
+                            Exception(
+                                f"HTTP {response.status_code}: {response.text}"),
+                            "get_sent_emails",
+                            {"count": count, "batch_size": batch_size}
+                        )]
+
+                    batch_data = response.json()
+                    batch_emails = batch_data.get('value', [])
+
+                    for email in batch_emails:
+                        # Format sent email data
+                        email_info = {
+                            "id": email.get('id'),
+                            "subject": email.get('subject', 'No Subject'),
+                            "body_preview": email.get('bodyPreview', 'No preview available'),
+                            "sent_date": email.get('sentDateTime'),
+                            "to_recipients": [
+                                recipient.get('emailAddress', {}).get(
+                                    'address', 'Unknown')
+                                for recipient in email.get('toRecipients', [])
+                            ],
+                            "is_draft": email.get('isDraft', False)
+                        }
+                        sent_emails.append(email_info)
+
+            return sent_emails
+
+        except Exception as e:
+            return [EmailErrorHandler.handle_email_error(
+                e,
+                "get_sent_emails",
+                {"count": count, "batch_size": batch_size}
+            )]
+
+    async def search_emails(self, query: str, count: int = 20, date_from: str = None, date_to: str = None, folder: str = "inbox") -> List[Dict[str, Any]]:
+        """
+        Search emails by query, sender, date range, or other criteria.
+
+        Uses Microsoft Graph $search parameter for comprehensive search including:
+        - Subject content
+        - Sender email and name
+        - Email body content (via native API search)
+
+        Note: $search doesn't support $orderby, so results are sorted client-side by received date.
+        Reference: https://learn.microsoft.com/en-us/graph/search-query-parameter?tabs=http
+        """
+        try:
+            # Validate parameters
+            if not query or not query.strip():
+                return [EmailErrorHandler.handle_email_error(
+                    ValueError("Search query cannot be empty"),
+                    "search_emails",
+                    {"query": query, "count": count}
+                )]
+
+            # Ensure count is an integer (handle float values from LLM)
+            count = int(count) if count else 20
+
+            if count <= 0 or count > 100:
+                count = min(max(count, 1), 100)  # Clamp between 1 and 100
+
+            token = self._get_valid_token()
+            headers = build_email_headers(token)
+            search_results = []
+
+            # Build search filter
+            search_filter = []
+
+            # Use $search parameter for comprehensive email search (includes body content)
+            # Microsoft Graph API supports $search in from, subject, and body automatically
+            # Reference: https://learn.microsoft.com/en-us/graph/search-query-parameter?tabs=http
+            search_params = {}
+            if query:
+                # Use $search instead of $filter for better body content search
+                search_params['$search'] = f'"{query}"'
+            else:
+                # If no query, build filter for other criteria only
+                search_filter = []
+
+            # Add date range filter if provided
+            if date_from:
+                search_filter.append(
+                    f"receivedDateTime ge {date_from}T00:00:00Z")
+            if date_to:
+                search_filter.append(
+                    f"receivedDateTime le {date_to}T23:59:59Z")
+
+            # Combine date filters with AND logic (since they're date constraints)
+            filter_string = " and ".join(
+                search_filter) if search_filter else None
+
+            # Determine folder endpoint
+            if folder.lower() == "sentitems":
+                endpoint = f"{self.ms_graph_url}/me/mailFolders/SentItems/messages"
+            elif folder.lower() == "drafts":
+                endpoint = f"{self.ms_graph_url}/me/mailFolders/Drafts/messages"
+            else:
+                # Default to inbox
+                endpoint = f"{self.ms_graph_url}/me/messages"
+
+            # Build query parameters
+            params = {
+                '$top': count,
+                '$select': 'id,subject,bodyPreview,receivedDateTime,from,toRecipients,isDraft,importance'
+            }
+
+            # Add search parameter if query provided
+            if query:
+                params['$search'] = f'"{query}"'
+                # Note: $search doesn't support $orderby, so we'll sort results client-side
+            else:
+                # Only add $orderby when not using $search
+                params['$orderby'] = 'receivedDateTime desc'
+
+            # Add filter for date ranges and other criteria (excluding query search)
+            if filter_string:
+                params['$filter'] = filter_string
+
+            async with httpx.AsyncClient() as client:
+                # Log the request details for debugging
+                self.logger.info(f"Searching emails with endpoint: {endpoint}")
+                self.logger.info(f"Search parameters: {params}")
+
+                response = await client.get(endpoint, headers=headers, params=params)
+
+                if response.status_code != 200:
+                    error_msg = f"HTTP {response.status_code}: {response.text}"
+                    self.logger.error(f"Search emails failed: {error_msg}")
+                    return [EmailErrorHandler.handle_email_error(
+                        Exception(error_msg),
+                        "search_emails",
+                        {"query": query, "count": count, "folder": folder}
+                    )]
+
+                data = response.json()
+                emails = data.get('value', [])
+
+                for email in emails:
+                    # Format search result
+                    email_info = {
+                        "id": email.get('id'),
+                        "subject": email.get('subject', 'No Subject'),
+                        "body_preview": email.get('bodyPreview', 'No preview available'),
+                        "received_date": email.get('receivedDateTime'),
+                        "from_sender": email.get('from', {}).get('emailAddress', {}).get('address', 'Unknown'),
+                        "to_recipients": [
+                            recipient.get('emailAddress', {}).get(
+                                'address', 'Unknown')
+                            for recipient in email.get('toRecipients', [])
+                        ],
+                        "is_draft": email.get('isDraft', False),
+                        "importance": email.get('importance', 'normal'),
+                        "folder": folder
+                    }
+                    search_results.append(email_info)
+
+                # Sort results by received date when using $search (since API doesn't support $orderby with $search)
+                if query and search_results:
+                    try:
+                        from datetime import datetime
+                        # Parse ISO datetime strings and sort by received date (newest first)
+                        search_results.sort(
+                            key=lambda x: datetime.fromisoformat(x['received_date'].replace(
+                                'Z', '+00:00')) if x['received_date'] else datetime.min,
+                            reverse=True
+                        )
+                        self.logger.info(
+                            f"Sorted {len(search_results)} search results by received date")
+                    except Exception as sort_error:
+                        self.logger.warning(
+                            f"Failed to sort search results: {sort_error}")
+
+            # Note: $search parameter automatically searches in from, subject, and body
+            # Client-side filtering is no longer needed for basic search functionality
+            # The Microsoft Graph API handles body content search natively via $search
+
+            self.logger.info(
+                f"Search completed: found {len(search_results)} results for query '{query}' in folder '{folder}'")
+            return search_results
+
+        except Exception as e:
+            return [EmailErrorHandler.handle_email_error(
+                e,
+                "search_emails",
+                {"query": query, "count": count, "folder": folder}
+            )]
+
+    async def move_email(self, message_id: str, destination_folder: str) -> Dict[str, Any]:
+        """
+        Move an email from one folder to another folder.
+
+        Supports moving emails to standard folders like:
+        - Archive
+        - Junk
+        - Deleted Items
+        - Custom folders
+
+        Reference: https://learn.microsoft.com/en-us/graph/api/message-move
+        """
+        try:
+            # Validate parameters
+            if not message_id or not message_id.strip():
+                return EmailErrorHandler.handle_email_error(
+                    ValueError("Message ID cannot be empty"),
+                    "move_email",
+                    {"message_id": message_id,
+                        "destination_folder": destination_folder}
+                )
+
+            if not destination_folder or not destination_folder.strip():
+                return EmailErrorHandler.handle_email_error(
+                    ValueError("Destination folder cannot be empty"),
+                    "move_email",
+                    {"message_id": message_id,
+                        "destination_folder": destination_folder}
+                )
+
+            token = self._get_valid_token()
+            headers = build_email_headers(token, "application/json")
+
+            # Map common folder names to their IDs
+            folder_mapping = {
+                "archive": "archive",
+                "junk": "junk",
+                "deleted items": "deleteditems",
+                "deleted": "deleteditems",
+                "trash": "deleteditems",
+                "sent items": "sentitems",
+                "sent": "sentitems",
+                "drafts": "drafts",
+                "inbox": "inbox"
+            }
+
+            # Normalize destination folder name
+            dest_folder_lower = destination_folder.lower().strip()
+            destination_id = folder_mapping.get(
+                dest_folder_lower, dest_folder_lower)
+
+            # Build the move request payload
+            move_data = {
+                "destinationId": destination_id
+            }
+
+            # First, try to get the current folder of the message to provide better feedback
+            current_folder = "unknown"
+            try:
+                async with httpx.AsyncClient() as client:
+                    # Get message details to see current folder
+                    response = await client.get(
+                        f"{self.ms_graph_url}/me/messages/{message_id}",
+                        headers=headers,
+                        params={'$select': 'id,subject,parentFolderId'}
+                    )
+
+                    if response.status_code == 200:
+                        message_data = response.json()
+                        # Try to get folder name from parentFolderId
+                        folder_response = await client.get(
+                            f"{self.ms_graph_url}/me/mailFolders/{message_data.get('parentFolderId')}",
+                            headers=headers
+                        )
+                        if folder_response.status_code == 200:
+                            folder_data = folder_response.json()
+                            current_folder = folder_data.get(
+                                'displayName', 'unknown')
+            except Exception as folder_error:
+                self.logger.warning(
+                    f"Could not determine current folder: {folder_error}")
+
+            # Perform the move operation
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.ms_graph_url}/me/messages/{message_id}/move",
+                    headers=headers,
+                    json=move_data
+                )
+
+                # Both 200 OK and 201 Created are success responses
+                if response.status_code in [200, 201]:
+                    try:
+                        move_result = response.json()
+                    except:
+                        # If response is empty or not JSON, create a basic success response
+                        move_result = {"subject": "Email moved successfully"}
+
+                    success_message = f"Successfully moved email '{move_result.get('subject', 'Unknown subject')}' from '{current_folder}' to '{destination_folder}'"
+
+                    return {
+                        "success": True,
+                        "message": success_message,
+                        "email_id": message_id,
+                        "destination_folder": destination_folder,
+                        "previous_folder": current_folder,
+                        "move_result": move_result
+                    }
+                elif response.status_code == 404:
+                    return EmailErrorHandler.handle_email_error(
+                        Exception(f"Email with ID {message_id} not found"),
+                        "move_email",
+                        {"message_id": message_id,
+                            "destination_folder": destination_folder}
+                    )
+                elif response.status_code == 400:
+                    error_data = response.json()
+                    error_message = error_data.get(
+                        'error', {}).get('message', 'Bad request')
+                    return EmailErrorHandler.handle_email_error(
+                        Exception(f"Move failed: {error_message}"),
+                        "move_email",
+                        {"message_id": message_id,
+                            "destination_folder": destination_folder}
+                    )
+                else:
+                    return EmailErrorHandler.handle_email_error(
+                        Exception(
+                            f"HTTP {response.status_code}: {response.text}"),
+                        "move_email",
+                        {"message_id": message_id,
+                            "destination_folder": destination_folder}
+                    )
+
+        except Exception as e:
+            return EmailErrorHandler.handle_email_error(
+                e,
+                "move_email",
+                {"message_id": message_id, "destination_folder": destination_folder}
+            )
+
     def __iter__(self):
         """Makes the class iterable to return all tools"""
-        return iter([self.read_emails_tool, self.send_email_tool, self.delete_email_tool, self.get_email_content_tool])
+        return iter([self.read_emails_tool, self.send_email_tool, self.delete_email_tool, self.get_email_content_tool, self.get_sent_emails_tool, self.search_emails_tool, self.move_email_tool])

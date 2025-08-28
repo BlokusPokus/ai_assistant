@@ -65,11 +65,11 @@ class TwilioService:
             if message:
                 # Use enhanced user identification service for better context
                 user_info = await self.user_identification.identify_user_by_phone(from_number)
-                
+
                 if user_info is None:
                     # Enhanced guidance for unregistered users
                     return self._create_helpful_guidance_response(from_number)
-                
+
                 # Process message with existing logic for registered users
                 result = await self.agent.run(message, user_info['id'])
                 logger.info(f"Generated response: '{result}'")
@@ -88,18 +88,18 @@ class TwilioService:
 
     def _create_helpful_guidance_response(self, phone_number: str) -> MessagingResponse:
         """Create a helpful guidance response for unregistered phone numbers.
-        
+
         Args:
             phone_number (str): The unregistered phone number
-            
+
         Returns:
             MessagingResponse: Helpful guidance response
         """
         response = MessagingResponse()
-        
+
         # Format phone number for better readability
         formatted_phone = self._format_phone_number(phone_number)
-        
+
         guidance_message = (
             f"Welcome! Your phone number {formatted_phone} is not registered yet.\n\n"
             "To get started with SMS service:\n"
@@ -108,23 +108,24 @@ class TwilioService:
             "3. Start texting!\n\n"
             "Need help? Contact support at help@personalassistant.com"
         )
-        
+
         response.message(guidance_message)
-        logger.info(f"Sent helpful guidance to unregistered phone: {phone_number}")
+        logger.info(
+            f"Sent helpful guidance to unregistered phone: {phone_number}")
         return response
 
     def _format_phone_number(self, phone_number: str) -> str:
         """Format phone number for better readability.
-        
+
         Args:
             phone_number (str): Raw phone number
-            
+
         Returns:
             str: Formatted phone number
         """
         # Remove any non-digit characters except +
         cleaned = ''.join(c for c in phone_number if c.isdigit() or c == '+')
-        
+
         # Add + if not present and format as +1 (XXX) XXX-XXXX for US numbers
         if not cleaned.startswith('+'):
             if len(cleaned) == 10:
@@ -175,14 +176,14 @@ class TwilioService:
 
     async def send_verification_sms(self, to: str, verification_code: str) -> str:
         """Send SMS verification code to a phone number.
-        
+
         Args:
             to (str): The recipient's phone number
             verification_code (str): The verification code to send
-            
+
         Returns:
             str: The message SID if successful
-            
+
         Raises:
             TwilioRestException: If there's an error with the Twilio service
             Exception: For other unexpected errors
@@ -193,18 +194,20 @@ class TwilioService:
                 "This code will expire in 10 minutes. If you didn't request this code, "
                 "please ignore this message."
             )
-            
+
             message = self.client.messages.create(
                 body=message_text,
                 from_=self.from_number,
                 to=to
             )
 
-            logger.info(f"Verification SMS sent successfully. SID: {message.sid}")
+            logger.info(
+                f"Verification SMS sent successfully. SID: {message.sid}")
             return message.sid
 
         except TwilioRestException as e:
-            logger.error(f"Twilio error sending verification SMS: {e.code} - {e.msg}")
+            logger.error(
+                f"Twilio error sending verification SMS: {e.code} - {e.msg}")
             raise
         except Exception as e:
             logger.error(f"Error sending verification SMS: {str(e)}")

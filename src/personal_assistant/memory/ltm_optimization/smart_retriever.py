@@ -21,7 +21,7 @@ class SmartLTMRetriever:
     def __init__(self, config: LTMConfig = None):
         self.config = config or LTMConfig()
 
-    async def get_relevant_memories(self, user_id: str, context: str, limit: int = None) -> List[dict]:
+    async def get_relevant_memories(self, user_id: int, context: str, limit: int = None) -> List[dict]:
         """Get semantically relevant memories for context"""
 
         if limit is None:
@@ -55,7 +55,7 @@ class SmartLTMRetriever:
 
         return result
 
-    async def _get_candidate_memories(self, user_id: str) -> List[dict]:
+    async def _get_candidate_memories(self, user_id: int) -> List[dict]:
         """Get candidate memories for relevance scoring"""
 
         try:
@@ -139,7 +139,7 @@ class SmartLTMRetriever:
                 f"Error parsing last_accessed date '{last_accessed}': {e}")
             return 0.0
 
-    def get_memories_by_type(self, user_id: str, memory_type: str, limit: int = 5) -> List[dict]:
+    def get_memories_by_type(self, user_id: int, memory_type: str, limit: int = 5) -> List[dict]:
         """Get memories of a specific type"""
 
         # This would need to be implemented with database queries
@@ -148,7 +148,7 @@ class SmartLTMRetriever:
             f"Getting memories of type '{memory_type}' for user {user_id}")
         return []
 
-    def get_memories_by_tags(self, user_id: str, tags: List[str], limit: int = 5) -> List[dict]:
+    def get_memories_by_tags(self, user_id: int, tags: List[str], limit: int = 5) -> List[dict]:
         """Get memories with specific tags"""
 
         # This would need to be implemented with database queries
@@ -156,7 +156,7 @@ class SmartLTMRetriever:
         logger.info(f"Getting memories with tags {tags} for user {user_id}")
         return []
 
-    def get_high_importance_memories(self, user_id: str, min_importance: int = 7, limit: int = 5) -> List[dict]:
+    def get_high_importance_memories(self, user_id: int, min_importance: int = 7, limit: int = 5) -> List[dict]:
         """Get high-importance memories for a user"""
 
         # This would need to be implemented with database queries

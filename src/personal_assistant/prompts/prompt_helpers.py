@@ -251,3 +251,66 @@ class PromptHelpers:
             formatted.append("")  # Empty line between categories
 
         return "\n".join(formatted).strip()
+
+    @staticmethod
+    def classify_request_intent(user_input: str) -> str:
+        """
+        Classify the user's request intent to determine if tools are needed.
+
+        Args:
+            user_input: The user's input message
+
+        Returns:
+            str: Intent classification ('simple', 'information', 'action', 'complex')
+        """
+        input_lower = user_input.lower().strip()
+
+        # Simple greetings and basic questions
+        simple_patterns = [
+            'hey', 'hi', 'hello', 'good morning', 'good afternoon',
+            'good evening', 'how are you', 'what\'s up', 'sup',
+            'thanks', 'thank you', 'bye', 'goodbye', 'see you'
+        ]
+
+        # Check for simple patterns, but exclude questions that start with "how"
+        if any(pattern in input_lower for pattern in simple_patterns):
+            # Special case: "how" questions are usually information requests
+            if input_lower.startswith('how ') and not any(greeting in input_lower for greeting in ['how are you', 'how\'s it going']):
+                return 'information'
+            # Special case: "research" is usually an information request
+            if 'research' in input_lower:
+                return 'information'
+            return 'simple'
+
+        # Information requests (check these BEFORE simple patterns to avoid conflicts)
+        info_patterns = [
+            'what is', 'what\'s', 'how does', 'when is', 'where is',
+            'who is', 'why does', 'tell me about', 'explain',
+            'weather', 'news', 'search', 'find', 'research',
+            'how does', 'research'
+        ]
+
+        if any(pattern in input_lower for pattern in info_patterns):
+            return 'information'
+
+        # Complex requests (planning, analysis, coordination) - check these FIRST
+        complex_patterns = [
+            'plan', 'organize', 'analyze', 'coordinate', 'manage',
+            'strategy', 'workflow', 'process', 'system', 'project'
+        ]
+
+        if any(pattern in input_lower for pattern in complex_patterns):
+            return 'complex'
+
+        # Action requests
+        action_patterns = [
+            'send', 'create', 'schedule', 'book', 'reserve',
+            'add', 'update', 'delete', 'remove', 'set',
+            'email', 'meeting', 'reminder', 'note', 'task'
+        ]
+
+        if any(pattern in input_lower for pattern in action_patterns):
+            return 'action'
+
+        # Default to information if unclear
+        return 'information'

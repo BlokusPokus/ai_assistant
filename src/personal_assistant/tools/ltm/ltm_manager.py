@@ -28,7 +28,7 @@ except ImportError:
 logger = get_logger("ltm_manager")
 
 
-async def get_ltm_context_with_tags(ltm_tool, logger, user_id: str, user_input: str, focus_areas: list = None) -> str:
+async def get_ltm_context_with_tags(ltm_tool, logger, user_id: int, user_input: str, focus_areas: list = None) -> str:
     """
     Get optimized LTM context using the new smart LTM optimization system.
 
@@ -65,7 +65,7 @@ async def get_ltm_context_with_tags(ltm_tool, logger, user_id: str, user_input: 
         return ""
 
 
-async def _get_smart_ltm_context(user_id: str, user_input: str, focus_areas: list, logger) -> str:
+async def _get_smart_ltm_context(user_id: int, user_input: str, focus_areas: list, logger) -> str:
     """
     Get LTM context using the smart optimization system.
 
@@ -112,7 +112,7 @@ async def _get_smart_ltm_context(user_id: str, user_input: str, focus_areas: lis
         return ""
 
 
-async def _get_fallback_ltm_context(ltm_tool, user_id: str, user_input: str, focus_areas: list, logger) -> str:
+async def _get_fallback_ltm_context(ltm_tool, user_id: int, user_input: str, focus_areas: list, logger) -> str:
     """
     Fallback LTM context retrieval using the original implementation.
 
@@ -216,7 +216,7 @@ async def should_create_ltm_memory(user_input: str, response: str, importance_th
     return False
 
 
-async def create_ltm_memory_if_needed(ltm_tool, llm, logger, user_id: str, user_input: str, response: str, conversation_context: str = None):
+async def create_ltm_memory_if_needed(ltm_tool, llm, logger, user_id: int, user_input: str, response: str, conversation_context: str = None):
     """
     Create LTM memory if the content warrants it.
 

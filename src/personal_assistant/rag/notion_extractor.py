@@ -22,7 +22,7 @@ class NotionContentExtractor:
         self.notion_tool = NotionPagesTool()
         logger.info("NotionContentExtractor initialized")
 
-    async def extract_note_content(self, note_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    async def extract_note_content(self, note_id: str, user_id: int) -> Optional[Dict[str, Any]]:
         """
         Extract full note content with metadata.
 
@@ -249,7 +249,7 @@ class NotionContentExtractor:
 
         return False
 
-    async def extract_multiple_notes(self, note_ids: List[str], user_id: str) -> Dict[str, Dict[str, Any]]:
+    async def extract_multiple_notes(self, note_ids: List[str], user_id: int) -> Dict[str, Dict[str, Any]]:
         """
         Extract content from multiple notes.
 

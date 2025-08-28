@@ -94,7 +94,14 @@ class ContextManager:
         relevant_items = []
 
         # Simple keyword matching for now (can be enhanced with semantic similarity)
-        input_keywords = set(user_input.lower().split())
+        # Ensure user_input is a string before calling .lower()
+        if isinstance(user_input, list):
+            # If it's a list, join the items or take the first one
+            user_input_str = " ".join(user_input) if user_input else ""
+        else:
+            user_input_str = str(user_input) if user_input else ""
+
+        input_keywords = set(user_input_str.lower().split())
 
         for item in conversation_history:
             content = str(item.get("content", "")).lower()
