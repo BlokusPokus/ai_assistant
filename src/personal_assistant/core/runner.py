@@ -18,6 +18,7 @@ from ..config.logging_config import get_logger
 from ..rag.document_processor import DocumentProcessor
 from ..utils.metrics import MetricsLogger
 from ..memory import apply_context_limits
+from ..memory.context_quality_validator import ContextQualityValidator
 
 # Configure module logger
 logger = get_logger("core")
@@ -58,7 +59,12 @@ class AgentRunner:
         self.max_steps = settings.LOOP_LIMIT
         self.current_state = None  # Store the current state
         self.context_injection_limit = 1000  # Maximum characters for context injection
-        logger.info("AgentRunner initialized with tools and planner.")
+
+        # Initialize context quality validator (will be configured when set_context is called)
+        self.quality_validator = None
+
+        logger.info(
+            "AgentRunner initialized with tools and planner and context quality validation.")
 
     def set_context(self, agent_state: AgentState, rag_context: Optional[List[dict]] = None, ltm_context: Optional[str] = None) -> None:
         """
@@ -145,13 +151,42 @@ class AgentRunner:
             elif rag_context is not None:
                 logger.debug("RAG context provided but empty, skipping")
 
-            # Apply context limits before extending
+            # Initialize quality validator if not already done
+            if self.quality_validator is None:
+                self.quality_validator = ContextQualityValidator(
+                    agent_state.config)
+                logger.debug("Context quality validator initialized")
+
+            # Apply quality validation to memory blocks
             if memory_blocks:
+                original_count = len(memory_blocks)
+
+                # Validate context quality before injection
+                validated_blocks = self.quality_validator.validate_context_relevance(
+                    memory_blocks,
+                    agent_state.user_input,
+                    context_type="mixed"
+                )
+
+                removed_count = original_count - len(validated_blocks)
+                if removed_count > 0:
+                    logger.info(
+                        f"🔍 Quality validation removed {removed_count} low-quality context blocks")
+
+                # Get quality metrics for logging
+                quality_metrics = self.quality_validator.get_quality_metrics(
+                    validated_blocks, agent_state.user_input)
+                logger.info(f"🔍 Context quality metrics: {quality_metrics['average_quality']:.2f} average, "
+                            f"{quality_metrics['quality_distribution']['excellent'] + quality_metrics['quality_distribution']['good']} high-quality items")
+
+                # Apply context limits to validated blocks
                 apply_context_limits(
-                    memory_blocks, self.context_injection_limit)
-                agent_state.memory_context.extend(memory_blocks)
+                    validated_blocks, self.context_injection_limit)
+
+                # Add validated blocks to memory context
+                agent_state.memory_context.extend(validated_blocks)
                 logger.debug(
-                    f"Successfully added {len(memory_blocks)} context blocks to memory")
+                    f"Successfully added {len(validated_blocks)} validated context blocks to memory")
             else:
                 logger.debug("No valid context blocks to add")
 

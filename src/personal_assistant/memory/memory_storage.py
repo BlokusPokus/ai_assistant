@@ -328,10 +328,12 @@ async def load_state(conversation_id: str) -> AgentState:
                 logger.info(
                     f"🔍 Conversation history length: {len(state_dict.get('conversation_history', []))}")
                 logger.info(
+                    f"🔍 Memory context length: {len(state_dict.get('memory_context', []))}")
+                logger.info(
                     f"🔍 Last tool result: {str(state_dict.get('last_tool_result', 'None'))[:100] if state_dict.get('last_tool_result') else 'None'}...")
 
                 # Create AgentState from dictionary
-                # Be selective:
+                # Be selective but complete - load all relevant fields:
                 agent_state = AgentState(user_input="")
                 if "conversation_history" in state_dict:
                     agent_state.conversation_history = state_dict["conversation_history"]
@@ -339,11 +341,22 @@ async def load_state(conversation_id: str) -> AgentState:
                     agent_state.focus = state_dict["focus"]
                 if "step_count" in state_dict:
                     agent_state.step_count = state_dict["step_count"]
+                # ADD MISSING CRITICAL FIELDS:
+                if "memory_context" in state_dict:
+                    agent_state.memory_context = state_dict["memory_context"]
+                    logger.info(
+                        f"🔍 Loaded memory_context with {len(agent_state.memory_context)} items")
+                if "last_tool_result" in state_dict:
+                    agent_state.last_tool_result = state_dict["last_tool_result"]
+                    logger.info(
+                        f"🔍 Loaded last_tool_result: {str(agent_state.last_tool_result)[:100] if agent_state.last_tool_result else 'None'}...")
 
                 logger.info(
                     f"✅ Successfully loaded state for conversation {conversation_id}")
                 logger.info(
                     f"✅ Final state has {len(agent_state.conversation_history)} conversation items")
+                logger.info(
+                    f"✅ Final state has {len(agent_state.memory_context)} memory context items")
                 return agent_state
 
             except json.JSONDecodeError as e:

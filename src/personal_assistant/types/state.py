@@ -8,6 +8,9 @@ Defines the LangGraph agent state, including memory, tool calls, loop counters, 
 from dataclasses import dataclass, field
 from typing import List, Tuple, Any, Optional
 import json
+from datetime import datetime
+
+
 from ..config.logging_config import get_logger
 
 from .messages import ToolCall
@@ -500,16 +503,6 @@ class AgentState:
                     "from_summary: Parsing comprehensive JSON summary")
 
                 # Handle backward compatibility for old state format
-                if "config" not in summary_data:
-                    logger.info(
-                        "from_summary: Adding default config for backward compatibility")
-                    summary_data["config"] = {
-                        "max_memory_context_size": DEFAULT_MAX_MEMORY_CONTEXT_SIZE,
-                        "max_conversation_history_size": DEFAULT_MAX_CONVERSATION_HISTORY_SIZE,
-                        "max_history_size": DEFAULT_MAX_HISTORY_SIZE,
-                        "context_window_size": DEFAULT_CONTEXT_WINDOW_SIZE,
-                        "enable_smart_pruning": True
-                    }
 
                 # Validate critical fields before creating state
                 validated_data = cls._validate_summary_data(summary_data)
@@ -723,16 +716,9 @@ class AgentState:
         return {
             "user_input": self.user_input,
             "memory_context": self.memory_context,
-            "history": self.history,
             "step_count": self.step_count,
             "focus": self.focus,
             "conversation_history": self.conversation_history,
-            "last_tool_result": self._make_json_safe(self.last_tool_result),
-            "config": {
-                "max_memory_context_size": self.config.max_memory_context_size,
-                "max_conversation_history_size": self.config.max_conversation_history_size,
-                "max_history_size": self.config.max_history_size,
-                "context_window_size": self.config.context_window_size,
-                "enable_smart_pruning": self.config.enable_smart_pruning
-            }
+            "timestamp": datetime.now().isoformat()                    # Add timestamp
+
         }

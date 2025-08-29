@@ -650,3 +650,4 @@ def get_internet_tool_metadata_full() -> dict:
     """Get the complete internet tool metadata including all details."""
     metadata = create_internet_tool_metadata()
     return metadata.to_dict()
+

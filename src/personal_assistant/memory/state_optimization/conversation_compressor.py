@@ -118,7 +118,7 @@ class ConversationCompressor:
         # Extract meaningful parameters from content
         if "Error" in content:
             # For errors, include error type
-            error_type = self._extract_error_type(content)
+            error_type = self._extract_error_type(str(content))
             return f"{tool_name}:error:{error_type}"
         else:
             # For successful calls, include success indicator
@@ -134,6 +134,9 @@ class ConversationCompressor:
         Returns:
             Categorized error type
         """
+        # Ensure content is a string
+        if not isinstance(content, str):
+            content = str(content)
         content_lower = content.lower()
 
         if "validation" in content_lower:
@@ -233,13 +236,35 @@ class ConversationCompressor:
         Check if two content strings are similar.
 
         Args:
-            content1: First content string
-            content2: Second content string
+            content1: First content (can be string, list, or other types)
+            content2: Second content (can be string, list, or other types)
 
         Returns:
             True if content is similar
         """
-        # Simple similarity check - can be enhanced with semantic analysis
+        # Handle non-string content types
+        if isinstance(content1, list) and isinstance(content2, list):
+            # If both are lists, check if they have similar structure
+            if len(content1) == len(content2):
+                # Simple check: if both lists have same length and first item has same keys
+                if content1 and content2:
+                    keys1 = set(content1[0].keys()) if isinstance(content1[0], dict) else set()
+                    keys2 = set(content2[0].keys()) if isinstance(content2[0], dict) else set()
+                    if keys1 == keys2:
+                        return True
+            return False
+        elif isinstance(content1, dict) and isinstance(content2, dict):
+            # If both are dicts, check if they have similar keys
+            keys1 = set(content1.keys())
+            keys2 = set(content2.keys())
+            if keys1 == keys2:
+                return True
+            return False
+        elif not isinstance(content1, str) or not isinstance(content2, str):
+            # If either is not a string, they're not similar
+            return False
+
+        # Simple similarity check for strings - can be enhanced with semantic analysis
         if not content1 or not content2:
             return False
 
