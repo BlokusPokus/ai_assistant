@@ -94,11 +94,8 @@ class EnhancedPromptBuilder:
 • Loop status: {state.step_count}/{PromptHelpers.get_max_steps()} (Tool execution limit)
 
 🚨 **CRITICAL: ACTION CONFIRMATION RULES (MUST FOLLOW FIRST)** 🚨
-• Before executing ANY action that affects the user, ask for confirmation
 • For emails: "Just to confirm, you want me to send an email to [email] with subject '[subject]' and body '[body]' - is that correct?"
 • For calendar events: "Just to confirm, you want me to create a meeting on [date] at [time] with [attendees] - is that correct?"
-• For file operations: "Just to confirm, you want me to [action] [file] - is that correct?"
-• NEVER proceed without user confirmation for actions that affect their data or communications
 • This rule takes priority over ALL other rules
 
 {self._build_core_guidelines()}
@@ -113,12 +110,6 @@ class EnhancedPromptBuilder:
 
 🎯 **CRITICAL: ENHANCED TOOL GUIDANCE (MUST FOLLOW)** 🎯
 
-🚨 **SUPER CRITICAL: BEFORE USING ANY TOOL, ASK FOR CONFIRMATION** 🚨
-• You MUST ask for confirmation before executing ANY tool that affects the user
-• This rule overrides ALL other tool usage rules
-• For emails: "Just to confirm, you want me to send an email to [email] with subject '[subject]' and body '[body]' - is that correct?"
-• Wait for user confirmation before proceeding
-• NEVER execute tools without explicit user approval
 
 {contextual_metadata}
 

@@ -129,11 +129,11 @@ async def create_new_conversation(user_id: int) -> Optional[str]:
 
     except SQLAlchemyError as e:
         logger.error(
-            f"Failed to create conversation for user {user_id_str}: {e}")
+            f"Failed to create conversation for user {user_id}: {e}")
         return None
     except Exception as e:
         logger.error(
-            f"Unexpected error creating conversation for user {user_id_str}: {e}")
+            f"Unexpected error creating conversation for user {user_id}: {e}")
         return None
 
 
@@ -168,7 +168,7 @@ def should_resume_conversation(last_timestamp: Optional[datetime]) -> bool:
     # Compare last activity to cutoff
     # If last_timestamp > cutoff, the conversation is recent enough to resume
     should_resume = last_timestamp > cutoff
-    
+
     logger.debug(
         f"Conversation resumption decision: "
         f"last_timestamp={last_timestamp}, "
@@ -177,5 +177,5 @@ def should_resume_conversation(last_timestamp: Optional[datetime]) -> bool:
         f"resume_window={settings.CONVERSATION_RESUME_WINDOW_MINUTES} minutes, "
         f"should_resume={should_resume}"
     )
-    
+
     return should_resume
