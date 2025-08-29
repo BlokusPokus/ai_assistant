@@ -8,11 +8,14 @@ import logging
 from typing import List, Dict, Optional
 import json
 
+from personal_assistant.memory.ltm_optimization.memory_lifecycle import MemoryLifecycleManager
+
 from ...config.logging_config import get_logger
 from ...tools.ltm.ltm_storage import add_ltm_memory
 from ...types.state import AgentState
 from .config import LTMConfig
 from .llm_memory_creator import LLMMemoryCreator
+
 
 logger = get_logger("learning_manager")
 
@@ -27,10 +30,9 @@ class LTMLearningManager:
             config, llm) if llm else None
 
         # Add lifecycle manager for comprehensive optimization
-        from .lifecycle_manager import MemoryLifecycleManager
         self.lifecycle_manager = MemoryLifecycleManager(config)
 
-    async def learn_from_interaction(self, user_id: str, user_input: str, agent_response: str, tool_result: str = None, conversation_context: str = None) -> List[dict]:
+    async def learn_from_interaction(self, user_id: int, user_input: str, agent_response: str, tool_result: str = None, conversation_context: str = None) -> List[dict]:
         """Learn from user interaction and create relevant memories using LLM"""
 
         created_memories = []
@@ -73,7 +75,7 @@ class LTMLearningManager:
             f"Created {len(created_memories)} total memories for user {user_id}")
         return created_memories
 
-    async def _create_rule_based_memories(self, user_id: str, user_input: str, agent_response: str, tool_result: str = None) -> List[dict]:
+    async def _create_rule_based_memories(self, user_id: int, user_input: str, agent_response: str, tool_result: str = None) -> List[dict]:
         """Fallback rule-based memory creation"""
 
         created_memories = []
@@ -122,7 +124,7 @@ class LTMLearningManager:
         explicit_keywords = self.config.get_memory_creation_keywords()
         return any(keyword in user_input.lower() for keyword in explicit_keywords)
 
-    async def _create_explicit_memory(self, user_id: str, user_input: str, agent_response: str) -> Optional[dict]:
+    async def _create_explicit_memory(self, user_id: int, user_input: str, agent_response: str) -> Optional[dict]:
         """Create memory for explicit memory requests"""
 
         try:
@@ -163,7 +165,7 @@ class LTMLearningManager:
             logger.error(f"Error creating explicit memory: {e}")
             return None
 
-    async def _create_tool_usage_memory(self, user_id: str, user_input: str, tool_result: str) -> Optional[dict]:
+    async def _create_tool_usage_memory(self, user_id: int, user_input: str, tool_result: str) -> Optional[dict]:
         """Create memory for tool usage patterns"""
 
         try:
@@ -330,7 +332,7 @@ class LTMLearningManager:
         # Default to general
         return "general"
 
-    async def optimize_after_interaction(self, user_id: str, user_input: str,
+    async def optimize_after_interaction(self, user_id: int, user_input: str,
                                          response: str, agent_state: AgentState) -> dict:
         """
         Perform comprehensive LTM optimization after user interaction.
@@ -427,7 +429,7 @@ class LTMLearningManager:
                 "errors": [error_msg]
             }
 
-    async def _generate_learning_insights(self, user_id: str, user_input: str,
+    async def _generate_learning_insights(self, user_id: int, user_input: str,
                                           response: str, created_memories: List[dict]) -> List[str]:
         """Generate insights about what was learned from the interaction"""
         insights = []
@@ -468,7 +470,7 @@ class LTMLearningManager:
         user_input_lower = user_input.lower()
         return any(keyword in user_input_lower for keyword in memory_keywords)
 
-    async def handle_explicit_memory_request(self, user_id: str, user_input: str, response: str, conversation_context: str) -> List[dict]:
+    async def handle_explicit_memory_request(self, user_id: int, user_input: str, response: str, conversation_context: str) -> List[dict]:
         """Handle explicit memory creation requests using LLM memory creator"""
 
         try:

@@ -23,7 +23,7 @@ class ConversationPatternLearner:
     def __init__(self, config: LTMConfig = None):
         self.config = config or LTMConfig()
 
-    async def learn_patterns(self, user_id: str, user_input: str, agent_response: str) -> List[dict]:
+    async def learn_patterns(self, user_id: int, user_input: str, agent_response: str) -> List[dict]:
         """Learn patterns from conversation and create memories"""
 
         patterns = []
@@ -117,7 +117,7 @@ class ConversationPatternLearner:
 
         return None
 
-    async def _create_pattern_memory(self, user_id: str, pattern: dict) -> Optional[dict]:
+    async def _create_pattern_memory(self, user_id: int, pattern: dict) -> Optional[dict]:
         """Create a memory entry for a detected pattern"""
 
         try:
@@ -149,7 +149,7 @@ class UserPreferenceLearner:
     def __init__(self, config: LTMConfig = None):
         self.config = config or LTMConfig()
 
-    async def learn_preferences(self, user_id: str, user_input: str, agent_response: str, tool_result: str = None) -> List[dict]:
+    async def learn_preferences(self, user_id: int, user_input: str, agent_response: str, tool_result: str = None) -> List[dict]:
         """Learn user preferences and create memories"""
 
         preferences = []
@@ -274,7 +274,7 @@ class UserPreferenceLearner:
 
         return None
 
-    async def _create_preference_memory(self, user_id: str, preference: dict) -> Optional[dict]:
+    async def _create_preference_memory(self, user_id: int, preference: dict) -> Optional[dict]:
         """Create a memory entry for a detected preference"""
 
         try:

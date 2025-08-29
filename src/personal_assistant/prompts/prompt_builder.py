@@ -51,6 +51,8 @@ class PromptBuilder:
 
 🎯 USER REQUEST: {state.user_input}
 
+🔍 REQUEST INTENT: {PromptHelpers.classify_request_intent(state.user_input).upper()}
+
 📊 CURRENT STATE:
 • Last action: {state.last_tool_result if state.last_tool_result else 'Starting fresh'}
 • Focus areas: {', '.join(state.focus) if state.focus else 'General'}
@@ -87,7 +89,7 @@ class PromptBuilder:
 
 🎯 PRIMARY OBJECTIVES:
 • Complete the user's request fully before ending your turn
-• Use tools autonomously to gather information and complete tasks
+• Use tools ONLY when they add value to the user's request
 • Provide clear, actionable responses
 • Maintain focus on the current request
 
@@ -96,11 +98,18 @@ class PromptBuilder:
 • NEVER ask the user for information you can get via tools
 • NEVER stop mid-task unless you need clarification on options
 • NEVER make assumptions about code or system behavior
+• NEVER use tools for simple greetings or basic questions that don't require information
 
-🔄 MANDATORY PATTERN USAGE:
-• ALWAYS apply the ITERATIVE SEARCH PATTERN when gathering information
-• ALWAYS apply the TOOL CHAINING PATTERN when coordinating multiple actions
-• These patterns are NOT optional - they are core to effective task completion
+🔄 SMART PATTERN USAGE:
+• Use ITERATIVE SEARCH PATTERN ONLY when you need to gather information
+• Use TOOL CHAINING PATTERN ONLY when coordinating multiple actions
+• These patterns are tools for complex tasks, not mandatory for every interaction
+
+💡 INTENT CLASSIFICATION:
+• SIMPLE REQUESTS (greetings, basic questions): Respond directly without tools
+• INFORMATION REQUESTS (weather, research, data): Use tools to gather information
+• ACTION REQUESTS (send email, schedule meeting): Use tools to perform actions
+• COMPLEX REQUESTS (planning, analysis): Use tools with patterns
 """
 
     def _build_tool_usage_guidelines(self) -> str:
@@ -110,16 +119,17 @@ class PromptBuilder:
 
 🔧 TOOL SELECTION PRINCIPLES:
 • Choose the most appropriate tool for each specific task
-• Use multiple tools when needed to gather comprehensive information
+• Use multiple tools when needed to gather comprehensive useful information
 • Prefer tools that provide the most relevant and up-to-date information
 • Consider tool dependencies and execution order
 
 📋 TOOL USAGE RULES:
 1. ALWAYS follow tool schemas exactly - provide all required parameters
-2. Use tools proactively to gather information before making decisions
+2. Use tools ONLY when you need information or can perform actions
 3. If you need more context, search for it rather than guessing
 4. Combine tool results to build complete understanding
 5. Use tools sequentially when they depend on each other's results
+6. DON'T use tools for simple greetings, basic questions, or when you can respond directly
 
 🎯 TOOL CATEGORIES & USAGE STRATEGIES:
 
@@ -487,11 +497,18 @@ Context: User has multiple focus areas (work, personal, health)
    • The request is completely fulfilled
    • All necessary information has been gathered
    • The task is finished and results are clear
+   • The request is a simple greeting or basic question
 
 3️⃣ ASK FOR CLARIFICATION WHEN:
    • You have multiple valid options and need user preference
    • The request is ambiguous and tools can't resolve it
    • You need specific details that aren't available elsewhere
+
+4️⃣ RESPOND DIRECTLY (NO TOOLS) WHEN:
+   • User says hello, hi, hey, or similar greetings
+   • User asks basic questions you can answer directly
+   • User makes simple statements that don't require action
+   • The request is conversational and doesn't need information gathering
 
 💡 REMEMBER:
 • Stay focused on completing the current request
@@ -500,12 +517,30 @@ Context: User has multiple focus areas (work, personal, health)
 • Complete the full request before ending your turn
 • Monitor your tool usage to stay within execution limits
 
-🔄 MANDATORY PATTERN EXECUTION:
-• ALWAYS start with iterative search when gathering information
-• ALWAYS use tool chaining when coordinating multiple actions
-• These patterns are core to effective task completion, not optional
+🔄 SMART PATTERN EXECUTION:
+• Use iterative search ONLY when gathering information is needed
+• Use tool chaining ONLY when coordinating multiple actions is needed
+• These patterns are tools for complex tasks, not mandatory for every interaction
 
 🔍 ACTION DECISION EXAMPLES:
+
+<example>
+Situation: User says "Hey" or "Hello"
+
+<decision>
+1. ANALYZE: Simple greeting that doesn't require information or action
+2. TOOL CHOICE: No tools needed - this is conversational
+3. EXECUTION: Respond with friendly greeting and offer help
+4. RESULT: User feels welcomed and knows you're ready to help
+5. COMPLETION: Request fulfilled, provide final answer
+
+<pattern_application>
+- No tools needed for simple greetings
+- Direct response is most appropriate
+- Keep it conversational and helpful
+</pattern_application>
+</decision>
+</example>
 
 <example>
 Situation: User asks "What's the weather like in New York?"
@@ -567,9 +602,9 @@ Situation: User asks "What should I do next?"
 🎯 COMPLETION CHECKLIST:
 ✅ User's explicit request addressed
 ✅ Implicit needs considered and met
-✅ All necessary tools used appropriately
+✅ Tools used ONLY when they add value
 ✅ Results clearly communicated
 ✅ No loose ends or incomplete actions
-✅ Iterative search pattern applied for information gathering
-✅ Tool chaining pattern applied for complex workflows
+✅ Appropriate response method chosen (direct vs. tool-based)
+✅ Patterns applied only when needed for complex tasks
 """

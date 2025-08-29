@@ -29,7 +29,7 @@ logger = get_logger("enhanced_ltm_storage")
 
 
 async def add_enhanced_ltm_memory(
-    user_id: str,
+    user_id: int,
     content: str,
     tags: List[str],
     importance_score: int = 1,
@@ -70,8 +70,7 @@ async def add_enhanced_ltm_memory(
     """
     try:
         async with AsyncSessionLocal() as session:
-            # Convert user_id to int
-            user_id_int = int(user_id)
+            # user_id is already an integer
 
             # Normalize and validate tags
             normalized_tags = normalize_tags(tags)
@@ -96,7 +95,7 @@ async def add_enhanced_ltm_memory(
 
             # Create LTM memory entry
             memory_data = {
-                "user_id": user_id_int,
+                "user_id": user_id,
                 "content": content,
                 "tags": final_tags,
                 "memory_type": memory_type or "insight",
@@ -253,7 +252,7 @@ async def _create_memory_relationships(session: AsyncSessionLocal, memory_id: in
         raise
 
 
-async def get_enhanced_ltm_memory(memory_id: int, user_id: str) -> Optional[Dict[str, Any]]:
+async def get_enhanced_ltm_memory(memory_id: int, user_id: int) -> Optional[Dict[str, Any]]:
     """Get an enhanced LTM memory with full context information"""
     try:
         async with AsyncSessionLocal() as session:
@@ -328,7 +327,7 @@ def _build_enhanced_context_from_db(contexts: List[LTMContext]) -> Dict[str, Any
 
 
 async def search_enhanced_ltm_memories(
-    user_id: str,
+    user_id: int,
     query: str,
     limit: int = 5,
     min_importance: int = 1,
@@ -406,7 +405,7 @@ async def search_enhanced_ltm_memories(
         return []
 
 
-async def get_memory_relationships(memory_id: int, user_id: str) -> List[Dict[str, Any]]:
+async def get_memory_relationships(memory_id: int, user_id: int) -> List[Dict[str, Any]]:
     """Get all relationships for a specific memory"""
     try:
         async with AsyncSessionLocal() as session:
@@ -465,7 +464,7 @@ async def get_memory_relationships(memory_id: int, user_id: str) -> List[Dict[st
         return []
 
 
-async def update_memory_importance(memory_id: int, user_id: str, new_importance: int) -> bool:
+async def update_memory_importance(memory_id: int, user_id: int, new_importance: int) -> bool:
     """Update memory importance and recalculate dynamic importance"""
     try:
         async with AsyncSessionLocal() as session:
@@ -497,7 +496,7 @@ async def update_memory_importance(memory_id: int, user_id: str, new_importance:
         return False
 
 
-async def archive_memory(memory_id: int, user_id: str, reason: str = "User request") -> bool:
+async def archive_memory(memory_id: int, user_id: int, reason: str = "User request") -> bool:
     """Archive a memory"""
     try:
         async with AsyncSessionLocal() as session:
@@ -529,7 +528,7 @@ async def archive_memory(memory_id: int, user_id: str, reason: str = "User reque
         return False
 
 
-async def get_memory_analytics(user_id: str) -> Dict[str, Any]:
+async def get_memory_analytics(user_id: int) -> Dict[str, Any]:
     """Get comprehensive analytics about user's LTM memories"""
     try:
         async with AsyncSessionLocal() as session:

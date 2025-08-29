@@ -6,12 +6,12 @@ export { default as Card } from './Card/Card';
 export { default as ResponsiveContainer } from './ResponsiveContainer/ResponsiveContainer';
 
 // Card subcomponents
-export { 
-  CardHeader, 
-  CardFooter, 
-  CardTitle, 
-  CardDescription, 
-  CardContent 
+export {
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
 } from './Card/Card';
 
 // Legacy components (keeping for backward compatibility)

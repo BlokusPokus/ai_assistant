@@ -28,7 +28,7 @@ class LLMMemoryCreator:
 
     async def create_memories_from_interaction(
         self,
-        user_id: str,
+        user_id: int,
         user_input: str,
         agent_response: str,
         tool_result: str = None,
@@ -452,7 +452,7 @@ Analyze the interaction and create 2-4 high-quality memories. Focus on insights 
 
         return True
 
-    async def _create_memory_from_spec(self, user_id: str, spec: Dict[str, Any]) -> Optional[dict]:
+    async def _create_memory_from_spec(self, user_id: int, spec: Dict[str, Any]) -> Optional[dict]:
         """Create an actual memory from a specification with enhanced features"""
 
         try:

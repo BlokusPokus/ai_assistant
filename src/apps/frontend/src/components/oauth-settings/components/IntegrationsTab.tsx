@@ -188,7 +188,9 @@ export const IntegrationsTab: React.FC = () => {
                   />
 
                   <div className="flex-shrink-0">
-                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-sm border border-gray-200 ${getProviderLogoStyle(integration.provider)}`}>
+                    <div
+                      className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-sm border border-gray-200 ${getProviderLogoStyle(integration.provider)}`}
+                    >
                       <span className="text-xl font-bold text-white">
                         {integration.provider.charAt(0).toUpperCase()}
                       </span>

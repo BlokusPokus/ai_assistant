@@ -19,7 +19,7 @@ from ..config.settings import settings
 logger = logging.getLogger(__name__)
 
 
-async def get_conversation_id(user_id: str) -> Optional[str]:
+async def get_conversation_id(user_id: int) -> Optional[str]:
     """
     Retrieve the latest conversation_id for a user, or None if not found.
 
@@ -28,7 +28,7 @@ async def get_conversation_id(user_id: str) -> Optional[str]:
     to find conversations by their metadata.
 
     Args:
-        user_id (str): The user ID to search for conversations
+        user_id (int): The user ID to search for conversations
 
     Returns:
         Optional[str]: The conversation ID if found, None otherwise
@@ -45,20 +45,15 @@ async def get_conversation_id(user_id: str) -> Optional[str]:
         logger.error("user_id cannot be None")
         return None
 
-    if not str(user_id).strip():
-        logger.error("user_id cannot be empty or whitespace")
-        return None
-
     try:
         async with AsyncSessionLocal() as session:
-            # Convert user_id string to int for database query
-            user_id_int = int(str(user_id).strip())
+            # user_id is already an integer, no conversion needed
 
             stmt = (
                 select(MemoryMetadata.value)
                 .join(MemoryChunk, MemoryMetadata.chunk_id == MemoryChunk.id)
                 .where(
-                    MemoryChunk.user_id == user_id_int,
+                    MemoryChunk.user_id == user_id,
                     MemoryMetadata.key == "conversation_id"
                 )
                 .order_by(desc(MemoryChunk.created_at))
@@ -72,12 +67,12 @@ async def get_conversation_id(user_id: str) -> Optional[str]:
         return None
 
 
-async def create_new_conversation(user_id: str) -> Optional[str]:
+async def create_new_conversation(user_id: int) -> Optional[str]:
     """
     Create a new conversation for a user and return the conversation ID.
 
     Args:
-        user_id (str): The user ID for the new conversation
+        user_id (int): The user ID for the new conversation
 
     Returns:
         Optional[str]: The new conversation ID (UUID string) or None if failed
@@ -85,32 +80,26 @@ async def create_new_conversation(user_id: str) -> Optional[str]:
     Raises:
         ValueError: If user_id is invalid
     """
-    # Input validation - more flexible to handle edge cases
+    # Input validation
     if user_id is None:
         logger.error("user_id cannot be None")
         return None
 
-    if not str(user_id).strip():
-        logger.error("user_id cannot be empty or whitespace")
-        return None
-
     try:
-        # Convert to string and clean up
-        user_id_str = str(user_id).strip()
 
         # Validate user exists (you'll need to implement this)
-        # await validate_user_exists(user_id_str)
+        # await validate_user_exists(user_id)
 
         conversation_id = str(uuid.uuid4())
         logger.info(
-            f"Creating new conversation {conversation_id} for user {user_id_str}")
+            f"Creating new conversation {conversation_id} for user {user_id}")
 
         async with AsyncSessionLocal() as session:
             async with session.begin():  # Start transaction
                 try:
                     # Create memory chunk
                     chunk_data = {
-                        "user_id": int(user_id_str),
+                        "user_id": user_id,  # user_id is already an integer
                         "content": "",
                         # Use timezone-aware datetime
                         "created_at": datetime.now(timezone.utc)
@@ -140,11 +129,11 @@ async def create_new_conversation(user_id: str) -> Optional[str]:
 
     except SQLAlchemyError as e:
         logger.error(
-            f"Failed to create conversation for user {user_id_str}: {e}")
+            f"Failed to create conversation for user {user_id}: {e}")
         return None
     except Exception as e:
         logger.error(
-            f"Unexpected error creating conversation for user {user_id_str}: {e}")
+            f"Unexpected error creating conversation for user {user_id}: {e}")
         return None
 
 
@@ -158,7 +147,7 @@ def should_resume_conversation(last_timestamp: Optional[datetime]) -> bool:
     2. If last activity was within the resume window -> True
     3. If last activity was outside the resume window -> False
 
-    The resume window is configurable via ```CONVERSATION_RESUME_WINDOW_MINUTES setting.
+    The resume window is configurable via CONVERSATION_RESUME_WINDOW_MINUTES setting.
 
     Args:
         last_timestamp: When the conversation was last updated (from database)
@@ -168,6 +157,7 @@ def should_resume_conversation(last_timestamp: Optional[datetime]) -> bool:
     """
     # Handle case where no previous conversation exists
     if not last_timestamp:
+        logger.debug("No timestamp provided, starting new conversation")
         return False
 
     # Database returns timezone-aware timestamps, so we need timezone-aware comparison
@@ -177,4 +167,15 @@ def should_resume_conversation(last_timestamp: Optional[datetime]) -> bool:
 
     # Compare last activity to cutoff
     # If last_timestamp > cutoff, the conversation is recent enough to resume
-    return last_timestamp > cutoff
+    should_resume = last_timestamp > cutoff
+
+    logger.debug(
+        f"Conversation resumption decision: "
+        f"last_timestamp={last_timestamp}, "
+        f"cutoff={cutoff}, "
+        f"time_diff={datetime.now(timezone.utc) - last_timestamp}, "
+        f"resume_window={settings.CONVERSATION_RESUME_WINDOW_MINUTES} minutes, "
+        f"should_resume={should_resume}"
+    )
+
+    return should_resume

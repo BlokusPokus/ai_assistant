@@ -32,7 +32,7 @@ class MFAService:
         self.backup_codes_count = settings.MFA_BACKUP_CODES_COUNT
         self.trusted_device_days = settings.MFA_TRUSTED_DEVICE_DAYS
 
-    def generate_totp_secret(self, user_id: str) -> str:
+    def generate_totp_secret(self, user_id: int) -> str:
         """
         Generate a secure TOTP secret for a user.
 
@@ -126,7 +126,7 @@ class MFAService:
 
         return codes
 
-    def verify_backup_code(self, user_id: str, code: str, stored_codes: List[str]) -> bool:
+    def verify_backup_code(self, user_id: int, code: str, stored_codes: List[str]) -> bool:
         """
         Verify and consume a backup code.
 

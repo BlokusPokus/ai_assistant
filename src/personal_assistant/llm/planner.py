@@ -9,7 +9,7 @@ from typing import Any, Union
 
 from ..config.logging_config import get_logger
 from .llm_client import LLMClient
-from ..prompts.prompt_builder import PromptBuilder
+# from ..prompts.prompt_builder import PromptBuilder  # No longer needed - using custom prompt builders
 from ..tools.base import ToolRegistry
 from ..types.state import AgentState
 from ..utils.text_cleaner import clean_text_for_logging
@@ -29,18 +29,28 @@ class LLMPlanner:
     # ------------------------
     # Initialization
     # ------------------------
-    def __init__(self, llm_client: LLMClient, tool_registry: 'ToolRegistry'):
+    def __init__(self, llm_client: LLMClient, tool_registry: 'ToolRegistry', prompt_builder=None):
         """
         Initialize the LLM-based planner.
 
         Args:
             llm_client (LLMClient): Client for LLM interactions
             tool_registry (ToolRegistry): Registry of available tools
+            prompt_builder: Custom prompt builder (optional, defaults to PromptBuilder)
         """
         logger.info("Initializing LLMPlanner")
         self.llm_client = llm_client
         self.tool_registry = tool_registry
-        self.prompt_builder = PromptBuilder(tool_registry)
+        # Always use EnhancedPromptBuilder - auto-create if none provided
+        if prompt_builder:
+            self.prompt_builder = prompt_builder
+            logger.info("✅ Using provided EnhancedPromptBuilder")
+        else:
+            # Auto-create EnhancedPromptBuilder for everyone
+            from ..prompts.enhanced_prompt_builder import EnhancedPromptBuilder
+            self.prompt_builder = EnhancedPromptBuilder(tool_registry)
+            logger.info("✅ Auto-created EnhancedPromptBuilder with metadata")
+
         # Set up bidirectional relationship
         self.tool_registry.set_planner(self)
         logger.debug("LLMPlanner initialized successfully")
@@ -62,8 +72,27 @@ class LLMPlanner:
 
         # Build prompt
         logger.debug("Building prompt from state")
+        logger.info(
+            f"Using prompt builder: {type(self.prompt_builder).__name__}")
+
+        # Show exactly which class we're calling
+        logger.info(
+            f"Prompt builder class: {self.prompt_builder.__class__.__name__}")
+        logger.info(
+            f"Prompt builder module: {self.prompt_builder.__class__.__module__}")
+
         prompt = self.prompt_builder.build(state)
         logger.debug(f"Built prompt of length: {len(prompt)}")
+
+        # Log if this is an enhanced prompt
+        if "ENHANCED TOOL GUIDANCE" in prompt:
+            logger.info("✅ Enhanced prompt with metadata was built!")
+            logger.info(
+                f"Metadata section found: {prompt.count('ENHANCED TOOL GUIDANCE')} times")
+        else:
+            logger.info("⚠️ Basic prompt without metadata was built")
+            logger.warning(
+                "Expected enhanced prompt but got basic one - check metadata system")
 
         # Get available tools schema
         logger.debug("Fetching tool schema")

@@ -32,7 +32,7 @@ class SessionService:
         self.session_expiry_hours = settings.SESSION_EXPIRY_HOURS
         self.max_concurrent_sessions = settings.SESSION_MAX_CONCURRENT
 
-    async def create_session(self, user_id: str, device_info: Dict[str, Any]) -> str:
+    async def create_session(self, user_id: int, device_info: Dict[str, Any]) -> str:
         """
         Create a new session for a user.
 
@@ -194,7 +194,7 @@ class SessionService:
 
         return True
 
-    async def get_user_sessions(self, user_id: str) -> List[Dict[str, Any]]:
+    async def get_user_sessions(self, user_id: int) -> List[Dict[str, Any]]:
         """
         Get all active sessions for a user.
 
@@ -215,7 +215,7 @@ class SessionService:
 
         return sessions
 
-    async def enforce_session_limits(self, user_id: str) -> bool:
+    async def enforce_session_limits(self, user_id: int) -> bool:
         """
         Check if user can create a new session.
 
@@ -228,7 +228,7 @@ class SessionService:
         current_sessions = await self.get_user_sessions(user_id)
         return len(current_sessions) < self.max_concurrent_sessions
 
-    async def invalidate_user_sessions(self, user_id: str, exclude_session_id: Optional[str] = None) -> int:
+    async def invalidate_user_sessions(self, user_id: int, exclude_session_id: Optional[str] = None) -> int:
         """
         Invalidate all sessions for a user (e.g., on password change).
 
@@ -266,7 +266,7 @@ class SessionService:
 
         return 0
 
-    async def get_session_stats(self, user_id: str) -> Dict[str, Any]:
+    async def get_session_stats(self, user_id: int) -> Dict[str, Any]:
         """
         Get session statistics for a user.
 
@@ -346,7 +346,7 @@ class SessionService:
 
         return True
 
-    async def get_session_by_device(self, user_id: str, device_hash: str) -> Optional[Dict[str, Any]]:
+    async def get_session_by_device(self, user_id: int, device_hash: str) -> Optional[Dict[str, Any]]:
         """
         Find session by device hash for a user.
 
