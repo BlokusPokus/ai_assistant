@@ -37,6 +37,10 @@ def validate_safe_search(safe_search: str) -> str:
 
 def validate_max_results(max_results: int, min_val: int = 1, max_val: int = 20, default: int = 5) -> int:
     """Validate and normalize max_results parameter"""
+    # Convert to int if it's a float (common when coming from LLM)
+    if isinstance(max_results, float):
+        max_results = int(max_results)
+
     if max_results < min_val or max_results > max_val:
         logger.warning(
             f"Invalid max_results: {max_results}, defaulting to {default}")
@@ -163,29 +167,40 @@ def extract_image_result_info(result: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
-def get_duckduckgo_availability_message() -> str:
-    """Get message about DuckDuckGo availability"""
-    return "Error: DuckDuckGo search is not available. Please install the required library:\n" \
-           "pip install ddgs"
-
-
-def get_rate_limit_message() -> str:
-    """Get rate limit exceeded message"""
-    return "Error: Rate limit exceeded. Please try again later."
-
-
 def process_duckduckgo_text_results(ddgs_client, query: str, max_results: int, use_ddgs: bool) -> List[Dict[str, str]]:
     """Process DuckDuckGo text search results"""
     search_results = []
 
     try:
+        # Ensure max_results is an integer
+        if isinstance(max_results, float):
+            max_results = int(max_results)
+            logger.debug(
+                f"Converted max_results from float to int: {max_results}")
+
         if use_ddgs:
             # New ddgs API (synchronous)
-            results = ddgs_client.text(query, max_results=max_results)
-            for result in results:
-                if len(search_results) >= max_results:
-                    break
-                search_results.append(extract_search_result_info(result))
+            logger.debug(
+                f"Calling ddgs_client.text with query='{query}', max_results={max_results} (type: {type(max_results)})")
+
+            # Final safety check - ensure max_results is int
+            if not isinstance(max_results, int):
+                logger.error(
+                    f"max_results is not int: {max_results} (type: {type(max_results)})")
+                max_results = int(max_results)
+                logger.info(f"Converted max_results to int: {max_results}")
+
+            try:
+                results = ddgs_client.text(query, max_results=max_results)
+                for result in results:
+                    if len(search_results) >= max_results:
+                        break
+                    search_results.append(extract_search_result_info(result))
+            except Exception as ddgs_error:
+                logger.error(f"DuckDuckGo API error: {ddgs_error}")
+                logger.error(
+                    f"API call details - query: '{query}', max_results: {max_results}")
+                raise
         else:
             # Old duckduckgo-search API (async)
             # Note: This would need to be handled differently in the async context
@@ -197,6 +212,8 @@ def process_duckduckgo_text_results(ddgs_client, query: str, max_results: int, u
 
     except Exception as e:
         logger.error(f"Error processing DuckDuckGo text results: {e}")
+        logger.error(
+            f"Error details - query: '{query}', max_results: {max_results} (type: {type(max_results)}), use_ddgs: {use_ddgs}")
         return []
 
 
@@ -205,13 +222,79 @@ def process_duckduckgo_image_results(ddgs_client, query: str, max_results: int, 
     image_results = []
 
     try:
+        logger.info(f"🔍 Starting DuckDuckGo image search for query: '{query}'")
+        logger.info(
+            f"📊 Parameters - max_results: {max_results}, use_ddgs: {use_ddgs}")
+        logger.info(f"🔧 DDGS client type: {type(ddgs_client)}")
+
+        # Ensure max_results is an integer
+        if isinstance(max_results, float):
+            max_results = int(max_results)
+            logger.debug(
+                f"Converted max_results from float to int: {max_results}")
+
         if use_ddgs:
             # New ddgs API (synchronous)
-            results = ddgs_client.images(query, max_results=max_results)
-            for result in results:
-                if len(image_results) >= max_results:
-                    break
-                image_results.append(extract_image_result_info(result))
+            logger.info(f"🚀 Using ddgs API for image search")
+            logger.debug(
+                f"Calling ddgs_client.images with query='{query}', max_results={max_results} (type: {type(max_results)})")
+
+            # Final safety check - ensure max_results is int
+            if not isinstance(max_results, int):
+                logger.error(
+                    f"max_results is not int: {max_results} (type: {type(max_results)})")
+                max_results = int(max_results)
+                logger.info(f"Converted max_results to int: {max_results}")
+
+            try:
+                logger.info(
+                    f"📡 Making API call to DuckDuckGo images endpoint...")
+                results = ddgs_client.images(query, max_results=max_results)
+                logger.info(f"📥 Raw API response received: {type(results)}")
+
+                # Log the raw response structure
+                if hasattr(results, '__iter__'):
+                    logger.info(
+                        f"📋 Response is iterable, length: {len(list(results)) if hasattr(results, '__len__') else 'unknown'}")
+                    # Reset iterator for processing
+                    results = ddgs_client.images(
+                        query, max_results=max_results)
+                else:
+                    logger.warning(f"⚠️ Response is not iterable: {results}")
+
+                # Process results
+                result_count = 0
+                for result in results:
+                    result_count += 1
+                    logger.debug(
+                        f"📸 Processing result {result_count}: {type(result)}")
+                    logger.debug(f"📸 Result content: {result}")
+
+                    if len(image_results) >= max_results:
+                        logger.info(
+                            f"🛑 Reached max_results limit ({max_results}), stopping")
+                        break
+
+                    processed_result = extract_image_result_info(result)
+                    logger.debug(f"✅ Processed result: {processed_result}")
+                    image_results.append(processed_result)
+
+                logger.info(
+                    f"🎯 Final image results count: {len(image_results)}")
+
+            except Exception as ddgs_error:
+                logger.error(f"💥 DuckDuckGo API error: {ddgs_error}")
+                logger.error(f"💥 Error type: {type(ddgs_error)}")
+                logger.error(f"💥 Error details: {str(ddgs_error)}")
+                logger.error(
+                    f"💥 API call details - query: '{query}', max_results: {max_results}")
+
+                # Log additional error context
+                if hasattr(ddgs_error, '__traceback__'):
+                    import traceback
+                    logger.error(f"💥 Full traceback: {traceback.format_exc()}")
+
+                raise
         else:
             # Old duckduckgo-search API (async)
             # Note: This would need to be handled differently in the async context
@@ -219,18 +302,35 @@ def process_duckduckgo_image_results(ddgs_client, query: str, max_results: int, 
                 "Async DuckDuckGo API not fully implemented in internal function")
             return []
 
+        logger.info(
+            f"✅ Image search completed successfully with {len(image_results)} results")
         return image_results
 
     except Exception as e:
-        logger.error(f"Error processing DuckDuckGo image results: {e}")
+        logger.error(f"💥 Error processing DuckDuckGo image results: {e}")
+        logger.error(f"💥 Error type: {type(e)}")
+        logger.error(
+            f"💥 Error details - query: '{query}', max_results: {max_results} (type: {type(max_results)}), use_ddgs: {use_ddgs}")
+
+        # Log additional error context
+        if hasattr(e, '__traceback__'):
+            import traceback
+            logger.error(f"💥 Full traceback: {traceback.format_exc()}")
+
         return []
 
 
 def validate_news_parameters(max_articles: int) -> int:
     """Validate news article parameters"""
+    # Convert to int if it's a float (common when coming from LLM)
+    if isinstance(max_articles, float):
+        max_articles = int(max_articles)
     return validate_max_results(max_articles, min_val=1, max_val=20, default=5)
 
 
 def validate_image_search_parameters(max_results: int) -> int:
     """Validate image search parameters"""
+    # Convert to int if it's a float (common when coming from LLM)
+    if isinstance(max_results, float):
+        max_results = int(max_results)
     return validate_max_results(max_results, min_val=1, max_val=50, default=10)

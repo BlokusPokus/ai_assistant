@@ -25,6 +25,7 @@ class Tool:
         self.description = description
         self.parameters = parameters
         self.category = None  # Add category for tool organization
+        self._last_user_intent = None  # Store last user intent for error context
 
         # Validate parameter schema
         if not isinstance(parameters, dict):
@@ -34,6 +35,15 @@ class Tool:
         """Sets the tool category (e.g., 'Calendar', 'Email', 'Notes', etc.)"""
         self.category = category
         return self
+
+    def set_user_intent(self, user_intent: str):
+        """Sets the user intent for better error context and recovery guidance."""
+        self._last_user_intent = user_intent
+        return self
+
+    def get_user_intent(self) -> str:
+        """Gets the stored user intent for error context."""
+        return self._last_user_intent or "Unknown user intent"
 
     def validate_args(self, kwargs: Dict[str, Any]):
         """Validates arguments against parameter schema."""
@@ -61,28 +71,59 @@ class Tool:
         except Exception as e:
             # Import error handling utilities here to avoid circular imports
             try:
-                from .error_handling import create_error_context, format_tool_error_response
+                from .error_handling import create_error_context, format_tool_error_response, enhance_prompt_with_error
 
                 # Create rich error context
                 error_context = create_error_context(
                     error=e,
                     tool_name=self.name,
                     args=kwargs,
-                    user_intent=None  # Could be enhanced to capture user intent
+                    user_intent=self.get_user_intent()  # Use the new method
                 )
 
-                # Return structured error response with LLM guidance
+                # Enhance the LLM instructions with detailed error context for better AI recovery
+                enhanced_instructions = enhance_prompt_with_error(
+                    error_context.get(
+                        "llm_instructions", f"The tool '{self.name}' failed with error: {str(e)}"),
+                    error_context
+                )
+                error_context["llm_instructions"] = enhanced_instructions
+
+                # Return structured error response with enhanced LLM guidance
                 return format_tool_error_response(error_context)
 
             except ImportError:
                 # Fallback to basic error handling if error_handling module not available
                 logger.error(f"Tool {self.name} execution error: {str(e)}")
+
+                # Provide enhanced fallback guidance for better AI recovery
+                fallback_instructions = f"""
+The tool '{self.name}' failed with the following error:
+- Error: {str(e)}
+- Tool: {self.name}
+- Arguments: {kwargs}
+
+Recovery Hints:
+- Check if the arguments are valid for this tool
+- Verify that required parameters are provided
+- Consider using different parameter values
+- Try breaking down the request into simpler steps
+
+Suggested Actions:
+- Review the tool's parameter requirements
+- Ask the user for clarification on missing parameters
+- Try an alternative approach if available
+- Provide specific guidance on what went wrong
+
+Please use this information to guide your next action and help the user resolve the issue.
+"""
+
                 return {
                     "error": True,
                     "error_type": "general_error",
                     "error_message": str(e),
                     "tool_name": self.name,
-                    "llm_instructions": f"The tool '{self.name}' failed with error: {str(e)}. Please try again or ask for help."
+                    "llm_instructions": fallback_instructions
                 }
 
 
@@ -97,6 +138,23 @@ class ToolRegistry:
         """Establish bidirectional relationship with planner"""
         self._llm_planner = planner
         logger.info("Planner set for ToolRegistry.")
+
+    def set_user_intent_for_all_tools(self, user_intent: str):
+        """Set user intent for all registered tools to improve error context and recovery guidance."""
+        for tool in self.tools.values():
+            tool.set_user_intent(user_intent)
+        logger.info(
+            f"Set user intent for {len(self.tools)} tools: {user_intent[:100]}...")
+
+    def set_user_intent_for_category(self, category: str, user_intent: str):
+        """Set user intent for tools in a specific category."""
+        if category in self._categories:
+            for tool_name in self._categories[category]:
+                self.tools[tool_name].set_user_intent(user_intent)
+            logger.info(
+                f"Set user intent for {len(self._categories[category])} tools in category '{category}': {user_intent[:100]}...")
+        else:
+            logger.warning(f"Category '{category}' not found in ToolRegistry")
 
     def register(self, tool: Tool):
         """Register a new tool"""

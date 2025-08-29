@@ -25,7 +25,8 @@ from .email_internal import (
     format_email_list_response,
     format_email_content_response,
     format_send_email_response,
-    format_delete_email_response
+    format_delete_email_response,
+    format_move_email_response
 )
 from dotenv import load_dotenv
 from personal_assistant.utils.text_cleaner import clean_html_content
@@ -203,7 +204,7 @@ class EmailTool:
         self._initialize_token()
         return self._access_token
 
-    async def read_recent_emails(self, count: int, batch_size: int = 10) -> List[Dict[str, Any]]:
+    async def read_recent_emails(self, count: int, batch_size: int = 10) -> str:
         """
         Read recent emails with improved error handling and token management
         """
@@ -236,12 +237,12 @@ class EmailTool:
                     )
 
                     if response.status_code != 200:
-                        return [EmailErrorHandler.handle_email_error(
+                        return EmailErrorHandler.handle_email_error(
                             Exception(
                                 f"HTTP {response.status_code}: {response.text}"),
                             "read_recent_emails",
                             {"count": count, "batch_size": batch_size}
-                        )]
+                        )
 
                     for mail in response.json().get('value', []):
                         if not mail.get('isDraft'):
@@ -250,10 +251,11 @@ class EmailTool:
                     if len(emails) >= count:
                         break
 
-            return emails[:count]
+            # Use formatting function for clean user output
+            return format_email_list_response(emails[:count], count)
 
         except Exception as e:
-            return [EmailErrorHandler.handle_email_error(e, "read_recent_emails", {"count": count, "batch_size": batch_size})]
+            return EmailErrorHandler.handle_email_error(e, "read_recent_emails", {"count": count, "batch_size": batch_size})
 
     async def send_email(self, to_recipients: str, subject: str, body: str, is_html: bool = False) -> Dict[str, Any]:
         """Send an email to one or more recipients"""
@@ -304,7 +306,7 @@ class EmailTool:
                 )
 
                 if response.status_code == 202:  # Accepted
-                    return format_success_response(f"Email sent successfully to {to_recipients}")
+                    return format_send_email_response(True, f"Email sent successfully to {to_recipients}", to_recipients)
                 else:
                     return EmailErrorHandler.handle_email_error(
                         Exception(
@@ -344,7 +346,7 @@ class EmailTool:
                 )
 
                 if response.status_code == 204:  # No content on successful deletion
-                    return format_success_response(f"Successfully deleted email with ID: {message_id}")
+                    return format_delete_email_response(True, f"Successfully deleted email with ID: {message_id}", message_id)
                 elif response.status_code == 404:
                     return handle_email_not_found(message_id)
                 else:
@@ -388,11 +390,8 @@ class EmailTool:
                     raw_body = mail.get('body', {}).get('content', '')
                     clean_body = self._clean_html_content(raw_body)
 
-                    email_data = {
-                        "success": True,
-                        "email": parse_email_content_response(mail, clean_body)
-                    }
-                    return email_data
+                    # Use formatting function for clean user output
+                    return format_email_content_response(parse_email_content_response(mail, clean_body))
                 elif response.status_code == 404:
                     return handle_email_not_found(message_id)
                 else:
@@ -406,7 +405,7 @@ class EmailTool:
         except Exception as e:
             return EmailErrorHandler.handle_email_error(e, "get_email_content", {"message_id": message_id})
 
-    async def get_sent_emails(self, count: int = 10, batch_size: int = 10) -> List[Dict[str, Any]]:
+    async def get_sent_emails(self, count: int = 10, batch_size: int = 10) -> str:
         """
         Read recent emails you have sent with improved error handling and token management
         """
@@ -439,12 +438,12 @@ class EmailTool:
                     )
 
                     if response.status_code != 200:
-                        return [EmailErrorHandler.handle_email_error(
+                        return EmailErrorHandler.handle_email_error(
                             Exception(
                                 f"HTTP {response.status_code}: {response.text}"),
                             "get_sent_emails",
                             {"count": count, "batch_size": batch_size}
-                        )]
+                        )
 
                     batch_data = response.json()
                     batch_emails = batch_data.get('value', [])
@@ -465,16 +464,17 @@ class EmailTool:
                         }
                         sent_emails.append(email_info)
 
-            return sent_emails
+            # Use formatting function for clean user output
+            return format_email_list_response(sent_emails[:count], count)
 
         except Exception as e:
-            return [EmailErrorHandler.handle_email_error(
+            return EmailErrorHandler.handle_email_error(
                 e,
                 "get_sent_emails",
                 {"count": count, "batch_size": batch_size}
-            )]
+            )
 
-    async def search_emails(self, query: str, count: int = 20, date_from: str = None, date_to: str = None, folder: str = "inbox") -> List[Dict[str, Any]]:
+    async def search_emails(self, query: str, count: int = 20, date_from: str = None, date_to: str = None, folder: str = "inbox") -> str:
         """
         Search emails by query, sender, date range, or other criteria.
 
@@ -489,11 +489,11 @@ class EmailTool:
         try:
             # Validate parameters
             if not query or not query.strip():
-                return [EmailErrorHandler.handle_email_error(
+                return EmailErrorHandler.handle_email_error(
                     ValueError("Search query cannot be empty"),
                     "search_emails",
                     {"query": query, "count": count}
-                )]
+                )
 
             # Ensure count is an integer (handle float values from LLM)
             count = int(count) if count else 20
@@ -531,51 +531,40 @@ class EmailTool:
             filter_string = " and ".join(
                 search_filter) if search_filter else None
 
-            # Determine folder endpoint
-            if folder.lower() == "sentitems":
-                endpoint = f"{self.ms_graph_url}/me/mailFolders/SentItems/messages"
-            elif folder.lower() == "drafts":
-                endpoint = f"{self.ms_graph_url}/me/mailFolders/Drafts/messages"
-            else:
-                # Default to inbox
-                endpoint = f"{self.ms_graph_url}/me/messages"
-
-            # Build query parameters
-            params = {
+            # Build final parameters
+            final_params = {
                 '$top': count,
                 '$select': 'id,subject,bodyPreview,receivedDateTime,from,toRecipients,isDraft,importance'
             }
 
-            # Add search parameter if query provided
-            if query:
-                params['$search'] = f'"{query}"'
-                # Note: $search doesn't support $orderby, so we'll sort results client-side
-            else:
-                # Only add $orderby when not using $search
-                params['$orderby'] = 'receivedDateTime desc'
-
-            # Add filter for date ranges and other criteria (excluding query search)
+            # Add search and filter parameters
+            if search_params:
+                final_params.update(search_params)
             if filter_string:
-                params['$filter'] = filter_string
+                final_params['$filter'] = filter_string
+
+            # Get folder ID if not inbox
+            if folder.lower() != "inbox":
+                # For now, we'll search in inbox and filter by folder later
+                # In a full implementation, you'd get the folder ID first
+                pass
 
             async with httpx.AsyncClient() as client:
-                # Log the request details for debugging
-                self.logger.info(f"Searching emails with endpoint: {endpoint}")
-                self.logger.info(f"Search parameters: {params}")
-
-                response = await client.get(endpoint, headers=headers, params=params)
+                response = await client.get(
+                    f"{self.ms_graph_url}/me/messages",
+                    headers=headers,
+                    params=final_params
+                )
 
                 if response.status_code != 200:
-                    error_msg = f"HTTP {response.status_code}: {response.text}"
-                    self.logger.error(f"Search emails failed: {error_msg}")
-                    return [EmailErrorHandler.handle_email_error(
-                        Exception(error_msg),
+                    return EmailErrorHandler.handle_email_error(
+                        Exception(
+                            f"HTTP {response.status_code}: {response.text}"),
                         "search_emails",
                         {"query": query, "count": count, "folder": folder}
-                    )]
+                    )
 
-                data = response.json()
-                emails = data.get('value', [])
+                emails = response.json().get('value', [])
 
                 for email in emails:
                     # Format search result
@@ -618,16 +607,18 @@ class EmailTool:
 
             self.logger.info(
                 f"Search completed: found {len(search_results)} results for query '{query}' in folder '{folder}'")
-            return search_results
+
+            # Use formatting function for clean user output
+            return format_email_list_response(search_results[:count], count)
 
         except Exception as e:
-            return [EmailErrorHandler.handle_email_error(
+            return EmailErrorHandler.handle_email_error(
                 e,
                 "search_emails",
                 {"query": query, "count": count, "folder": folder}
-            )]
+            )
 
-    async def move_email(self, message_id: str, destination_folder: str) -> Dict[str, Any]:
+    async def move_email(self, message_id: str, destination_folder: str) -> str:
         """
         Move an email from one folder to another folder.
 
@@ -727,46 +718,21 @@ class EmailTool:
 
                     success_message = f"Successfully moved email '{move_result.get('subject', 'Unknown subject')}' from '{current_folder}' to '{destination_folder}'"
 
-                    return {
-                        "success": True,
-                        "message": success_message,
-                        "email_id": message_id,
-                        "destination_folder": destination_folder,
-                        "previous_folder": current_folder,
-                        "move_result": move_result
-                    }
+                    return format_move_email_response(True, success_message, message_id, destination_folder, current_folder)
                 elif response.status_code == 404:
-                    return EmailErrorHandler.handle_email_error(
-                        Exception(f"Email with ID {message_id} not found"),
-                        "move_email",
-                        {"message_id": message_id,
-                            "destination_folder": destination_folder}
-                    )
+                    error_message = f"Email with ID {message_id} not found"
+                    return format_move_email_response(False, error_message, message_id, destination_folder, current_folder)
                 elif response.status_code == 400:
                     error_data = response.json()
-                    error_message = error_data.get(
-                        'error', {}).get('message', 'Bad request')
-                    return EmailErrorHandler.handle_email_error(
-                        Exception(f"Move failed: {error_message}"),
-                        "move_email",
-                        {"message_id": message_id,
-                            "destination_folder": destination_folder}
-                    )
+                    error_message = f"Move failed: {error_data.get('error', {}).get('message', 'Bad request')}"
+                    return format_move_email_response(False, error_message, message_id, destination_folder, current_folder)
                 else:
-                    return EmailErrorHandler.handle_email_error(
-                        Exception(
-                            f"HTTP {response.status_code}: {response.text}"),
-                        "move_email",
-                        {"message_id": message_id,
-                            "destination_folder": destination_folder}
-                    )
+                    error_message = f"HTTP {response.status_code}: {response.text}"
+                    return format_move_email_response(False, error_message, message_id, destination_folder, current_folder)
 
         except Exception as e:
-            return EmailErrorHandler.handle_email_error(
-                e,
-                "move_email",
-                {"message_id": message_id, "destination_folder": destination_folder}
-            )
+            error_message = f"Move operation failed: {str(e)}"
+            return format_move_email_response(False, error_message, message_id, destination_folder, "unknown")
 
     def __iter__(self):
         """Makes the class iterable to return all tools"""

@@ -251,3 +251,11 @@ def format_delete_email_response(success: bool, message: str, message_id: str) -
         return f"✅ {message}\n🗑️ Deleted email ID: {message_id}\n⏱️ Response Time: <3 seconds (target)"
     else:
         return f"❌ {message}\n⏱️ Response Time: <3 seconds (target)"
+
+
+def format_move_email_response(success: bool, message: str, email_id: str, destination_folder: str, previous_folder: str = "unknown") -> str:
+    """Format move email response for display"""
+    if success:
+        return f"✅ {message}\n📧 Email ID: {email_id}\n📁 Moved from: {previous_folder}\n📁 Moved to: {destination_folder}\n⏱️ Response Time: <3 seconds (target)"
+    else:
+        return f"❌ {message}\n⏱️ Response Time: <3 seconds (target)"

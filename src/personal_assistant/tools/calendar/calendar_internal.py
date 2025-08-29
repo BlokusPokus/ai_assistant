@@ -208,13 +208,6 @@ def get_datetime_range(days: int) -> tuple[str, str]:
     return start_datetime, end_datetime
 
 
-def parse_start_time(start_time: str) -> tuple[datetime, datetime]:
-    """Parse start time and calculate end time with default duration"""
-    start_dt = datetime.strptime(start_time, "%Y-%m-%d %H:%M")
-    end_dt = start_dt + timedelta(minutes=60)  # Default 1 hour duration
-    return start_dt, end_dt
-
-
 def parse_start_time_with_duration(start_time: str, duration: int) -> tuple[datetime, datetime]:
     """Parse start time and calculate end time with specified duration"""
     start_dt = datetime.strptime(start_time, "%Y-%m-%d %H:%M")
