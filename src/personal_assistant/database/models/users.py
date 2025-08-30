@@ -34,9 +34,11 @@ class User(Base):
     role_assigned_at = Column(DateTime, nullable=True)
     role_assigned_by = Column(Integer, ForeignKey('users.id'), nullable=True)
 
-    # Add relationship to memory chunks
-    memory_chunks = relationship(
-        "MemoryChunk", back_populates="user", cascade="all, delete-orphan")
+    # Memory chunks relationship removed - using new normalized schema
+
+    # Add relationship to conversation states (new normalized schema)
+    conversations = relationship(
+        "ConversationState", back_populates="user", cascade="all, delete-orphan")
 
     # Add relationship to auth tokens
     auth_tokens = relationship(

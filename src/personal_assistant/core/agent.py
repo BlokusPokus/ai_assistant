@@ -6,19 +6,14 @@ from personal_assistant.prompts.enhanced_prompt_builder import EnhancedPromptBui
 from .runner import AgentRunner
 from .exceptions import (
     ConversationError,
-    AgentExecutionError,
     ValidationError,
-    MemoryError,
-    ToolExecutionError,
-    LLMError,
-    ContextError
+
 )
 from .logging_utils import (
-    agent_context_logger,
     log_agent_operation,
-    log_error_with_context,
     log_performance_metrics
 )
+from .error_handler import AgentErrorHandler
 from ..tools import ToolRegistry
 from ..tools.ltm.ltm_manager import (
     get_ltm_context_with_tags,
@@ -27,8 +22,7 @@ from ..llm.gemini import GeminiLLM
 from ..llm.planner import LLMPlanner
 from ..types.state import AgentState
 from ..memory.conversation_manager import get_conversation_id, create_new_conversation, should_resume_conversation
-from ..memory.memory_storage import save_state, load_state, get_conversation_timestamp
-from ..memory.memory_storage import log_agent_interaction
+from ..memory.storage_integration import StorageIntegrationManager
 from ..rag.retriever import query_knowledge_base
 from ..config.logging_config import get_logger
 
@@ -71,6 +65,14 @@ class AgentCore:
             logger.warning(f"Failed to initialize LTM optimization: {e}")
             self.ltm_learning_manager = None
 
+        # Initialize storage integration manager for new normalized storage
+        self.storage_manager = StorageIntegrationManager()
+        logger.info("Storage integration manager initialized successfully")
+
+        # Initialize error handler
+        self.error_handler = AgentErrorHandler(logger)
+        logger.info("Error handler initialized successfully")
+
     async def run(self, user_input: str, user_id: int) -> str:
         """
         Process user input and generate a response using the agent system.
@@ -86,7 +88,7 @@ class AgentCore:
             ValidationError: If user_input or user_id is invalid
             ConversationError: If conversation management fails
             AgentExecutionError: If agent execution fails
-            MemoryError: If memory operations fail
+            AgentMemoryError: If memory operations fail
         """
         # Input validation
         if not user_input or not user_input.strip():
@@ -115,7 +117,7 @@ class AgentCore:
                 agent_state = AgentState(user_input=user_input)
 
             else:
-                last_timestamp = await get_conversation_timestamp(user_id, conversation_id)
+                last_timestamp = await self.storage_manager.get_conversation_timestamp(user_id, conversation_id)
 
                 resume_conversation = should_resume_conversation(
                     last_timestamp)
@@ -123,7 +125,7 @@ class AgentCore:
 
                 if resume_conversation:
                     logger.info("Resuming existing conversation")
-                    agent_state = await load_state(conversation_id)
+                    agent_state = await self.storage_manager.load_state(conversation_id, user_id)
                     agent_state.user_input = user_input
                 else:
                     logger.info(
@@ -162,7 +164,7 @@ class AgentCore:
             response, updated_state = await self.runner.execute_agent_loop(user_input)
 
             try:
-                await save_state(conversation_id, updated_state, user_id)
+                await self.storage_manager.save_state(conversation_id, updated_state, user_id)
             except Exception as e:
                 logger.error(f"Failed to save state for user {user_id}: {e}")
                 # Continue execution even if state saving fails
@@ -185,7 +187,7 @@ class AgentCore:
                     # Continue execution even if LTM optimization fails
 
             try:
-                await log_agent_interaction(
+                await self.storage_manager.log_agent_interaction(
                     user_id=user_id,  # user_id is already an integer
                     user_input=updated_state.user_input,
                     agent_response=response,
@@ -206,55 +208,5 @@ class AgentCore:
 
             return response
 
-        except ValidationError as e:
-            log_error_with_context(logger, e, user_id, "validation_error")
-            duration = time.time() - start_time
-            log_performance_metrics(logger, user_id, "agent_run_complete", duration, False,
-                                    {"error_type": "validation"})
-            return f"I'm sorry, but I couldn't process your request due to invalid input. Please try again. (Error: {e})"
-
-        except ConversationError as e:
-            log_error_with_context(logger, e, user_id, "conversation_error")
-            duration = time.time() - start_time
-            log_performance_metrics(logger, user_id, "agent_run_complete", duration, False,
-                                    {"error_type": "conversation"})
-            return f"I'm having trouble managing our conversation. Let me start fresh. (Error: {e})"
-
-        except MemoryError as e:
-            log_error_with_context(logger, e, user_id, "memory_error", {
-                                   "operation": e.operation})
-            duration = time.time() - start_time
-            log_performance_metrics(logger, user_id, "agent_run_complete", duration, False,
-                                    {"error_type": "memory", "operation": e.operation})
-            return f"I'm having trouble accessing your conversation history. Let me start fresh. (Error: {e})"
-
-        except ToolExecutionError as e:
-            log_error_with_context(logger, e, user_id, "tool_execution_error", {
-                                   "tool_name": e.tool_name})
-            duration = time.time() - start_time
-            log_performance_metrics(logger, user_id, "agent_run_complete", duration, False,
-                                    {"error_type": "tool_execution", "tool_name": e.tool_name})
-            return f"I encountered an issue while using a tool. Please try again in a moment. (Error: {e})"
-
-        except LLMError as e:
-            log_error_with_context(logger, e, user_id, "llm_error", {
-                                   "model": e.model, "operation": e.operation})
-            duration = time.time() - start_time
-            log_performance_metrics(logger, user_id, "agent_run_complete", duration, False,
-                                    {"error_type": "llm", "model": e.model, "operation": e.operation})
-            return f"I'm having trouble processing your request with my language model. Please try again in a moment. (Error: {e})"
-
-        except ContextError as e:
-            log_error_with_context(logger, e, user_id, "context_error", {
-                                   "context_type": e.context_type})
-            duration = time.time() - start_time
-            log_performance_metrics(logger, user_id, "agent_run_complete", duration, False,
-                                    {"error_type": "context", "context_type": e.context_type})
-            return f"I'm having trouble accessing relevant information. Please try again. (Error: {e})"
-
         except Exception as e:
-            log_error_with_context(logger, e, user_id, "unexpected_error")
-            duration = time.time() - start_time
-            log_performance_metrics(logger, user_id, "agent_run_complete", duration, False,
-                                    {"error_type": "unexpected"})
-            return f"I'm experiencing technical difficulties. Please try again later. (Error: {str(e)})"
+            return await self.error_handler.handle_error(e, user_id, start_time)

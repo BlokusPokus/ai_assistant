@@ -1,6 +1,6 @@
 """
 Manages conversation state, IDs, and archival logic.
-Uses the new database structure for persistence.
+Uses the new normalized database structure for persistence.
 """
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -9,8 +9,6 @@ from typing import Optional
 from sqlalchemy import desc, select
 
 from ..database.crud.utils import add_record_no_commit
-from ..database.models.memory_chunk import MemoryChunk
-from ..database.models.memory_metadata import MemoryMetadata
 from ..database.session import AsyncSessionLocal
 import logging
 from sqlalchemy.exc import SQLAlchemyError
@@ -23,9 +21,8 @@ async def get_conversation_id(user_id: int) -> Optional[str]:
     """
     Retrieve the latest conversation_id for a user, or None if not found.
 
-    This function queries the database for the most recent conversation associated
-    with the given user. It uses proper joins with the memory_metadata table
-    to find conversations by their metadata.
+    This function queries the new normalized database schema for the most recent 
+    conversation associated with the given user.
 
     Args:
         user_id (int): The user ID to search for conversations
@@ -34,7 +31,7 @@ async def get_conversation_id(user_id: int) -> Optional[str]:
         Optional[str]: The conversation ID if found, None otherwise
 
     Example:
-        >>> conv_id = await get_conversation_id("user_123")
+        >>> conv_id = await get_conversation_id(126)
         >>> if conv_id:
         ...     print(f"Found conversation: {conv_id}")
         ... else:
@@ -46,22 +43,27 @@ async def get_conversation_id(user_id: int) -> Optional[str]:
         return None
 
     try:
-        async with AsyncSessionLocal() as session:
-            # user_id is already an integer, no conversion needed
+        # Use new normalized storage
+        from ..database.models.conversation_state import ConversationState
 
+        async with AsyncSessionLocal() as session:
             stmt = (
-                select(MemoryMetadata.value)
-                .join(MemoryChunk, MemoryMetadata.chunk_id == MemoryChunk.id)
-                .where(
-                    MemoryChunk.user_id == user_id,
-                    MemoryMetadata.key == "conversation_id"
-                )
-                .order_by(desc(MemoryChunk.created_at))
+                select(ConversationState.conversation_id)
+                .where(ConversationState.user_id == user_id)
+                .order_by(desc(ConversationState.updated_at))
                 .limit(1)
             )
             result = await session.execute(stmt)
             conversation_id = result.scalar_one_or_none()
-            return conversation_id
+
+            if conversation_id:
+                logger.debug(
+                    f"Found conversation ID in normalized storage: {conversation_id}")
+                return conversation_id
+            else:
+                logger.debug(
+                    f"No conversation found in normalized storage")
+                return None
     except Exception as e:
         logger.error(f"Error getting conversation ID for user {user_id}: {e}")
         return None
@@ -97,27 +99,23 @@ async def create_new_conversation(user_id: int) -> Optional[str]:
         async with AsyncSessionLocal() as session:
             async with session.begin():  # Start transaction
                 try:
-                    # Create memory chunk
-                    chunk_data = {
-                        "user_id": user_id,  # user_id is already an integer
-                        "content": "",
-                        # Use timezone-aware datetime
-                        "created_at": datetime.now(timezone.utc)
+                    # Create entry in new normalized storage
+                    from ..database.models.conversation_state import ConversationState
+
+                    # Create entry in conversation_states table
+                    conversation_state_data = {
+                        "conversation_id": conversation_id,
+                        "user_id": user_id,
+                        "user_input": "",
+                        "focus_areas": [],
+                        "step_count": 0,
+                        "last_tool_result": None,
+                        "created_at": datetime.now(timezone.utc),
+                        "updated_at": datetime.now(timezone.utc)
                     }
-                    chunk = await add_record_no_commit(session, MemoryChunk, chunk_data)
-
-                    # Create metadata entries
-                    metadata_entries = [
-                        {"chunk_id": chunk.id, "key": "conversation_id",
-                            "value": conversation_id},
-                        {"chunk_id": chunk.id, "key": "type",
-                            "value": "conversation"},
-                        {"chunk_id": chunk.id, "key": "created_at",
-                            "value": datetime.now(timezone.utc).isoformat()}  # Use timezone-aware datetime
-                    ]
-
-                    for entry in metadata_entries:
-                        await add_record_no_commit(session, MemoryMetadata, entry)
+                    await add_record_no_commit(session, ConversationState, conversation_state_data)
+                    logger.debug(
+                        f"✅ Created conversation in normalized storage: {conversation_id}")
 
                     logger.info(
                         f"Successfully created conversation {conversation_id}")

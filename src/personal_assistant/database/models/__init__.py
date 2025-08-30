@@ -3,10 +3,7 @@ from .base import Base
 from .users import User
 from .auth_tokens import AuthToken
 from .ltm_memory import LTMMemory
-from .memory_chunk import MemoryChunk
-from .memory_metadata import MemoryMetadata
 from .event_processing_log import EventProcessingLog
-from .agent_logs import AgentLog
 from .ai_tasks import AITask
 from .task_results import TaskResult
 from .grocery_items import GroceryItem
@@ -29,6 +26,11 @@ from .mfa_models import MFAConfiguration, UserSession, SecurityEvent
 # RBAC models
 from .rbac_models import Role, Permission, RolePermission, UserRole, AccessAuditLog
 
+# New Conversation Schema models
+from .conversation_state import ConversationState
+from .conversation_message import ConversationMessage
+from .memory_context_item import MemoryContextItem
+
 # SMS Router models - import after User to avoid circular imports
 from personal_assistant.sms_router.models import SMSRouterConfig, SMSUsageLog, UserPhoneMapping
 
@@ -47,10 +49,7 @@ __all__ = [
     "User",
     "AuthToken",
     "LTMMemory",
-    "MemoryChunk",
-    "MemoryMetadata",
     "EventProcessingLog",
-    "AgentLog",
     "AITask",
     "TaskResult",
     "GroceryItem",
@@ -75,6 +74,10 @@ __all__ = [
     "RolePermission",
     "UserRole",
     "AccessAuditLog",
+    # New Conversation Schema models
+    "ConversationState",
+    "ConversationMessage",
+    "MemoryContextItem",
     # SMS Router models
     "SMSRouterConfig",
     "SMSUsageLog",

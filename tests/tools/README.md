@@ -214,3 +214,4 @@ When contributing to the tests:
 2. **Follow patterns**: Use existing test structure and naming conventions
 3. **Document changes**: Update this README when adding new test categories
 4. **Test edge cases**: Include tests for boundary conditions and error scenarios
+
