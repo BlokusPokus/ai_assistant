@@ -42,7 +42,7 @@ jobs:
           pip-audit --desc
 
       - name: Upload dependency scan results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dependency-scan-results
           path: |
@@ -77,7 +77,7 @@ jobs:
           semgrep --config=auto src/
 
       - name: Upload code scan results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: code-scan-results
           path: |
@@ -111,7 +111,7 @@ jobs:
           output: "trivy-results.sarif"
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: "trivy-results.sarif"
@@ -123,7 +123,7 @@ jobs:
           format: "table"
 
       - name: Upload container scan results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: container-scan-results
           path: trivy-results.sarif
@@ -192,7 +192,7 @@ jobs:
           pip-licenses --format=table
 
       - name: Upload license scan results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: license-scan-results
           path: licenses.json
@@ -248,7 +248,7 @@ jobs:
     if: always()
     steps:
       - name: Download all security scan results
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: security-results
 

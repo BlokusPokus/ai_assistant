@@ -82,6 +82,7 @@ jobs:
   # Job 2: Unit Tests
   unit-tests:
     runs-on: ubuntu-latest
+    continue-on-error: false
     services:
       postgres:
         image: postgres:15-alpine
@@ -142,7 +143,7 @@ jobs:
           pytest tests/unit/ tests/test_auth/ tests/tools/ -v --cov=src --cov-report=xml --cov-report=html --timeout=300
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
           flags: unit-tests
@@ -211,7 +212,7 @@ jobs:
           pytest tests/integration/ tests/test_sms_router/ tests/test_oauth_*.py -v --cov=src --cov-report=xml --cov-report=html --timeout=600
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
           flags: integration-tests
@@ -280,7 +281,7 @@ jobs:
           pytest tests/test_user_*.py tests/test_analytics_*.py tests/completed_tasks/ -v --cov=src --cov-report=xml --cov-report=html --timeout=1200
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
           flags: e2e-tests
@@ -349,7 +350,7 @@ jobs:
           pytest tests/test_auth/test_performance.py -v --benchmark-only --benchmark-save=performance --timeout=1200
 
       - name: Upload performance results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: performance-results
           path: .benchmarks/
@@ -431,7 +432,7 @@ jobs:
           semgrep --config=auto --json --output=semgrep-report.json src/ || true
 
       - name: Upload security reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: security-reports
           path: |
