@@ -10,6 +10,11 @@ on:
     - cron: "0 2 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: read
+  security-events: write
+
 env:
   PYTHON_VERSION: "3.11"
 
@@ -146,7 +151,7 @@ jobs:
           extra_args: --debug --only-verified
 
       - name: Run GitLeaks secret scanner
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v2.4.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
@@ -189,7 +194,7 @@ jobs:
       - name: Check licenses
         run: |
           pip-licenses --format=json --output-file=licenses.json
-          pip-licenses --format=table
+          pip-licenses --format=plain
 
       - name: Upload license scan results
         uses: actions/upload-artifact@v4
@@ -225,7 +230,7 @@ jobs:
           fi
 
           # Check for environment variable security
-          if [ -f ".env.example" ]; then
+          if [ -f ".env.example" ] || [ -f "config/env.example" ]; then
             echo "✅ .env.example found"
           else
             echo "❌ .env.example not found"
