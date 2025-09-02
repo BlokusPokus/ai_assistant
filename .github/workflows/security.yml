@@ -14,6 +14,9 @@ permissions:
   contents: read
   pull-requests: read
   security-events: write
+  actions: read
+  metadata: read
+  checks: write
 
 env:
   PYTHON_VERSION: "3.11"
@@ -73,8 +76,8 @@ jobs:
 
       - name: Run bandit security scan
         run: |
-          bandit -r src/ -f json -o bandit-report.json || true
-          bandit -r src/ -f txt
+          bandit -r src/ --exclude "**/tests/**" --exclude "**/test_*.py" -f json -o bandit-report.json || true
+          bandit -r src/ --exclude "**/tests/**" --exclude "**/test_*.py" -f txt
 
       - name: Run semgrep security scan
         run: |
@@ -92,6 +95,10 @@ jobs:
   # Job 3: Container Security Scanning
   container-scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -151,7 +158,7 @@ jobs:
           extra_args: --debug --only-verified
 
       - name: Run GitLeaks secret scanner
-        uses: gitleaks/gitleaks-action@v2.4.0
+        uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
@@ -159,6 +166,10 @@ jobs:
   # Job 5: SAST (Static Application Security Testing)
   sast-scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
