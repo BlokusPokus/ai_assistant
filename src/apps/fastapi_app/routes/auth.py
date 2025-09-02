@@ -8,7 +8,8 @@ logout, and token refresh operations.
 from datetime import timedelta, datetime
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, validator
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 
@@ -31,6 +32,21 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     full_name: str
+    phone_number: Optional[str] = None
+
+    @validator('phone_number')
+    def validate_phone_number(cls, v):
+        if v is not None:
+            # Basic phone number validation - remove spaces and dashes
+            v = v.replace(' ', '').replace(
+                '-', '').replace('(', '').replace(')', '')
+            if not v.startswith('+') and not v.isdigit():
+                raise ValueError(
+                    "Phone number must start with + or contain only digits")
+            if len(v) < 10 or len(v) > 15:
+                raise ValueError(
+                    "Phone number must be between 10 and 15 characters")
+        return v
 
 
 class UserLogin(BaseModel):
@@ -154,6 +170,7 @@ async def register(
         new_user = User(
             email=user_data.email,
             full_name=user_data.full_name,
+            phone_number=user_data.phone_number,
             hashed_password=hashed_password,
             is_active=True,
             is_verified=False,  # Email verification required

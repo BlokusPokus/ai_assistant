@@ -65,6 +65,46 @@ LTM_TAGS = [
     "miscellaneous",
     "other",
 
+    # Organization & Management
+    "organization",
+    "management",
+    "productivity",
+    "automation",
+    "efficiency",
+    "optimization",
+
+    # Communication Styles
+    "communication",
+    "concise",
+    "detailed",
+    "professional",
+    "casual",
+    "formal",
+    "informal",
+
+    # Frequency & Patterns
+    "frequent",
+    "occasional",
+    "rare",
+    "consistent",
+    "variable",
+
+    # Work Styles
+    "technical",
+    "creative",
+    "analytical",
+    "strategic",
+    "tactical",
+    "operational",
+
+    # Quality & Effectiveness
+    "effective",
+    "ineffective",
+    "streamlined",
+    "simplified",
+    "complex",
+    "straightforward",
+
     # Project Management
     "project",
     "task",
@@ -123,6 +163,11 @@ TAG_CATEGORIES = {
     "system": ["tool_execution", "user_request", "system_response", "error", "success"],
     "time": ["daily", "weekly", "monthly", "one_time", "recurring"],
     "general": ["general", "miscellaneous", "other"],
+    "organization": ["organization", "management", "productivity", "automation", "efficiency", "optimization"],
+    "communication_style": ["communication", "concise", "detailed", "professional", "casual", "formal", "informal"],
+    "frequency": ["frequent", "occasional", "rare", "consistent", "variable"],
+    "work_style": ["technical", "creative", "analytical", "strategic", "tactical", "operational"],
+    "quality": ["effective", "ineffective", "streamlined", "simplified", "complex", "straightforward"],
     "project_management": ["project", "task", "deadline", "milestone"],
     "health": ["exercise", "diet", "medication", "wellness"],
     "social": ["friend", "family", "event", "birthday"],
@@ -136,12 +181,14 @@ TAG_CATEGORIES = {
 # Validation function to ensure tags are from the allowed list
 
 
-def validate_tags(tags: list) -> tuple[list, list]:
+def validate_tags(tags: list, enable_smart_fallback: bool = True) -> tuple[list, list]:
     """
     Validate that all tags are from the allowed LTM_TAGS list.
+    Optionally provides smart fallback suggestions for invalid tags.
 
     Args:
         tags: List of tags to validate
+        enable_smart_fallback: If True, suggest similar valid tags for invalid ones
 
     Returns:
         Tuple of (valid_tags, invalid_tags)
@@ -156,9 +203,103 @@ def validate_tags(tags: list) -> tuple[list, list]:
         if tag in LTM_TAGS:
             valid_tags.append(tag)
         else:
+            if enable_smart_fallback:
+                # Try to find a similar valid tag
+                similar_tag = _find_similar_tag(tag)
+                if similar_tag:
+                    valid_tags.append(similar_tag)
+                    continue
             invalid_tags.append(tag)
 
     return valid_tags, invalid_tags
+
+
+def _find_similar_tag(invalid_tag: str) -> str:
+    """
+    Find a similar valid tag for an invalid tag using fuzzy matching.
+
+    Args:
+        invalid_tag: The invalid tag to find a replacement for
+
+    Returns:
+        A similar valid tag or None if no good match found
+    """
+    invalid_lower = invalid_tag.lower()
+
+    # Direct mappings for common cases
+    tag_mappings = {
+        'organize': 'organization',
+        'organizing': 'organization',
+        'organised': 'organization',
+        'manage': 'management',
+        'managing': 'management',
+        'productive': 'productivity',
+        'automate': 'automation',
+        'automating': 'automation',
+        'efficient': 'efficiency',
+        'optimize': 'optimization',
+        'optimizing': 'optimization',
+        'communicate': 'communication',
+        'communicating': 'communication',
+        'brief': 'concise',
+        'short': 'concise',
+        'detailed': 'detailed',
+        'thorough': 'detailed',
+        'pro': 'professional',
+        'business': 'professional',
+        'relaxed': 'casual',
+        'informal': 'casual',
+        'formal': 'formal',
+        'official': 'formal',
+        'tech': 'technical',
+        'technology': 'technical',
+        'innovative': 'creative',
+        'artistic': 'creative',
+        'logical': 'analytical',
+        'systematic': 'analytical',
+        'planning': 'strategic',
+        'tactics': 'tactical',
+        'operations': 'operational',
+        'working': 'operational',
+        'successful': 'effective',
+        'useful': 'effective',
+        'streamline': 'streamlined',
+        'simplify': 'simplified',
+        'easy': 'simplified',
+        'complicated': 'complex',
+        'difficult': 'complex',
+        'simple': 'straightforward',
+        'clear': 'straightforward',
+        'often': 'frequent',
+        'regularly': 'frequent',
+        'sometimes': 'occasional',
+        'rarely': 'rare',
+        'consistent': 'consistent',
+        'steady': 'consistent',
+        'changing': 'variable',
+        'inconsistent': 'variable'
+    }
+
+    # Check direct mappings first
+    if invalid_lower in tag_mappings:
+        return tag_mappings[invalid_lower]
+
+    # Check if the invalid tag is a substring of any valid tag
+    for valid_tag in LTM_TAGS:
+        if invalid_lower in valid_tag.lower() or valid_tag.lower() in invalid_lower:
+            return valid_tag
+
+    # Check for partial matches (at least 3 characters)
+    if len(invalid_lower) >= 3:
+        for valid_tag in LTM_TAGS:
+            if len(valid_tag) >= 3:
+                # Check if they share at least 3 consecutive characters
+                for i in range(len(invalid_lower) - 2):
+                    substring = invalid_lower[i:i+3]
+                    if substring in valid_tag.lower():
+                        return valid_tag
+
+    return None
 
 
 def get_tag_suggestions(content: str) -> list:

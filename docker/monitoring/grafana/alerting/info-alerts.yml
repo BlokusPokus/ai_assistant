@@ -1,0 +1,47 @@
+groups:
+  - name: info-alerts
+    rules:
+      - alert: UserRegistrationSpike
+        expr: rate(user_registrations_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: info
+        annotations:
+          summary: "User registration spike"
+          description: "User registration rate is {{ $value }} per second"
+
+      - alert: HighSMSCost
+        expr: sms_cost_total > 100
+        for: 1h
+        labels:
+          severity: info
+        annotations:
+          summary: "High SMS costs"
+          description: "SMS costs have reached ${{ $value }} for {{ $labels.provider }}"
+
+      - alert: FeatureUsageIncrease
+        expr: rate(feature_usage_total[1h]) > 50
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "Feature usage increase"
+          description: "Feature {{ $labels.feature }} usage increased to {{ $value }} per hour"
+
+      - alert: OAuthIntegrationIncrease
+        expr: oauth_integrations_active > 1000
+        for: 1h
+        labels:
+          severity: info
+        annotations:
+          summary: "High OAuth integration count"
+          description: "OAuth integrations for {{ $labels.provider }} reached {{ $value }}"
+
+      - alert: TaskExecutionSpike
+        expr: rate(task_execution_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "Task execution spike"
+          description: "Task execution rate is {{ $value }} per second for {{ $labels.task_type }}"

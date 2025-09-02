@@ -10,12 +10,16 @@ from typing import Dict, List, Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
 from sqlalchemy.orm import joinedload
+import logging
 
 from personal_assistant.oauth.models.integration import OAuthIntegration
 from personal_assistant.oauth.models.token import OAuthToken
 from personal_assistant.oauth.models.consent import OAuthConsent
 from personal_assistant.oauth.exceptions import OAuthIntegrationError
 from personal_assistant.oauth.providers.base import BaseOAuthProvider
+from personal_assistant.monitoring import get_metrics_service
+
+logger = logging.getLogger(__name__)
 
 
 class OAuthIntegrationService:
@@ -493,6 +497,20 @@ class OAuthIntegrationService:
                     summary["providers"][provider]["pending"] += 1
                 else:
                     summary["providers"][provider]["inactive"] += 1
+
+            # Update Prometheus metrics
+            try:
+                metrics_service = get_metrics_service()
+
+                # Update OAuth integration counts by provider
+                for provider, stats in summary["providers"].items():
+                    metrics_service.oauth_integrations_active.labels(
+                        provider=provider
+                    ).set(stats["active"])
+
+            except Exception as metrics_error:
+                logger.warning(
+                    f"Failed to update Prometheus OAuth metrics: {metrics_error}")
 
             return summary
 

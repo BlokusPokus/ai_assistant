@@ -176,14 +176,19 @@ async def _add_enhanced_ltm_memory(
 
             # Normalize and validate tags
             normalized_tags = normalize_tags(tags)
-            valid_tags, invalid_tags = validate_tags(normalized_tags)
+            valid_tags, invalid_tags = validate_tags(
+                normalized_tags, enable_smart_fallback=True)
 
             if invalid_tags:
                 logger.warning(
                     f"Invalid tags provided: {invalid_tags}. Using only valid tags: {valid_tags}")
 
-            # Use only valid tags, or empty list if none valid
-            final_tags = valid_tags if valid_tags else []
+            # Use only valid tags, or default to ['general'] if none valid
+            final_tags = valid_tags if valid_tags else ['general']
+
+            # Ensure all tags are lowercase strings (database requirement)
+            final_tags = [str(tag).lower().strip()
+                          for tag in final_tags if tag]
 
             # Create LTM memory entry
             memory_data = {
@@ -241,14 +246,19 @@ async def _add_legacy_ltm_memory(
 
             # Normalize and validate tags
             normalized_tags = normalize_tags(tags)
-            valid_tags, invalid_tags = validate_tags(normalized_tags)
+            valid_tags, invalid_tags = validate_tags(
+                normalized_tags, enable_smart_fallback=True)
 
             if invalid_tags:
                 logger.warning(
                     f"Invalid tags provided: {invalid_tags}. Using only valid tags: {valid_tags}")
 
-            # Use only valid tags, or empty list if none valid
-            final_tags = valid_tags if valid_tags else []
+            # Use only valid tags, or default to ['general'] if none valid
+            final_tags = valid_tags if valid_tags else ['general']
+
+            # Ensure all tags are lowercase strings (database requirement)
+            final_tags = [str(tag).lower().strip()
+                          for tag in final_tags if tag]
 
             # Create LTM memory entry with legacy structure
             memory_data = {
@@ -394,8 +404,20 @@ async def get_relevant_ltm_memories(
             # Filter by relevance (simple tag matching for now)
             relevant_memories = []
             for memory in memories:
-                # Check if any tags match context keywords
-                memory_tags = [tag.lower() for tag in memory.tags]
+                # Parse tags from JSON string if needed
+                if isinstance(memory.tags, str):
+                    try:
+                        import json
+                        memory_tags = json.loads(memory.tags)
+                    except json.JSONDecodeError:
+                        logger.warning(
+                            f"Failed to parse tags for memory {memory.id}: {memory.tags}")
+                        memory_tags = []
+                else:
+                    memory_tags = memory.tags or []
+
+                # Convert to lowercase for matching
+                memory_tags = [tag.lower() for tag in memory_tags]
                 logger.debug(f"Memory {memory.id} tags: {memory_tags}")
 
                 if any(keyword in memory_tags for keyword in context_keywords):
@@ -417,10 +439,22 @@ async def get_relevant_ltm_memories(
             # Convert to dict format
             formatted_memories = []
             for memory in relevant_memories:
+                # Parse tags from JSON string if needed
+                if isinstance(memory.tags, str):
+                    try:
+                        import json
+                        parsed_tags = json.loads(memory.tags)
+                    except json.JSONDecodeError:
+                        logger.warning(
+                            f"Failed to parse tags for memory {memory.id}: {memory.tags}")
+                        parsed_tags = []
+                else:
+                    parsed_tags = memory.tags or []
+
                 formatted_memories.append({
                     "id": memory.id,
                     "content": memory.content,
-                    "tags": memory.tags,
+                    "tags": parsed_tags,
                     "importance_score": memory.importance_score,
                     "context": memory.context,
                     "created_at": memory.created_at.isoformat() if memory.created_at else None,

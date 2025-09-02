@@ -104,6 +104,12 @@ class Settings(BaseSettings):
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     LOG_DATE_FORMAT: str = "%Y-%m-%d %H:%M:%S"
 
+    # Structured logging settings
+    STRUCTURED_LOGGING: bool = False
+    LOG_TO_LOKI: bool = False
+    LOKI_URL: str = "http://loki:3100/loki/api/v1/push"
+    CORRELATION_ID_HEADER: str = "X-Correlation-ID"
+
     # Module-specific log levels
     CORE_LOG_LEVEL: str = "INFO"
     LLM_LOG_LEVEL: str = "INFO"
@@ -114,6 +120,8 @@ class Settings(BaseSettings):
 
     # Logging override environment variables (optional)
     PA_LOG_LEVEL: Optional[str] = None
+    PA_STRUCTURED_LOGGING: Optional[str] = None
+    PA_LOG_TO_LOKI: Optional[str] = None
     PA_CORE_LOG_LEVEL: Optional[str] = None
     PA_LLM_LOG_LEVEL: Optional[str] = None
     PA_MEMORY_LOG_LEVEL: Optional[str] = None

@@ -257,14 +257,22 @@ async def create_ltm_memory_if_needed(ltm_tool, llm, logger, user_id: int, user_
             tag_response = await llm.generate(tag_prompt)
             logger.info(f"LLM tag response: {tag_response}")
 
-            # Parse tags from LLM response (should be comma-separated)
-            if tag_response and "," in tag_response:
-                tags = tag_response.strip()
-                logger.info(f"Using LLM-suggested tags: {tags}")
-            else:
-                # Fallback to automatic tag suggestions
-                tags = ",".join(get_tag_suggestions(ltm_content))
-                logger.info(f"Using fallback tags: {tags}")
+            # Validate and correct AI-generated tags
+            from ...utils.ai_tag_validator import validate_ai_generated_tags
+
+            valid_tags, invalid_tags, correction_explanation = validate_ai_generated_tags(
+                tag_response or "",
+                ltm_content,
+                conversation_context or "Conversation insight"
+            )
+
+            if invalid_tags:
+                logger.warning(f"AI generated invalid tags: {invalid_tags}")
+                logger.info(f"Correction: {correction_explanation}")
+
+            # Convert to comma-separated string for the LTM tool
+            tags = ",".join(valid_tags)
+            logger.info(f"Using validated tags: {tags}")
 
             # Determine importance score based on content
             importance_score = 7  # Default for insights

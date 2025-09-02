@@ -86,6 +86,28 @@ class LTMConfig:
     recent_boost: float = 0.05
     somewhat_recent_boost: float = 0.02
 
+    # Enhanced Smart Retriever settings (Phase 2.1)
+    cache_ttl_seconds: int = 300  # 5 minutes default cache TTL
+    max_cache_entries: int = 1000  # Maximum cache entries
+    min_quality_threshold: float = 0.3  # Minimum relevance score for inclusion
+    # Optimal relevance score for top results
+    optimal_quality_threshold: float = 0.7
+
+    # Enhanced scoring weights
+    phrase_scoring_weight: float = 0.2  # Weight for phrase matching
+    state_context_weight: float = 0.15  # Weight for state context relevance
+    type_scoring_weight: float = 0.1  # Weight for memory type scoring
+    confidence_scoring_weight: float = 0.1  # Weight for confidence score
+
+    # Dynamic Context Management settings (Phase 3.1)
+    min_context_length: int = 100  # Minimum context length
+    max_context_length: int = 2000  # Maximum context length
+    optimal_context_length: int = 800  # Optimal context length
+    simple_query_threshold: int = 50  # Threshold for simple queries
+    complex_query_threshold: int = 200  # Threshold for complex queries
+    focus_boost_multiplier: float = 1.5  # Multiplier for focus area matches
+    state_context_weight: float = 0.3  # Weight for state context relevance
+
     # Pattern detection settings
     communication_style_indicators: Dict[str, List[str]] = None
     topic_preference_keywords: Dict[str, List[str]] = None
@@ -178,3 +200,66 @@ class LTMConfig:
             "learned", "figured out", "discovered", "realized",
             "now i know", "i understand", "this helps"
         ]
+
+
+@dataclass
+class EnhancedLTMConfig(LTMConfig):
+    """Enhanced configuration for improved LTM system with state integration"""
+
+    # Memory creation thresholds (lowered for more active learning)
+    min_importance_for_memory: int = 2  # Was 3
+    memory_creation_confidence_threshold: float = 0.4  # Was 0.6
+    max_memories_per_interaction: int = 8  # Was 5
+
+    # State integration settings
+    enable_state_integration: bool = True  # NEW: Integrate with state management
+    state_data_weight: float = 0.3  # NEW: Weight for state-based insights
+    tool_usage_pattern_weight: float = 0.4  # NEW: Weight for tool patterns
+
+    # Enhanced retrieval settings (NO semantic search)
+    enable_enhanced_tag_matching: bool = True
+    enhanced_tag_weight: float = 0.4
+    content_weight: float = 0.3
+    importance_weight: float = 0.2
+    recency_weight: float = 0.1
+
+    # Dynamic context sizing
+    enable_dynamic_context_sizing: bool = True
+    min_context_length: int = 400  # Was fixed 800
+    max_context_length: int = 1200  # Was fixed 800
+    context_quality_threshold: float = 0.6
+
+    # Memory lifecycle
+    enable_smart_consolidation: bool = True
+    consolidation_similarity_threshold: float = 0.8
+    enable_usage_based_aging: bool = True
+    memory_archiving_threshold: float = 0.3
+
+    # State-LTM coordination settings
+    enable_state_ltm_coordination: bool = True
+    state_context_weight: float = 0.4
+    ltm_context_weight: float = 0.6
+    coordination_quality_threshold: float = 0.7
+
+    # Pattern recognition from state data
+    enable_pattern_recognition: bool = True
+    conversation_pattern_weight: float = 0.4
+    tool_usage_pattern_weight: float = 0.3
+    user_behavior_pattern_weight: float = 0.3
+    temporal_pattern_weight: float = 0.2
+
+    # Memory quality validation
+    enable_memory_quality_validation: bool = True
+    min_memory_quality_score: float = 0.5
+    quality_validation_confidence_threshold: float = 0.6
+
+    # Performance optimization
+    enable_caching: bool = True
+    cache_ttl_seconds: int = 300  # 5 minutes
+    enable_query_optimization: bool = True
+    max_query_timeout_seconds: int = 10
+
+    # Analytics and monitoring
+    enable_analytics: bool = True
+    analytics_sampling_rate: float = 0.1  # 10% of operations
+    performance_metrics_enabled: bool = True

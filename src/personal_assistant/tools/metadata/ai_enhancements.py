@@ -86,16 +86,6 @@ class AIEnhancement:
         """Convert enhancement to JSON string."""
         return json.dumps(self.to_dict(), indent=2)
 
-    def update_enhancement(self, **kwargs):
-        """Update enhancement fields and set updated timestamp."""
-        for key, value in kwargs.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
-
-        self.updated_at = datetime.now()
-        logger.info(
-            f"Updated enhancement {self.enhancement_id} for tool: {self.tool_name}")
-
     def get_ai_guidance(self) -> Dict[str, Any]:
         """Get AI guidance for this enhancement."""
         return {
@@ -139,10 +129,6 @@ class AIEnhancementManager:
 
         self.logger.info(
             f"Registered enhancement {enhancement.enhancement_id} for tool: {enhancement.tool_name}")
-
-    def get_enhancement(self, enhancement_id: str) -> Optional[AIEnhancement]:
-        """Get a specific enhancement by ID."""
-        return self.enhancements.get(enhancement_id)
 
     def get_tool_enhancements(self, tool_name: str) -> List[AIEnhancement]:
         """Get all enhancements for a specific tool."""

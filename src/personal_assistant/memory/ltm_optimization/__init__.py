@@ -12,6 +12,7 @@ from .learning_manager import LTMLearningManager
 from .learning import ConversationPatternLearner, UserPreferenceLearner, get_learners
 from .context_management import (
     ContextOptimizationManager,
+    DynamicContextManager,
     MemoryContext,
     TemporalContext,
     SpatialContext,
@@ -23,15 +24,19 @@ from .context_management import (
 from .memory_lifecycle import (
     MemoryLifecycleManager,
     MemoryConsolidator,
+    EnhancedMemoryLifecycleManager,
     get_lifecycle_manager,
     get_consolidator,
-    get_lifecycle_components
+    get_lifecycle_components,
+    get_enhanced_lifecycle_manager
 )
 
 # Import other essential modules
 from .llm_memory_creator import LLMMemoryCreator
 from .smart_retriever import SmartLTMRetriever
-from .config import LTMConfig
+from .config import LTMConfig, EnhancedLTMConfig
+from .pattern_recognition import PatternRecognitionEngine
+from .analytics import LTMAnalytics
 
 # Configure module logger
 from ...config.logging_config import get_logger
@@ -48,6 +53,7 @@ __all__ = [
 
     # Context management
     "ContextOptimizationManager",
+    "DynamicContextManager",
     "MemoryContext",
     "TemporalContext",
     "SpatialContext",
@@ -59,12 +65,17 @@ __all__ = [
     # Memory lifecycle
     "MemoryLifecycleManager",
     "MemoryConsolidator",
+    "EnhancedMemoryLifecycleManager",
     "get_lifecycle_manager",
     "get_consolidator",
     "get_lifecycle_components",
+    "get_enhanced_lifecycle_manager",
 
     # Core functionality
     "LLMMemoryCreator",
     "SmartLTMRetriever",
-    "LTMConfig"
+    "LTMConfig",
+    "EnhancedLTMConfig",
+    "PatternRecognitionEngine",
+    "LTMAnalytics"
 ]

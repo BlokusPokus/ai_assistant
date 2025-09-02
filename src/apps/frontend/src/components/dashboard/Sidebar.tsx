@@ -15,6 +15,7 @@ import {
   Link,
   Key,
   BarChart3,
+  Phone,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useDashboardStore } from '@/stores/dashboardStore';
@@ -62,6 +63,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
       label: 'Integrations',
       href: '/dashboard/integrations',
       icon: Link,
+    },
+    {
+      label: 'Phone Number',
+      href: '/dashboard/phone-management',
+      icon: Phone,
     },
     {
       label: 'OAuth Settings',

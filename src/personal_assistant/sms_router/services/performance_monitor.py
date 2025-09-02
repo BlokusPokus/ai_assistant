@@ -12,6 +12,7 @@ import json
 
 from ..models.sms_models import SMSUsageLog
 from ...database.models.users import User
+from ...monitoring import get_metrics_service
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +84,52 @@ class SMSPerformanceMonitor:
             # Update cache
             self._performance_cache = metrics
             self._last_cache_update = current_time
+
+            # Update Prometheus metrics
+            try:
+                metrics_service = get_metrics_service()
+
+                # Update SMS metrics
+                if 'total_messages' in metrics:
+                    # Update success/failure counts
+                    success_count = metrics.get('successful_messages', 0)
+                    failure_count = metrics.get('failed_messages', 0)
+
+                    if success_count > 0:
+                        metrics_service.sms_messages_total.labels(
+                            status='success', provider='twilio'
+                        ).inc(success_count)
+
+                    if failure_count > 0:
+                        metrics_service.sms_messages_total.labels(
+                            status='failure', provider='twilio'
+                        ).inc(failure_count)
+
+                # Update processing time metrics
+                if 'average_response_time_ms' in metrics:
+                    avg_time_seconds = metrics['average_response_time_ms'] / 1000.0
+                    metrics_service.sms_processing_duration_seconds.labels(
+                        provider='twilio'
+                    ).observe(avg_time_seconds)
+
+                # Update success rate
+                if 'success_rate_percent' in metrics:
+                    metrics_service.sms_success_rate.set(
+                        metrics['success_rate_percent'])
+
+                # Update queue length (if available)
+                if 'queue_length' in metrics:
+                    metrics_service.sms_queue_length.set(
+                        metrics['queue_length'])
+
+                # Update cost metrics (if available)
+                if 'total_cost' in metrics:
+                    metrics_service.sms_cost_total.labels(
+                        provider='twilio').inc(metrics['total_cost'])
+
+            except Exception as metrics_error:
+                logger.warning(
+                    f"Failed to update Prometheus SMS metrics: {metrics_error}")
 
             return metrics
 

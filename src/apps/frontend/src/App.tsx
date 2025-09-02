@@ -23,6 +23,7 @@ import {
   SMSAnalyticsPage,
   AdminAnalyticsPage,
 } from '@/pages/dashboard';
+import PhoneManagementPage from '@/pages/dashboard/PhoneManagementPage';
 import { OAuthSettingsPage } from '@/components/oauth-settings';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
@@ -105,6 +106,7 @@ function App() {
             <Route path="oauth-settings" element={<OAuthSettingsPage />} />
             <Route path="sms-analytics" element={<SMSAnalyticsPage />} />
             <Route path="admin-analytics" element={<AdminAnalyticsPage />} />
+            <Route path="phone-management" element={<PhoneManagementPage />} />
           </Route>
 
           {/* Catch-all route - redirect to landing */}

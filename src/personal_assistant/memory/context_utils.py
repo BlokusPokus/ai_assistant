@@ -10,8 +10,6 @@ from typing import List, Dict
 
 from sqlalchemy import select
 
-from personal_assistant.database.models.memory_chunk import MemoryChunk
-from personal_assistant.database.models.memory_metadata import MemoryMetadata
 from personal_assistant.database.session import AsyncSessionLocal
 
 

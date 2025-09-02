@@ -38,6 +38,10 @@ notion-client>=2.2.1   # Notion API client
 # Twilio integration
 twilio>=8.10.0
 
+# Monitoring and Metrics
+prometheus-client>=0.19.0
+python-logging-loki>=0.3.1
+
 # Data processing
 pydantic>=2.7.0
 pydantic-settings>=2.10.1

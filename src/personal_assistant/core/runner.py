@@ -18,6 +18,11 @@ from ..config.logging_config import get_logger
 from ..rag.document_processor import DocumentProcessor
 from ..utils.metrics import MetricsLogger
 from ..memory import apply_context_limits
+from ..memory.context_quality_validator import ContextQualityValidator
+from ..memory.ltm_optimization import (
+    DynamicContextManager,
+    EnhancedLTMConfig,
+)
 
 # Configure module logger
 logger = get_logger("core")
@@ -58,9 +63,26 @@ class AgentRunner:
         self.max_steps = settings.LOOP_LIMIT
         self.current_state = None  # Store the current state
         self.context_injection_limit = 1000  # Maximum characters for context injection
-        logger.info("AgentRunner initialized with tools and planner.")
 
-    def set_context(self, agent_state: AgentState, rag_context: Optional[List[dict]] = None, ltm_context: Optional[str] = None) -> None:
+        # Initialize context quality validator (will be configured when set_context is called)
+        self.quality_validator = None
+
+        # Initialize enhanced context manager
+        try:
+            self.ltm_config = EnhancedLTMConfig()
+            self.dynamic_context_manager = DynamicContextManager(
+                config=self.ltm_config)
+            logger.info(
+                "Enhanced dynamic context manager initialized successfully")
+        except Exception as e:
+            logger.warning(
+                f"Failed to initialize dynamic context manager: {e}")
+            self.dynamic_context_manager = None
+
+        logger.info(
+            "AgentRunner initialized with tools, planner, context quality validation, and dynamic context management.")
+
+    async def set_context(self, agent_state: AgentState, rag_context: Optional[List[dict]] = None, ltm_context: Optional[str] = None) -> None:
         """
         Inject LTM and RAG context into AgentState's memory_context with limits.
 
@@ -106,12 +128,58 @@ class AgentRunner:
             # Add LTM context if provided
             if ltm_context and ltm_context.strip():
                 logger.debug("Adding LTM context to memory blocks")
-                memory_blocks.append({
-                    "role": "memory",
-                    "source": "ltm",
-                    "content": ltm_context.strip(),
-                    "type": "long_term_memory"
-                })
+
+                # Use dynamic context manager for enhanced LTM context processing if available
+                if self.dynamic_context_manager:
+                    try:
+                        # Parse LTM context into memory objects for dynamic processing
+                        ltm_memories = self._parse_ltm_context_to_memories(
+                            ltm_context)
+
+                        # Optimize LTM context with state coordination
+                        optimized_ltm_context = await self.dynamic_context_manager.optimize_context_with_state(
+                            memories=ltm_memories,
+                            user_input=agent_state.user_input,
+                            state_context=agent_state,
+                            focus_areas=agent_state.focus if hasattr(
+                                agent_state, 'focus') else None,
+                            query_complexity="medium"
+                        )
+
+                        if optimized_ltm_context:
+                            memory_blocks.append({
+                                "role": "memory",
+                                "source": "ltm_enhanced",
+                                "content": optimized_ltm_context,
+                                "type": "long_term_memory_optimized"
+                            })
+                            logger.debug(
+                                "Enhanced LTM context added with dynamic optimization")
+                        else:
+                            # Fallback to original context
+                            memory_blocks.append({
+                                "role": "memory",
+                                "source": "ltm",
+                                "content": ltm_context.strip(),
+                                "type": "long_term_memory"
+                            })
+                    except Exception as e:
+                        logger.warning(
+                            f"Dynamic LTM context optimization failed: {e}, using original context")
+                        memory_blocks.append({
+                            "role": "memory",
+                            "source": "ltm",
+                            "content": ltm_context.strip(),
+                            "type": "long_term_memory"
+                        })
+                else:
+                    # Fallback to original LTM context processing
+                    memory_blocks.append({
+                        "role": "memory",
+                        "source": "ltm",
+                        "content": ltm_context.strip(),
+                        "type": "long_term_memory"
+                    })
             elif ltm_context is not None:
                 logger.debug("LTM context provided but empty, skipping")
 
@@ -145,13 +213,49 @@ class AgentRunner:
             elif rag_context is not None:
                 logger.debug("RAG context provided but empty, skipping")
 
-            # Apply context limits before extending
+            # Initialize quality validator if not already done
+            if self.quality_validator is None:
+                self.quality_validator = ContextQualityValidator(
+                    agent_state.config)
+                logger.debug("Context quality validator initialized")
+
+            # Apply quality validation to memory blocks
             if memory_blocks:
+                original_count = len(memory_blocks)
+
+                # Validate context quality before injection
+                validated_blocks = self.quality_validator.validate_context_relevance(
+                    memory_blocks,
+                    agent_state.user_input,
+                    context_type="mixed"
+                )
+
+                removed_count = original_count - len(validated_blocks)
+                if removed_count > 0:
+                    logger.info(
+                        f"🔍 Quality validation removed {removed_count} low-quality context blocks")
+
+                # Get quality metrics for logging
+                quality_metrics = self.quality_validator.get_quality_metrics(
+                    validated_blocks, agent_state.user_input)
+
+                # Safely access quality distribution with fallback
+                quality_dist = quality_metrics.get('quality_distribution', {})
+                excellent_count = quality_dist.get('excellent', 0)
+                good_count = quality_dist.get('good', 0)
+                high_quality_count = excellent_count + good_count
+
+                logger.info(f"🔍 Context quality metrics: {quality_metrics['average_quality']:.2f} average, "
+                            f"{high_quality_count} high-quality items")
+
+                # Apply context limits to validated blocks
                 apply_context_limits(
-                    memory_blocks, self.context_injection_limit)
-                agent_state.memory_context.extend(memory_blocks)
+                    validated_blocks, self.context_injection_limit)
+
+                # Add validated blocks to memory context
+                agent_state.memory_context.extend(validated_blocks)
                 logger.debug(
-                    f"Successfully added {len(memory_blocks)} context blocks to memory")
+                    f"Successfully added {len(validated_blocks)} validated context blocks to memory")
             else:
                 logger.debug("No valid context blocks to add")
 
@@ -253,3 +357,49 @@ class AgentRunner:
         state._apply_size_limits()
 
         return forced_response, state
+
+    def _parse_ltm_context_to_memories(self, ltm_context: str) -> List[dict]:
+        """
+        Parse LTM context string into memory objects for dynamic processing.
+
+        Args:
+            ltm_context: String containing LTM context
+
+        Returns:
+            List of memory dictionaries
+        """
+        memories = []
+
+        try:
+            # Split context by sections (assuming double newlines separate memories)
+            sections = ltm_context.split('\n\n')
+
+            for i, section in enumerate(sections):
+                if section.strip():
+                    # Create a basic memory object from the section
+                    memory = {
+                        "id": f"ltm_context_{i}",
+                        "content": section.strip(),
+                        "tags": [],  # Could be enhanced to extract tags
+                        "importance_score": 5,  # Default importance
+                        "memory_type": "general",
+                        "created_at": "2024-01-01T00:00:00Z",  # Default timestamp
+                        "last_accessed": "2024-01-01T00:00:00Z"
+                    }
+                    memories.append(memory)
+
+            logger.debug(f"Parsed {len(memories)} memories from LTM context")
+            return memories
+
+        except Exception as e:
+            logger.warning(f"Failed to parse LTM context: {e}")
+            # Return a single memory object with the entire context
+            return [{
+                "id": "ltm_context_fallback",
+                "content": ltm_context,
+                "tags": [],
+                "importance_score": 5,
+                "memory_type": "general",
+                "created_at": "2024-01-01T00:00:00Z",
+                "last_accessed": "2024-01-01T00:00:00Z"
+            }]

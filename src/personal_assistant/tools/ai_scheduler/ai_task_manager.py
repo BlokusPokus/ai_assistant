@@ -616,13 +616,12 @@ class AITaskManager:
                 'error_msg': "❌ Error: Time cannot be empty"
             }
 
-        # Parse time
-        try:
-            remind_at = datetime.fromisoformat(time)
-        except ValueError:
+        # Parse time - try multiple formats
+        remind_at = self._parse_time_string(time)
+        if remind_at is None:
             return {
                 'is_valid': False,
-                'error_msg': f"❌ Error: Invalid time format '{time}'. Please use ISO format (YYYY-MM-DDTHH:MM:SS)"
+                'error_msg': f"❌ Error: Invalid time format '{time}'. Please use ISO format (YYYY-MM-DDTHH:MM:SS) or relative time (e.g., 'in 1 hour', 'tomorrow at 9am')"
             }
 
         # Validate channel
@@ -650,6 +649,122 @@ class AITaskManager:
             'user_id': user_id,
             'error_msg': None
         }
+
+    def _parse_time_string(self, time_str: str) -> Optional[datetime]:
+        """Parse various time string formats into datetime object."""
+        if not time_str:
+            return None
+
+        # Convert to string if it's not already
+        if not isinstance(time_str, str):
+            time_str = str(time_str)
+
+        if not time_str.strip():
+            return None
+
+        time_str = time_str.strip().lower()
+        now = datetime.now()
+
+        try:
+            # Try ISO format first
+            if 't' in time_str or '-' in time_str:
+                return datetime.fromisoformat(time_str)
+        except ValueError:
+            pass
+
+        try:
+            # Handle relative times
+            if time_str.startswith('in '):
+                # Parse "in X minutes/hours/days"
+                parts = time_str[3:].split()
+                if len(parts) >= 2:
+                    amount = int(parts[0])
+                    unit = parts[1]
+
+                    if unit.startswith('minute'):
+                        return now + timedelta(minutes=amount)
+                    elif unit.startswith('hour'):
+                        return now + timedelta(hours=amount)
+                    elif unit.startswith('day'):
+                        return now + timedelta(days=amount)
+                    elif unit.startswith('week'):
+                        return now + timedelta(weeks=amount)
+
+            # Handle "tomorrow at X"
+            if time_str.startswith('tomorrow'):
+                tomorrow = now + timedelta(days=1)
+                if ' at ' in time_str:
+                    time_part = time_str.split(' at ')[1]
+                    hour, minute = self._parse_time_part(time_part)
+                    if hour is not None:
+                        return tomorrow.replace(hour=hour, minute=minute or 0, second=0, microsecond=0)
+                else:
+                    return tomorrow.replace(hour=9, minute=0, second=0, microsecond=0)
+
+            # Handle "today at X"
+            if time_str.startswith('today'):
+                if ' at ' in time_str:
+                    time_part = time_str.split(' at ')[1]
+                    hour, minute = self._parse_time_part(time_part)
+                    if hour is not None:
+                        result = now.replace(
+                            hour=hour, minute=minute or 0, second=0, microsecond=0)
+                        # If time has passed today, schedule for tomorrow
+                        if result <= now:
+                            result += timedelta(days=1)
+                        return result
+
+            # Handle simple time formats like "7:00", "7:00 AM", "19:00"
+            hour, minute = self._parse_time_part(time_str)
+            if hour is not None:
+                result = now.replace(
+                    hour=hour, minute=minute or 0, second=0, microsecond=0)
+                # If time has passed today, schedule for tomorrow
+                if result <= now:
+                    result += timedelta(days=1)
+                return result
+
+        except (ValueError, IndexError):
+            pass
+
+        return None
+
+    def _parse_time_part(self, time_part: str) -> tuple[Optional[int], Optional[int]]:
+        """Parse time part like '7:00 AM' or '19:00' into hour and minute."""
+        try:
+            time_part = time_part.strip()
+
+            # Handle AM/PM format
+            is_pm = 'pm' in time_part
+            is_am = 'am' in time_part
+
+            if is_pm or is_am:
+                time_part = time_part.replace(
+                    'am', '').replace('pm', '').strip()
+
+            if ':' in time_part:
+                hour_str, minute_str = time_part.split(':')
+                hour = int(hour_str)
+                minute = int(minute_str)
+
+                # Convert to 24-hour format
+                if is_pm and hour != 12:
+                    hour += 12
+                elif is_am and hour == 12:
+                    hour = 0
+
+                return hour, minute
+            else:
+                # Just hour
+                hour = int(time_part)
+                if is_pm and hour != 12:
+                    hour += 12
+                elif is_am and hour == 12:
+                    hour = 0
+                return hour, 0
+
+        except (ValueError, IndexError):
+            return None, None
 
     def _format_reminder_response(self, text: str, remind_at: datetime, task_id: int) -> str:
         """Format successful reminder creation response."""

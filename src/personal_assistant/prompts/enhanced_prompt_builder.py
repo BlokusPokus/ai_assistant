@@ -96,6 +96,7 @@ class EnhancedPromptBuilder:
 🚨 **CRITICAL: ACTION CONFIRMATION RULES (MUST FOLLOW FIRST)** 🚨
 • For emails: "Just to confirm, you want me to send an email to [email] with subject '[subject]' and body '[body]' - is that correct?"
 • For calendar events: "Just to confirm, you want me to create a meeting on [date] at [time] with [attendees] - is that correct?"
+• For reminders: Execute directly using default notification channel (SMS) - no confirmation needed
 • This rule takes priority over ALL other rules
 
 {self._build_core_guidelines()}
@@ -301,7 +302,8 @@ class EnhancedPromptBuilder:
 • When you need information from the user, ASK IMMEDIATELY
 • Don't say "I will ask..." - just ASK the question
 • Don't get stuck in planning loops - execute your plans
-• If you need an email address, ask "What email address should I use for [Name]?"
+• Use default values when available (e.g., default notification channels for reminders)
+• Only ask for information when no reasonable defaults exist
 
 💡 **PROCESS MANAGEMENT (Encouraged)**
 • CAN say "Let me break this down into steps:" for complex tasks

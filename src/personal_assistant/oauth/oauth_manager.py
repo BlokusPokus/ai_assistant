@@ -8,6 +8,7 @@ including provider management, integration lifecycle, and security measures.
 from typing import Dict, List, Optional, Any, Type
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
+import logging
 
 from personal_assistant.oauth.providers.base import BaseOAuthProvider
 from personal_assistant.oauth.providers.google import GoogleOAuthProvider
@@ -22,6 +23,9 @@ from personal_assistant.oauth.services.security_service import OAuthSecurityServ
 
 from personal_assistant.oauth.exceptions import OAuthError, OAuthProviderError
 from personal_assistant.config.settings import settings
+from personal_assistant.monitoring import get_metrics_service
+
+logger = logging.getLogger(__name__)
 
 
 class OAuthManager:
@@ -380,14 +384,32 @@ class OAuthManager:
             print(f"🔍 DEBUG: Found refresh token, proceeding with refresh")
 
             # Refresh tokens
+            start_time = datetime.now()
             new_token = await token_service.refresh_access_token(
                 db=db,
                 integration_id=integration_id,
                 provider=provider
             )
+            duration = (datetime.now() - start_time).total_seconds()
 
             if new_token:
                 print(f"🔍 DEBUG: Token refresh successful")
+
+                # Update Prometheus metrics
+                try:
+                    metrics_service = get_metrics_service()
+                    metrics_service.oauth_token_refresh_total.labels(
+                        provider=integration.provider,
+                        status="success"
+                    ).inc()
+                    metrics_service.oauth_operation_duration_seconds.labels(
+                        provider=integration.provider,
+                        operation="refresh"
+                    ).observe(duration)
+                except Exception as metrics_error:
+                    logger.warning(
+                        f"Failed to update Prometheus OAuth metrics: {metrics_error}")
+
                 # Update integration
                 await self.integration_service.update_integration(
                     db=db,
@@ -408,6 +430,21 @@ class OAuthManager:
                 return True
 
             print(f"⚠️  DEBUG: Token refresh returned no new token")
+
+            # Update Prometheus metrics for failure
+            try:
+                metrics_service = get_metrics_service()
+                metrics_service.oauth_token_refresh_total.labels(
+                    provider=integration.provider,
+                    status="failure"
+                ).inc()
+                metrics_service.oauth_errors_total.labels(
+                    provider=integration.provider,
+                    error_type="refresh_failed"
+                ).inc()
+            except Exception as metrics_error:
+                logger.warning(
+                    f"Failed to update Prometheus OAuth metrics: {metrics_error}")
             return False
 
         except Exception as e:

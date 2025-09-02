@@ -17,13 +17,24 @@ from pathlib import Path
 from typing import Dict, Optional
 from .settings import settings
 
+# Import structured logging components
+try:
+    from ..logging import StructuredJSONFormatter
+    from ..logging.loki_handler import configure_loki_logging
+    STRUCTURED_LOGGING_AVAILABLE = True
+    LOKI_AVAILABLE = True
+except ImportError:
+    STRUCTURED_LOGGING_AVAILABLE = False
+    LOKI_AVAILABLE = False
 
-def setup_logging(log_level: Optional[str] = None) -> None:
+
+def setup_logging(log_level: Optional[str] = None, use_structured_logging: Optional[bool] = None) -> None:
     """
     Set up centralized logging configuration for all modules.
 
     Args:
         log_level: Optional override for log level (defaults to settings.LOG_LEVEL)
+        use_structured_logging: Whether to use structured JSON logging (defaults to settings.STRUCTURED_LOGGING)
     """
     # Use provided log level or default from settings
     level = log_level or settings.LOG_LEVEL
@@ -33,6 +44,18 @@ def setup_logging(log_level: Optional[str] = None) -> None:
     if env_log_level:
         level = env_log_level
         print(f"🔧 Logging level overridden by PA_LOG_LEVEL: {level}")
+
+    # Determine if structured logging should be used
+    structured_logging = use_structured_logging
+    if structured_logging is None:
+        structured_logging = getattr(settings, 'STRUCTURED_LOGGING', False)
+
+    # Check environment variable override
+    env_structured = os.getenv("PA_STRUCTURED_LOGGING")
+    if env_structured:
+        structured_logging = env_structured.lower() in ('true', '1', 'yes', 'on')
+        print(
+            f"🔧 Structured logging overridden by PA_STRUCTURED_LOGGING: {structured_logging}")
 
     # Create logs directory if it doesn't exist
     logs_dir = Path(settings.LOG_DIR)
@@ -72,6 +95,11 @@ def setup_logging(log_level: Optional[str] = None) -> None:
             "file": f"{settings.LOG_DIR}/types.log",
             "level": getattr(logging, settings.TYPES_LOG_LEVEL.upper(), logging.INFO),
             "description": "State management, message handling"
+        },
+        "oauth_audit": {
+            "file": f"{settings.LOG_DIR}/oauth_audit.log",
+            "level": logging.INFO,
+            "description": "OAuth security events, authorization, token management"
         }
     }
 
@@ -86,13 +114,18 @@ def setup_logging(log_level: Optional[str] = None) -> None:
 
     # Configure each module logger
     for module_name, config in module_configs.items():
-        _configure_module_logger(module_name, config)
+        _configure_module_logger(module_name, config, structured_logging)
 
     # Set up root logger for any unhandled logging
     root_level = getattr(logging, level.upper(), logging.INFO)
     _configure_root_logger(root_level)
 
-    logging.info(f"Logging configured with level: {level}")
+    # Configure Loki logging if enabled
+    if LOKI_AVAILABLE:
+        configure_loki_logging()
+
+    logging.info(
+        f"Logging configured with level: {level}, structured: {structured_logging}")
 
 
 def _suppress_http_logging():
@@ -116,13 +149,14 @@ def _suppress_http_logging():
     logging.getLogger("proto").setLevel(logging.ERROR)
 
 
-def _configure_module_logger(module_name: str, config: Dict) -> None:
+def _configure_module_logger(module_name: str, config: Dict, structured_logging: bool = False) -> None:
     """
     Configure a specific module logger with file and console handlers.
 
     Args:
         module_name: Name of the module (e.g., 'core', 'llm')
         config: Configuration dictionary with file, level, and description
+        structured_logging: Whether to use structured JSON logging
     """
     logger = logging.getLogger(f"personal_assistant.{module_name}")
     logger.setLevel(config["level"])
@@ -130,11 +164,15 @@ def _configure_module_logger(module_name: str, config: Dict) -> None:
     # Clear any existing handlers
     logger.handlers.clear()
 
-    # Create formatter using settings
-    formatter = logging.Formatter(
-        settings.LOG_FORMAT,
-        datefmt=settings.LOG_DATE_FORMAT
-    )
+    # Create formatter based on logging type
+    if structured_logging and STRUCTURED_LOGGING_AVAILABLE:
+        formatter = StructuredJSONFormatter()
+        print(f"🔧 Using structured JSON logging for module: {module_name}")
+    else:
+        formatter = logging.Formatter(
+            settings.LOG_FORMAT,
+            datefmt=settings.LOG_DATE_FORMAT
+        )
 
     # File handler (if enabled in settings)
     if settings.LOG_TO_FILE:

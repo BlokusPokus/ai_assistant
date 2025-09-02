@@ -11,8 +11,9 @@ import numpy as np
 from sqlalchemy import select, func
 
 from ..config.logging_config import get_logger
-from ..database.models.memory_chunk import MemoryChunk
-from ..database.models.memory_metadata import MemoryMetadata
+from ..database.models.conversation_state import ConversationState
+from ..database.models.conversation_message import ConversationMessage
+from ..database.models.memory_context_item import MemoryContextItem
 from ..database.session import AsyncSessionLocal
 from .embeddings.gemini_embeddings import GeminiEmbeddings
 import json
@@ -72,53 +73,57 @@ def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
         return 0.0
 
 
-async def update_chunk_embedding(chunk_id: int, document: str, metadata: Dict) -> bool:
-    """
-    Update an existing memory chunk with embeddings.
+# async def update_message_embedding(message_id: int, document: str, metadata: Dict) -> bool:
+#     """
+#     Update an existing conversation message with embeddings.
 
-    Args:
-        chunk_id: ID of the existing memory chunk
-        document: Document content to embed
-        metadata: Metadata for the chunk
+#     Args:
+#         message_id: ID of the existing conversation message
+#         document: Document content to embed
+#         metadata: Metadata for the message
 
-    Returns:
-        bool: True if successful, False otherwise
-    """
-    try:
-        async with AsyncSessionLocal() as session:
-            # Generate real embedding
-            embedding = await embed_text(document)
+#     Returns:
+#         bool: True if successful, False otherwise
+#     """
+#     try:
+#         async with AsyncSessionLocal() as session:
+#             # Generate real embedding
+#             embedding = await embed_text(document)
 
-            if not embedding:
-                logger.error(
-                    f"Failed to generate embedding for chunk {chunk_id}")
-                return False
+#             if not embedding:
+#                 logger.error(
+#                     f"Failed to generate embedding for message {message_id}")
+#                 return False
 
-            # Update the existing chunk with the embedding
-            result = await session.execute(
-                select(MemoryChunk).where(MemoryChunk.id == chunk_id)
-            )
-            chunk = result.scalar_one_or_none()
+#             # Update the existing message with the embedding
+#             result = await session.execute(
+#                 select(ConversationMessage).where(
+#                     ConversationMessage.id == message_id)
+#             )
+#             message = result.scalar_one_or_none()
 
-            if not chunk:
-                logger.error(f"Chunk {chunk_id} not found")
-                return False
+#             if not message:
+#                 logger.error(f"Message {message_id} not found")
+#                 return False
 
-            # ✅ FIXED: Store embedding as native JSON array, not string
-            chunk.embedding = embedding
-            await session.commit()
+#             # Store embedding in additional_data
+#             if not message.additional_data:
+#                 message.additional_data = {}
+#             message.additional_data['embedding'] = embedding
+#             await session.commit()
 
-            logger.info(f"Successfully updated embedding for chunk {chunk_id}")
-            return True
+#             logger.info(
+#                 f"Successfully updated embedding for message {message_id}")
+#             return True
 
-    except Exception as e:
-        logger.error(f"Error updating chunk {chunk_id} embedding: {e}")
-        return False
+#     except Exception as e:
+#         logger.error(f"Error updating message {message_id} embedding: {e}")
+#         return False
 
 
 async def embed_and_index(document: str, metadata: Dict) -> None:
     """
-    Embed and store a document with metadata.
+    Embed and store a document with metadata in the new normalized schema.
     """
     try:
         async with AsyncSessionLocal() as session:
@@ -129,56 +134,39 @@ async def embed_and_index(document: str, metadata: Dict) -> None:
                 logger.error("Failed to generate embedding for document")
                 return
 
-            # Create memory chunk
-            chunk_data = {
-                "content": document,
-                # ✅ FIXED: Store embedding as native JSON array, not string
-                "embedding": embedding,
-                # Ensure integer user_id
-                "user_id": int(metadata.get("user_id", 0))
-            }
+            user_id = int(metadata.get("user_id", 0))
+            conversation_id = metadata.get("conversation_id", "rag_document")
 
-            # Check if chunk already exists
-            existing_chunk = await session.execute(
-                select(MemoryChunk).where(
-                    MemoryChunk.content == document,
-                    MemoryChunk.user_id == chunk_data["user_id"]
+            # Check if document already exists in conversation messages
+            existing_message = await session.execute(
+                select(ConversationMessage).where(
+                    ConversationMessage.content == document,
+                    ConversationMessage.conversation_id == conversation_id
                 )
             )
 
-            if existing_chunk.scalar_one_or_none():
-                logger.debug("Chunk already exists, skipping insertion")
+            if existing_message.scalar_one_or_none():
+                logger.debug("Document already exists, skipping insertion")
                 return
 
-            # Create new chunk
-            chunk = MemoryChunk(**chunk_data)
-            session.add(chunk)
+            # Create new conversation message with embedding in additional_data
+            message_data = {
+                "conversation_id": conversation_id,
+                "role": "system",
+                "content": document,
+                "message_type": "rag_document",
+                "additional_data": {
+                    "embedding": embedding,
+                    **{k: v for k, v in metadata.items() if k not in ["user_id", "conversation_id"]}
+                }
+            }
+
+            message = ConversationMessage(**message_data)
+            session.add(message)
             await session.commit()
 
-            # Add metadata
-            for key, value in metadata.items():
-                if key != "user_id":  # Skip user_id as it's already in chunk
-                    meta_data = {
-                        "chunk_id": chunk.id,
-                        "key": key,
-                        "value": str(value)
-                    }
-
-                    # Check if metadata already exists
-                    existing_meta = await session.execute(
-                        select(MemoryMetadata).where(
-                            MemoryMetadata.chunk_id == chunk.id,
-                            MemoryMetadata.key == key
-                        )
-                    )
-
-                    if not existing_meta.scalar_one_or_none():
-                        meta_record = MemoryMetadata(**meta_data)
-                        session.add(meta_record)
-
-            await session.commit()
             logger.info(
-                f"Successfully indexed document for user {chunk_data['user_id']}")
+                f"Successfully indexed document for user {user_id} in conversation {conversation_id}")
 
     except Exception as e:
         logger.error(f"Error in embed_and_index: {e}")
@@ -204,66 +192,60 @@ async def query_knowledge_base(user_id: int, input_text: str) -> List[Dict]:
                     "Failed to generate query embedding, cannot proceed")
                 return []
 
-            # ✅ SINGLE QUERY APPROACH
+            # Query conversation messages with embeddings
             stmt = (
-                select(MemoryChunk, MemoryMetadata.key, MemoryMetadata.value)
-                .outerjoin(MemoryMetadata, MemoryChunk.id == MemoryMetadata.chunk_id)
-                .where(MemoryChunk.user_id == user_id)
-                .where(MemoryChunk.embedding.isnot(None))
+                select(ConversationMessage)
+                .where(ConversationMessage.message_type == "rag_document")
+                .where(ConversationMessage.additional_data.isnot(None))
             )
 
             result = await session.execute(stmt)
-            chunks = result.scalars().all()
+            messages = result.scalars().all()
 
-            if not chunks:
-                logger.debug(f"No memory chunks found for user {user_id}")
+            if not messages:
+                logger.debug(f"No RAG documents found for user {user_id}")
                 return []
 
             # Calculate similarities
             scored = []
-            for chunk in chunks:
-                # ✅ FIXED: Handle embeddings as native JSON arrays
-                if chunk.embedding:
+            for message in messages:
+                # Check if message has embedding in additional_data
+                if message.additional_data and 'embedding' in message.additional_data:
                     try:
-                        # Embeddings are now stored as native JSON arrays, no parsing needed
-                        chunk_embedding = chunk.embedding
+                        chunk_embedding = message.additional_data['embedding']
 
                         # Validate embedding format
                         if not isinstance(chunk_embedding, list) or not chunk_embedding:
                             logger.warning(
-                                f"Invalid embedding format for chunk {chunk.id}: not a list or empty")
+                                f"Invalid embedding format for message {message.id}: not a list or empty")
                             continue
 
                         # Ensure all elements are numeric
                         if not all(isinstance(x, (int, float)) for x in chunk_embedding):
                             logger.warning(
-                                f"Invalid embedding format for chunk {chunk.id}: non-numeric elements")
+                                f"Invalid embedding format for message {message.id}: non-numeric elements")
                             continue
 
                     except Exception as e:
                         logger.warning(
-                            f"Error processing chunk {chunk.id} embedding: {e}")
+                            f"Error processing message {message.id} embedding: {e}")
                         continue
 
                     similarity = cosine_similarity(
                         query_vector, chunk_embedding)
 
-                    # Get metadata directly as key-value pairs
-                    metadata_pairs = [(key, value)
-                                      for key, value in result.mappings()]
-
-                    # Create metadata dict
-                    metadata_dict = {key: value for key,
-                                     value in metadata_pairs}
+                    # Create metadata dict from additional_data
+                    metadata_dict = message.additional_data.copy()
+                    metadata_dict.update({
+                        "source": "normalized_storage",
+                        "message_id": message.id,
+                        "conversation_id": message.conversation_id,
+                        "similarity_score": similarity
+                    })
 
                     scored.append((similarity, {
-                        "content": chunk.content,
-                        "metadata": {
-                            **metadata_dict,
-                            "source": "memory",
-                            "chunk_id": chunk.id,
-                            "similarity_score": similarity
-                        }
+                        "content": message.content,
+                        "metadata": metadata_dict
                     }))
 
             # Sort by similarity and return top results
@@ -361,102 +343,113 @@ async def generate_missing_embeddings(user_id: int = None, batch_size: int = 10)
     """
     try:
         async with AsyncSessionLocal() as session:
-            # Build query for chunks without embeddings
-            # ✅ FIXED: Use simpler approach to avoid PostgreSQL type conflicts
+            # Build query for messages without embeddings
             if user_id:
                 stmt = (
-                    select(MemoryChunk)
-                    .where(MemoryChunk.user_id == int(user_id))
-                    .where(MemoryChunk.embedding.is_(None))
+                    select(ConversationMessage)
+                    .where(ConversationMessage.message_type == "rag_document")
+                    .where(
+                        (ConversationMessage.additional_data.is_(None)) |
+                        (ConversationMessage.additional_data.notlike('%"embedding"%'))
+                    )
                 )
             else:
                 stmt = (
-                    select(MemoryChunk)
-                    .where(MemoryChunk.embedding.is_(None))
+                    select(ConversationMessage)
+                    .where(ConversationMessage.message_type == "rag_document")
+                    .where(
+                        (ConversationMessage.additional_data.is_(None)) |
+                        (ConversationMessage.additional_data.notlike('%"embedding"%'))
+                    )
                 )
 
             result = await session.execute(stmt)
-            chunks_without_embeddings = result.scalars().all()
+            messages_without_embeddings = result.scalars().all()
 
-            # Also check for chunks with empty/invalid embeddings in Python
-            additional_chunks = []
+            # Also check for messages with empty/invalid embeddings in Python
+            additional_messages = []
             if user_id:
-                all_chunks_stmt = select(MemoryChunk).where(
-                    MemoryChunk.user_id == int(user_id))
+                all_messages_stmt = select(ConversationMessage).where(
+                    ConversationMessage.message_type == "rag_document")
             else:
-                all_chunks_stmt = select(MemoryChunk)
+                all_messages_stmt = select(ConversationMessage).where(
+                    ConversationMessage.message_type == "rag_document")
 
-            all_chunks_result = await session.execute(all_chunks_stmt)
-            all_chunks = all_chunks_result.scalars().all()
+            all_messages_result = await session.execute(all_messages_stmt)
+            all_messages = all_messages_result.scalars().all()
 
-            for chunk in all_chunks:
-                if chunk.embedding is not None:
+            for message in all_messages:
+                if message.additional_data and 'embedding' in message.additional_data:
                     # Check if embedding is effectively empty
-                    if (isinstance(chunk.embedding, list) and len(chunk.embedding) == 0) or \
-                       (isinstance(chunk.embedding, str) and chunk.embedding in ['[]', '{}', '']) or \
-                       (isinstance(chunk.embedding, dict) and len(chunk.embedding) == 0):
-                        additional_chunks.append(chunk)
+                    embedding = message.additional_data['embedding']
+                    if (isinstance(embedding, list) and len(embedding) == 0) or \
+                       (isinstance(embedding, str) and embedding in ['[]', '{}', '']) or \
+                       (isinstance(embedding, dict) and len(embedding) == 0):
+                        additional_messages.append(message)
 
             # Combine both lists
-            all_chunks_to_process = chunks_without_embeddings + additional_chunks
+            all_messages_to_process = messages_without_embeddings + additional_messages
 
-            if not all_chunks_to_process:
-                logger.info("No chunks found without embeddings")
+            if not all_messages_to_process:
+                logger.info("No messages found without embeddings")
                 return {
-                    "total_chunks": 0,
+                    "total_messages": 0,
                     "processed": 0,
                     "successful": 0,
                     "failed": 0,
-                    "message": "All chunks already have embeddings"
+                    "message": "All messages already have embeddings"
                 }
 
             logger.info(
-                f"Found {len(all_chunks_to_process)} chunks without embeddings")
+                f"Found {len(all_messages_to_process)} messages without embeddings")
 
             # Process in batches
             total_processed = 0
             total_successful = 0
             total_failed = 0
 
-            for i in range(0, len(all_chunks_to_process), batch_size):
-                batch = all_chunks_to_process[i:i + batch_size]
+            for i in range(0, len(all_messages_to_process), batch_size):
+                batch = all_messages_to_process[i:i + batch_size]
                 logger.info(
-                    f"Processing batch {i//batch_size + 1}/{(len(all_chunks_to_process) + batch_size - 1)//batch_size}")
+                    f"Processing batch {i//batch_size + 1}/{(len(all_messages_to_process) + batch_size - 1)//batch_size}")
 
-                for chunk in batch:
+                for message in batch:
                     try:
-                        if not chunk.content:
+                        if not message.content:
                             logger.warning(
-                                f"Chunk {chunk.id}: No content, skipping")
+                                f"Message {message.id}: No content, skipping")
                             continue
 
                         logger.debug(
-                            f"Generating embedding for chunk {chunk.id}")
+                            f"Generating embedding for message {message.id}")
 
                         # Generate embedding
-                        embedding = await embed_text(chunk.content)
+                        embedding = await embed_text(message.content)
 
                         if embedding:
-                            # Update the chunk with the embedding
-                            chunk.embedding = embedding
+                            # Update the message with the embedding in additional_data
+                            if not message.additional_data:
+                                message.additional_data = {}
+                            message.additional_data['embedding'] = embedding
                             total_successful += 1
                             logger.debug(
-                                f"✅ Embedding generated for chunk {chunk.id}")
+                                f"✅ Embedding generated for message {message.id}")
                         else:
                             total_failed += 1
                             logger.warning(
-                                f"❌ Failed to generate embedding for chunk {chunk.id}")
+                                f"❌ Failed to generate embedding for message {message.id}")
 
                     except Exception as e:
                         total_failed += 1
                         logger.error(
-                            f"❌ Error processing chunk {chunk.id}: {e}")
+                            f"❌ Error processing message {message.id}: {e}")
 
                     total_processed += 1
 
                 # Commit batch
                 await session.commit()
-                logger.info(f"Batch committed: {len(batch)} chunks processed")
+                logger.info(
+                    f"Batch committed: {len(batch)} messages processed")
 
                 # Small delay to avoid rate limiting
                 import asyncio
@@ -468,7 +461,7 @@ async def generate_missing_embeddings(user_id: int = None, batch_size: int = 10)
             logger.info(f"❌ Failed: {total_failed}")
 
             return {
-                "total_chunks": len(all_chunks_to_process),
+                "total_messages": len(all_messages_to_process),
                 "processed": total_processed,
                 "successful": total_successful,
                 "failed": total_failed,
@@ -479,7 +472,7 @@ async def generate_missing_embeddings(user_id: int = None, batch_size: int = 10)
         logger.error(f"Error during bulk embedding generation: {e}")
         return {
             "error": str(e),
-            "total_chunks": 0,
+            "total_messages": 0,
             "processed": 0,
             "successful": 0,
             "failed": 0
@@ -495,26 +488,32 @@ async def get_query_performance_stats() -> Dict[str, any]:
     """
     try:
         async with AsyncSessionLocal() as session:
-            # Get basic statistics
-            total_chunks_stmt = select(MemoryChunk)
-            total_chunks_result = await session.execute(total_chunks_stmt)
-            total_chunks = len(total_chunks_result.scalars().all())
+            # Get basic statistics for RAG documents
+            total_messages_stmt = select(ConversationMessage).where(
+                ConversationMessage.message_type == "rag_document")
+            total_messages_result = await session.execute(total_messages_stmt)
+            total_messages = len(total_messages_result.scalars().all())
 
-            chunks_with_embeddings_stmt = select(MemoryChunk).where(
-                MemoryChunk.embedding.isnot(None))
-            chunks_with_embeddings_result = await session.execute(chunks_with_embeddings_stmt)
-            chunks_with_embeddings = len(
-                chunks_with_embeddings_result.scalars().all())
+            messages_with_embeddings_stmt = select(ConversationMessage).where(
+                ConversationMessage.message_type == "rag_document",
+                ConversationMessage.additional_data.isnot(None)
+            ).where(ConversationMessage.additional_data.like('%"embedding"%'))
+            messages_with_embeddings_result = await session.execute(messages_with_embeddings_stmt)
+            messages_with_embeddings = len(
+                messages_with_embeddings_result.scalars().all())
 
             # Calculate embedding coverage
             embedding_coverage = (
-                chunks_with_embeddings / total_chunks * 100) if total_chunks > 0 else 0
+                messages_with_embeddings / total_messages * 100) if total_messages > 0 else 0
 
-            # Get user distribution
-            user_distribution_stmt = select(MemoryChunk.user_id, func.count(
-                MemoryChunk.id)).group_by(MemoryChunk.user_id)
-            user_distribution_result = await session.execute(user_distribution_stmt)
-            user_distribution = dict(user_distribution_result.all())
+            # Get conversation distribution (instead of user distribution)
+            conversation_distribution_stmt = select(ConversationMessage.conversation_id, func.count(
+                ConversationMessage.id)).where(
+                ConversationMessage.message_type == "rag_document"
+            ).group_by(ConversationMessage.conversation_id)
+            conversation_distribution_result = await session.execute(conversation_distribution_stmt)
+            conversation_distribution = dict(
+                conversation_distribution_result.all())
 
             # Performance recommendations
             recommendations = []
@@ -523,19 +522,19 @@ async def get_query_performance_stats() -> Dict[str, any]:
                 recommendations.append(
                     "Low embedding coverage detected. Consider running bulk embedding generation.")
 
-            if total_chunks > 1000:
+            if total_messages > 1000:
                 recommendations.append(
-                    "Large number of chunks detected. Consider implementing chunk archiving.")
+                    "Large number of RAG documents detected. Consider implementing document archiving.")
 
-            if max(user_distribution.values()) > 500:
+            if max(conversation_distribution.values()) > 500:
                 recommendations.append(
-                    "Some users have many chunks. Consider implementing user-specific chunk limits.")
+                    "Some conversations have many RAG documents. Consider implementing conversation-specific document limits.")
 
             return {
-                "total_chunks": total_chunks,
-                "chunks_with_embeddings": chunks_with_embeddings,
+                "total_messages": total_messages,
+                "messages_with_embeddings": messages_with_embeddings,
                 "embedding_coverage_percent": round(embedding_coverage, 2),
-                "user_distribution": user_distribution,
+                "conversation_distribution": conversation_distribution,
                 "recommendations": recommendations,
                 "performance_optimizations": [
                     "Database query limits implemented",

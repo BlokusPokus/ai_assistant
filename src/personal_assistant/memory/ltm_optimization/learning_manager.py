@@ -5,16 +5,17 @@ This module manages active learning and memory creation from user interactions.
 """
 
 import logging
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 import json
 
-from personal_assistant.memory.ltm_optimization.memory_lifecycle import MemoryLifecycleManager
+from personal_assistant.memory.ltm_optimization.memory_lifecycle import EnhancedMemoryLifecycleManager
 
 from ...config.logging_config import get_logger
 from ...tools.ltm.ltm_storage import add_ltm_memory
 from ...types.state import AgentState
-from .config import LTMConfig
+from .config import LTMConfig, EnhancedLTMConfig
 from .llm_memory_creator import LLMMemoryCreator
+from .pattern_recognition import PatternRecognitionEngine
 
 
 logger = get_logger("learning_manager")
@@ -30,7 +31,13 @@ class LTMLearningManager:
             config, llm) if llm else None
 
         # Add lifecycle manager for comprehensive optimization
-        self.lifecycle_manager = MemoryLifecycleManager(config)
+        self.lifecycle_manager = EnhancedMemoryLifecycleManager(config)
+
+        # Add pattern recognition engine for state integration
+        if isinstance(config, EnhancedLTMConfig) and config.enable_state_integration:
+            self.pattern_engine = PatternRecognitionEngine(config)
+        else:
+            self.pattern_engine = None
 
     async def learn_from_interaction(self, user_id: int, user_input: str, agent_response: str, tool_result: str = None, conversation_context: str = None) -> List[dict]:
         """Learn from user interaction and create relevant memories using LLM"""
@@ -75,6 +82,138 @@ class LTMLearningManager:
             f"Created {len(created_memories)} total memories for user {user_id}")
         return created_memories
 
+    async def learn_from_state_data(
+        self,
+        user_id: int,
+        state_data: AgentState
+    ) -> List[dict]:
+        """
+        Learn from state management data using pattern recognition.
+
+        This method integrates with the completed state management system
+        to create memories from conversation patterns, tool usage patterns,
+        and user behavior patterns.
+
+        Args:
+            user_id: User ID for memory creation
+            state_data: Complete agent state for analysis
+
+        Returns:
+            List of created memories from state data
+        """
+        if not self.pattern_engine:
+            logger.warning(
+                "Pattern recognition engine not available for state integration")
+            return []
+
+        created_memories = []
+
+        try:
+            # Use pattern recognition engine to analyze state data
+            state_memories = await self.pattern_engine.convert_state_to_memories(
+                user_id, state_data
+            )
+
+            # Store memories in LTM storage
+            for memory_data in state_memories:
+                try:
+                    # Extract memory fields
+                    memory = await add_ltm_memory(
+                        user_id=memory_data['user_id'],
+                        content=memory_data['content'],
+                        tags=memory_data['tags'],
+                        importance_score=memory_data['importance_score'],
+                        context=memory_data['context'],
+                        enhanced_context=memory_data.get('enhanced_context'),
+                        memory_type=memory_data.get('memory_type'),
+                        category=memory_data.get('category'),
+                        confidence_score=memory_data.get('confidence_score'),
+                        source_type=memory_data.get('source_type'),
+                        created_by=memory_data.get(
+                            'created_by', 'state_integration')
+                    )
+
+                    if memory:
+                        created_memories.append(memory)
+                        logger.info(
+                            f"Created state-based memory: {memory_data.get('content', '')[:50]}...")
+
+                except Exception as e:
+                    logger.error(f"Failed to store state-based memory: {e}")
+                    continue
+
+            logger.info(
+                f"Created {len(created_memories)} memories from state data for user {user_id}")
+
+        except Exception as e:
+            logger.error(f"Error learning from state data: {e}")
+
+        return created_memories
+
+    async def learn_from_interaction_with_state(
+        self,
+        user_id: int,
+        user_input: str,
+        agent_response: str,
+        state_data: AgentState,
+        tool_result: str = None,
+        conversation_context: str = None
+    ) -> List[dict]:
+        """
+        Learn from user interaction AND state data for comprehensive memory creation.
+
+        This method combines traditional interaction learning with state-based
+        pattern recognition for maximum memory creation effectiveness.
+
+        Args:
+            user_id: User ID for memory creation
+            user_input: Current user input
+            agent_response: Current agent response
+            state_data: Complete agent state for analysis
+            tool_result: Tool execution result if applicable
+            conversation_context: Additional conversation context
+
+        Returns:
+            List of all created memories (interaction + state-based)
+        """
+        all_memories = []
+
+        try:
+            # Learn from current interaction
+            interaction_memories = await self.learn_from_interaction(
+                user_id, user_input, agent_response, tool_result, conversation_context
+            )
+            all_memories.extend(interaction_memories)
+
+            # Learn from state data (if enabled)
+            if isinstance(self.config, EnhancedLTMConfig) and self.config.enable_state_integration:
+                state_memories = await self.learn_from_state_data(user_id, state_data)
+                all_memories.extend(state_memories)
+
+                logger.info(
+                    f"Combined learning: {len(interaction_memories)} interaction + {len(state_memories)} state memories")
+            else:
+                logger.info(
+                    f"State integration disabled, created {len(interaction_memories)} interaction memories")
+
+            # Apply memory limits
+            max_memories = getattr(
+                self.config, 'max_memories_per_interaction', 5)
+            if len(all_memories) > max_memories:
+                # Prioritize memories by importance and confidence
+                all_memories.sort(key=lambda m: (
+                    m.get('importance_score', 1),
+                    m.get('confidence_score', 0.5)
+                ), reverse=True)
+                all_memories = all_memories[:max_memories]
+                logger.info(
+                    f"Limited total memories to {max_memories} for user {user_id}")
+
+        except Exception as e:
+            logger.error(f"Error in combined learning: {e}")
+
+        return all_memories
+
     async def _create_rule_based_memories(self, user_id: int, user_input: str, agent_response: str, tool_result: str = None) -> List[dict]:
         """Fallback rule-based memory creation"""
 
@@ -98,400 +237,333 @@ class LTMLearningManager:
         """Determine if interaction warrants memory creation"""
 
         # Always create memories for explicit requests
-        explicit_keywords = self.config.get_memory_creation_keywords()
-        if any(keyword in user_input.lower() for keyword in explicit_keywords):
+        if await self.should_create_explicit_memory(user_input, response):
             return True
 
-        # Create memories for successful tool usage
-        if tool_result and "Error" not in str(tool_result):
+        # Check if tool usage occurred
+        if tool_result:
             return True
 
-        # Create memories for personal information
-        personal_patterns = self.config.get_personal_pattern_keywords()
-        if any(pattern in user_input.lower() for pattern in personal_patterns):
-            return True
+        # Check for important keywords
+        important_keywords = self.config.get_memory_creation_keywords()
+        user_input_lower = user_input.lower()
 
-        # Create memories for learning moments
-        learning_patterns = self.config.get_learning_pattern_keywords()
-        if any(pattern in response.lower() for pattern in learning_patterns):
-            return True
+        for keyword in important_keywords:
+            if keyword.lower() in user_input_lower:
+                return True
+
+        # Check for personal pattern keywords
+        personal_keywords = self.config.get_personal_pattern_keywords()
+        for keyword in personal_keywords:
+            if keyword.lower() in user_input_lower:
+                return True
+
+        # Check for learning pattern keywords
+        learning_keywords = self.config.get_learning_pattern_keywords()
+        for keyword in learning_keywords:
+            if keyword.lower() in user_input_lower:
+                return True
 
         return False
 
-    async def should_create_explicit_memory(self, user_input: str, agent_response: str) -> bool:
+    async def should_create_explicit_memory(self, user_input: str, response: str) -> bool:
         """Check if user explicitly requested memory creation"""
 
-        explicit_keywords = self.config.get_memory_creation_keywords()
-        return any(keyword in user_input.lower() for keyword in explicit_keywords)
+        explicit_indicators = [
+            "remember this", "save this", "note this", "keep this in mind",
+            "important", "urgent", "critical"
+        ]
 
-    async def _create_explicit_memory(self, user_id: int, user_input: str, agent_response: str) -> Optional[dict]:
+        user_input_lower = user_input.lower()
+        for indicator in explicit_indicators:
+            if indicator in user_input_lower:
+                return True
+
+        return False
+
+    async def _create_explicit_memory(self, user_id: int, user_input: str, response: str) -> Optional[dict]:
         """Create memory for explicit memory requests"""
 
         try:
+            # Extract key information
+            content = f"User explicitly requested to remember: {user_input}"
+            tags = ["explicit", "user_request", "important"]
+
             # Determine importance based on keywords
-            importance_score = self._calculate_explicit_importance(user_input)
+            importance_score = 8  # High importance for explicit requests
 
-            # Create content
-            content = f"User requested to remember: {user_input}"
-            if agent_response:
-                content += f"\nAgent response: {agent_response}"
-
-            # Determine tags
-            tags = self._extract_tags_from_explicit_request(user_input)
-
-            # Determine memory type and category based on content analysis
-            memory_type = self._determine_memory_type_from_content(user_input)
-            category = self._determine_category_from_content(user_input)
-
-            # Create the memory
+            # Create memory
             memory = await add_ltm_memory(
                 user_id=user_id,
                 content=content,
                 tags=tags,
                 importance_score=importance_score,
-                context="Explicit memory request from user",
-                memory_type=memory_type,
-                category=category,
-                confidence_score=0.9,  # High confidence for explicit requests
-                source_type="explicit_request",
-                source_id="explicit_request",
-                created_by="learning_manager"
+                context=f"User input: {user_input}\nAgent response: {response}",
+                memory_type="explicit_request",
+                category="user_preference",
+                confidence_score=0.9,
+                source_type="conversation",
+                created_by="explicit_request"
             )
 
-            logger.info(f"Created explicit memory for user {user_id}")
             return memory
 
         except Exception as e:
-            logger.error(f"Error creating explicit memory: {e}")
+            logger.error(f"Failed to create explicit memory: {e}")
             return None
 
     async def _create_tool_usage_memory(self, user_id: int, user_input: str, tool_result: str) -> Optional[dict]:
-        """Create memory for tool usage patterns"""
+        """Create memory for tool usage"""
 
         try:
-            tool_result_str = str(tool_result)
+            # Extract tool information from result
+            content = f"Tool usage: {user_input}"
+            tags = ["tool_usage", "automation"]
 
-            # Determine if it was successful or failed
-            if "Error" in tool_result_str:
-                content = f"Tool usage failed: {user_input}"
-                tags = ["tool_usage", "error", "learning"]
-                importance_score = 7  # Higher importance for failures to learn from
-            else:
-                content = f"Tool usage successful: {user_input}"
-                tags = ["tool_usage", "success", "learning"]
+            # Determine importance based on tool success
+            if "success" in tool_result.lower() or "created" in tool_result.lower():
                 importance_score = 6
+                tags.append("successful")
+            elif "error" in tool_result.lower() or "failed" in tool_result.lower():
+                importance_score = 7  # Higher importance for failures to learn from
+                tags.append("failed")
+            else:
+                importance_score = 5
+                tags.append("completed")
 
-            # Extract tool name if possible
-            tool_name = self._extract_tool_name(user_input)
-            if tool_name:
-                tags.append(tool_name.lower())
-                content += f" (Tool: {tool_name})"
-
-            # Determine memory type and category
-            memory_type = "tool_usage"
-            category = "learning"
-
-            # Create the memory
+            # Create memory
             memory = await add_ltm_memory(
                 user_id=user_id,
                 content=content,
                 tags=tags,
                 importance_score=importance_score,
-                context="Tool usage pattern detected",
-                memory_type=memory_type,
-                category=category,
-                confidence_score=0.8,  # Good confidence for tool usage patterns
-                source_type="tool_usage",
-                source_id=tool_name or "unknown_tool",
-                created_by="learning_manager"
+                context=f"User input: {user_input}\nTool result: {tool_result}",
+                memory_type="tool_usage",
+                category="automation",
+                confidence_score=0.8,
+                source_type="tool_execution",
+                created_by="tool_usage_tracker"
             )
 
-            logger.info(f"Created tool usage memory for user {user_id}")
             return memory
 
         except Exception as e:
-            logger.error(f"Error creating tool usage memory: {e}")
+            logger.error(f"Failed to create tool usage memory: {e}")
             return None
 
-    def _calculate_explicit_importance(self, user_input: str) -> int:
-        """Calculate importance score for explicit memory requests"""
+    async def get_memory_creation_stats(self, user_id: int) -> Dict[str, Any]:
+        """Get statistics about memory creation for a user"""
 
-        user_input_lower = user_input.lower()
+        try:
+            # This would typically query the database for statistics
+            # For now, return basic structure
+            stats = {
+                'total_memories': 0,
+                'memories_this_session': 0,
+                'memory_types': {},
+                'importance_distribution': {},
+                'recent_memories': []
+            }
 
-        if any(word in user_input_lower for word in ["urgent", "critical", "important"]):
-            return 9
-        elif any(word in user_input_lower for word in ["remember", "save", "note"]):
-            return 8
-        elif any(word in user_input_lower for word in ["keep", "mind", "preference"]):
-            return 7
-        else:
-            return 6
+            return stats
 
-    def _extract_tags_from_explicit_request(self, user_input: str) -> List[str]:
-        """Extract relevant tags from explicit memory request"""
+        except Exception as e:
+            logger.error(f"Failed to get memory creation stats: {e}")
+            return {}
 
-        tags = ["explicit_request", "user_important"]
+    async def optimize_memory_creation(self, user_id: int) -> Dict[str, Any]:
+        """Optimize memory creation parameters based on user patterns"""
 
-        # Add topic-based tags
-        topic_keywords = self.config.topic_preference_keywords
-        for topic, keywords in topic_keywords.items():
-            if any(keyword in user_input.lower() for keyword in keywords):
-                tags.append(topic)
+        try:
+            # This would analyze user patterns and adjust thresholds
+            # For now, return basic structure
+            optimization = {
+                'adjusted_thresholds': {},
+                'recommended_changes': [],
+                'user_patterns': {}
+            }
 
-        # Add urgency tags
-        if any(word in user_input.lower() for word in ["urgent", "critical", "asap"]):
-            tags.append("urgent")
+            return optimization
 
-        if any(word in user_input.lower() for word in ["important", "key", "essential"]):
-            tags.append("important")
+        except Exception as e:
+            logger.error(f"Failed to optimize memory creation: {e}")
+            return {}
 
-        return tags
-
-    def _extract_tool_name(self, user_input: str) -> Optional[str]:
-        """Extract tool name from user input"""
-
-        # Common tool patterns
-        tool_patterns = [
-            r"(\w+)_tool",
-            r"(\w+) tool",
-            r"use (\w+)",
-            r"with (\w+)",
-            r"via (\w+)"
-        ]
-
-        import re
-        for pattern in tool_patterns:
-            match = re.search(pattern, user_input.lower())
-            if match:
-                tool_name = match.group(1)
-                # Filter out common words that aren't tool names
-                if tool_name not in ["the", "a", "an", "this", "that", "my"]:
-                    return tool_name
-
-        return None
-
-    def _determine_memory_type_from_content(self, content: str) -> str:
-        """Determine memory type based on content analysis"""
-        content_lower = content.lower()
-
-        # Explicit memory requests
-        if any(word in content_lower for word in ["remember", "save", "note", "keep"]):
-            return "explicit_request"
-
-        # Preferences
-        if any(word in content_lower for word in ["prefer", "like", "want", "need", "favorite"]):
-            return "preference"
-
-        # Goals
-        if any(word in content_lower for word in ["goal", "target", "aim", "objective", "plan"]):
-            return "goal"
-
-        # Habits
-        if any(word in content_lower for word in ["habit", "routine", "always", "usually", "typically"]):
-            return "habit"
-
-        # Insights
-        if any(word in content_lower for word in ["learned", "discovered", "found", "realized", "understood"]):
-            return "insight"
-
-        # Default to insight for general information
-        return "insight"
-
-    def _determine_category_from_content(self, content: str) -> str:
-        """Determine category based on content analysis"""
-        content_lower = content.lower()
-
-        # Work-related
-        if any(word in content_lower for word in ["work", "job", "career", "project", "meeting", "deadline"]):
-            return "work"
-
-        # Health-related
-        if any(word in content_lower for word in ["health", "exercise", "diet", "sleep", "wellness", "medical"]):
-            return "health"
-
-        # Personal
-        if any(word in content_lower for word in ["family", "friend", "relationship", "personal", "home"]):
-            return "personal"
-
-        # Finance
-        if any(word in content_lower for word in ["money", "finance", "budget", "expense", "investment", "saving"]):
-            return "finance"
-
-        # Education
-        if any(word in content_lower for word in ["learn", "study", "education", "course", "skill", "knowledge"]):
-            return "education"
-
-        # Entertainment
-        if any(word in content_lower for word in ["movie", "music", "game", "hobby", "entertainment", "fun"]):
-            return "entertainment"
-
-        # Travel
-        if any(word in content_lower for word in ["travel", "trip", "vacation", "destination", "flight", "hotel"]):
-            return "travel"
-
-        # Default to general
-        return "general"
-
-    async def optimize_after_interaction(self, user_id: int, user_input: str,
-                                         response: str, agent_state: AgentState) -> dict:
+    async def optimize_after_interaction(
+        self,
+        user_id: int,
+        user_input: str,
+        response: str,
+        updated_state: AgentState
+    ) -> Dict[str, Any]:
         """
-        Perform comprehensive LTM optimization after user interaction.
+        Perform comprehensive LTM optimization after an interaction.
 
-        This method coordinates both learning from the interaction and lifecycle management.
+        This method coordinates memory creation, pattern recognition,
+        and lifecycle management to optimize the LTM system.
 
         Args:
-            user_id: User ID
-            user_input: User's input message
+            user_id: User ID for optimization
+            user_input: User's input text
             response: Agent's response
-            agent_state: Current agent state
+            updated_state: Current agent state after interaction
 
         Returns:
-            dict: Optimization report with created memories and lifecycle changes
+            Dictionary containing optimization results
         """
         try:
+            optimization_results = {
+                'memories_created': 0,
+                'patterns_detected': 0,
+                'lifecycle_optimizations': 0,
+                'state_integration_success': False
+            }
+
+            # Create memories from the interaction
+            if self.llm_memory_creator:
+                try:
+                    memories = await self.learn_from_interaction(
+                        user_id=user_id,
+                        user_input=user_input,
+                        agent_response=response,
+                        tool_result=str(
+                            updated_state.last_tool_result) if updated_state.last_tool_result else None,
+                        conversation_context=f"State focus: {updated_state.focus}"
+                    )
+                    optimization_results['memories_created'] = len(memories)
+                    logger.info(
+                        f"Created {len(memories)} memories during optimization for user {user_id}")
+                except Exception as e:
+                    logger.warning(
+                        f"Memory creation during optimization failed: {e}")
+
+            # Analyze patterns from state data if pattern engine is available
+            if self.pattern_engine and updated_state:
+                try:
+                    patterns = await self.pattern_engine.analyze_state_patterns(updated_state)
+                    optimization_results['patterns_detected'] = len(
+                        patterns) if patterns else 0
+                    logger.info(
+                        f"Detected {optimization_results['patterns_detected']} patterns during optimization for user {user_id}")
+                except Exception as e:
+                    logger.warning(
+                        f"Pattern analysis during optimization failed: {e}")
+
+            # Perform lifecycle optimizations
+            if self.lifecycle_manager:
+                try:
+                    lifecycle_results = await self.lifecycle_manager.optimize_user_memories(user_id)
+                    optimization_results['lifecycle_optimizations'] = lifecycle_results.get(
+                        'optimizations_applied', 0)
+                    logger.info(
+                        f"Applied {optimization_results['lifecycle_optimizations']} lifecycle optimizations for user {user_id}")
+                except Exception as e:
+                    logger.warning(f"Lifecycle optimization failed: {e}")
+
+            # Mark state integration as successful if we processed state data
+            if updated_state:
+                optimization_results['state_integration_success'] = True
+
             logger.info(
-                f"Performing comprehensive LTM optimization for user {user_id}")
-
-            optimization_report = {
-                "created_memories": [],
-                "lifecycle_changes": {},
-                "learning_insights": [],
-                "errors": []
-            }
-
-            # Step 1: Learn from interaction
-            try:
-                tool_result = getattr(agent_state, 'last_tool_result', None)
-                created_memories = await self.learn_from_interaction(
-                    user_id=user_id,
-                    user_input=user_input,
-                    agent_response=response,
-                    tool_result=tool_result
-                )
-                optimization_report["created_memories"] = created_memories
-
-                if created_memories:
-                    logger.info(
-                        f"Created {len(created_memories)} LTM memories from interaction")
-                else:
-                    logger.info(
-                        "No new LTM memories created from this interaction")
-
-            except Exception as e:
-                error_msg = f"Error in learning from interaction: {e}"
-                logger.error(error_msg)
-                optimization_report["errors"].append(error_msg)
-
-            # Step 2: Lifecycle management (if lifecycle manager is available)
-            try:
-                if hasattr(self, 'lifecycle_manager') and self.lifecycle_manager:
-                    lifecycle_report = await self.lifecycle_manager.manage_memory_lifecycle(user_id)
-                    if lifecycle_report:
-                        optimization_report["lifecycle_changes"] = lifecycle_report
-                        logger.info(
-                            f"LTM lifecycle management completed: {lifecycle_report}")
-
-                    # Get memory statistics
-                    memory_stats = await self.lifecycle_manager.get_memory_statistics(user_id)
-                    if memory_stats:
-                        optimization_report["lifecycle_changes"]["statistics"] = memory_stats
-                        logger.info(f"LTM statistics: {memory_stats['total_memories']} total memories, "
-                                    f"avg importance: {memory_stats['average_importance']}")
-                else:
-                    logger.debug(
-                        "No lifecycle manager available for lifecycle optimization")
-
-            except Exception as e:
-                error_msg = f"Error in lifecycle management: {e}"
-                logger.warning(error_msg)
-                optimization_report["errors"].append(error_msg)
-
-            # Step 3: Generate learning insights
-            try:
-                insights = await self._generate_learning_insights(user_id, user_input, response, created_memories)
-                optimization_report["learning_insights"] = insights
-
-            except Exception as e:
-                error_msg = f"Error generating learning insights: {e}"
-                logger.warning(error_msg)
-                optimization_report["errors"].append(error_msg)
-
-            logger.info(f"LTM optimization completed for user {user_id}")
-            return optimization_report
+                f"LTM optimization completed for user {user_id}: {optimization_results}")
+            return optimization_results
 
         except Exception as e:
-            error_msg = f"Critical error in LTM optimization: {e}"
-            logger.error(error_msg)
+            logger.error(f"LTM optimization failed for user {user_id}: {e}")
             return {
-                "created_memories": [],
-                "lifecycle_changes": {},
-                "learning_insights": [],
-                "errors": [error_msg]
+                'error': str(e),
+                'memories_created': 0,
+                'patterns_detected': 0,
+                'lifecycle_optimizations': 0,
+                'state_integration_success': False
             }
-
-    async def _generate_learning_insights(self, user_id: int, user_input: str,
-                                          response: str, created_memories: List[dict]) -> List[str]:
-        """Generate insights about what was learned from the interaction"""
-        insights = []
-
-        try:
-            # Analyze user input patterns
-            if any(word in user_input.lower() for word in ["prefer", "like", "want", "need"]):
-                insights.append("User preference detected")
-
-            # Analyze tool usage
-            if created_memories:
-                tool_memories = [m for m in created_memories if m.get(
-                    "memory_type") == "tool_usage"]
-                if tool_memories:
-                    insights.append(
-                        f"Tool usage patterns learned: {len(tool_memories)} insights")
-
-            # Analyze communication style
-            if len(user_input.split()) > 20:
-                insights.append("User prefers detailed communication")
-            elif len(user_input.split()) < 5:
-                insights.append("User prefers concise communication")
-
-        except Exception as e:
-            logger.warning(f"Error generating learning insights: {e}")
-
-        return insights
 
     def is_memory_request(self, user_input: str) -> bool:
-        """Check if user explicitly requested memory creation"""
+        """
+        Check if user input contains an explicit memory request.
 
+        Args:
+            user_input: User's input text
+
+        Returns:
+            True if input contains memory request keywords
+        """
+        if not user_input:
+            return False
+
+        # Convert to lowercase for case-insensitive matching
+        input_lower = user_input.lower()
+
+        # Keywords that indicate explicit memory requests
         memory_keywords = [
-            "remember this", "save this", "note this", "keep this in mind",
-            "add to memory", "store this", "memorize", "remember",
-            "important", "urgent", "critical", "preference", "habit", "pattern"
+            'remember this',
+            'save this',
+            'memorize',
+            'keep in mind',
+            'don\'t forget',
+            'note this',
+            'store this',
+            'remember that',
+            'save that'
         ]
 
-        user_input_lower = user_input.lower()
-        return any(keyword in user_input_lower for keyword in memory_keywords)
+        return any(keyword in input_lower for keyword in memory_keywords)
 
-    async def handle_explicit_memory_request(self, user_id: int, user_input: str, response: str, conversation_context: str) -> List[dict]:
-        """Handle explicit memory creation requests using LLM memory creator"""
+    async def handle_explicit_memory_request(
+        self,
+        user_id: int,
+        user_input: str,
+        response: str,
+        context: str
+    ) -> Optional[dict]:
+        """
+        Handle explicit memory requests from users.
 
+        Args:
+            user_id: User ID for memory creation
+            user_input: User's input containing memory request
+            response: Agent's response to the request
+            context: Additional context for the memory
+
+        Returns:
+            Created memory object or None if failed
+        """
         try:
-            logger.info(f"Handling explicit memory request for user {user_id}")
+            if not self.is_memory_request(user_input):
+                return None
 
-            created_memories = await self.learn_from_interaction(
+            logger.info(
+                f"Processing explicit memory request for user {user_id}")
+
+            # Extract the content to remember (remove request keywords)
+            content = user_input
+            for keyword in ['remember this', 'save this', 'memorize', 'keep in mind',
+                            'don\'t forget', 'note this', 'store this', 'remember that', 'save that']:
+                content = content.replace(keyword, '').strip()
+
+            # If content is empty after removing keywords, use the full input
+            if not content:
+                content = user_input
+
+            # Create high-priority memory for explicit requests
+            memory = await add_ltm_memory(
                 user_id=user_id,
-                user_input=user_input,
-                agent_response=response,
-                tool_result=None,
-                conversation_context=conversation_context
+                content=content,
+                tags=['explicit_request', 'high_priority', 'user_directed'],
+                importance_score=9,  # Very high importance for explicit requests
+                context=f"User explicitly requested to remember: {user_input}\nAgent response: {response}\nContext: {context}",
+                memory_type="explicit_request",
+                category="user_preference",
+                confidence_score=0.95,  # High confidence for explicit requests
+                source_type="explicit_request",
+                created_by="explicit_memory_handler"
             )
 
-            if created_memories:
-                logger.info(
-                    f"LLM created {len(created_memories)} memories from explicit request")
-            else:
-                logger.info("No memories created from explicit request")
-
-            return created_memories
+            logger.info(
+                f"Created explicit memory for user {user_id}: {memory.get('id', 'unknown')}")
+            return memory
 
         except Exception as e:
-            logger.warning(f"Error handling explicit memory request: {e}")
-            return []
+            logger.error(
+                f"Failed to handle explicit memory request for user {user_id}: {e}")
+            return None

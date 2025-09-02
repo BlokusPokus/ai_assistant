@@ -21,10 +21,10 @@ class ConversationError(AgentCoreError):
 class AgentExecutionError(AgentCoreError):
     """Exception raised when agent execution fails."""
 
-    def __init__(self, message: str, user_id: int, tool_name: Optional[str] = None):
+    def __init__(self, message: str, user_id: int, operation: Optional[str] = None):
         self.message = message
         self.user_id = user_id
-        self.tool_name = tool_name
+        self.operation = operation
         super().__init__(self.message)
 
 
@@ -38,8 +38,8 @@ class ValidationError(AgentCoreError):
         super().__init__(self.message)
 
 
-class MemoryError(AgentCoreError):
-    """Exception raised when memory operations fail."""
+class AgentMemoryError(AgentCoreError):
+    """Exception raised when agent memory operations fail."""
 
     def __init__(self, message: str, operation: str, user_id: int):
         self.message = message
