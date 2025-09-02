@@ -1,0 +1,294 @@
+name: Test Execution
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      test-suite:
+        description: "Test suite to run"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - unit
+          - integration
+          - e2e
+          - performance
+          - regression
+
+env:
+  PYTHON_VERSION: "3.11"
+  TEST_TIMEOUT: 1800 # 30 minutes
+
+jobs:
+  # Job 1: Test Matrix Execution
+  test-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-suite: [unit, integration, e2e, performance, regression]
+        python-version: ["3.11"]
+        os: [ubuntu-latest]
+        include:
+          - test-suite: unit
+            timeout: 300
+            mock-external: true
+            test-path: "tests/unit/ tests/test_auth/ tests/tools/"
+          - test-suite: integration
+            timeout: 600
+            mock-external: false
+            test-path: "tests/integration/ tests/test_sms_router/ tests/test_oauth_*.py"
+          - test-suite: e2e
+            timeout: 1200
+            mock-external: false
+            test-path: "tests/test_user_*.py tests/test_analytics_*.py"
+          - test-suite: performance
+            timeout: 1200
+            mock-external: true
+            test-path: "tests/test_auth/test_performance.py"
+          - test-suite: regression
+            timeout: 600
+            mock-external: true
+            test-path: "tests/completed_tasks/"
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+            ${{ runner.os }}-pip-
+
+      - name: Cache test results
+        uses: actions/cache@v3
+        with:
+          path: .pytest_cache
+          key: ${{ runner.os }}-pytest-${{ matrix.test-suite }}-${{ hashFiles('**/*.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pytest-${{ matrix.test-suite }}-
+            ${{ runner.os }}-pytest-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio pytest-benchmark pytest-xdist
+
+      - name: Set up test environment
+        run: |
+          export TEST_DATABASE_URL="postgresql://test_user:test_password@localhost:5432/test_db"
+          export TEST_REDIS_URL="redis://localhost:6379"
+          export TEST_MODE="true"
+          if [ "${{ matrix.mock-external }}" == "true" ]; then
+            export MOCK_EXTERNAL_SERVICES="true"
+            export MOCK_TWILIO="true"
+            export MOCK_OAUTH="true"
+          fi
+
+      - name: Wait for services
+        run: |
+          # Wait for PostgreSQL
+          until pg_isready -h localhost -p 5432 -U test_user; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+          # Wait for Redis
+          until redis-cli -h localhost -p 6379 ping; do
+            echo "Waiting for Redis..."
+            sleep 2
+          done
+
+      - name: Run ${{ matrix.test-suite }} tests
+        run: |
+          if [ "${{ matrix.test-suite }}" == "performance" ]; then
+            pytest ${{ matrix.test-path }} -v --benchmark-only --benchmark-save=performance-${{ matrix.test-suite }} --timeout=${{ matrix.timeout }}
+          else
+            pytest ${{ matrix.test-path }} -v --cov=src --cov-report=xml --cov-report=html --timeout=${{ matrix.timeout }} --maxfail=3
+          fi
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.test-suite }}
+          path: |
+            coverage.xml
+            htmlcov/
+            .pytest_cache/
+            .benchmarks/
+
+      - name: Upload coverage to Codecov
+        if: matrix.test-suite != 'performance'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: ${{ matrix.test-suite }}-tests
+          name: ${{ matrix.test-suite }}-coverage
+
+  # Job 2: Test Summary and Reporting
+  test-summary:
+    runs-on: ubuntu-latest
+    needs: test-matrix
+    if: always()
+    steps:
+      - name: Download all test results
+        uses: actions/download-artifact@v3
+        with:
+          path: test-results
+
+      - name: Generate test summary
+        run: |
+          echo "# Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status | Coverage |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|----------|" >> $GITHUB_STEP_SUMMARY
+
+          for suite in unit integration e2e performance regression; do
+            if [ -d "test-results/test-results-$suite" ]; then
+              if [ -f "test-results/test-results-$suite/coverage.xml" ]; then
+                coverage=$(grep -o 'line-rate="[^"]*"' test-results/test-results-$suite/coverage.xml | cut -d'"' -f2 | awk '{printf "%.1f%%", $1*100}')
+              else
+                coverage="N/A"
+              fi
+              echo "| $suite | ✅ Passed | $coverage |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| $suite | ❌ Failed | N/A |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      - name: Check test results
+        run: |
+          failed_suites=()
+          for suite in unit integration e2e performance regression; do
+            if [ ! -d "test-results/test-results-$suite" ]; then
+              failed_suites+=($suite)
+            fi
+          done
+
+          if [ ${#failed_suites[@]} -gt 0 ]; then
+            echo "Failed test suites: ${failed_suites[*]}"
+            exit 1
+          else
+            echo "All test suites passed!"
+          fi
+
+  # Job 3: Performance Benchmarking
+  performance-benchmark:
+    runs-on: ubuntu-latest
+    needs: test-matrix
+    if: always() && contains(needs.test-matrix.result, 'success')
+    steps:
+      - name: Download performance results
+        uses: actions/download-artifact@v3
+        with:
+          path: performance-results
+
+      - name: Analyze performance results
+        run: |
+          echo "# Performance Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -d "performance-results/test-results-performance" ]; then
+            echo "Performance benchmarks completed successfully." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Benchmark results are available in the artifacts." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Performance benchmarks failed or were not executed." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Job 4: Test Coverage Analysis
+  coverage-analysis:
+    runs-on: ubuntu-latest
+    needs: test-matrix
+    if: always()
+    steps:
+      - name: Download coverage results
+        uses: actions/download-artifact@v3
+        with:
+          path: coverage-results
+
+      - name: Analyze coverage
+        run: |
+          echo "# Test Coverage Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          total_coverage=0
+          suite_count=0
+
+          for suite in unit integration e2e; do
+            if [ -f "coverage-results/test-results-$suite/coverage.xml" ]; then
+              coverage=$(grep -o 'line-rate="[^"]*"' coverage-results/test-results-$suite/coverage.xml | cut -d'"' -f2 | awk '{printf "%.1f", $1*100}')
+              total_coverage=$(echo "$total_coverage + $coverage" | bc)
+              suite_count=$((suite_count + 1))
+              echo "**$suite tests**: $coverage%" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          if [ $suite_count -gt 0 ]; then
+            avg_coverage=$(echo "scale=1; $total_coverage / $suite_count" | bc)
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Average Coverage**: $avg_coverage%" >> $GITHUB_STEP_SUMMARY
+            
+            if (( $(echo "$avg_coverage >= 85" | bc -l) )); then
+              echo "✅ Coverage target (85%) met!" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ Coverage target (85%) not met!" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+          fi
+
+  # Job 5: Test Pipeline Status
+  test-pipeline-status:
+    runs-on: ubuntu-latest
+    needs: [test-matrix, test-summary, performance-benchmark, coverage-analysis]
+    if: always()
+    steps:
+      - name: Check test pipeline status
+        run: |
+          if [[ "${{ needs.test-matrix.result }}" == "failure" || 
+                "${{ needs.test-summary.result }}" == "failure" || 
+                "${{ needs.coverage-analysis.result }}" == "failure" ]]; then
+            echo "Test pipeline failed"
+            exit 1
+          else
+            echo "Test pipeline passed"
+          fi
