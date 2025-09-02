@@ -5,6 +5,7 @@ from fastapi.responses import Response
 
 from personal_assistant.config.settings import settings
 from personal_assistant.monitoring import get_metrics_service
+from personal_assistant.middleware import CorrelationIDMiddleware
 
 from apps.fastapi_app.middleware.auth import AuthMiddleware
 from apps.fastapi_app.middleware.rate_limiting import RateLimitingMiddleware
@@ -29,6 +30,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add correlation ID middleware (should be early in the chain)
+app.add_middleware(CorrelationIDMiddleware)
 
 # Add authentication and rate limiting middleware
 app.add_middleware(RateLimitingMiddleware)
