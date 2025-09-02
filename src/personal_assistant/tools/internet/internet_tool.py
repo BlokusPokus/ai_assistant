@@ -61,9 +61,11 @@ class InternetTool:
         logger.info(f"🔧 Attempting to initialize DuckDuckGo client...")
         if DUCKDUCKGO_AVAILABLE:
             try:
-                logger.info(f"🔧 Initializing DuckDuckGo client for text search...")
+                logger.info(
+                    f"🔧 Initializing DuckDuckGo client for text search...")
                 self._ddgs = DDGS()
-                logger.info(f"✅ DuckDuckGo text search client initialized successfully")
+                logger.info(
+                    f"✅ DuckDuckGo text search client initialized successfully")
 
                 # Image search functionality has been disabled
                 logger.info(f"ℹ️ Image search functionality disabled")
@@ -210,8 +212,9 @@ class InternetTool:
             # Perform the search
             try:
                 # Ensure max_results is definitely an int
-                assert isinstance(
-                    max_results, int), f"max_results must be int, got {type(max_results)}: {max_results}"
+                if not isinstance(max_results, int):
+                    raise ValueError(
+                        f"max_results must be int, got {type(max_results)}: {max_results}")
                 search_results = process_duckduckgo_text_results(
                     self._ddgs, query, max_results, USE_DDGS)
 
