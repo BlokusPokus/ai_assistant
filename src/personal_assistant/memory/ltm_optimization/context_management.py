@@ -12,6 +12,7 @@ from typing import List, Dict, Optional, Any, Union
 from enum import Enum
 
 from ...config.logging_config import get_logger
+from ...types.state import AgentState
 from .config import LTMConfig
 
 logger = get_logger("context_management")
@@ -343,16 +344,17 @@ class ContextOptimizationManager:
         """Calculate type-specific boost for memory"""
 
         type_boosts = {
-            "preference": 0.3,
-            "insight": 0.2,
-            "pattern": 0.2,
-            "fact": 0.1,
-            "goal": 0.3,
-            "habit": 0.2,
+            "preference": 0.2,
+            "insight": 0.15,
+            "pattern": 0.1,
+            "fact": 0.05,
+            "goal": 0.1,
+            "habit": 0.15,
             "routine": 0.1,
-            "relationship": 0.3,
-            "skill": 0.2,
-            "knowledge": 0.1
+            "relationship": 0.1,
+            "skill": 0.1,
+            "knowledge": 0.05,
+            "general": 0.0
         }
 
         return type_boosts.get(memory_type, 0.0)
@@ -416,6 +418,604 @@ class ContextOptimizationManager:
                     break
 
         return truncated.strip()
+
+
+class DynamicContextManager:
+    """
+    Dynamic Context Manager with State Coordination
+
+    This class provides intelligent context optimization with dynamic sizing,
+    state context integration, and focus area coordination.
+    """
+
+    def __init__(self, config: LTMConfig = None):
+        self.config = config or LTMConfig()
+        self.logger = get_logger("dynamic_context_manager")
+
+        # Context sizing configuration
+        self.min_context_length = getattr(
+            self.config, 'min_context_length', 100)
+        self.max_context_length = getattr(
+            self.config, 'max_context_length', 2000)
+        self.optimal_context_length = getattr(
+            self.config, 'optimal_context_length', 800)
+
+        # Complexity thresholds
+        self.simple_query_threshold = getattr(
+            self.config, 'simple_query_threshold', 50)
+        self.complex_query_threshold = getattr(
+            self.config, 'complex_query_threshold', 200)
+
+        # Focus area configuration
+        self.focus_boost_multiplier = getattr(
+            self.config, 'focus_boost_multiplier', 1.5)
+        self.state_context_weight = getattr(
+            self.config, 'state_context_weight', 0.3)
+
+    async def optimize_context_with_state(
+        self,
+        memories: List[dict],
+        user_input: str,
+        state_context: 'AgentState' = None,
+        focus_areas: List[str] = None,
+        query_complexity: str = "medium"
+    ) -> str:
+        """
+        Optimize context with state coordination and dynamic sizing
+
+        Args:
+            memories: List of memories to optimize
+            user_input: User's input for relevance calculation
+            state_context: Current agent state for context coordination
+            focus_areas: Current focus areas for prioritization
+            query_complexity: Query complexity level (simple, medium, complex)
+
+        Returns:
+            Optimized context string
+        """
+
+        if not memories:
+            return ""
+
+        # Step 1: Calculate dynamic context size based on input complexity
+        dynamic_max_length = self._calculate_dynamic_context_size(
+            user_input, query_complexity, state_context
+        )
+
+        # Step 2: Prioritize memories with state context consideration
+        prioritized_memories = await self._prioritize_memories_with_state(
+            memories, user_input, state_context, focus_areas
+        )
+
+        # Step 3: Apply intelligent memory selection
+        selected_memories = self._select_memories_intelligently(
+            prioritized_memories, dynamic_max_length
+        )
+
+        # Step 4: Format and summarize context
+        formatted_context = self._format_context_with_summarization(
+            selected_memories, dynamic_max_length
+        )
+
+        # Step 5: Apply final length optimization
+        final_context = self._apply_length_optimization(
+            formatted_context, dynamic_max_length
+        )
+
+        self.logger.info(
+            f"Dynamic context optimization: {len(final_context)} chars from {len(memories)} memories "
+            f"(complexity: {query_complexity}, state: {state_context is not None})"
+        )
+
+        return final_context
+
+    def _calculate_dynamic_context_size(
+        self,
+        user_input: str,
+        query_complexity: str,
+        state_context: 'AgentState' = None
+    ) -> int:
+        """Calculate dynamic context size based on input complexity and state"""
+
+        base_length = self.optimal_context_length
+
+        # Adjust based on query complexity
+        complexity_multipliers = {
+            "simple": 0.6,    # Simple queries need less context
+            "medium": 1.0,    # Standard queries
+            "complex": 1.4    # Complex queries need more context
+        }
+
+        multiplier = complexity_multipliers.get(query_complexity, 1.0)
+
+        # Adjust based on input length
+        input_length = len(user_input)
+        if input_length < self.simple_query_threshold:
+            length_multiplier = 0.8  # Short inputs
+        elif input_length < self.complex_query_threshold:
+            length_multiplier = 1.0  # Medium inputs
+        else:
+            length_multiplier = 1.3  # Long inputs
+
+        # Adjust based on state context availability
+        state_multiplier = 1.2 if state_context else 1.0
+
+        # Calculate final length
+        dynamic_length = int(base_length * multiplier *
+                             length_multiplier * state_multiplier)
+
+        # Ensure within bounds
+        return max(self.min_context_length, min(dynamic_length, self.max_context_length))
+
+    async def _prioritize_memories_with_state(
+        self,
+        memories: List[dict],
+        user_input: str,
+        state_context: 'AgentState' = None,
+        focus_areas: List[str] = None
+    ) -> List[dict]:
+        """Prioritize memories with state context consideration"""
+
+        # Score each memory
+        scored_memories = []
+        for memory in memories:
+            score = self._calculate_comprehensive_memory_score(
+                memory, user_input, state_context, focus_areas
+            )
+            scored_memories.append((memory, score))
+
+        # Sort by score (highest first)
+        scored_memories.sort(key=lambda x: x[1], reverse=True)
+
+        return [memory for memory, score in scored_memories]
+
+    def _calculate_comprehensive_memory_score(
+        self,
+        memory: dict,
+        user_input: str,
+        state_context: 'AgentState' = None,
+        focus_areas: List[str] = None
+    ) -> float:
+        """Calculate comprehensive memory score with state context"""
+
+        # Base score from importance
+        base_score = memory.get("importance_score", 1) / 10.0
+
+        # Relevance boost
+        relevance_boost = self._calculate_enhanced_relevance_boost(
+            memory, user_input)
+
+        # Recency boost
+        recency_boost = self._calculate_enhanced_recency_boost(
+            memory.get("last_accessed"), memory.get("created_at")
+        )
+
+        # Type-specific boost
+        type_boost = self._calculate_enhanced_type_boost(
+            memory.get("memory_type", "general"))
+
+        # State context boost
+        state_boost = self._calculate_state_context_boost(
+            memory, state_context)
+
+        # Focus area boost
+        focus_boost = self._calculate_focus_area_boost(memory, focus_areas)
+
+        # Confidence boost
+        confidence_boost = memory.get("confidence_score", 0.5) * 0.1
+
+        total_score = (
+            base_score + relevance_boost + recency_boost +
+            type_boost + state_boost + focus_boost + confidence_boost
+        )
+
+        return min(1.0, total_score)
+
+    def _calculate_enhanced_relevance_boost(self, memory: dict, user_input: str) -> float:
+        """Calculate enhanced relevance boost"""
+
+        memory_tags = set(memory.get("tags", []))
+        memory_content = memory.get("content", "").lower()
+        context_words = set(user_input.lower().split())
+
+        # Tag overlap
+        tag_matches = sum(
+            1 for tag in memory_tags if tag.lower() in context_words)
+        tag_score = tag_matches / len(memory_tags) if memory_tags else 0
+
+        # Content overlap
+        content_words = set(memory_content.split())
+        word_overlap = len(content_words & context_words) / \
+            max(len(content_words | context_words), 1)
+
+        # Phrase matching
+        context_phrases = self._extract_phrases(user_input)
+        memory_phrases = self._extract_phrases(memory_content)
+        phrase_overlap = len(context_phrases & memory_phrases) / \
+            max(len(context_phrases | memory_phrases), 1)
+
+        return (tag_score * 0.4 + word_overlap * 0.4 + phrase_overlap * 0.2) * 0.3
+
+    def _calculate_enhanced_recency_boost(self, last_accessed: str, created_at: str = None) -> float:
+        """Calculate enhanced recency boost"""
+
+        try:
+            time_str = last_accessed or created_at
+            if not time_str:
+                return 0.0
+
+            time_dt = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
+            days_ago = (datetime.now() - time_dt).days
+
+            if days_ago <= 1:
+                return 0.4  # Very recent
+            elif days_ago <= 7:
+                return 0.3  # Recent
+            elif days_ago <= 30:
+                return 0.2  # Somewhat recent
+            elif days_ago <= 90:
+                return 0.1  # Older
+            else:
+                return 0.0  # Very old
+
+        except Exception:
+            return 0.0
+
+    def _calculate_enhanced_type_boost(self, memory_type: str) -> float:
+        """Calculate enhanced type-specific boost"""
+
+        type_boosts = {
+            "user_preference": 0.25,
+            "explicit_request": 0.3,
+            "tool_usage": 0.2,
+            "conversation": 0.1,
+            "automation": 0.2,
+            "preference": 0.25,
+            "insight": 0.2,
+            "pattern": 0.15,
+            "fact": 0.05,
+            "goal": 0.15,
+            "habit": 0.2,
+            "routine": 0.15,
+            "relationship": 0.15,
+            "skill": 0.15,
+            "knowledge": 0.1,
+            "general": 0.0
+        }
+
+        return type_boosts.get(memory_type, 0.0)
+
+    def _calculate_state_context_boost(self, memory: dict, state_context: 'AgentState' = None) -> float:
+        """Calculate boost based on state context relevance"""
+
+        if not state_context:
+            return 0.0
+
+        boost = 0.0
+
+        # Focus area matching
+        if hasattr(state_context, 'focus') and state_context.focus:
+            focus_areas = state_context.focus if isinstance(
+                state_context.focus, list) else [state_context.focus]
+            memory_tags = set(memory.get("tags", []))
+            memory_content = memory.get("content", "").lower()
+
+            for focus in focus_areas:
+                focus_lower = focus.lower()
+                if focus_lower in memory_content:
+                    boost += 0.2
+                if any(focus_lower in tag.lower() for tag in memory_tags):
+                    boost += 0.15
+
+        # Tool usage context matching
+        if hasattr(state_context, 'last_tool_result') and state_context.last_tool_result:
+            tool_result = str(state_context.last_tool_result).lower()
+            memory_content = memory.get("content", "").lower()
+
+            if any(tool_word in memory_content for tool_word in ['tool', 'function', 'api', 'automation']):
+                boost += 0.15
+
+        return min(0.4, boost) * self.state_context_weight
+
+    def _calculate_focus_area_boost(self, memory: dict, focus_areas: List[str] = None) -> float:
+        """Calculate boost based on focus areas"""
+
+        if not focus_areas:
+            return 0.0
+
+        memory_tags = set(memory.get("tags", []))
+        memory_content = memory.get("content", "").lower()
+
+        focus_matches = 0
+        for focus in focus_areas:
+            focus_lower = focus.lower()
+            if focus_lower in memory_content:
+                focus_matches += 1
+            if any(focus_lower in tag.lower() for tag in memory_tags):
+                focus_matches += 1
+
+        if focus_matches > 0:
+            return min(0.3, focus_matches * 0.1) * self.focus_boost_multiplier
+
+        return 0.0
+
+    def _extract_phrases(self, text: str, min_length: int = 2, max_length: int = 4) -> set:
+        """Extract meaningful phrases from text"""
+
+        words = text.lower().split()
+        phrases = set()
+
+        for length in range(min_length, min(max_length + 1, len(words) + 1)):
+            for i in range(len(words) - length + 1):
+                phrase = " ".join(words[i:i + length])
+                if len(phrase) > 3:  # Filter out very short phrases
+                    phrases.add(phrase)
+
+        return phrases
+
+    def _select_memories_intelligently(
+        self,
+        prioritized_memories: List[dict],
+        target_length: int
+    ) -> List[dict]:
+        """Intelligently select memories to fit within target length"""
+
+        selected_memories = []
+        current_length = 0
+
+        for memory in prioritized_memories:
+            # Estimate memory length
+            estimated_length = self._estimate_memory_length(memory)
+
+            # Check if adding this memory would exceed target
+            if current_length + estimated_length <= target_length:
+                selected_memories.append(memory)
+                current_length += estimated_length
+            else:
+                # Try to add a shorter version if possible
+                shortened_memory = self._create_shortened_memory(
+                    memory, target_length - current_length)
+                if shortened_memory:
+                    selected_memories.append(shortened_memory)
+                break
+
+        return selected_memories
+
+    def _estimate_memory_length(self, memory: dict) -> int:
+        """Estimate the length of a memory when formatted"""
+
+        content = memory.get("content", "")
+        tags = memory.get("tags", [])
+        memory_type = memory.get("memory_type", "general")
+
+        # Base length from content
+        base_length = len(content)
+
+        # Add length for tags
+        tags_length = len(" ".join(tags)) if tags else 0
+
+        # Add length for type prefix
+        type_prefix_length = len(
+            f"{memory_type.title()}: ") if memory_type != "general" else 0
+
+        return base_length + tags_length + type_prefix_length + 20  # Buffer for formatting
+
+    def _create_shortened_memory(self, memory: dict, max_length: int) -> dict:
+        """Create a shortened version of a memory"""
+
+        if max_length < 50:  # Too short to be useful
+            return None
+
+        content = memory.get("content", "")
+        if len(content) <= max_length:
+            return memory
+
+        # Try to truncate at sentence boundaries
+        sentences = content.split('. ')
+        shortened_content = ""
+
+        for sentence in sentences:
+            if len(shortened_content + sentence + '. ') <= max_length:
+                shortened_content += sentence + '. '
+            else:
+                break
+
+        if shortened_content:
+            shortened_memory = memory.copy()
+            shortened_memory["content"] = shortened_content.strip()
+            shortened_memory["_shortened"] = True
+            return shortened_memory
+
+        return None
+
+    def _format_context_with_summarization(
+        self,
+        memories: List[dict],
+        target_length: int
+    ) -> str:
+        """Format context with intelligent summarization"""
+
+        if not memories:
+            return ""
+
+        # Group memories by type for better organization
+        grouped_memories = self._group_memories_by_type(memories)
+
+        # Format each group
+        context_parts = []
+        for memory_type, type_memories in grouped_memories.items():
+            if type_memories:
+                type_context = self._format_memory_group(
+                    memory_type, type_memories)
+                if type_context:
+                    context_parts.append(type_context)
+
+        # Join all parts
+        full_context = "\n\n".join(context_parts)
+
+        # If still too long, apply summarization
+        if len(full_context) > target_length:
+            full_context = self._summarize_context(full_context, target_length)
+
+        return full_context
+
+    def _group_memories_by_type(self, memories: List[dict]) -> Dict[str, List[dict]]:
+        """Group memories by type for better organization"""
+
+        grouped = {}
+        for memory in memories:
+            memory_type = memory.get("memory_type", "general")
+            if memory_type not in grouped:
+                grouped[memory_type] = []
+            grouped[memory_type].append(memory)
+
+        return grouped
+
+    def _format_memory_group(self, memory_type: str, memories: List[dict]) -> str:
+        """Format a group of memories of the same type"""
+
+        if not memories:
+            return ""
+
+        # Type header
+        type_header = f"**{memory_type.replace('_', ' ').title()}:**"
+
+        # Format individual memories
+        memory_lines = []
+        for memory in memories:
+            content = memory.get("content", "")
+            tags = memory.get("tags", [])
+            importance = memory.get("importance_score", 1)
+
+            # Format based on importance
+            if importance >= 8:
+                prefix = "🔴 "  # High importance
+            elif importance >= 6:
+                prefix = "🟡 "  # Medium importance
+            else:
+                prefix = "🟢 "  # Lower importance
+
+            # Add tags if available
+            tag_suffix = f" [{' '.join(tags[:3])}]" if tags else ""
+
+            memory_lines.append(f"{prefix}{content}{tag_suffix}")
+
+        return f"{type_header}\n" + "\n".join(memory_lines)
+
+    def _summarize_context(self, context: str, target_length: int) -> str:
+        """Summarize context to fit within target length"""
+
+        if len(context) <= target_length:
+            return context
+
+        # Try to keep the most important parts
+        lines = context.split('\n')
+        summarized_lines = []
+        current_length = 0
+
+        for line in lines:
+            line_length = len(line) + 1  # +1 for newline
+
+            if current_length + line_length <= target_length:
+                summarized_lines.append(line)
+                current_length += line_length
+            else:
+                # Add summary indicator
+                remaining_length = target_length - current_length
+                if remaining_length > 20:
+                    summarized_lines.append(
+                        f"... and {len(lines) - len(summarized_lines)} more memories")
+                break
+
+        return "\n".join(summarized_lines)
+
+    def _apply_length_optimization(self, context: str, target_length: int) -> str:
+        """Apply final length optimization"""
+
+        if len(context) <= target_length:
+            return context
+
+        # Apply intelligent truncation
+        return self._truncate_context_intelligently(context, target_length)
+
+    def _truncate_context_intelligently(self, context: str, max_length: int) -> str:
+        """Intelligently truncate context while preserving meaning"""
+
+        if len(context) <= max_length:
+            return context
+
+        # Try to truncate at section boundaries first
+        sections = context.split('\n\n')
+        truncated_sections = []
+        current_length = 0
+
+        for section in sections:
+            section_length = len(section) + 2  # +2 for double newline
+
+            if current_length + section_length <= max_length:
+                truncated_sections.append(section)
+                current_length += section_length
+            else:
+                # Try to truncate this section
+                remaining_length = max_length - current_length
+                if remaining_length > 30:
+                    truncated_section = self._truncate_section(
+                        section, remaining_length)
+                    truncated_sections.append(truncated_section)
+                break
+
+        result = "\n\n".join(truncated_sections)
+
+        # If still too long, apply aggressive truncation
+        if len(result) > max_length:
+            result = result[:max_length-3] + "..."
+
+        return result
+
+    def _truncate_section(self, section: str, max_length: int) -> str:
+        """Truncate a section while preserving meaning"""
+
+        if len(section) <= max_length:
+            return section
+
+        # Try to keep the header and first few lines
+        lines = section.split('\n')
+        if len(lines) == 1:
+            return section[:max_length-3] + "..."
+
+        header = lines[0]
+        content_lines = lines[1:]
+
+        # Keep header and as many content lines as possible
+        available_length = max_length - \
+            len(header) - 3  # -3 for "..." and newlines
+
+        truncated_lines = [header]
+        current_length = 0
+
+        for line in content_lines:
+            if current_length + len(line) + 1 <= available_length:
+                truncated_lines.append(line)
+                current_length += len(line) + 1
+            else:
+                break
+
+        if truncated_lines != [header]:
+            truncated_lines.append("...")
+
+        return "\n".join(truncated_lines)
+
+    def get_context_stats(self, context: str) -> Dict[str, Any]:
+        """Get statistics about the generated context"""
+
+        return {
+            "length": len(context),
+            "lines": len(context.split('\n')),
+            "sections": len(context.split('\n\n')),
+            # Avoid division by zero
+            "efficiency": len(context) / max(len(context), 1),
+            "compression_ratio": 1.0  # Placeholder for future compression metrics
+        }
 
 
 # ============================================================================

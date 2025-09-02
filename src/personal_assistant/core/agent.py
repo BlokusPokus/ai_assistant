@@ -28,6 +28,10 @@ from ..config.logging_config import get_logger
 
 from ..memory.ltm_optimization import (
     LTMLearningManager,
+    SmartLTMRetriever,
+    DynamicContextManager,
+    EnhancedMemoryLifecycleManager,
+    EnhancedLTMConfig,
 )
 import os
 import time
@@ -58,12 +62,27 @@ class AgentCore:
         self.runner = AgentRunner(self.tools, self.planner)
 
         try:
+            # Initialize enhanced LTM configuration
+            self.ltm_config = EnhancedLTMConfig()
+
+            # Initialize enhanced LTM components
             self.ltm_learning_manager = LTMLearningManager(
-                config=None, llm=llm)
-            logger.info("LTM optimization components initialized successfully")
+                config=self.ltm_config, llm=llm)
+            self.ltm_retriever = SmartLTMRetriever(config=self.ltm_config)
+            self.context_manager = DynamicContextManager(
+                config=self.ltm_config)
+            self.lifecycle_manager = EnhancedMemoryLifecycleManager(
+                config=self.ltm_config)
+
+            logger.info(
+                "Enhanced LTM optimization components initialized successfully")
         except Exception as e:
-            logger.warning(f"Failed to initialize LTM optimization: {e}")
+            logger.warning(
+                f"Failed to initialize enhanced LTM optimization: {e}")
             self.ltm_learning_manager = None
+            self.ltm_retriever = None
+            self.context_manager = None
+            self.lifecycle_manager = None
 
         # Initialize storage integration manager for new normalized storage
         self.storage_manager = StorageIntegrationManager()
@@ -142,15 +161,51 @@ class AgentCore:
             agent_state.reset_for_new_message(user_input)
 
             try:
-                ltm_context = await get_ltm_context_with_tags(
-                    None, logger, user_id, user_input,
-                    agent_state.focus if hasattr(
-                        agent_state, 'focus') else None
-                )
+                # Use enhanced LTM retriever with state coordination
+                if self.ltm_retriever:
+                    # Get relevant memories with state context
+                    relevant_memories = await self.ltm_retriever.get_relevant_memories(
+                        user_id=user_id,
+                        context=user_input,
+                        state_context=agent_state,
+                        query_complexity="medium"  # Default complexity
+                    )
+
+                    # Use dynamic context manager to optimize context with state
+                    if self.context_manager and relevant_memories:
+                        ltm_context = await self.context_manager.optimize_context_with_state(
+                            memories=relevant_memories,
+                            user_input=user_input,
+                            state_context=agent_state,
+                            focus_areas=agent_state.focus if hasattr(
+                                agent_state, 'focus') else None,
+                            query_complexity="medium"
+                        )
+                    else:
+                        # Fallback to simple context formatting
+                        ltm_context = "\n".join(
+                            [mem.get("content", "") for mem in relevant_memories[:5]])
+                else:
+                    # Fallback to legacy LTM context retrieval
+                    ltm_context = await get_ltm_context_with_tags(
+                        None, logger, user_id, user_input,
+                        agent_state.focus if hasattr(
+                            agent_state, 'focus') else None
+                    )
             except Exception as e:
                 logger.warning(
-                    f"Failed to get LTM context for user {user_id}: {e}")
-                ltm_context = None
+                    f"Failed to get enhanced LTM context for user {user_id}: {e}")
+                # Fallback to legacy method
+                try:
+                    ltm_context = await get_ltm_context_with_tags(
+                        None, logger, user_id, user_input,
+                        agent_state.focus if hasattr(
+                            agent_state, 'focus') else None
+                    )
+                except Exception as fallback_e:
+                    logger.warning(
+                        f"Fallback LTM context retrieval also failed: {fallback_e}")
+                    ltm_context = None
 
             try:
                 rag_context = await query_knowledge_base(user_id, user_input)
@@ -159,7 +214,7 @@ class AgentCore:
                     f"Failed to get RAG context for user {user_id}: {e}")
                 rag_context = []
 
-            self.runner.set_context(agent_state, rag_context, ltm_context)
+            await self.runner.set_context(agent_state, rag_context, ltm_context)
 
             response, updated_state = await self.runner.execute_agent_loop(user_input)
 
@@ -185,6 +240,20 @@ class AgentCore:
                     logger.warning(
                         f"LTM optimization failed for user {user_id}: {e}")
                     # Continue execution even if LTM optimization fails
+
+            # Perform memory lifecycle management with state coordination
+            if self.lifecycle_manager:
+                try:
+                    # Run lifecycle management with state context
+                    lifecycle_results = await self.lifecycle_manager.manage_memory_lifecycle_with_state(
+                        user_id, updated_state
+                    )
+                    logger.info(
+                        f"Memory lifecycle management completed for user {user_id}: {lifecycle_results}")
+                except Exception as e:
+                    logger.warning(
+                        f"Memory lifecycle management failed for user {user_id}: {e}")
+                    # Continue execution even if lifecycle management fails
 
             try:
                 await self.storage_manager.log_agent_interaction(
