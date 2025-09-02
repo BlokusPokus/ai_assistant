@@ -1,8 +1,10 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
+from fastapi.responses import Response
 
 from personal_assistant.config.settings import settings
+from personal_assistant.monitoring import get_metrics_service
 
 from apps.fastapi_app.middleware.auth import AuthMiddleware
 from apps.fastapi_app.middleware.rate_limiting import RateLimitingMiddleware
@@ -30,7 +32,21 @@ app.add_middleware(
 
 # Add authentication and rate limiting middleware
 app.add_middleware(RateLimitingMiddleware)
-app.add_middleware(AuthMiddleware)
+app.add_middleware(AuthMiddleware, exclude_paths=[
+    "/",
+    "/health",
+    "/metrics",  # Exclude metrics endpoint from authentication
+    "/docs",
+    "/redoc",
+    "/openapi.json",
+    "/api/v1/auth/login",
+    "/api/v1/auth/register",
+    "/api/v1/auth/refresh",
+    "/webhook/twilio",  # Keep Twilio webhook accessible
+    "/twilio/sms",      # Keep Twilio SMS webhook accessible
+    "/sms-router/webhook/sms",  # SMS Router webhook for Twilio
+    "/sms-router/webhook/health",  # SMS Router health check
+])
 
 # Include routers
 app.include_router(twilio.router)
@@ -65,6 +81,28 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint."""
+    try:
+        metrics_service = get_metrics_service()
+        metrics_data = metrics_service.generate_metrics()
+        return Response(
+            content=metrics_data,
+            media_type=metrics_service.get_metrics_content_type()
+        )
+    except Exception as e:
+        # Log error but don't expose internal details
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error generating metrics: {e}")
+        return Response(
+            content="# Error generating metrics\n",
+            media_type="text/plain",
+            status_code=500
+        )
 
 if __name__ == "__main__":
     import uvicorn

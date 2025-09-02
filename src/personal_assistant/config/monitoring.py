@@ -15,6 +15,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from personal_assistant.config.database import db_config
 from personal_assistant.config.settings import settings
+from personal_assistant.monitoring import get_metrics_service
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,23 @@ class HealthMonitor:
             health_data["timestamp"] = datetime.now().isoformat()
             health_data["service"] = "database"
 
+            # Update Prometheus metrics
+            try:
+                metrics_service = get_metrics_service()
+                is_healthy = health_data.get("status") == "healthy"
+                response_time = health_data.get("response_time", 0)
+
+                # Update database health metrics
+                metrics_service.database_health_status.set(
+                    1 if is_healthy else 0)
+                if response_time:
+                    metrics_service.database_response_time_seconds.observe(
+                        response_time)
+
+            except Exception as metrics_error:
+                logger.warning(
+                    f"Failed to update Prometheus metrics: {metrics_error}")
+
             # Store in history
             self._add_to_history(health_data)
 
@@ -58,6 +76,17 @@ class HealthMonitor:
         try:
             pool_stats = await db_config.get_pool_stats()
             performance_metrics = await db_config.get_performance_metrics()
+
+            # Update Prometheus metrics
+            try:
+                metrics_service = get_metrics_service()
+                metrics_service.database_connections_active.set(
+                    pool_stats.checked_out)
+                metrics_service.database_connection_pool_utilization.set(
+                    pool_stats.utilization_percentage)
+            except Exception as metrics_error:
+                logger.warning(
+                    f"Failed to update Prometheus pool metrics: {metrics_error}")
 
             return {
                 "pool_statistics": {
@@ -130,6 +159,16 @@ class HealthMonitor:
 
             # Get performance metrics
             performance = await self.get_performance_metrics()
+
+            # Update Prometheus application health metrics
+            try:
+                metrics_service = get_metrics_service()
+                is_healthy = overall_status == "healthy"
+                metrics_service.application_health_status.set(
+                    1 if is_healthy else 0)
+            except Exception as metrics_error:
+                logger.warning(
+                    f"Failed to update Prometheus application health metrics: {metrics_error}")
 
             overall_health = {
                 "status": overall_status,

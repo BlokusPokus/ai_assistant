@@ -15,6 +15,8 @@ from dataclasses import dataclass, field, asdict
 from collections import defaultdict, deque
 import logging
 
+from personal_assistant.monitoring import get_metrics_service
+
 logger = logging.getLogger(__name__)
 
 
@@ -154,6 +156,18 @@ class MetricsCollector:
                         self.aggregate_stats[metrics.task_name].append(
                             metrics.execution_time)
 
+                    # Update Prometheus metrics
+                    try:
+                        metrics_service = get_metrics_service()
+                        metrics_service.record_task_execution(
+                            task_type=metrics.task_name,
+                            duration=metrics.execution_time,
+                            success=(status == "completed")
+                        )
+                    except Exception as metrics_error:
+                        self.logger.warning(
+                            f"Failed to update Prometheus task metrics: {metrics_error}")
+
                     # Archive metrics but keep in memory for a short time
                     self._archive_metrics(metrics)
 
@@ -236,7 +250,7 @@ class MetricsCollector:
                 'maintenance_tasks': 0
             }
 
-            return {
+            system_status = {
                 'timestamp': datetime.utcnow().isoformat(),
                 'cpu_percent': psutil.cpu_percent(interval=0.1),
                 'memory_percent': memory_info.percent,
@@ -248,6 +262,16 @@ class MetricsCollector:
                 'queue_lengths': queue_lengths,
                 'total_tasks_tracked': len(self.metrics)
             }
+
+            # Update Prometheus metrics
+            try:
+                metrics_service = get_metrics_service()
+                metrics_service.update_task_metrics(queue_lengths)
+            except Exception as metrics_error:
+                self.logger.warning(
+                    f"Failed to update Prometheus task metrics: {metrics_error}")
+
+            return system_status
 
         except Exception as e:
             self.logger.error(f"Error getting current system status: {e}")
