@@ -12,6 +12,7 @@ from datetime import datetime
 from ...config.logging_config import get_logger
 from ...tools.ltm.ltm_storage import add_ltm_memory
 from ...constants.tags import LTM_TAGS, validate_tags
+from ...utils.ai_tag_validator import validate_ai_generated_tags
 from ...types.state import AgentState
 from .config import LTMConfig, EnhancedLTMConfig
 from .enhanced_tag_suggester import EnhancedTagSuggester
@@ -183,6 +184,9 @@ Agent Response: {agent_response}
 **INTERACTION ANALYSIS:**
 {interaction_analysis}
 
+**AVAILABLE TAGS (EXACT LIST - USE ONLY THESE):**
+{', '.join(LTM_TAGS)}
+
 **AVAILABLE TAGS (by category):**
 {tag_categories}
 
@@ -280,6 +284,9 @@ Agent Response: {agent_response}
 
 **INTERACTION ANALYSIS:**
 {interaction_analysis}
+
+**AVAILABLE TAGS (EXACT LIST - USE ONLY THESE):**
+{', '.join(LTM_TAGS)}
 
 **AVAILABLE TAGS (by category):**
 {tag_categories}
@@ -1032,10 +1039,23 @@ Analyze the interaction with state context and create high-quality memories:"""
             confidence_score = memory_spec.get('confidence_score', 0.8)
             context = memory_spec.get('context', '')
 
-            # Validate and clean tags
+            # Validate and clean tags using the AI tag validator
             if tags:
-                tags = [tag for tag in tags if tag in LTM_TAGS or validate_tags([
-                                                                                tag])]
+                # Convert tags list to comma-separated string for validation
+                tags_string = ",".join(tags) if isinstance(
+                    tags, list) else str(tags)
+                valid_tags, invalid_tags, correction_explanation = validate_ai_generated_tags(
+                    tags_string, content, context
+                )
+                tags = valid_tags
+
+                if invalid_tags:
+                    logger.warning(
+                        f"Invalid tags in memory spec: {invalid_tags}")
+                    logger.info(f"Correction: {correction_explanation}")
+            else:
+                # If no tags provided, get suggestions based on content
+                tags = validate_ai_generated_tags("", content, context)[0]
 
             # Create memory data
             memory_data = {

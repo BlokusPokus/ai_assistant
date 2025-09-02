@@ -23,7 +23,7 @@ class LTMTagSelectionPrompt:
         return f"""
 You must select one or more tags for each LTM memory entry from the following predefined list:
 
-**Available Tags:**
+**Available Tags (EXACT LIST - USE ONLY THESE):**
 {', '.join(LTM_TAGS)}
 
 **Tag Categories for Reference:**
@@ -36,18 +36,23 @@ You must select one or more tags for each LTM memory entry from the following pr
 - Time: {', '.join(TAG_CATEGORIES['time'])}
 - General: {', '.join(TAG_CATEGORIES['general'])}
 
-**Tag Selection Rules:**
-1. **REQUIRED**: You MUST select at least 1 tag from the list above
-2. **REQUIRED**: You can ONLY use tags from the predefined list
-3. **RECOMMENDED**: Select 2-4 tags for better categorization
-4. **IMPORTANT**: Use specific tags over general ones when possible
-5. **CONTEXT**: Consider the content and context when selecting tags
+**CRITICAL Tag Selection Rules:**
+1. **MANDATORY**: You MUST select at least 1 tag from the EXACT list above
+2. **MANDATORY**: You can ONLY use tags from the predefined list - NO EXCEPTIONS
+3. **MANDATORY**: All tags must be lowercase and match exactly (e.g., "email", not "Email" or "EMAIL")
+4. **RECOMMENDED**: Select 2-4 tags for better categorization
+5. **IMPORTANT**: Use specific tags over general ones when possible
+6. **CONTEXT**: Consider the content and context when selecting tags
+
+**Common Valid Tags for Email/Education Content:**
+- email, education, reading, learning, preference, work, personal, important, general
 
 **Examples:**
 - User: "Delete my 2pm meeting" → Tags: delete, meeting
 - User: "I prefer to work in the morning" → Tags: preference, work, routine
 - User: "This is urgent, please remember" → Tags: urgent, important
 - User: "I like using the email tool" → Tags: preference, email, tool_execution
+- User: "I received an educational email" → Tags: email, education, reading
 
 **Response Format:**
 Return ONLY a comma-separated list of tags, no explanations or additional text.

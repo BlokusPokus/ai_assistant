@@ -11,6 +11,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   full_name: string;
+  phone_number?: string;
 }
 
 export interface MFASetupRequest {

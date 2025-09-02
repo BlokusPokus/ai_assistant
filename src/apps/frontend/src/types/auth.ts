@@ -9,6 +9,7 @@ export interface RegisterFormData {
   password: string;
   confirmPassword: string;
   fullName: string;
+  phoneNumber?: string;
 }
 
 export interface MFAFormData {

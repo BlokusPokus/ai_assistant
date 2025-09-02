@@ -16,7 +16,7 @@ from personal_assistant.database.models.users import User
 from personal_assistant.auth.decorators import require_permission
 from apps.fastapi_app.middleware.auth import get_current_user
 from apps.fastapi_app.models.users import (
-    UserResponse, UserUpdateRequest, UserPreferencesResponse,
+    UserResponse, UserPublicResponse, UserUpdateRequest, UserPreferencesResponse,
     UserPreferencesUpdateRequest, UserListResponse, UserCreateRequest,
     UserDeleteRequest
 )
@@ -126,7 +126,7 @@ async def get_current_user_db(
 
 
 # Current user endpoints (user can access their own data)
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserPublicResponse)
 async def get_current_user_profile(
     current_user: User = Depends(get_current_user_db)
 ):
@@ -136,7 +136,7 @@ async def get_current_user_profile(
     Returns the profile information for the currently authenticated user.
     """
     try:
-        return UserResponse(
+        return UserPublicResponse(
             id=current_user.id,
             email=current_user.email,
             phone_number=getattr(current_user, 'phone_number', None),
@@ -156,7 +156,7 @@ async def get_current_user_profile(
         )
 
 
-@router.put("/me", response_model=UserResponse)
+@router.put("/me", response_model=UserPublicResponse)
 async def update_current_user_profile(
     user_update: UserUpdateRequest,
     current_user: User = Depends(get_current_user_db),
@@ -193,7 +193,7 @@ async def update_current_user_profile(
                 detail="Failed to update user profile"
             )
 
-        return UserResponse.model_validate(updated_user)
+        return UserPublicResponse.model_validate(updated_user)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

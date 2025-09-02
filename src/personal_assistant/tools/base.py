@@ -48,16 +48,61 @@ class Tool:
     def validate_args(self, kwargs: Dict[str, Any]):
         """Validates arguments against parameter schema."""
         try:
-            # Create a complete JSON schema for validation
-            schema = {
-                "type": "object",
-                "properties": self.parameters,
-                "required": []  # All parameters are optional for now
-            }
-            jsonschema.validate(instance=kwargs, schema=schema)
+            # Use the parameters schema directly since it's already a complete JSON schema
+            jsonschema.validate(instance=kwargs, schema=self.parameters)
         except jsonschema.exceptions.ValidationError as e:
-            raise ValueError(
-                f"Invalid arguments for tool {self.name}: {str(e)}")
+            # Provide more helpful error messages
+            error_msg = str(e)
+
+            # Handle specific validation error types
+            if "is not of type" in error_msg:
+                # Extract the problematic field and provide better guidance
+                field_name = error_msg.split(
+                    "'")[1] if "'" in error_msg else "unknown field"
+                expected_type = error_msg.split(
+                    "'")[3] if "'" in error_msg else "unknown type"
+
+                # Get the expected type from the schema for better guidance
+                schema_props = self.parameters.get("properties", {})
+                field_schema = schema_props.get(field_name, {})
+                expected_format = field_schema.get("description", "")
+
+                raise ValueError(
+                    f"Invalid argument '{field_name}' for tool {self.name}. "
+                    f"Expected type: {expected_type}. "
+                    f"{expected_format}. "
+                    f"Received: {kwargs.get(field_name, 'None')}")
+
+            elif "is a required property" in error_msg:
+                # Handle missing required fields
+                field_name = error_msg.split(
+                    "'")[1] if "'" in error_msg else "unknown field"
+                raise ValueError(
+                    f"Missing required argument '{field_name}' for tool {self.name}. "
+                    f"Please provide this parameter.")
+
+            elif "is not one of" in error_msg:
+                # Handle enum validation errors
+                # Extract field name and received value from error message
+                parts = error_msg.split("'")
+                if len(parts) >= 4:
+                    received_value = parts[1]
+                    field_name = parts[3] if len(
+                        parts) > 3 else "unknown field"
+                else:
+                    field_name = "unknown field"
+                    received_value = "unknown value"
+
+                schema_props = self.parameters.get("properties", {})
+                field_schema = schema_props.get(field_name, {})
+                allowed_values = field_schema.get("enum", [])
+                raise ValueError(
+                    f"Invalid value '{received_value}' for '{field_name}' in tool {self.name}. "
+                    f"Allowed values: {allowed_values}. "
+                    f"Please use one of the allowed values.")
+            else:
+                raise ValueError(
+                    f"Invalid arguments for tool {self.name}: {error_msg}")
 
     async def execute(self, **kwargs):
         """Executes the tool with validation and enhanced error handling."""
@@ -173,22 +218,12 @@ class ToolRegistry:
 
         schema = {}
         for name, tool in self.tools.items():
-            # Determine which parameters are required (only content for create_note, note_id for others)
-            required_params = []
-            for param_name, param_schema in tool.parameters.items():
-                # Only make content and note_id required, others are optional
-                if param_name in ['content', 'note_id', 'query', 'to_recipients', 'subject', 'body', 'event_id', 'message_id', 'count', 'start_time', 'text', 'time', 'reminder_id', 'amount']:
-                    required_params.append(param_name)
-
+            # Use the tool's parameters directly as they already contain the full JSON schema
             schema[name] = {
                 "name": name,
                 "description": tool.description,
                 "category": tool.category,  # Include category in schema
-                "parameters": {
-                    "type": "object",
-                    "properties": tool.parameters,
-                    "required": required_params
-                }
+                "parameters": tool.parameters  # Use the full parameters schema
             }
         return schema
 

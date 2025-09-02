@@ -82,7 +82,7 @@ class SmartLTMRetriever:
         self._cache_misses[cache_key] += 1
 
         # Get candidate memories by importance
-        candidate_memories = await self._get_candidate_memories(user_id, state_context)
+        candidate_memories = await self._get_candidate_memories(user_id, state_context, context)
 
         if not candidate_memories:
             logger.info(f"No candidate memories found for user {user_id}")
@@ -162,7 +162,8 @@ class SmartLTMRetriever:
     async def _get_candidate_memories(
         self,
         user_id: int,
-        state_context: AgentState = None
+        state_context: AgentState = None,
+        context: str = ""
     ) -> List[dict]:
         """Get candidate memories with state context consideration"""
 
@@ -170,7 +171,7 @@ class SmartLTMRetriever:
             # Get base candidate memories
             memories = await get_relevant_ltm_memories(
                 user_id=user_id,
-                context="",  # Empty context to get all memories
+                context=context,  # Use the actual context
                 limit=self.config.max_candidate_memories
             )
 

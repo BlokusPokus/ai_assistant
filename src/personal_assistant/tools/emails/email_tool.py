@@ -49,7 +49,7 @@ class EmailTool:
         # Create individual tools
         self.read_emails_tool = Tool(
             name="read_emails",
-            func=self.read_recent_emails,
+            func=self.get_emails,
             description="Read recent emails from your inbox",
             parameters={
                 "count": {
@@ -204,7 +204,7 @@ class EmailTool:
         self._initialize_token()
         return self._access_token
 
-    async def read_recent_emails(self, count: int, batch_size: int = 10) -> str:
+    async def get_emails(self, count: int, batch_size: int = 10) -> str:
         """
         Read recent emails with improved error handling and token management
         """
@@ -240,7 +240,7 @@ class EmailTool:
                         return EmailErrorHandler.handle_email_error(
                             Exception(
                                 f"HTTP {response.status_code}: {response.text}"),
-                            "read_recent_emails",
+                            "get_emails",
                             {"count": count, "batch_size": batch_size}
                         )
 
@@ -255,7 +255,7 @@ class EmailTool:
             return format_email_list_response(emails[:count], count)
 
         except Exception as e:
-            return EmailErrorHandler.handle_email_error(e, "read_recent_emails", {"count": count, "batch_size": batch_size})
+            return EmailErrorHandler.handle_email_error(e, "get_emails", {"count": count, "batch_size": batch_size})
 
     async def send_email(self, to_recipients: str, subject: str, body: str, is_html: bool = False) -> Dict[str, Any]:
         """Send an email to one or more recipients"""

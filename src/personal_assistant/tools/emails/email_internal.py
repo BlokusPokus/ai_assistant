@@ -214,6 +214,7 @@ def format_email_list_response(emails: List[Dict[str, Any]], count: int) -> str:
 
     for i, email in enumerate(emails, 1):
         response += f"{i}. **{email['subject']}**\n"
+        response += f"   🆔 ID: {email['id']}\n"
         response += f"   👤 From: {email['from_name']} <{email['from_email']}>\n"
         response += f"   📅 Received: {email['received']}\n"
         response += f"   📝 Preview: {email['preview'][:100]}...\n\n"
@@ -227,6 +228,7 @@ def format_email_content_response(email_data: Dict[str, Any]) -> str:
     email = email_data.get('email', {})
 
     response = f"📧 Email Content\n\n"
+    response += f"**ID:** {email.get('id', 'Unknown')}\n"
     response += f"**Subject:** {email.get('subject', 'No Subject')}\n"
     response += f"**From:** {email.get('from_name', 'Unknown')} <{email.get('from_email', '')}>\n"
     response += f"**Received:** {email.get('received', 'Unknown')}\n"

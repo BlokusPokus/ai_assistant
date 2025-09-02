@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useProfileStore } from '@/stores/profileStore';
 import { useOAuthStore } from '@/stores/oauthStore';
 import SMSAnalyticsWidget from '@/components/dashboard/SMSAnalyticsWidget';
+import PhoneNumberRegistrationWidget from '@/components/dashboard/PhoneNumberRegistrationWidget';
 import {
   Brain,
   MessageSquare,
@@ -16,6 +17,7 @@ import {
   CheckCircle,
   Link,
   Key,
+  Phone,
 } from 'lucide-react';
 
 const DashboardHome: React.FC = () => {
@@ -57,6 +59,13 @@ const DashboardHome: React.FC = () => {
       description: 'Manage your OAuth connections',
       action: () => navigate('/dashboard/integrations'),
       color: 'bg-orange-100 text-orange-600',
+    },
+    {
+      icon: Phone,
+      title: 'Manage Phone Number',
+      description: 'Update, verify, and manage your phone number',
+      action: () => navigate('/dashboard/phone-management'),
+      color: 'bg-teal-100 text-teal-600',
     },
     {
       icon: Key,
@@ -206,16 +215,19 @@ const DashboardHome: React.FC = () => {
         ))}
       </div>
 
-      {/* SMS Analytics Section */}
+      {/* SMS Analytics & Phone Management Section */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold text-gray-900">
-          SMS Analytics & Usage
+          Communication & Management
         </h2>
-        <SMSAnalyticsWidget
-          timeRange="30d"
-          showCosts={true}
-          showPerformance={true}
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SMSAnalyticsWidget
+            timeRange="30d"
+            showCosts={true}
+            showPerformance={true}
+          />
+          <PhoneNumberRegistrationWidget />
+        </div>
       </div>
 
       {/* Quick Actions Grid */}

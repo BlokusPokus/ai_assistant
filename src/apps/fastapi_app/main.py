@@ -46,7 +46,8 @@ app.include_router(oauth.router)
 app.include_router(sms_router.router)
 
 # Add Analytics routes
-app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
+app.include_router(
+    analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 
 # Include health monitoring router
 app.include_router(monitoring_router)
