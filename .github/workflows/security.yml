@@ -15,7 +15,6 @@ permissions:
   pull-requests: read
   security-events: write
   actions: read
-  metadata: read
   checks: write
 
 env:
