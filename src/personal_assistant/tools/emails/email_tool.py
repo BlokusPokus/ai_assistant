@@ -712,7 +712,7 @@ class EmailTool:
                 if response.status_code in [200, 201]:
                     try:
                         move_result = response.json()
-                    except:
+                    except (ValueError, KeyError):
                         # If response is empty or not JSON, create a basic success response
                         move_result = {"subject": "Email moved successfully"}
 

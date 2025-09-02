@@ -139,7 +139,8 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
                 import json
                 data = json.loads(body)
                 return data.get("user_id")
-        except:
+        except (json.JSONDecodeError, UnicodeDecodeError, AttributeError):
+            # Ignore JSON parsing errors and missing attributes
             pass
         return None
 

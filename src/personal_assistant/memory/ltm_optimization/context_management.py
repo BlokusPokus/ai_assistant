@@ -337,7 +337,7 @@ class ContextOptimizationManager:
                 return 0.1  # Somewhat recent
             else:
                 return 0.0  # Old
-        except:
+        except (ValueError, TypeError):
             return 0.0
 
     def _calculate_type_boost(self, memory_type: str) -> float:

@@ -278,7 +278,8 @@ Current date/time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                         if "pm" in time_word or "am" in time_word:
                             # Basic time parsing
                             pass
-                    except:
+                    except (ValueError, TypeError, IndexError):
+                        # Ignore parsing errors for time words
                         pass
 
         return EventDetails(

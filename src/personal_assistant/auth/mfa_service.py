@@ -170,7 +170,7 @@ class MFAService:
 
         # Use a hash of the device string for consistency
         import hashlib
-        hash_object = hashlib.md5(device_string.encode())
+        hash_object = hashlib.sha256(device_string.encode())
         return hash_object.hexdigest()[:16]  # Return first 16 characters
 
     def is_device_trusted(self, device_hash: str, trusted_devices: List[Dict[str, Any]]) -> bool:

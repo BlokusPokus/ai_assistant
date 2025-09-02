@@ -32,8 +32,9 @@ class JWTService:
             if getattr(settings, 'ENVIRONMENT', 'development') == 'production':
                 raise ValueError(
                     "JWT_SECRET_KEY must be set in production environment")
-            # For development, use a default (not secure for production)
-            secret_key = "dev-secret-key-change-in-production"
+            # For development, generate a random key (not secure for production)
+            import secrets
+            secret_key = secrets.token_urlsafe(32)  # nosec B105
         return secret_key
 
     def create_access_token(

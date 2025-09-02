@@ -430,7 +430,7 @@ class MetricsCollector:
             # Get active connections (simplified)
             try:
                 connections = len(psutil.net_connections())
-            except:
+            except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
                 connections = 0
 
             # Count active workers

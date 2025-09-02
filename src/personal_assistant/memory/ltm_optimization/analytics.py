@@ -437,8 +437,9 @@ class LTMAnalytics:
         """Determine if an event should be sampled based on sampling rate"""
 
         try:
-            import random
-            return random.random() < self.sampling_rate
+            import secrets
+            # Use cryptographically secure random for sampling decisions
+            return secrets.randbelow(1000) / 1000.0 < self.sampling_rate
 
         except Exception as e:
             self.logger.error(f"Error in event sampling: {e}")

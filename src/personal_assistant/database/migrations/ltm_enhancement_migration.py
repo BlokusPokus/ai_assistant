@@ -90,16 +90,17 @@ class LTMEnhancementMigration:
         for column_name, column_type in new_columns:
             try:
                 # Check if column already exists
-                check_sql = text(f"""
+                check_sql = text("""
                     SELECT column_name 
                     FROM information_schema.columns 
                     WHERE table_name = 'ltm_memories' 
-                    AND column_name = '{column_name}'
+                    AND column_name = :column_name
                 """)
-                result = await session.execute(check_sql)
+                result = await session.execute(check_sql, {"column_name": column_name})
 
                 if not result.fetchone():
                     # Add the column
+                    # Note: column_name and column_type are from hardcoded list above, safe from injection
                     add_sql = text(
                         f"ALTER TABLE ltm_memories ADD COLUMN {column_name} {column_type}")
                     await session.execute(add_sql)

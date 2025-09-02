@@ -401,7 +401,7 @@ class SmartLTMRetriever:
         }
 
         key_string = json.dumps(key_data, sort_keys=True)
-        return hashlib.md5(key_string.encode()).hexdigest()
+        return hashlib.sha256(key_string.encode()).hexdigest()
 
     def _get_from_cache(self, cache_key: str) -> Optional[List[dict]]:
         """Get result from cache if valid"""

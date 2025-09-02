@@ -21,6 +21,7 @@ from personal_assistant.auth.password_service import password_service
 from personal_assistant.auth.auth_utils import AuthUtils
 from personal_assistant.auth.decorators import require_permission
 from personal_assistant.config.settings import settings
+from personal_assistant.auth.constants import TOKEN_TYPE_ACCESS, TOKEN_TYPE_REFRESH
 
 # Create router
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
@@ -68,14 +69,14 @@ class UserResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: str = "bearer"
+    token_type: str = "bearer"  # OAuth 2.0 standard token type  # nosec B106
     expires_in: int
 
 
 class AuthResponse(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: str = "bearer"
+    token_type: str = "bearer"  # OAuth 2.0 standard token type  # nosec B106
     expires_in: int
     user: UserResponse
     mfa_required: bool = False
@@ -280,7 +281,7 @@ async def login(
         auth_token = AuthToken(
             user_id=user.id,
             token=refresh_token,
-            token_type="refresh",
+            token_type=TOKEN_TYPE_REFRESH,
             expires_at=datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
             is_revoked=False
         )
@@ -310,7 +311,7 @@ async def login(
         return AuthResponse(
             access_token=access_token,
             refresh_token=refresh_token,
-            token_type="bearer",
+            token_type="bearer",  # OAuth 2.0 standard token type  # nosec B106
             expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             user=UserResponse(
                 id=user.id,

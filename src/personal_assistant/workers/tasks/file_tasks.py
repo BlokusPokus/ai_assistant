@@ -33,10 +33,14 @@ def cleanup_temp_files(self) -> Dict[str, Any]:
     logger.info(f"Starting temp file cleanup task {task_id}")
 
     try:
+        import tempfile
+        import os
+
+        # Use proper temp directory handling
         temp_dirs = [
-            '/tmp/personal_assistant',
-            'logs/temp',
-            'uploads/temp'
+            os.path.join(tempfile.gettempdir(), 'personal_assistant'),
+            os.path.join(os.getcwd(), 'logs', 'temp'),
+            os.path.join(os.getcwd(), 'uploads', 'temp')
         ]
 
         files_removed = 0
