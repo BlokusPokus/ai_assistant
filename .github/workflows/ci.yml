@@ -140,7 +140,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          pytest tests/unit/ tests/test_auth/ tests/tools/ -v --cov=src --cov-report=xml --cov-report=html --timeout=300
+          pytest tests/unit/ tests/test_auth/ tests/tools/ tests/test_*.py -v --cov=src --cov-report=xml --cov-report=html --timeout=300 --timeout-method=thread
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
@@ -209,7 +209,7 @@ jobs:
 
       - name: Run integration tests
         run: |
-          pytest tests/integration/ tests/test_sms_router/ tests/test_oauth_*.py -v --cov=src --cov-report=xml --cov-report=html --timeout=600
+          pytest tests/integration/ tests/test_sms_router/ tests/test_oauth_*.py tests/test_analytics_*.py -v --cov=src --cov-report=xml --cov-report=html --timeout=600 --timeout-method=thread
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
@@ -278,7 +278,7 @@ jobs:
 
       - name: Run E2E tests
         run: |
-          pytest tests/test_user_*.py tests/test_analytics_*.py tests/completed_tasks/ -v --cov=src --cov-report=xml --cov-report=html --timeout=1200
+          pytest tests/test_user_*.py tests/test_analytics_*.py tests/completed_tasks/ -v --cov=src --cov-report=xml --cov-report=html --timeout=1200 --timeout-method=thread
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
@@ -347,7 +347,7 @@ jobs:
 
       - name: Run performance tests
         run: |
-          pytest tests/test_auth/test_performance.py -v --benchmark-only --benchmark-save=performance --timeout=1200
+          pytest tests/test_auth/test_performance.py -v --benchmark-only --benchmark-save=performance --timeout=1200 --timeout-method=thread
 
       - name: Upload performance results
         uses: actions/upload-artifact@v4
@@ -372,6 +372,7 @@ jobs:
           file: ./docker/Dockerfile
           target: development
           tags: personal-assistant:dev
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -382,6 +383,7 @@ jobs:
           file: ./docker/Dockerfile
           target: production
           tags: personal-assistant:staging
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -392,15 +394,20 @@ jobs:
           file: ./docker/Dockerfile
           target: production
           tags: personal-assistant:prod
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Test Docker images
         run: |
           # Test that images can start
+          echo "Testing development image..."
           docker run --rm personal-assistant:dev python --version
+          echo "Testing staging image..."
           docker run --rm personal-assistant:staging python --version
+          echo "Testing production image..."
           docker run --rm personal-assistant:prod python --version
+          echo "All Docker images tested successfully!"
 
   # Job 7: Security Scanning
   security-scan:

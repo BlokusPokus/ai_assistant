@@ -38,15 +38,15 @@ jobs:
           - test-suite: unit
             timeout: 300
             mock-external: true
-            test-path: "tests/unit/ tests/test_auth/ tests/tools/"
+            test-path: "tests/unit/ tests/test_auth/ tests/tools/ tests/test_*.py"
           - test-suite: integration
             timeout: 600
             mock-external: false
-            test-path: "tests/integration/ tests/test_sms_router/ tests/test_oauth_*.py"
+            test-path: "tests/integration/ tests/test_sms_router/ tests/test_oauth_*.py tests/test_analytics_*.py"
           - test-suite: e2e
             timeout: 1200
             mock-external: false
-            test-path: "tests/test_user_*.py tests/test_analytics_*.py"
+            test-path: "tests/test_user_*.py tests/test_analytics_*.py tests/test_auth_basic.py"
           - test-suite: performance
             timeout: 1200
             mock-external: true
@@ -54,7 +54,7 @@ jobs:
           - test-suite: regression
             timeout: 600
             mock-external: true
-            test-path: "tests/completed_tasks/"
+            test-path: "tests/completed_tasks/ tests/test_migration_complete.py"
 
     services:
       postgres:
@@ -142,9 +142,9 @@ jobs:
       - name: Run ${{ matrix.test-suite }} tests
         run: |
           if [ "${{ matrix.test-suite }}" == "performance" ]; then
-            pytest ${{ matrix.test-path }} -v --benchmark-only --benchmark-save=performance-${{ matrix.test-suite }} --timeout=${{ matrix.timeout }}
+            pytest ${{ matrix.test-path }} -v --benchmark-only --benchmark-save=performance-${{ matrix.test-suite }} --timeout=${{ matrix.timeout }} --timeout-method=thread
           else
-            pytest ${{ matrix.test-path }} -v --cov=src --cov-report=xml --cov-report=html --timeout=${{ matrix.timeout }} --maxfail=3
+            pytest ${{ matrix.test-path }} -v --cov=src --cov-report=xml --cov-report=html --timeout=${{ matrix.timeout }} --timeout-method=thread --maxfail=3
           fi
 
       - name: Upload test results

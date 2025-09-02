@@ -63,8 +63,19 @@ youtube-transcript-api>=0.6.1  # YouTube transcript extraction
 # Development and testing
 pytest>=8.4.1
 pytest-asyncio>=1.1.0
+pytest-cov>=4.1.0
+pytest-benchmark>=4.0.0
+pytest-xdist>=3.5.0
+pytest-timeout>=2.2.0
 pylint>=3.3.6
+black>=23.12.0
 isort>=6.0.1
+flake8>=7.0.0
+mypy>=1.8.0
+safety>=3.0.1
+bandit>=1.7.5
+semgrep>=1.45.0
+pip-audit>=2.6.1
 
 # Redis (if you're using it)
 redis>=6.2.0
