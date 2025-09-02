@@ -10,7 +10,31 @@ from pydantic import BaseModel, EmailStr, validator, ConfigDict
 
 
 class UserResponse(BaseModel):
-    """Response model for user information."""
+    """Response model for user information (admin view with all fields)."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    phone_number: Optional[str]
+    full_name: Optional[str]
+    hashed_password: str  # Include for admin operations
+    is_active: bool
+    is_verified: bool
+    verification_token: Optional[str]
+    password_reset_token: Optional[str]
+    password_reset_expires: Optional[datetime]
+    last_login: Optional[datetime]
+    failed_login_attempts: int
+    locked_until: Optional[datetime]
+    default_role_id: Optional[int]
+    role_assigned_at: Optional[datetime]
+    role_assigned_by: Optional[int]
+    created_at: datetime
+    updated_at: datetime
+
+
+class UserPublicResponse(BaseModel):
+    """Public response model for user information (no sensitive data)."""
     model_config = ConfigDict(from_attributes=True)
 
     id: int

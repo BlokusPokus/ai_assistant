@@ -3,6 +3,10 @@ from .base import Base
 from .users import User
 from .auth_tokens import AuthToken
 from .ltm_memory import LTMMemory
+from .ltm_context import LTMContext
+from .ltm_memory_relationship import LTMMemoryRelationship
+from .ltm_memory_access import LTMMemoryAccess
+from .ltm_memory_tag import LTMMemoryTag
 from .event_processing_log import EventProcessingLog
 from .ai_tasks import AITask
 from .task_results import TaskResult
@@ -49,6 +53,10 @@ __all__ = [
     "User",
     "AuthToken",
     "LTMMemory",
+    "LTMContext",
+    "LTMMemoryRelationship",
+    "LTMMemoryAccess",
+    "LTMMemoryTag",
     "EventProcessingLog",
     "AITask",
     "TaskResult",

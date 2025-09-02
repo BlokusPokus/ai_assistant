@@ -139,140 +139,15 @@ class LTMMemory(Base):
         # Ensure it stays within reasonable bounds
         return max(1.0, min(10.0, dynamic_score))
 
+    # Relationships to related tables
+    contexts = relationship(
+        "LTMContext", back_populates="memory", cascade="all, delete-orphan")
+    access_logs = relationship(
+        "LTMMemoryAccess", back_populates="memory", cascade="all, delete-orphan")
+    tag_entries = relationship(
+        "LTMMemoryTag", back_populates="memory", cascade="all, delete-orphan")
 
-class LTMContext(Base):
-    """
-    Enhanced context information for LTM memories.
-
-    This table stores structured context data that provides rich information
-    about when, why, and how memories were created.
-    """
-    __tablename__ = 'ltm_contexts'
-
-    id = Column(Integer, primary_key=True)
-    memory_id = Column(Integer, ForeignKey('ltm_memories.id'), nullable=False)
-
-    # Context categorization
-    # temporal, spatial, social, environmental, etc.
-    context_type = Column(String(50), nullable=False)
-    # specific context identifier
-    context_key = Column(String(100), nullable=False)
-    context_value = Column(Text, nullable=True)  # context value or description
-
-    # Metadata
-    # confidence in this context information
-    confidence = Column(Float, default=1.0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationship to memory
-    memory = relationship("LTMMemory", back_populates="contexts")
-
-    def __repr__(self):
-        return f"<LTMContext(id={self.id}, memory_id={self.memory_id}, type={self.context_type}, key={self.context_key})>"
-
-
-class LTMMemoryRelationship(Base):
-    """
-    Tracks relationships between LTM memories.
-
-    This table enables finding related memories and building
-    memory networks for better understanding and retrieval.
-    """
-    __tablename__ = 'ltm_memory_relationships'
-
-    id = Column(Integer, primary_key=True)
-    source_memory_id = Column(Integer, ForeignKey(
-        'ltm_memories.id'), nullable=False)
-    target_memory_id = Column(Integer, ForeignKey(
-        'ltm_memories.id'), nullable=False)
-
-    # Relationship details
-    # similar, related, opposite, prerequisite, etc.
-    relationship_type = Column(String(50), nullable=False)
-    strength = Column(Float, default=1.0)  # relationship strength (0.0-1.0)
-    # description of the relationship
-    description = Column(Text, nullable=True)
-
-    # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_accessed = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    source_memory = relationship("LTMMemory", foreign_keys=[source_memory_id])
-    target_memory = relationship("LTMMemory", foreign_keys=[target_memory_id])
-
-    def __repr__(self):
-        return f"<LTMMemoryRelationship(id={self.id}, source={self.source_memory_id}, target={self.target_memory_id}, type={self.relationship_type})>"
-
-
-class LTMMemoryAccess(Base):
-    """
-    Tracks detailed access patterns for LTM memories.
-
-    This table provides insights into how memories are used
-    and helps optimize retrieval and importance scoring.
-    """
-    __tablename__ = 'ltm_memory_access'
-
-    id = Column(Integer, primary_key=True)
-    memory_id = Column(Integer, ForeignKey('ltm_memories.id'), nullable=False)
-
-    # Access details
-    access_timestamp = Column(DateTime, default=datetime.utcnow)
-    access_context = Column(Text, nullable=True)  # what triggered this access
-    # search, direct, related, etc.
-    access_method = Column(String(50), nullable=True)
-    # user query that led to this access
-    user_query = Column(Text, nullable=True)
-
-    # Access result
-    # whether the memory was actually useful
-    was_relevant = Column(Boolean, nullable=True)
-    # how relevant it was (0.0-1.0)
-    relevance_score = Column(Float, nullable=True)
-
-    # Relationship to memory
-    memory = relationship("LTMMemory", back_populates="access_logs")
-
-    def __repr__(self):
-        return f"<LTMMemoryAccess(id={self.id}, memory_id={self.memory_id}, timestamp={self.access_timestamp})>"
-
-
-class LTMMemoryTag(Base):
-    """
-    Enhanced tag management for LTM memories.
-
-    This table provides better tag organization and enables
-    tag-based analytics and relationship discovery.
-    """
-    __tablename__ = 'ltm_memory_tags'
-
-    id = Column(Integer, primary_key=True)
-    memory_id = Column(Integer, ForeignKey('ltm_memories.id'), nullable=False)
-    tag_name = Column(String(100), nullable=False)
-
-    # Tag metadata
-    # work, personal, health, etc.
-    tag_category = Column(String(50), nullable=True)
-    # importance of this tag for this memory
-    tag_importance = Column(Float, default=1.0)
-    tag_confidence = Column(Float, default=1.0)  # confidence in tag assignment
-
-    # Tag usage
-    # how many times this tag has been used
-    usage_count = Column(Integer, default=1)
-    first_used = Column(DateTime, default=datetime.utcnow)
-    last_used = Column(DateTime, default=datetime.utcnow)
-
-    # Relationship to memory
-    memory = relationship("LTMMemory", back_populates="tag_entries")
-
-    def __repr__(self):
-        return f"<LTMMemoryTag(id={self.id}, memory_id={self.memory_id}, tag={self.tag_name})>"
-
-
-# Update LTMMemory model to include relationships
-LTMMemory.contexts = relationship("LTMContext", back_populates="memory")
-LTMMemory.access_logs = relationship(
-    "LTMMemoryAccess", back_populates="memory")
-LTMMemory.tag_entries = relationship("LTMMemoryTag", back_populates="memory")
+    # Self-referential relationships
+    parent_memory = relationship("LTMMemory", remote_side=[
+                                 id], back_populates="child_memories")
+    child_memories = relationship("LTMMemory", back_populates="parent_memory")
