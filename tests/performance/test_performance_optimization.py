@@ -450,9 +450,9 @@ class PerformanceTestSuite:
     """Comprehensive performance test suite."""
     
     def __init__(self):
-        self.execution_optimizer = TestExecutionOptimizer()
+        self.execution_optimizer = ExecutionOptimizer()
         self.parallel_executor = ParallelTestExecutor()
-        self.data_cache = TestDataCache()
+        self.data_cache = DataCache()
         self.mock_optimizer = MockPerformanceOptimizer()
         self.coverage_optimizer = CoverageOptimizer()
     

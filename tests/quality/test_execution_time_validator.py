@@ -143,10 +143,10 @@ class ExecutionTimeValidator:
         else:
             return "complex"
     
-    def analyze_test_suite_performance(self, suite_name: str) -> TestSuiteMetrics:
+    def analyze_test_suite_performance(self, suite_name: str) -> SuiteMetrics:
         """Analyze performance of a test suite."""
         if not self.current_metrics:
-            return TestSuiteMetrics(
+            return SuiteMetrics(
                 suite_name=suite_name,
                 total_tests=0,
                 total_execution_time=0.0,
@@ -175,7 +175,7 @@ class ExecutionTimeValidator:
         # Analyze performance trend
         performance_trend = self._analyze_performance_trend()
         
-        suite_metrics = TestSuiteMetrics(
+        suite_metrics = SuiteMetrics(
             suite_name=suite_name,
             total_tests=len(self.current_metrics),
             total_execution_time=total_execution_time,
@@ -412,16 +412,16 @@ CATEGORY BREAKDOWN
         """Clear current metrics for new test run."""
         self.current_metrics = []
     
-    def get_performance_history(self) -> List[TestSuiteMetrics]:
+    def get_performance_history(self) -> List[SuiteMetrics]:
         """Get performance history."""
         return self.metrics_history
 
 
 # Global validator instance
-execution_time_validator = TestExecutionTimeValidator()
+execution_time_validator = ExecutionTimeValidator()
 
 
-def get_execution_time_validator() -> TestExecutionTimeValidator:
+def get_execution_time_validator() -> ExecutionTimeValidator:
     """Get the global execution time validator."""
     return execution_time_validator
 

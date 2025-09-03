@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, AsyncMock
 
 from tests.e2e.e2e_test_environment import (
-    E2ETestEnvironment, E2ETestConfig, TestUser, TestTask, TestMemory,
+    E2ETestEnvironment, E2ETestConfig, E2EUser, E2ETask, E2EMemory,
     get_e2e_environment, setup_e2e_environment, teardown_e2e_environment
 )
 

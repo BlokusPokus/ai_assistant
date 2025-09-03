@@ -15,7 +15,7 @@ from unittest.mock import Mock, patch
 from concurrent.futures import ThreadPoolExecutor
 
 from tests.performance.test_performance_optimization import (
-    TestExecutionOptimizer, ParallelTestExecutor, TestDataCache,
+    ExecutionOptimizer, ParallelTestExecutor, DataCache,
     MockPerformanceOptimizer, CoverageOptimizer, PerformanceTestSuite,
     get_performance_suite, measure_test_performance, run_parallel_tests,
     get_cached_test_data, cache_test_data, get_optimized_mock,
@@ -29,12 +29,12 @@ from tests.performance.pytest_performance_config import (
 )
 
 
-class TestTestExecutionOptimizer:
+class TestExecutionOptimizer:
     """Test TestExecutionOptimizer class."""
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.optimizer = TestExecutionOptimizer()
+        self.optimizer = ExecutionOptimizer()
 
     def test_measure_execution_time_decorator(self):
         """Test execution time measurement decorator."""
@@ -195,13 +195,13 @@ class TestParallelTestExecutor:
         assert len(results) == 2
 
 
-class TestTestDataCache:
+class TestDataCache:
     """Test TestDataCache class."""
 
     def setup_method(self):
         """Set up test fixtures."""
         self.temp_dir = tempfile.mkdtemp()
-        self.cache = TestDataCache(cache_dir=self.temp_dir)
+        self.cache = DataCache(cache_dir=self.temp_dir)
 
     def teardown_method(self):
         """Clean up test fixtures."""

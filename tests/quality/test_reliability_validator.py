@@ -52,9 +52,9 @@ class TestSuiteReliabilityMetrics:
     total_tests: int
     total_runs: int
     overall_success_rate: float
-    flaky_tests: List[TestReliabilityMetrics]
-    stable_tests: List[TestReliabilityMetrics]
-    unreliable_tests: List[TestReliabilityMetrics]
+    flaky_tests: List[ReliabilityMetrics]
+    stable_tests: List[ReliabilityMetrics]
+    unreliable_tests: List[ReliabilityMetrics]
     average_flakiness_score: float
     reliability_trend: str
     timestamp: datetime
@@ -66,7 +66,7 @@ class ReliabilityValidator:
     def __init__(self, config_file: str = "test_reliability_config.json"):
         self.config_file = Path(config_file)
         self.config = self._load_config()
-        self.test_history = defaultdict(list)  # test_name -> List[TestRunResult]
+        self.test_history = defaultdict(list)  # test_name -> List[RunResult]
         self.suite_history = []
         
         # Default thresholds
@@ -115,9 +115,9 @@ class ReliabilityValidator:
         print(f"📄 Test reliability config saved to {self.config_file}")
     
     def record_test_run(self, test_name: str, status: str, execution_time: float, 
-                       error_message: str = None, retry_count: int = 0) -> TestRunResult:
+                       error_message: str = None, retry_count: int = 0) -> RunResult:
         """Record the result of a test run."""
-        result = TestRunResult(
+        result = RunResult(
             test_name=test_name,
             timestamp=datetime.now(),
             status=status,
@@ -129,10 +129,10 @@ class ReliabilityValidator:
         self.test_history[test_name].append(result)
         return result
     
-    def analyze_test_reliability(self, test_name: str) -> TestReliabilityMetrics:
+    def analyze_test_reliability(self, test_name: str) -> ReliabilityMetrics:
         """Analyze reliability metrics for a specific test."""
         if test_name not in self.test_history:
-            return TestReliabilityMetrics(
+            return ReliabilityMetrics(
                 test_name=test_name,
                 total_runs=0,
                 passed_runs=0,
@@ -185,7 +185,7 @@ class ReliabilityValidator:
         # Analyze reliability trend
         reliability_trend = self._analyze_reliability_trend(runs)
         
-        return TestReliabilityMetrics(
+        return ReliabilityMetrics(
             test_name=test_name,
             total_runs=total_runs,
             passed_runs=passed_runs,
@@ -203,7 +203,7 @@ class ReliabilityValidator:
             reliability_trend=reliability_trend
         )
     
-    def _calculate_flakiness_score(self, runs: List[TestRunResult]) -> float:
+    def _calculate_flakiness_score(self, runs: List[RunResult]) -> float:
         """Calculate flakiness score for a test."""
         if len(runs) < 2:
             return 0.0
@@ -225,7 +225,7 @@ class ReliabilityValidator:
         
         return min(1.0, combined_score)
     
-    def _calculate_consecutive_counts(self, runs: List[TestRunResult]) -> Tuple[int, int]:
+    def _calculate_consecutive_counts(self, runs: List[RunResult]) -> Tuple[int, int]:
         """Calculate consecutive failures and passes."""
         if not runs:
             return 0, 0
@@ -244,7 +244,7 @@ class ReliabilityValidator:
         
         return consecutive_failures, consecutive_passes
     
-    def _analyze_reliability_trend(self, runs: List[TestRunResult]) -> str:
+    def _analyze_reliability_trend(self, runs: List[RunResult]) -> str:
         """Analyze reliability trend over recent runs."""
         if len(runs) < 5:
             return "stable"
@@ -330,7 +330,7 @@ class ReliabilityValidator:
         self.suite_history.append(suite_metrics)
         return suite_metrics
     
-    def _analyze_suite_reliability_trend(self, test_metrics: List[TestReliabilityMetrics]) -> str:
+    def _analyze_suite_reliability_trend(self, test_metrics: List[ReliabilityMetrics]) -> str:
         """Analyze overall reliability trend for the suite."""
         if len(test_metrics) < 2:
             return "stable"
@@ -424,7 +424,7 @@ class ReliabilityValidator:
         return validation_results
     
     def _generate_reliability_recommendations(self, alerts: List[Dict], warnings: List[Dict], 
-                                            test_metrics: List[TestReliabilityMetrics]) -> List[str]:
+                                            test_metrics: List[ReliabilityMetrics]) -> List[str]:
         """Generate recommendations based on reliability analysis."""
         recommendations = []
         
@@ -526,16 +526,16 @@ ALERTS
 
 
 # Global validator instance
-reliability_validator = TestReliabilityValidator()
+reliability_validator = ReliabilityValidator()
 
 
-def get_reliability_validator() -> TestReliabilityValidator:
+def get_reliability_validator() -> ReliabilityValidator:
     """Get the global reliability validator."""
     return reliability_validator
 
 
 def record_test_run(test_name: str, status: str, execution_time: float, 
-                   error_message: str = None, retry_count: int = 0) -> TestRunResult:
+                   error_message: str = None, retry_count: int = 0) -> RunResult:
     """Record a test run result."""
     return reliability_validator.record_test_run(test_name, status, execution_time, error_message, retry_count)
 

@@ -13,7 +13,7 @@ import json
 from unittest.mock import patch, Mock
 
 from tests.e2e.e2e_test_environment import (
-    E2ETestEnvironment, TestUser, TestTask, TestMemory,
+    E2ETestEnvironment, E2EUser, E2ETask, E2EMemory,
     get_e2e_environment
 )
 

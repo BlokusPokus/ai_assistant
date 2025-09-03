@@ -13,13 +13,13 @@ from unittest.mock import Mock, MagicMock, AsyncMock, patch
 from datetime import datetime
 
 from tests.quality.test_execution_time_validator import (
-    TestExecutionTimeValidator, ExecutionTimeMetrics, TestSuiteMetrics,
+    ExecutionTimeValidator, ExecutionTimeMetrics, SuiteMetrics,
     get_execution_time_validator, measure_test_time, validate_test_execution_times,
     generate_execution_time_report
 )
 
 from tests.quality.test_reliability_validator import (
-    TestReliabilityValidator, TestRunResult, TestReliabilityMetrics,
+    ReliabilityValidator, RunResult, ReliabilityMetrics,
     get_reliability_validator, record_test_run, validate_test_reliability,
     generate_reliability_report
 )
@@ -37,13 +37,13 @@ from tests.quality.error_coverage_validator import (
 )
 
 
-class TestTestExecutionTimeValidator:
+class TestExecutionTimeValidator:
     """Test TestExecutionTimeValidator class."""
 
     def setup_method(self):
         """Set up test fixtures."""
         self.temp_dir = tempfile.mkdtemp()
-        self.validator = TestExecutionTimeValidator()
+        self.validator = ExecutionTimeValidator()
 
     def teardown_method(self):
         """Clean up test fixtures."""
@@ -187,13 +187,13 @@ class TestTestExecutionTimeValidator:
         assert "0.5" in report  # The execution time should be in the report
 
 
-class TestTestReliabilityValidator:
+class TestReliabilityValidator:
     """Test TestReliabilityValidator class."""
 
     def setup_method(self):
         """Set up test fixtures."""
         self.temp_dir = tempfile.mkdtemp()
-        self.validator = TestReliabilityValidator()
+        self.validator = ReliabilityValidator()
 
     def teardown_method(self):
         """Clean up test fixtures."""
@@ -237,10 +237,10 @@ class TestTestReliabilityValidator:
         """Test calculating flakiness score."""
         # Create mock test runs
         runs = [
-            TestRunResult("test", datetime.now(), "passed", 0.5),
-            TestRunResult("test", datetime.now(), "failed", 0.6),
-            TestRunResult("test", datetime.now(), "passed", 0.7),
-            TestRunResult("test", datetime.now(), "failed", 0.8)
+            RunResult("test", datetime.now(), "passed", 0.5),
+            RunResult("test", datetime.now(), "failed", 0.6),
+            RunResult("test", datetime.now(), "passed", 0.7),
+            RunResult("test", datetime.now(), "failed", 0.8)
         ]
         
         flakiness_score = self.validator._calculate_flakiness_score(runs)
@@ -519,12 +519,12 @@ class TestGlobalFunctions:
     def test_get_execution_time_validator(self):
         """Test getting global execution time validator."""
         validator = get_execution_time_validator()
-        assert isinstance(validator, TestExecutionTimeValidator)
+        assert isinstance(validator, ExecutionTimeValidator)
 
     def test_get_reliability_validator(self):
         """Test getting global reliability validator."""
         validator = get_reliability_validator()
-        assert isinstance(validator, TestReliabilityValidator)
+        assert isinstance(validator, ReliabilityValidator)
 
     def test_get_mock_realism_validator(self):
         """Test getting global mock realism validator."""
