@@ -25,8 +25,8 @@ requests>=2.32.3
 
 # Google AI services
 google-generativeai>=0.8.4
-google-ai-generativelanguage>=0.6.15
-google-api-python-client>=2.165.0
+google-ai-generativelanguage>=0.6.15,<1.0.0
+google-api-python-client>=2.165.0,<3.0.0
 google-auth>=2.38.0
 
 # Microsoft services
@@ -62,23 +62,23 @@ youtube-transcript-api>=0.6.1  # YouTube transcript extraction
 
 # Development and testing
 pytest>=8.4.1
-pytest-asyncio>=1.1.0
-pytest-cov>=4.1.0
-pytest-benchmark>=4.0.0
-pytest-xdist>=3.5.0
-pytest-timeout>=2.2.0
-pylint>=3.3.6
-black>=23.12.0
-isort>=6.0.1
-flake8>=7.0.0
-mypy>=1.8.0
-safety>=3.0.1
-bandit>=1.7.5
-semgrep>=1.45.0
-pip-audit>=2.6.1
+pytest-asyncio>=1.1.0,<2.0.0
+pytest-cov>=4.1.0,<5.0.0
+pytest-benchmark>=4.0.0,<5.0.0
+pytest-xdist>=3.5.0,<4.0.0
+pytest-timeout>=2.2.0,<3.0.0
+pylint>=3.3.6,<4.0.0
+black>=23.12.0,<24.0.0
+isort>=6.0.1,<7.0.0
+flake8>=7.0.0,<8.0.0
+mypy>=1.8.0,<2.0.0
+safety>=3.0.1,<4.0.0
+bandit>=1.7.5,<2.0.0
+semgrep>=1.45.0,<1.50.0
+pip-audit>=2.6.1,<3.0.0
 
 # Redis (if you're using it)
-redis>=6.2.0
+redis>=6.2.0,<7.0.0
 
 # Celery (if you're using it for background tasks)
-celery>=5.5.3
+celery>=5.5.3,<6.0.0
