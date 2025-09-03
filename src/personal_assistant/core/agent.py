@@ -196,7 +196,7 @@ class AgentCore:
                         logger,
                         user_id,
                         user_input,
-                        agent_state.focus if hasattr(agent_state, "focus") else None,
+                        list(agent_state.focus) if hasattr(agent_state, "focus") and agent_state.focus else None,
                     )
             except Exception as e:
                 logger.warning(
@@ -209,7 +209,7 @@ class AgentCore:
                         logger,
                         user_id,
                         user_input,
-                        agent_state.focus if hasattr(agent_state, "focus") else None,
+                        list(agent_state.focus) if hasattr(agent_state, "focus") and agent_state.focus else None,
                     )
                 except Exception as fallback_e:
                     logger.warning(

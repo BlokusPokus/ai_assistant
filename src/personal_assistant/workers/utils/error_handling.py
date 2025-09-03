@@ -6,7 +6,7 @@ This module provides centralized error handling for the background task system.
 
 import logging
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 from typing import Any, Callable, Dict
 
@@ -34,7 +34,7 @@ class TaskErrorHandler:
         task_name: str,
         task_id: str,
         error: Exception,
-        context: Dict[str, Any] = None,
+        context: Dict[str, Any] | None = None,
     ):
         """Handle a task error with centralized logic."""
         error_record = {
@@ -66,10 +66,10 @@ class TaskErrorHandler:
 
     def get_error_summary(self, hours: int = 24) -> Dict[str, Any]:
         """Get a summary of recent errors."""
-        cutoff_time = datetime.utcnow() - datetime.timedelta(hours=hours)
+        cutoff_time = datetime.utcnow() - timedelta(hours=hours)
         recent_errors = [e for e in self.error_history if e["timestamp"] > cutoff_time]
 
-        error_types = {}
+        error_types: dict[str, int] = {}
         for error in recent_errors:
             error_type = error["error_type"]
             error_types[error_type] = error_types.get(error_type, 0) + 1
@@ -82,14 +82,14 @@ class TaskErrorHandler:
 
     def clear_old_errors(self, days: int = 7):
         """Clear errors older than specified days."""
-        cutoff_time = datetime.utcnow() - datetime.timedelta(days=days)
+        cutoff_time = datetime.utcnow() - timedelta(days=days)
         self.error_history = [
             e for e in self.error_history if e["timestamp"] > cutoff_time
         ]
         logger.info(f"Cleared errors older than {days} days")
 
 
-def handle_task_errors(task_name: str = None):
+def handle_task_errors(task_name: str | None = None):
     """
     Decorator to handle task errors with centralized error handling.
 

@@ -232,7 +232,7 @@ def validate_tags(tags: list, enable_smart_fallback: bool = True) -> tuple[list,
     return valid_tags, invalid_tags
 
 
-def _find_similar_tag(invalid_tag: str) -> str:
+def _find_similar_tag(invalid_tag: str) -> str | None:
     """
     Find a similar valid tag for an invalid tag using fuzzy matching.
 

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def load_tool_guidelines(
-    guidelines_path: str, guidelines_cache: Dict[str, str] = None
+    guidelines_path: str, guidelines_cache: Dict[str, str] | None = None
 ) -> Dict[str, str]:
     """Load available tool guidelines from the guidelines directory."""
     if guidelines_cache:
@@ -107,7 +107,7 @@ def identify_relevant_tools_fallback(
 def build_tool_identification_prompt(
     user_request: str,
     available_tools: Optional[str] = None,
-    available_guidelines: List[str] = None,
+    available_guidelines: List[str] | None = None,
 ) -> str:
     """Build the prompt for LLM tool identification."""
     prompt = f"""

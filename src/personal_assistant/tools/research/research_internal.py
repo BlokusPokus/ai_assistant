@@ -119,7 +119,7 @@ def format_combined_search_response(
     platforms_list: List[str],
     max_results_per_platform: int,
     search_results: dict,
-    correlation_insights: List[str] = None,
+    correlation_insights: List[str] | None = None,
 ) -> str:
     """Format the combined search response in a consistent way"""
     response = f"🔍 **Combined Search Results for '{query}'**\n\n"

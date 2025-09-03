@@ -74,7 +74,7 @@ jobs:
       redis:
         image: redis:7-alpine
         options: >-
-          --health-cmd "redis-cli ping"
+          --health-cmd "sh -c 'nc -z localhost 6379 || exit 1'"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -113,6 +113,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio pytest-benchmark pytest-xdist
+          sudo apt-get update && sudo apt-get install -y netcat-openbsd
 
       - name: Set up test environment
         run: |
@@ -134,7 +135,7 @@ jobs:
           done
 
           # Wait for Redis
-          until redis-cli -h localhost -p 6379 ping; do
+          until nc -z localhost 6379; do
             echo "Waiting for Redis..."
             sleep 2
           done

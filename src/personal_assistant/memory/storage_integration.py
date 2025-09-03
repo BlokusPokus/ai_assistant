@@ -6,7 +6,7 @@ enabling efficient state management with structured, queryable data.
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from ..config.feature_flags import normalized_storage_logging, use_normalized_storage
 from ..config.logging_config import get_logger
@@ -282,10 +282,10 @@ class StorageIntegrationManager:
         user_id: int,
         user_input: str,
         agent_response: str,
-        tool_called: str = None,
-        tool_output: str = None,
-        memory_used: list = None,
-        timestamp: datetime = None,
+        tool_called: str | None = None,
+        tool_output: str | None = None,
+        memory_used: list[Any] | None = None,
+        timestamp: datetime | None = None,
     ) -> bool:
         """
         Log agent interaction using the new normalized database schema.

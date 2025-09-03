@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_error_context(
-    error: Exception, tool_name: str, args: dict, user_intent: str = None
+    error: Exception, tool_name: str, args: dict, user_intent: str | None = None
 ) -> dict:
     """
     Create simple error context dictionary for LLM guidance.
@@ -34,8 +34,8 @@ def create_error_context(
         "error_message": str(error),
         "timestamp": datetime.now().isoformat(),
         "user_intent": user_intent,
-        "recovery_hints": get_recovery_hints(error, tool_name),
-        "suggested_actions": get_suggested_actions(error, tool_name),
+        "recovery_hints": get_recovery_hints(type(error).__name__, tool_name),
+        "suggested_actions": get_suggested_actions(type(error).__name__, tool_name),
     }
 
 

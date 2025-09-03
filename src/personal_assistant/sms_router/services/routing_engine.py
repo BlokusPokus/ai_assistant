@@ -235,8 +235,8 @@ class SMSRoutingEngine:
         direction: str,
         success: bool,
         processing_time_ms: float,
-        error_message: str = None,
-        user_id: int = None,
+        error_message: str | None = None,
+        user_id: int | None = None,
     ) -> None:
         """Log SMS usage for analytics and monitoring."""
         try:

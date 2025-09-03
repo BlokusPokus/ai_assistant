@@ -38,19 +38,19 @@ class LTMConfig:
     tag_priority_weight: float = 0.1
 
     # Memory type importance adjustments
-    memory_type_importance_boost: Dict[str, float] = None
+    memory_type_importance_boost: Dict[str, float] | None = None
 
     # Category importance adjustments
-    category_importance_boost: Dict[str, float] = None
+    category_importance_boost: Dict[str, float] | None = None
 
     # Priority tags for importance boosting
-    priority_tags_for_importance: List[str] = None
+    priority_tags_for_importance: List[str] | None = None
 
     # Automated tag suggestion settings
     tag_suggestion_confidence_threshold: float = 0.7
     max_suggested_tags_per_memory: int = 5
     enable_semantic_tag_suggestion: bool = True
-    tag_suggestion_fallback_tags: List[str] = None
+    tag_suggestion_fallback_tags: List[str] | None = None
 
     # Memory consolidation settings
     tag_similarity_threshold: float = 0.7
@@ -101,18 +101,16 @@ class LTMConfig:
 
     # Dynamic Context Management settings (Phase 3.1)
     min_context_length: int = 100  # Minimum context length
-    max_context_length: int = 2000  # Maximum context length
     optimal_context_length: int = 800  # Optimal context length
     simple_query_threshold: int = 50  # Threshold for simple queries
     complex_query_threshold: int = 200  # Threshold for complex queries
     focus_boost_multiplier: float = 1.5  # Multiplier for focus area matches
-    state_context_weight: float = 0.3  # Weight for state context relevance
 
     # Pattern detection settings
-    communication_style_indicators: Dict[str, List[str]] = None
-    topic_preference_keywords: Dict[str, List[str]] = None
-    tool_preference_patterns: List[str] = None
-    response_format_indicators: Dict[str, List[str]] = None
+    communication_style_indicators: Dict[str, List[str]] | None = None
+    topic_preference_keywords: Dict[str, List[str]] | None = None
+    tool_preference_patterns: List[str] | None = None
+    response_format_indicators: Dict[str, List[str]] | None = None
 
     def __post_init__(self):
         """Initialize default pattern detection settings if not provided"""
@@ -286,7 +284,6 @@ class EnhancedLTMConfig(LTMConfig):
     # Pattern recognition from state data
     enable_pattern_recognition: bool = True
     conversation_pattern_weight: float = 0.4
-    tool_usage_pattern_weight: float = 0.3
     user_behavior_pattern_weight: float = 0.3
     temporal_pattern_weight: float = 0.2
 

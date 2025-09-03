@@ -78,7 +78,7 @@ def require_user_permission(resource_type: str, action: str):
 
             permission_service = PermissionService(db)
             has_permission = await permission_service.check_permission(
-                user_id=current_user.id, resource_type=resource_type, action=action
+                user_id=int(current_user.id), resource_type=resource_type, action=action
             )
 
             if not has_permission:
@@ -142,8 +142,8 @@ async def get_current_user_profile(current_user: User = Depends(get_current_user
     """
     try:
         return UserPublicResponse(
-            id=current_user.id,
-            email=current_user.email,
+            id=int(current_user.id),
+            email=str(current_user.email),
             phone_number=getattr(current_user, "phone_number", None),
             full_name=getattr(current_user, "full_name", None),
             is_active=getattr(current_user, "is_active", True),
@@ -187,7 +187,7 @@ async def update_current_user_profile(
                 detail="No valid data provided for update",
             )
 
-        updated_user = await user_service.update_user(current_user.id, update_data)
+        updated_user = await user_service.update_user(int(current_user.id), update_data)
 
         if not updated_user:
             raise HTTPException(
@@ -223,7 +223,7 @@ async def get_user_preferences(
 
         # Get preferences and settings with fallback to defaults
         try:
-            preferences = await user_service.get_user_preferences(current_user.id)
+            preferences = await user_service.get_user_preferences(int(current_user.id))
             logger.info(
                 f"Retrieved preferences for user {current_user.id}: {preferences}"
             )
@@ -232,7 +232,7 @@ async def get_user_preferences(
             preferences = {}
 
         try:
-            settings = await user_service.get_user_settings(current_user.id)
+            settings = await user_service.get_user_settings(int(current_user.id))
             logger.info(f"Retrieved settings for user {current_user.id}: {settings}")
         except Exception as e:
             logger.error(f"Error getting settings: {e}")
@@ -259,7 +259,7 @@ async def get_user_preferences(
             updated_at = datetime.now(timezone.utc)
 
         return UserPreferencesResponse(
-            user_id=current_user.id,
+            user_id=int(current_user.id),
             preferences=preferences,
             settings=settings,
             created_at=created_at,
@@ -296,7 +296,7 @@ async def update_user_preferences(
         if preferences.preferences:
             try:
                 success = await user_service.update_user_preferences(
-                    current_user.id, preferences.preferences
+                    int(current_user.id), preferences.preferences
                 )
                 if not success:
                     raise HTTPException(
@@ -316,7 +316,7 @@ async def update_user_preferences(
         if preferences.settings:
             try:
                 success = await user_service.update_user_settings(
-                    current_user.id, preferences.settings
+                    int(current_user.id), preferences.settings
                 )
                 if not success:
                     raise HTTPException(
@@ -336,9 +336,9 @@ async def update_user_preferences(
         # Get updated preferences and settings
         try:
             updated_preferences = await user_service.get_user_preferences(
-                current_user.id
+                int(current_user.id)
             )
-            updated_settings = await user_service.get_user_settings(current_user.id)
+            updated_settings = await user_service.get_user_settings(int(current_user.id))
         except Exception as e:
             logger.error(f"Error getting updated data: {e}")
             updated_preferences = {}
@@ -350,7 +350,7 @@ async def update_user_preferences(
             created_at = datetime.now(timezone.utc)
 
         return UserPreferencesResponse(
-            user_id=current_user.id,
+            user_id=int(current_user.id),
             preferences=updated_preferences,
             settings=updated_settings,
             created_at=created_at,
@@ -383,7 +383,7 @@ async def get_user_settings(
         user_service = UserService(db)
 
         try:
-            settings = await user_service.get_user_settings(current_user.id)
+            settings = await user_service.get_user_settings(int(current_user.id))
         except Exception as e:
             logger.error(f"Error getting settings: {e}")
             settings = {}
@@ -403,7 +403,7 @@ async def get_user_settings(
             updated_at = datetime.now(timezone.utc)
 
         return UserPreferencesResponse(
-            user_id=current_user.id,
+            user_id=int(current_user.id),
             preferences={},  # Empty preferences for this endpoint
             settings=settings,
             created_at=created_at,
@@ -434,7 +434,7 @@ async def update_user_settings(
 
         if preferences.settings:
             success = await user_service.update_user_settings(
-                current_user.id, preferences.settings
+                int(current_user.id), preferences.settings
             )
             if not success:
                 raise HTTPException(
@@ -443,10 +443,10 @@ async def update_user_settings(
                 )
 
         # Get updated settings
-        updated_settings = await user_service.get_user_settings(current_user.id)
+        updated_settings = await user_service.get_user_settings(int(current_user.id))
 
         return UserPreferencesResponse(
-            user_id=current_user.id,
+            user_id=int(current_user.id),
             preferences={},  # Empty preferences for this endpoint
             settings=updated_settings,
             created_at=current_user.created_at,
@@ -603,7 +603,7 @@ async def deactivate_user(
             )
 
         # Prevent self-deactivation
-        if user_id == current_user.id:
+        if user_id == int(current_user.id):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot deactivate your own account",
@@ -739,7 +739,7 @@ async def get_user_phone_numbers(
     """
     try:
         phone_service = PhoneManagementService(db)
-        phone_numbers = await phone_service.get_user_phone_numbers(current_user.id)
+        phone_numbers = await phone_service.get_user_phone_numbers(int(current_user.id))
 
         # Find primary phone ID
         primary_phone_id = None
@@ -792,7 +792,7 @@ async def add_user_phone_number(
         phone_service = PhoneManagementService(db)
 
         new_phone = await phone_service.add_user_phone_number(
-            user_id=current_user.id,
+            user_id=int(current_user.id),
             phone_number=phone_data.phone_number,
             is_primary=phone_data.is_primary,
             verification_method="sms",
@@ -849,7 +849,7 @@ async def update_user_phone_number(
             )
 
         updated_phone = await phone_service.update_user_phone_number(
-            user_id=current_user.id, phone_id=phone_id, updates=update_data
+            user_id=int(current_user.id), phone_id=phone_id, updates=update_data
         )
 
         if not updated_phone:
@@ -895,7 +895,7 @@ async def delete_user_phone_number(
         phone_service = PhoneManagementService(db)
 
         # Get phone number before deletion for response
-        phone_numbers = await phone_service.get_user_phone_numbers(current_user.id)
+        phone_numbers = await phone_service.get_user_phone_numbers(int(current_user.id))
         phone_to_delete = next((p for p in phone_numbers if p["id"] == phone_id), None)
 
         if not phone_to_delete:
@@ -905,7 +905,7 @@ async def delete_user_phone_number(
             )
 
         success = await phone_service.delete_user_phone_number(
-            user_id=current_user.id, phone_id=phone_id
+            user_id=int(current_user.id), phone_id=phone_id
         )
 
         if not success:
@@ -915,7 +915,7 @@ async def delete_user_phone_number(
             )
 
         # Get remaining phone count
-        remaining_phones = await phone_service.get_user_phone_numbers(current_user.id)
+        remaining_phones = await phone_service.get_user_phone_numbers(int(current_user.id))
 
         return PhoneNumberDeleteResponse(
             success=True,
@@ -950,7 +950,7 @@ async def set_primary_phone_number(
         phone_service = PhoneManagementService(db)
 
         success = await phone_service.set_primary_phone_number(
-            user_id=current_user.id, phone_id=phone_id
+            user_id=int(current_user.id), phone_id=phone_id
         )
 
         if not success:
@@ -991,7 +991,7 @@ async def request_phone_verification(
         phone_service = PhoneManagementService(db)
 
         # Check if phone number belongs to user
-        phone_numbers = await phone_service.get_user_phone_numbers(current_user.id)
+        phone_numbers = await phone_service.get_user_phone_numbers(int(current_user.id))
         phone_exists = any(
             p["phone_number"] == verification_request.phone_number
             for p in phone_numbers
@@ -1005,7 +1005,7 @@ async def request_phone_verification(
 
         # Send verification code
         verification_code = await phone_service.send_verification_code(
-            user_id=current_user.id, phone_number=verification_request.phone_number
+            user_id=int(current_user.id), phone_number=verification_request.phone_number
         )
 
         if not verification_code:
@@ -1048,7 +1048,7 @@ async def verify_phone_number_code(
         phone_service = PhoneManagementService(db)
 
         # Check if phone number belongs to user
-        phone_numbers = await phone_service.get_user_phone_numbers(current_user.id)
+        phone_numbers = await phone_service.get_user_phone_numbers(int(current_user.id))
         phone_exists = any(
             p["phone_number"] == verification_code.phone_number for p in phone_numbers
         )
@@ -1061,7 +1061,7 @@ async def verify_phone_number_code(
 
         # Verify the code
         success = await phone_service.verify_phone_number(
-            user_id=current_user.id,
+            user_id=int(current_user.id),
             phone_number=verification_code.phone_number,
             verification_code=verification_code.verification_code,
         )

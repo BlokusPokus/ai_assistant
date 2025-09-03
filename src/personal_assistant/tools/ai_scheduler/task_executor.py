@@ -43,7 +43,7 @@ class TaskExecutor:
 
             # Execute with AI assistant
             agent = AgentCore()
-            response = await agent.run(ai_prompt, task.user_id)
+            response = await agent.run(ai_prompt, int(task.user_id))
 
             # Process the response
             result = self._process_ai_response(task, response)
@@ -70,7 +70,7 @@ class TaskExecutor:
         Returns:
             Task context dictionary
         """
-        context = {
+        context: dict[str, Any] = {
             "task_id": task.id,
             "title": task.title,
             "description": task.description,
