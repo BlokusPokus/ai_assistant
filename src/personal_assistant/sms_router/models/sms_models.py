@@ -57,7 +57,7 @@ class SMSUsageLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    user = relationship("User", back_populates="sms_usage_logs")
+    # user = relationship("User", back_populates="sms_usage_logs")  # Commented out due to cross-module dependency issues
 
     def __repr__(self):
         return f"<SMSUsageLog(id={self.id}, user_id={self.user_id}, direction='{self.message_direction}')>"
@@ -78,7 +78,7 @@ class UserPhoneMapping(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    user = relationship("User", back_populates="phone_mappings")
+    # user = relationship("User", back_populates="phone_mappings")  # Commented out due to cross-module dependency issues
 
     def __repr__(self):
         return f"<UserPhoneMapping(id={self.id}, user_id={self.user_id}, phone='{self.phone_number}')>"

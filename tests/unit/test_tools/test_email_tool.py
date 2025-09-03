@@ -7,12 +7,32 @@ and moving emails via Microsoft Graph API.
 """
 
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock, patch, AsyncMock, MagicMock
 from typing import Dict, Any
 
 from personal_assistant.tools.emails.email_tool import EmailTool
 from tests.utils.test_helpers import TestHelper
 from tests.utils.test_data_generators import ToolDataGenerator
+
+
+@pytest.fixture(autouse=True)
+def mock_email_environment():
+    """Mock email environment variables and token initialization to avoid validation errors in tests."""
+    with patch('personal_assistant.tools.emails.email_internal.validate_environment_variables') as mock_validate, \
+         patch('personal_assistant.tools.emails.email_internal.get_environment_error_message') as mock_error, \
+         patch('personal_assistant.tools.emails.email_tool.EmailTool._initialize_token') as mock_init_token, \
+         patch('personal_assistant.tools.emails.ms_graph.get_access_token') as mock_get_token, \
+         patch.dict('os.environ', {
+             'MICROSOFT_APPLICATION_ID': 'test-app-id',
+             'MICROSOFT_CLIENT_SECRET': 'test-client-secret'
+         }):
+        
+        # Mock the validation to return success
+        mock_validate.return_value = (True, 'test-app-id', 'test-client-secret')
+        mock_error.return_value = "Test error message"
+        mock_get_token.return_value = "test-access-token"
+        
+        yield mock_validate
 
 
 class TestEmailTool:

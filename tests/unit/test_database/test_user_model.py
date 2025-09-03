@@ -20,7 +20,8 @@ class TestUserModel:
 
     def setup_method(self):
         """Set up test fixtures before each test method."""
-        self.test_user_data = UserDataGenerator.generate_user()
+        self.user_data_generator = UserDataGenerator()
+        self.test_user_data = self.user_data_generator.generate_user()
         # Generate a hashed password for testing
         import bcrypt
         test_password = "test_password_123"
@@ -29,7 +30,7 @@ class TestUserModel:
         self.user = User(
             email=self.test_user_data["email"],
             phone_number=self.test_user_data["phone_number"],
-            full_name=self.test_user_data["full_name"],
+            full_name=f"{self.test_user_data['first_name']} {self.test_user_data['last_name']}",
             hashed_password=self.hashed_password,
             is_active=self.test_user_data["is_active"],
             is_verified=self.test_user_data["is_verified"],
@@ -39,7 +40,7 @@ class TestUserModel:
         """Test basic user creation."""
         assert self.user.email == self.test_user_data["email"]
         assert self.user.phone_number == self.test_user_data["phone_number"]
-        assert self.user.full_name == self.test_user_data["full_name"]
+        assert self.user.full_name == f"{self.test_user_data['first_name']} {self.test_user_data['last_name']}"
         assert self.user.hashed_password == self.hashed_password
         assert self.user.is_active == self.test_user_data["is_active"]
         assert self.user.is_verified == self.test_user_data["is_verified"]
