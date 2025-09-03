@@ -58,7 +58,9 @@ class PhoneValidator:
         elif cleaned.startswith("+") and len(cleaned) >= 12 and len(cleaned) <= 16:
             return cleaned
 
-        logger.warning(f"Invalid phone number format: {self._mask_phone_number(phone_number)}")
+        logger.warning(
+            f"Invalid phone number format: {self._mask_phone_number(phone_number)}"
+        )
         return None
 
     def is_valid_phone_number(self, phone_number: str) -> bool:

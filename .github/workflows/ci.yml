@@ -210,7 +210,7 @@ jobs:
 
       - name: Run integration tests
         run: |
-          pytest tests/integration/ tests/test_sms_router/ tests/test_oauth_*.py tests/test_analytics_*.py -v --cov=src --cov-report=xml --cov-report=html --timeout=600 --timeout-method=thread
+          pytest tests/unit/test_integration/ tests/test_sms_router/ tests/test_oauth_*.py tests/test_analytics_*.py -v --cov=src --cov-report=xml --cov-report=html --timeout=600 --timeout-method=thread
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4

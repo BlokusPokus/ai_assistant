@@ -45,7 +45,9 @@ class UserIdentificationService:
             # Normalize phone number
             normalized_phone = self.phone_validator.normalize_phone_number(phone_number)
             if not normalized_phone:
-                logger.warning(f"Invalid phone number format: {self._mask_phone_number(phone_number)}")
+                logger.warning(
+                    f"Invalid phone number format: {self._mask_phone_number(phone_number)}"
+                )
                 return None
 
             # Check cache first
@@ -70,7 +72,9 @@ class UserIdentificationService:
             return None
 
         except Exception as e:
-            logger.error(f"Error identifying user by phone {self._mask_phone_number(phone_number)}: {e}")
+            logger.error(
+                f"Error identifying user by phone {self._mask_phone_number(phone_number)}: {e}"
+            )
             return None
 
     async def _lookup_user_in_database(
@@ -187,7 +191,9 @@ class UserIdentificationService:
         try:
             normalized_phone = self.phone_validator.normalize_phone_number(phone_number)
             if not normalized_phone:
-                logger.error(f"Invalid phone number: {self._mask_phone_number(phone_number)}")
+                logger.error(
+                    f"Invalid phone number: {self._mask_phone_number(phone_number)}"
+                )
                 return False
 
             async with AsyncSessionLocal() as session:

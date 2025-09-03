@@ -119,7 +119,9 @@ class TwilioService:
         )
 
         response.message(guidance_message)
-        logger.info(f"Sent helpful guidance to unregistered phone: {self._mask_phone_number(phone_number)}")
+        logger.info(
+            f"Sent helpful guidance to unregistered phone: {self._mask_phone_number(phone_number)}"
+        )
         return response
 
     def _format_phone_number(self, phone_number: str) -> str:

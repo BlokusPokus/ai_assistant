@@ -128,7 +128,9 @@ class PhoneManagementService:
             # Validate phone number format
             normalized_phone = self.phone_validator.normalize_phone_number(phone_number)
             if not normalized_phone:
-                logger.error(f"Invalid phone number format: {self._mask_phone_number(phone_number)}")
+                logger.error(
+                    f"Invalid phone number format: {self._mask_phone_number(phone_number)}"
+                )
                 return None
 
             # Check if phone number already exists for this user
@@ -414,7 +416,9 @@ class PhoneManagementService:
                 phone_number, verification_code
             )
 
-            logger.info(f"Sent verification code to {self._mask_phone_number(phone_number)} for user {user_id}")
+            logger.info(
+                f"Sent verification code to {self._mask_phone_number(phone_number)} for user {user_id}"
+            )
             return verification_code
 
         except Exception as e:
@@ -465,7 +469,9 @@ class PhoneManagementService:
 
             await self.db.commit()
 
-            logger.info(f"Verified phone number {self._mask_phone_number(phone_number)} for user {user_id}")
+            logger.info(
+                f"Verified phone number {self._mask_phone_number(phone_number)} for user {user_id}"
+            )
             return True
 
         except Exception as e:

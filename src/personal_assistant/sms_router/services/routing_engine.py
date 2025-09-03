@@ -275,7 +275,9 @@ class SMSRoutingEngine:
                 session.add(usage_log)
                 await session.commit()
 
-                logger.debug(f"Usage logged for {direction} SMS to/from {self._mask_phone_number(phone_number)}")
+                logger.debug(
+                    f"Usage logged for {direction} SMS to/from {self._mask_phone_number(phone_number)}"
+                )
 
         except Exception as e:
             logger.error(f"Error logging SMS usage: {e}")

@@ -37,8 +37,14 @@ class ResearchTool:
         """Check if URL is a YouTube URL using proper URL parsing."""
         try:
             from urllib.parse import urlparse
+
             parsed = urlparse(url)
-            return parsed.netloc in ['www.youtube.com', 'youtube.com', 'youtu.be', 'm.youtube.com']
+            return parsed.netloc in [
+                "www.youtube.com",
+                "youtube.com",
+                "youtu.be",
+                "m.youtube.com",
+            ]
         except Exception:
             return False
 

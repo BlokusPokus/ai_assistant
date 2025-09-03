@@ -82,7 +82,9 @@ class UserService:
             )
             return result.scalar_one_or_none()
         except Exception as e:
-            logger.error(f"Error retrieving user by phone number {self._mask_phone_number(phone_number)}: {e}")
+            logger.error(
+                f"Error retrieving user by phone number {self._mask_phone_number(phone_number)}: {e}"
+            )
             return None
 
     async def list_users(
