@@ -13,7 +13,6 @@ This tool creates a page-based note structure in Notion with:
 import logging
 from typing import Optional
 
-
 from personal_assistant.tools.base import Tool
 
 # Import notion-specific error handling

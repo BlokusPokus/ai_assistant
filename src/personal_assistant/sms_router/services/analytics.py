@@ -735,8 +735,12 @@ class SMSAnalyticsService:
         avg_length = sum(lengths) / len(lengths)
 
         # Categorize by length
-        short_messages = len([length for length in lengths if length <= 160])  # Standard SMS
-        medium_messages = len([length for length in lengths if 160 < length <= 320])  # Multi-part SMS
+        short_messages = len(
+            [length for length in lengths if length <= 160]
+        )  # Standard SMS
+        medium_messages = len(
+            [length for length in lengths if 160 < length <= 320]
+        )  # Multi-part SMS
         # Very long messages
         long_messages = len([length for length in lengths if length > 320])
 

@@ -15,7 +15,7 @@ class BaseModel(Base):
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-    
+
     def to_dict(self):
         """Alias for as_dict for backward compatibility."""
         return self.as_dict()

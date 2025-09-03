@@ -11,7 +11,7 @@ from .utils import (
 
 __all__ = [
     "add_record",
-    "add_record_no_commit", 
+    "add_record_no_commit",
     "delete_record",
     "filter_by",
     "get_by_field",

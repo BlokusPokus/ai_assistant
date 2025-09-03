@@ -109,9 +109,9 @@ class OAuthConsentService:
             if status:
                 # Map status to is_revoked field
                 if status == "revoked":
-                    query = query.where(OAuthConsent.is_revoked .is_(True))
+                    query = query.where(OAuthConsent.is_revoked.is_(True))
                 elif status == "active":
-                    query = query.where(OAuthConsent.is_revoked .is_(False))
+                    query = query.where(OAuthConsent.is_revoked.is_(False))
 
             # Include related data
             query = query.options(joinedload(OAuthConsent.integration))
@@ -146,9 +146,9 @@ class OAuthConsentService:
             if status:
                 # Map status to is_revoked field
                 if status == "revoked":
-                    query = query.where(OAuthConsent.is_revoked .is_(True))
+                    query = query.where(OAuthConsent.is_revoked.is_(True))
                 elif status == "active":
-                    query = query.where(OAuthConsent.is_revoked .is_(False))
+                    query = query.where(OAuthConsent.is_revoked.is_(False))
 
             # Include related data
             query = query.options(joinedload(OAuthConsent.integration))
