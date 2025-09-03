@@ -137,8 +137,8 @@ database_indexes.sql
 # Test requirements (keep only main requirements.txt)
 requirements_internet_youtube.txt
 
-# Test utilities
-utils.py
+# Test utilities (but allow database CRUD utils)
+tests/utils.py
 debug_conversation_flow.py
 
 # ========================================
