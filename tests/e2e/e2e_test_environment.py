@@ -19,10 +19,10 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.personal_assistant.database.database import get_database_url
-from src.personal_assistant.models.user import User
-from src.personal_assistant.models.task import Task
-from src.personal_assistant.models.memory import Memory
+from personal_assistant.config.database import db_config
+from personal_assistant.database.models.users import User
+from personal_assistant.database.models.tasks import Task
+from personal_assistant.database.models.ltm_memory import LTMMemory
 
 
 @dataclass

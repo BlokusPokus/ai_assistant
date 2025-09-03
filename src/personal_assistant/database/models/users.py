@@ -84,9 +84,10 @@ class User(Base):
     # )
 
     # SMS Router relationships
-    phone_mappings = relationship(
-        "UserPhoneMapping", back_populates="user", cascade="all, delete-orphan"
-    )
-    sms_usage_logs = relationship(
-        "SMSUsageLog", back_populates="user", cascade="all, delete-orphan"
-    )
+    # SMS Router relationships - commented out due to cross-module dependency issues
+    # phone_mappings = relationship(
+    #     "UserPhoneMapping", back_populates="user", cascade="all, delete-orphan"
+    # )
+    # sms_usage_logs = relationship(
+    #     "SMSUsageLog", back_populates="user", cascade="all, delete-orphan"
+    # )

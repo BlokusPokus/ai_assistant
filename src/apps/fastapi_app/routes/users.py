@@ -338,7 +338,9 @@ async def update_user_preferences(
             updated_preferences = await user_service.get_user_preferences(
                 int(current_user.id)
             )
-            updated_settings = await user_service.get_user_settings(int(current_user.id))
+            updated_settings = await user_service.get_user_settings(
+                int(current_user.id)
+            )
         except Exception as e:
             logger.error(f"Error getting updated data: {e}")
             updated_preferences = {}
@@ -915,7 +917,9 @@ async def delete_user_phone_number(
             )
 
         # Get remaining phone count
-        remaining_phones = await phone_service.get_user_phone_numbers(int(current_user.id))
+        remaining_phones = await phone_service.get_user_phone_numbers(
+            int(current_user.id)
+        )
 
         return PhoneNumberDeleteResponse(
             success=True,

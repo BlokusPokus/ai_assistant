@@ -55,7 +55,11 @@ class ToolExecutionError(AgentCoreError):
     """Exception raised when tool execution fails."""
 
     def __init__(
-        self, message: str, tool_name: str, user_id: int, tool_args: Optional[dict] = None
+        self,
+        message: str,
+        tool_name: str,
+        user_id: int,
+        tool_args: Optional[dict] = None,
     ):
         self.message = message
         self.tool_name = tool_name

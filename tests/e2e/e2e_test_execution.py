@@ -8,6 +8,7 @@ including test orchestration, parallel execution, and result reporting.
 import asyncio
 import time
 import json
+import pytest
 from typing import Dict, List, Any, Optional, Callable
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta

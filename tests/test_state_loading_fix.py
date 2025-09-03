@@ -6,7 +6,7 @@ This script tests that the load_state() function now properly loads
 memory_context and last_tool_result fields from saved state.
 """
 
-from personal_assistant.memory.memory_storage import load_state
+from personal_assistant.memory.storage_integration import load_state_integrated as load_state
 from personal_assistant.types.state import AgentState
 import asyncio
 import json
@@ -27,7 +27,7 @@ async def test_state_loading():
     # Test with a non-existent conversation ID first
     print("\n1. Testing with non-existent conversation ID...")
     try:
-        state = await load_state("test_nonexistent_conv_123")
+        state = await load_state("test_nonexistent_conv_123", user_id=1)
         print(f"✅ Non-existent conversation handled gracefully")
         print(f"   - State type: {type(state)}")
         print(f"   - User input: {state.user_input}")
