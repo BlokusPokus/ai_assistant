@@ -21,7 +21,8 @@ class TestPasswordService:
         """Set up test fixtures before each test method."""
         self.password_service = PasswordService(salt_rounds=4)  # Lower rounds for faster testing
         self.test_password = "TestPassword123!"
-        self.test_user = UserDataGenerator.generate_user()
+        self.user_generator = UserDataGenerator()
+        self.test_user = self.user_generator.generate_user()
 
     def test_init_with_default_salt_rounds(self):
         """Test PasswordService initialization with default salt rounds."""

@@ -19,7 +19,8 @@ class TestAuthUtils:
 
     def setup_method(self):
         """Set up test fixtures before each test method."""
-        self.test_user = UserDataGenerator.generate_user()
+        self.user_generator = UserDataGenerator()
+        self.test_user = self.user_generator.generate_user()
         self.test_token = "test_jwt_token_here"
         self.test_payload = {
             "user_id": self.test_user["id"],

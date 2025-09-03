@@ -21,7 +21,8 @@ class TestJWTService:
     def setup_method(self):
         """Set up test fixtures before each test method."""
         self.jwt_service = JWTService()
-        self.test_user = UserDataGenerator.generate_user()
+        self.user_generator = UserDataGenerator()
+        self.test_user = self.user_generator.generate_user()
         self.test_data = {
             "user_id": self.test_user["id"],
             "email": self.test_user["email"],
