@@ -22,7 +22,7 @@ import hashlib
 from datetime import datetime, timedelta
 
 
-class TestExecutionOptimizer:
+class ExecutionOptimizer:
     """Optimizes test execution performance."""
     
     def __init__(self):
@@ -177,7 +177,7 @@ class ParallelTestExecutor:
         self._process_pool.shutdown(wait=True)
 
 
-class TestDataCache:
+class DataCache:
     """Caches test data to avoid regeneration."""
     
     def __init__(self, cache_dir: str = ".test_cache"):

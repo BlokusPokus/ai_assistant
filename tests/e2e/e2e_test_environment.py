@@ -40,7 +40,7 @@ class E2ETestConfig:
 
 
 @dataclass
-class TestUser:
+class E2EUser:
     """Test user data for E2E tests."""
     username: str
     email: str
@@ -53,7 +53,7 @@ class TestUser:
 
 
 @dataclass
-class TestTask:
+class E2ETask:
     """Test task data for E2E tests."""
     title: str
     description: str
@@ -66,7 +66,7 @@ class TestTask:
 
 
 @dataclass
-class TestMemory:
+class E2EMemory:
     """Test memory data for E2E tests."""
     content: str
     memory_type: str
@@ -348,10 +348,10 @@ class E2ETestEnvironment:
         
         print("✅ Test data loaded")
     
-    async def _create_test_users(self) -> List[TestUser]:
+    async def _create_test_users(self) -> List[E2EUser]:
         """Create test users."""
         test_users = [
-            TestUser(
+            E2EUser(
                 username="test_user_1",
                 email="test1@example.com",
                 password="test_password_123",
@@ -361,7 +361,7 @@ class E2ETestEnvironment:
                 created_at=datetime.now(),
                 preferences={"theme": "dark", "language": "en"}
             ),
-            TestUser(
+            E2EUser(
                 username="test_user_2",
                 email="test2@example.com",
                 password="test_password_456",
@@ -371,7 +371,7 @@ class E2ETestEnvironment:
                 created_at=datetime.now(),
                 preferences={"theme": "light", "language": "es"}
             ),
-            TestUser(
+            E2EUser(
                 username="admin_user",
                 email="admin@example.com",
                 password="admin_password_789",
@@ -399,10 +399,10 @@ class E2ETestEnvironment:
         self.database_session.commit()
         return test_users
     
-    async def _create_test_tasks(self) -> List[TestTask]:
+    async def _create_test_tasks(self) -> List[E2ETask]:
         """Create test tasks."""
         test_tasks = [
-            TestTask(
+            E2ETask(
                 title="YouTube Search Task",
                 description="Search for Python tutorials on YouTube",
                 task_type="youtube_search",
@@ -412,7 +412,7 @@ class E2ETestEnvironment:
                 created_at=datetime.now(),
                 scheduled_at=None
             ),
-            TestTask(
+            E2ETask(
                 title="Notion Page Creation",
                 description="Create a new page in Notion",
                 task_type="notion_create_page",
@@ -422,7 +422,7 @@ class E2ETestEnvironment:
                 created_at=datetime.now() - timedelta(hours=1),
                 scheduled_at=None
             ),
-            TestTask(
+            E2ETask(
                 title="Email Sending Task",
                 description="Send an email to a contact",
                 task_type="email_send",
@@ -451,10 +451,10 @@ class E2ETestEnvironment:
         self.database_session.commit()
         return test_tasks
     
-    async def _create_test_memories(self) -> List[TestMemory]:
+    async def _create_test_memories(self) -> List[E2EMemory]:
         """Create test memories."""
         test_memories = [
-            TestMemory(
+            E2EMemory(
                 content="User prefers Python programming tutorials",
                 memory_type="preference",
                 tags=["programming", "python", "tutorials"],
@@ -462,7 +462,7 @@ class E2ETestEnvironment:
                 created_at=datetime.now() - timedelta(days=1),
                 last_accessed=datetime.now() - timedelta(hours=2)
             ),
-            TestMemory(
+            E2EMemory(
                 content="User frequently searches for machine learning content",
                 memory_type="behavior",
                 tags=["machine_learning", "ai", "search_patterns"],
@@ -470,7 +470,7 @@ class E2ETestEnvironment:
                 created_at=datetime.now() - timedelta(days=2),
                 last_accessed=datetime.now() - timedelta(hours=1)
             ),
-            TestMemory(
+            E2EMemory(
                 content="User has Notion workspace for project management",
                 memory_type="tool_usage",
                 tags=["notion", "project_management", "workspace"],
@@ -543,21 +543,21 @@ class E2ETestEnvironment:
         self.test_memories.clear()
         print("📊 Test data cleanup complete")
     
-    def get_test_user(self, username: str) -> Optional[TestUser]:
+    def get_test_user(self, username: str) -> Optional[E2EUser]:
         """Get test user by username."""
         for user in self.test_users:
             if user.username == username:
                 return user
         return None
     
-    def get_test_task(self, title: str) -> Optional[TestTask]:
+    def get_test_task(self, title: str) -> Optional[E2ETask]:
         """Get test task by title."""
         for task in self.test_tasks:
             if task.title == title:
                 return task
         return None
     
-    def get_test_memory(self, content: str) -> Optional[TestMemory]:
+    def get_test_memory(self, content: str) -> Optional[E2EMemory]:
         """Get test memory by content."""
         for memory in self.test_memories:
             if memory.content == content:

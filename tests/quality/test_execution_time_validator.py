@@ -28,7 +28,7 @@ class ExecutionTimeMetrics:
 
 
 @dataclass
-class TestSuiteMetrics:
+class SuiteMetrics:
     """Represents execution time metrics for a test suite."""
     suite_name: str
     total_tests: int
@@ -42,7 +42,7 @@ class TestSuiteMetrics:
     timestamp: datetime
 
 
-class TestExecutionTimeValidator:
+class ExecutionTimeValidator:
     """Validates test execution times and performance."""
     
     def __init__(self, config_file: str = "test_time_config.json"):

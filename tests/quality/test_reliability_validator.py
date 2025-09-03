@@ -15,7 +15,7 @@ from collections import defaultdict, Counter
 
 
 @dataclass
-class TestRunResult:
+class RunResult:
     """Represents the result of a single test run."""
     test_name: str
     timestamp: datetime
@@ -26,7 +26,7 @@ class TestRunResult:
 
 
 @dataclass
-class TestReliabilityMetrics:
+class ReliabilityMetrics:
     """Represents reliability metrics for a test."""
     test_name: str
     total_runs: int
@@ -60,7 +60,7 @@ class TestSuiteReliabilityMetrics:
     timestamp: datetime
 
 
-class TestReliabilityValidator:
+class ReliabilityValidator:
     """Validates test reliability and detects flaky tests."""
     
     def __init__(self, config_file: str = "test_reliability_config.json"):
