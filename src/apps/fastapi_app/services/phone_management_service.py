@@ -34,6 +34,12 @@ class PhoneManagementService:
         # We don't need AgentCore for this service
         self.twilio_service = TwilioService(agent_core=None)
 
+    def _mask_phone_number(self, phone_number: str) -> str:
+        """Mask phone number for logging purposes."""
+        if not phone_number or len(phone_number) < 4:
+            return "***"
+        return phone_number[:2] + "*" * (len(phone_number) - 4) + phone_number[-2:]
+
     async def get_user_phone_numbers(self, user_id: int) -> List[Dict[str, Any]]:
         """
         Get all phone numbers associated with a user.
@@ -122,7 +128,7 @@ class PhoneManagementService:
             # Validate phone number format
             normalized_phone = self.phone_validator.normalize_phone_number(phone_number)
             if not normalized_phone:
-                logger.error(f"Invalid phone number format: {phone_number}")
+                logger.error(f"Invalid phone number format: {self._mask_phone_number(phone_number)}")
                 return None
 
             # Check if phone number already exists for this user
@@ -239,7 +245,7 @@ class PhoneManagementService:
                 )
                 if not normalized_phone:
                     logger.error(
-                        f"Invalid phone number format: {updates['phone_number']}"
+                        f"Invalid phone number format: {self._mask_phone_number(updates['phone_number'])}"
                     )
                     return None
                 update_data["phone_number"] = normalized_phone
@@ -408,12 +414,12 @@ class PhoneManagementService:
                 phone_number, verification_code
             )
 
-            logger.info(f"Sent verification code to {phone_number} for user {user_id}")
+            logger.info(f"Sent verification code to {self._mask_phone_number(phone_number)} for user {user_id}")
             return verification_code
 
         except Exception as e:
             logger.error(
-                f"Error sending verification code to {phone_number} for user {user_id}: {e}"
+                f"Error sending verification code to {self._mask_phone_number(phone_number)} for user {user_id}: {e}"
             )
             return None
 
@@ -459,12 +465,12 @@ class PhoneManagementService:
 
             await self.db.commit()
 
-            logger.info(f"Verified phone number {phone_number} for user {user_id}")
+            logger.info(f"Verified phone number {self._mask_phone_number(phone_number)} for user {user_id}")
             return True
 
         except Exception as e:
             logger.error(
-                f"Error verifying phone number {phone_number} for user {user_id}: {e}"
+                f"Error verifying phone number {self._mask_phone_number(phone_number)} for user {user_id}: {e}"
             )
             await self.db.rollback()
             return False

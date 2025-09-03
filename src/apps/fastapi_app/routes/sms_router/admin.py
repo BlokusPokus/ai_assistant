@@ -50,7 +50,7 @@ async def get_sms_router_status(
         }
     except Exception as e:
         logger.error(f"Error getting SMS Router status: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get service status")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/usage")

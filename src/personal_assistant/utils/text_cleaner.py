@@ -108,11 +108,11 @@ def clean_html_content(html_content: str) -> str:
     # Remove HTML tags
     clean_text = re.sub(r"<[^>]+>", "", html_content)
 
-    # Remove CSS styles
-    clean_text = re.sub(r"<style[^>]*>.*?</style>", "", clean_text, flags=re.DOTALL)
+    # Remove CSS styles (case-insensitive)
+    clean_text = re.sub(r"<style[^>]*>.*?</style>", "", clean_text, flags=re.DOTALL | re.IGNORECASE)
 
-    # Remove JavaScript
-    clean_text = re.sub(r"<script[^>]*>.*?</script>", "", clean_text, flags=re.DOTALL)
+    # Remove JavaScript (case-insensitive)
+    clean_text = re.sub(r"<script[^>]*>.*?</script>", "", clean_text, flags=re.DOTALL | re.IGNORECASE)
 
     # Remove HTML entities
     clean_text = clean_text.replace("&nbsp;", " ")

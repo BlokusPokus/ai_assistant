@@ -42,6 +42,12 @@ class TwilioService:
         # Initialize user identification service for enhanced guidance
         self.user_identification = UserIdentificationService()
 
+    def _mask_phone_number(self, phone_number: str) -> str:
+        """Mask phone number for logging purposes."""
+        if not phone_number or len(phone_number) < 4:
+            return "***"
+        return phone_number[:2] + "*" * (len(phone_number) - 4) + phone_number[-2:]
+
     async def handle_sms_webhook(
         self, body: str, from_number: str
     ) -> MessagingResponse:
@@ -113,7 +119,7 @@ class TwilioService:
         )
 
         response.message(guidance_message)
-        logger.info(f"Sent helpful guidance to unregistered phone: {phone_number}")
+        logger.info(f"Sent helpful guidance to unregistered phone: {self._mask_phone_number(phone_number)}")
         return response
 
     def _format_phone_number(self, phone_number: str) -> str:

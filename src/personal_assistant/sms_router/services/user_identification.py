@@ -23,6 +23,12 @@ class UserIdentificationService:
         self.phone_validator = PhoneValidator()
         self.cache_manager = cache_manager or CacheManager()
 
+    def _mask_phone_number(self, phone_number: str) -> str:
+        """Mask phone number for logging purposes."""
+        if not phone_number or len(phone_number) < 4:
+            return "***"
+        return phone_number[:2] + "*" * (len(phone_number) - 4) + phone_number[-2:]
+
     async def identify_user_by_phone(
         self, phone_number: str
     ) -> Optional[Dict[str, Any]]:
@@ -39,7 +45,7 @@ class UserIdentificationService:
             # Normalize phone number
             normalized_phone = self.phone_validator.normalize_phone_number(phone_number)
             if not normalized_phone:
-                logger.warning(f"Invalid phone number format: {phone_number}")
+                logger.warning(f"Invalid phone number format: {self._mask_phone_number(phone_number)}")
                 return None
 
             # Check cache first
@@ -64,7 +70,7 @@ class UserIdentificationService:
             return None
 
         except Exception as e:
-            logger.error(f"Error identifying user by phone {phone_number}: {e}")
+            logger.error(f"Error identifying user by phone {self._mask_phone_number(phone_number)}: {e}")
             return None
 
     async def _lookup_user_in_database(
@@ -181,7 +187,7 @@ class UserIdentificationService:
         try:
             normalized_phone = self.phone_validator.normalize_phone_number(phone_number)
             if not normalized_phone:
-                logger.error(f"Invalid phone number: {phone_number}")
+                logger.error(f"Invalid phone number: {self._mask_phone_number(phone_number)}")
                 return False
 
             async with AsyncSessionLocal() as session:

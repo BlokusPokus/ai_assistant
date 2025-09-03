@@ -226,8 +226,10 @@ class TestHelper:
     
     @staticmethod
     def hash_password(password: str) -> str:
-        """Hash a password for testing."""
-        return hashlib.sha256(password.encode()).hexdigest()
+        """Hash a password for testing using bcrypt."""
+        import bcrypt
+        salt = bcrypt.gensalt()
+        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
     
     @staticmethod
     def generate_jwt_payload(**kwargs) -> Dict[str, Any]:

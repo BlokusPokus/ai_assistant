@@ -26,6 +26,12 @@ class UserService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    def _mask_phone_number(self, phone_number: str) -> str:
+        """Mask phone number for logging purposes."""
+        if not phone_number or len(phone_number) < 4:
+            return "***"
+        return phone_number[:2] + "*" * (len(phone_number) - 4) + phone_number[-2:]
+
     async def get_user_by_id(self, user_id: int) -> Optional[User]:
         """
         Get user by ID.
@@ -76,7 +82,7 @@ class UserService:
             )
             return result.scalar_one_or_none()
         except Exception as e:
-            logger.error(f"Error retrieving user by phone number {phone_number}: {e}")
+            logger.error(f"Error retrieving user by phone number {self._mask_phone_number(phone_number)}: {e}")
             return None
 
     async def list_users(

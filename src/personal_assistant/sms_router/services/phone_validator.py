@@ -20,6 +20,12 @@ class PhoneValidator:
             "e164": r"^\+[1-9]\d{1,14}$",
         }
 
+    def _mask_phone_number(self, phone_number: str) -> str:
+        """Mask phone number for logging purposes."""
+        if not phone_number or len(phone_number) < 4:
+            return "***"
+        return phone_number[:2] + "*" * (len(phone_number) - 4) + phone_number[-2:]
+
     def normalize_phone_number(self, phone_number: str) -> Optional[str]:
         """
         Normalize phone number to E.164 format.
@@ -52,7 +58,7 @@ class PhoneValidator:
         elif cleaned.startswith("+") and len(cleaned) >= 12 and len(cleaned) <= 16:
             return cleaned
 
-        logger.warning(f"Invalid phone number format: {phone_number}")
+        logger.warning(f"Invalid phone number format: {self._mask_phone_number(phone_number)}")
         return None
 
     def is_valid_phone_number(self, phone_number: str) -> bool:

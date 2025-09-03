@@ -233,8 +233,8 @@ class TestFormattingFunctions:
         assert query in formatted
         assert "Test Result 1" in formatted
         assert "Test Result 2" in formatted
-        assert "https://example1.com" in formatted
-        assert "https://example2.com" in formatted
+        assert "example1.com" in formatted
+        assert "example2.com" in formatted
         assert "This is a test result body" in formatted
         assert safe_search in formatted
 

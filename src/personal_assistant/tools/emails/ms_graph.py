@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 def get_access_token(application_id, client_secret, scopes):
     print(f"Attempting to get token with:")
-    print(f"- Application ID: {application_id[:5]}..." if application_id else "None")
+    print(f"- Application ID: {'***' if application_id else 'None'}")
     print(f"- Scopes: {scopes}")
 
     if not application_id or not client_secret:

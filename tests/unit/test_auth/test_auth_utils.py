@@ -234,9 +234,8 @@ class TestAuthUtils:
 
     def test_auth_utils_with_different_token_formats(self):
         """Test AuthUtils with different token formats."""
-        # Test with JWT-like token (test data only)
-        # gitleaks:allow
-        jwt_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        # Test with JWT-like token (test data only - clearly fake)
+        jwt_token = "test.jwt.token.clearly.fake.for.testing.purposes.only"
         
         mock_request = Mock(spec=Request)
         mock_request.headers = {"Authorization": f"Bearer {jwt_token}"}

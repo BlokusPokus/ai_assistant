@@ -33,6 +33,15 @@ class ResearchTool:
     - Research summary generation
     """
 
+    def _is_youtube_url(self, url: str) -> bool:
+        """Check if URL is a YouTube URL using proper URL parsing."""
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            return parsed.netloc in ['www.youtube.com', 'youtube.com', 'youtu.be', 'm.youtube.com']
+        except Exception:
+            return False
+
     def __init__(self):
         # Initialize any shared resources, tokens, clients, etc.
         self._research_cache = {}
@@ -340,7 +349,7 @@ class ResearchTool:
                                 "analysis": source_analysis,
                             }
                         )
-                    elif "youtube.com" in source or "youtu.be" in source:
+                    elif self._is_youtube_url(source):
                         # Analyze YouTube content
                         source_analysis = await self._analyze_youtube_content(source)
                         analysis_results["sources_analyzed"].append(

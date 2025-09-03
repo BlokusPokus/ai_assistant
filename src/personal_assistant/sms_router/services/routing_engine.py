@@ -42,6 +42,12 @@ class SMSRoutingEngine:
         self.failed_routes = 0
         self.average_processing_time = 0.0
 
+    def _mask_phone_number(self, phone_number: str) -> str:
+        """Mask phone number for logging purposes."""
+        if not phone_number or len(phone_number) < 4:
+            return "***"
+        return phone_number[:2] + "*" * (len(phone_number) - 4) + phone_number[-2:]
+
     async def route_sms(
         self, from_phone: str, message_body: str, message_sid: str
     ) -> Any:
@@ -269,7 +275,7 @@ class SMSRoutingEngine:
                 session.add(usage_log)
                 await session.commit()
 
-                logger.debug(f"Usage logged for {direction} SMS to/from {phone_number}")
+                logger.debug(f"Usage logged for {direction} SMS to/from {self._mask_phone_number(phone_number)}")
 
         except Exception as e:
             logger.error(f"Error logging SMS usage: {e}")
