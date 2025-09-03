@@ -7,15 +7,14 @@ state coordination, and advanced optimization features.
 
 import hashlib
 import json
-import logging
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from ...config.logging_config import get_logger
 from ...tools.ltm.ltm_storage import get_relevant_ltm_memories
 from ...types.state import AgentState
-from .config import EnhancedLTMConfig, LTMConfig
+from .config import LTMConfig
 
 logger = get_logger("smart_retriever")
 
@@ -385,7 +384,7 @@ class SmartLTMRetriever:
             hasattr(state_context, "last_tool_result")
             and state_context.last_tool_result
         ):
-            tool_result = str(state_context.last_tool_result).lower()
+            str(state_context.last_tool_result).lower()
             memory_content = memory.get("content", "").lower()
 
             if any(

@@ -142,7 +142,7 @@ async def test_context_aware_metadata():
         print("=" * 50)
 
         for user_input, expected_tools in test_cases:
-            state = MockAgentState(user_input)
+            MockAgentState(user_input)
             builder = EnhancedPromptBuilder(tool_registry)
 
             # Analyze tool requirements

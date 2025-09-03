@@ -11,16 +11,13 @@ This module provides:
 
 import asyncio
 import hashlib
-import json
 import logging
-import os
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import MetaData, inspect, text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import MetaData, text
 
 from personal_assistant.config.database import db_config
 
@@ -83,7 +80,7 @@ class MigrationManager:
         try:
             # Check if we're in an event loop
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 # We're in an event loop, create the task
                 asyncio.create_task(self._ensure_migration_table())
                 self._initialized = True

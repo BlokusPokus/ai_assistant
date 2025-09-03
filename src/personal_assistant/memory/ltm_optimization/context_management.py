@@ -5,11 +5,10 @@ This module combines context optimization and context data structures
 into a single, manageable interface for LTM context management.
 """
 
-import logging
 from dataclasses import dataclass, field
 from datetime import datetime, time
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from ...config.logging_config import get_logger
 from ...types.state import AgentState
@@ -741,7 +740,7 @@ class DynamicContextManager:
             hasattr(state_context, "last_tool_result")
             and state_context.last_tool_result
         ):
-            tool_result = str(state_context.last_tool_result).lower()
+            str(state_context.last_tool_result).lower()
             memory_content = memory.get("content", "").lower()
 
             if any(

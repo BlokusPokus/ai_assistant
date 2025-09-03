@@ -7,7 +7,6 @@ phone-based authentication and user identification.
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
 revision = "003_add_phone_number_to_users"

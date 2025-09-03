@@ -2,18 +2,14 @@
 SMS Cost Calculator for Twilio pricing integration and cost analysis.
 """
 
-import asyncio
-import json
 import logging
 import os
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-import aiohttp
-from sqlalchemy import and_, desc, func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...database.models.users import User
 from ..models.sms_models import SMSUsageLog
 
 logger = logging.getLogger(__name__)
@@ -350,7 +346,7 @@ class SMSCostCalculator:
 
             # Get current usage patterns
             usage_summary = await self._get_usage_summary_for_optimization(user_id)
-            cost_breakdown = await self.calculate_user_costs(user_id, "30d")
+            await self.calculate_user_costs(user_id, "30d")
 
             # Analyze usage patterns and provide tips
             if usage_summary.get("total_messages", 0) == 0:

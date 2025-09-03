@@ -1,5 +1,4 @@
-import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import httpx
 from dotenv import load_dotenv
@@ -13,17 +12,11 @@ from .calendar_internal import (
     build_calendar_headers,
     build_calendar_view_params,
     build_event_data,
-    format_calendar_events_response,
-    format_create_event_response,
-    format_delete_event_response,
-    format_error_response,
     format_event_details_response,
     format_success_response,
     get_datetime_range,
     get_environment_error_message,
     handle_event_not_found,
-    handle_http_response,
-    is_token_valid,
     parse_calendar_event,
     parse_event_details,
     parse_start_time_with_duration,

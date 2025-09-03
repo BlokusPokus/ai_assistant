@@ -8,13 +8,12 @@ decisions and maintaining an audit trail for compliance purposes.
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import insert, select, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from personal_assistant.oauth.exceptions import OAuthConsentError
 from personal_assistant.oauth.models.consent import OAuthConsent
-from personal_assistant.oauth.models.integration import OAuthIntegration
 from personal_assistant.oauth.models.scope import OAuthScope
 
 
@@ -110,9 +109,9 @@ class OAuthConsentService:
             if status:
                 # Map status to is_revoked field
                 if status == "revoked":
-                    query = query.where(OAuthConsent.is_revoked == True)
+                    query = query.where(OAuthConsent.is_revoked .is_(True))
                 elif status == "active":
-                    query = query.where(OAuthConsent.is_revoked == False)
+                    query = query.where(OAuthConsent.is_revoked .is_(False))
 
             # Include related data
             query = query.options(joinedload(OAuthConsent.integration))
@@ -147,9 +146,9 @@ class OAuthConsentService:
             if status:
                 # Map status to is_revoked field
                 if status == "revoked":
-                    query = query.where(OAuthConsent.is_revoked == True)
+                    query = query.where(OAuthConsent.is_revoked .is_(True))
                 elif status == "active":
-                    query = query.where(OAuthConsent.is_revoked == False)
+                    query = query.where(OAuthConsent.is_revoked .is_(False))
 
             # Include related data
             query = query.options(joinedload(OAuthConsent.integration))

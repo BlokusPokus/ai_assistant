@@ -5,7 +5,6 @@ This module provides robust validation for AI-generated tags to ensure they
 conform to the predefined tag list and database requirements.
 """
 
-import logging
 from typing import List, Optional, Tuple
 
 from ..config.logging_config import get_logger

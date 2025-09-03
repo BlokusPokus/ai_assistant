@@ -4,8 +4,6 @@ LTM Learning Manager
 This module manages active learning and memory creation from user interactions.
 """
 
-import json
-import logging
 from typing import Any, Dict, List, Optional
 
 from personal_assistant.memory.ltm_optimization.memory_lifecycle import (

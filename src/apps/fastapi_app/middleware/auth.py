@@ -5,13 +5,11 @@ This middleware validates JWT tokens and injects user context
 into requests for protected endpoints.
 """
 
-import time
 from typing import Any, Dict, Optional
 
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
 
 from personal_assistant.auth.auth_utils import AuthUtils
 from personal_assistant.auth.jwt_service import jwt_service
@@ -105,7 +103,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         except HTTPException:
             # Re-raise HTTP exceptions (like token expired)
             raise
-        except Exception as e:
+        except Exception:
             # Handle other authentication errors
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,

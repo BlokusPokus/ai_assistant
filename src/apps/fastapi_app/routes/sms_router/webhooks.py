@@ -6,7 +6,6 @@ import logging
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import Response
-from twilio.twiml.messaging_response import MessagingResponse
 
 from personal_assistant.sms_router.middleware.webhook_validation import (
     validate_twilio_webhook,

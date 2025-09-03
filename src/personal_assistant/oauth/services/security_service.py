@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from personal_assistant.config.settings import settings
 from personal_assistant.oauth.exceptions import OAuthSecurityError, OAuthStateError
 from personal_assistant.oauth.models.audit_log import OAuthAuditLog
 from personal_assistant.oauth.models.state import OAuthState

@@ -7,7 +7,7 @@ Provides Loki integration for shipping structured logs to centralized log storag
 
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 try:
     from python_logging_loki import LokiHandler

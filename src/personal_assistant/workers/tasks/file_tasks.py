@@ -8,11 +8,8 @@ This module handles file-related background tasks including:
 """
 
 import logging
-import os
-import shutil
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Any, Dict, List
+from datetime import datetime
+from typing import Any, Dict
 
 from ..celery_app import app
 
@@ -51,7 +48,6 @@ def cleanup_temp_files(self) -> Dict[str, Any]:
                 # TODO: Implement temp file cleanup logic
                 # For now, just log the directory
                 logger.info(f"Checking temp directory: {temp_dir}")
-                pass
 
         result = {
             "task_id": task_id,

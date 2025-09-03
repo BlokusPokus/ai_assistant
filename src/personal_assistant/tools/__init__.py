@@ -12,7 +12,6 @@ from .notion_pages.notion_pages_tool import NotionPagesTool
 # Configure module logger
 from .planning.llm_planner import LLMPlannerTool
 from .reminders.reminder_tool import ReminderTool
-from .research.research_tool import ResearchTool
 from .youtube.youtube_tool import YouTubeTool
 
 logger = get_logger("tools")

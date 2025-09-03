@@ -11,11 +11,10 @@ This module provides endpoints for:
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.security import HTTPBearer
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from personal_assistant.auth.decorators import require_ownership, require_permission
+from personal_assistant.auth.decorators import require_permission
 from personal_assistant.auth.session_service import SessionService
 from personal_assistant.config.redis import get_async_session_redis
 from personal_assistant.database.models.mfa_models import SecurityEvent

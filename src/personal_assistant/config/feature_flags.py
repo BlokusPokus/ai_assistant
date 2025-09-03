@@ -6,7 +6,7 @@ of new features, enabling gradual rollout and A/B testing capabilities.
 """
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from ..config.logging_config import get_logger
 

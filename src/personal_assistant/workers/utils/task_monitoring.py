@@ -8,7 +8,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 

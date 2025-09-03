@@ -6,12 +6,11 @@ including smart consolidation, usage-based aging, intelligent archiving, and
 storage optimization coordinated with state management data.
 """
 
-import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from ...config.logging_config import get_logger
-from ...tools.ltm.ltm_storage import add_ltm_memory, delete_ltm_memory
+from ...tools.ltm.ltm_storage import add_ltm_memory
 from ...types.state import AgentState
 from .config import EnhancedLTMConfig, LTMConfig
 
@@ -334,7 +333,7 @@ class EnhancedMemoryLifecycleManager:
             hasattr(state_context, "last_tool_result")
             and state_context.last_tool_result
         ):
-            tool_result = str(state_context.last_tool_result).lower()
+            str(state_context.last_tool_result).lower()
             memory_content = memory.get("content", "").lower()
 
             if any(
@@ -466,7 +465,7 @@ class EnhancedMemoryLifecycleManager:
             hasattr(state_context, "last_tool_result")
             and state_context.last_tool_result
         ):
-            tool_result = str(state_context.last_tool_result).lower()
+            str(state_context.last_tool_result).lower()
 
             memory1_tool_match = any(
                 tool_word in memory1.get("content", "").lower()
@@ -580,7 +579,7 @@ class EnhancedMemoryLifecycleManager:
             )
 
             # Use the most relevant memory as the base
-            base_memory = sorted_group[0]
+            sorted_group[0]
 
             # Combine content and tags with state context consideration
             combined_content = self._combine_memory_content_with_state(

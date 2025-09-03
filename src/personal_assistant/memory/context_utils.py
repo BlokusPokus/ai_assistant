@@ -6,11 +6,7 @@ memory blocks to fit within specified constraints. These utilities are used
 by the agent runner and other memory components to ensure efficient memory usage.
 """
 
-from typing import Dict, List
-
-from sqlalchemy import select
-
-from personal_assistant.database.session import AsyncSessionLocal
+from typing import List
 
 
 def apply_context_limits(memory_blocks: List[dict], max_length: int) -> None:

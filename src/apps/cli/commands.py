@@ -19,7 +19,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 @click.group()
 def cli():
     """Personal Assistant CLI"""
-    pass
 
 
 @cli.command()

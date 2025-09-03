@@ -12,12 +12,10 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
-    ForeignKey,
     Integer,
     String,
     Text,
 )
-from sqlalchemy.orm import relationship
 
 from personal_assistant.database.models.base import Base
 

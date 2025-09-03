@@ -3,18 +3,13 @@ Handles semantic search and retrieval from embedded knowledge sources.
 Enhanced with real Gemini embeddings and prepared for Notion integration.
 """
 
-import hashlib
-import json
-import logging
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import numpy as np
 from sqlalchemy import func, select
 
 from ..config.logging_config import get_logger
 from ..database.models.conversation_message import ConversationMessage
-from ..database.models.conversation_state import ConversationState
-from ..database.models.memory_context_item import MemoryContextItem
 from ..database.session import AsyncSessionLocal
 from .embeddings.gemini_embeddings import GeminiEmbeddings
 

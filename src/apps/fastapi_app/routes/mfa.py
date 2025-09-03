@@ -34,8 +34,6 @@ router = APIRouter(prefix="/api/v1/mfa", tags=["MFA"])
 class TOTPSetupRequest(BaseModel):
     """Request model for TOTP setup."""
 
-    pass
-
 
 class TOTPSetupResponse(BaseModel):
     """Response model for TOTP setup."""

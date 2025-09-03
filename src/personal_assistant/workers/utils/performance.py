@@ -416,9 +416,9 @@ class PerformanceOptimizer:
 
             # Calculate average load
             load_values = [s.load_average for s in snapshots]
-            avg_load_1m = sum(l[0] for l in load_values) / len(load_values)
-            avg_load_5m = sum(l[1] for l in load_values) / len(load_values)
-            avg_load_15m = sum(l[2] for l in load_values) / len(load_values)
+            avg_load_1m = sum(load[0] for load in load_values) / len(load_values)
+            avg_load_5m = sum(load[1] for load in load_values) / len(load_values)
+            avg_load_15m = sum(load[2] for load in load_values) / len(load_values)
 
             averages["load_average_1m"] = avg_load_1m
             averages["load_average_5m"] = avg_load_5m
@@ -575,7 +575,7 @@ class PerformanceOptimizer:
 
             latest = snapshots[-1]
             cpu_cores = psutil.cpu_count()
-            memory_gb = psutil.virtual_memory().total / (1024**3)
+            psutil.virtual_memory().total / (1024**3)
 
             # CPU optimization recommendations
             if latest.cpu_percent > self.thresholds["cpu_critical"]:

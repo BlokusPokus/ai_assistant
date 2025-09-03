@@ -5,7 +5,6 @@ This model stores key-value pairs for user settings and preferences
 with enhanced metadata and categorization support.
 """
 
-from datetime import datetime
 
 from sqlalchemy import (
     JSON,

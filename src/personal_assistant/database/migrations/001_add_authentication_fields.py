@@ -7,7 +7,6 @@ password management, and account security.
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
 revision = "001_add_authentication_fields"

@@ -5,15 +5,13 @@ This module provides a clean separation between LTM and other data types
 (calendar events, notes, etc.) by using a dedicated datatable for insights
 and patterns rather than the generic memory_chunks table.
 """
-import json
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
 from sqlalchemy import and_, desc, select
-from sqlalchemy.orm import Session
 
 from ...config.logging_config import get_logger
-from ...database.crud.utils import add_record, get_by_field
+from ...database.crud.utils import add_record
 from ...database.models.ltm_memory import LTMMemory
 from ...database.session import AsyncSessionLocal
 from ...utils.tag_utils import normalize_tags, validate_tags

@@ -8,8 +8,8 @@ This module handles email-related background tasks including:
 """
 
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from datetime import datetime
+from typing import Any, Dict
 
 from ..celery_app import app
 

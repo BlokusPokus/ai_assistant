@@ -15,7 +15,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from personal_assistant.auth.auth_utils import AuthUtils
-from personal_assistant.auth.constants import TOKEN_TYPE_ACCESS, TOKEN_TYPE_REFRESH
+from personal_assistant.auth.constants import TOKEN_TYPE_REFRESH
 from personal_assistant.auth.decorators import require_permission
 from personal_assistant.auth.jwt_service import jwt_service
 from personal_assistant.auth.password_service import password_service
@@ -188,7 +188,7 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
         raise HTTPException(status_code=500, detail="Failed to register user")
 
@@ -311,7 +311,7 @@ async def login(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
         raise HTTPException(status_code=500, detail="Login failed")
 
@@ -390,7 +390,7 @@ async def refresh_token(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
@@ -483,7 +483,7 @@ async def forgot_password(
             "expires_at": reset_expires.isoformat(),
         }
 
-    except Exception as e:
+    except Exception:
         await db.rollback()
         raise HTTPException(
             status_code=500, detail="Failed to process password reset request"
@@ -523,7 +523,7 @@ async def reset_password(request: PasswordReset, db: AsyncSession = Depends(get_
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
         raise HTTPException(status_code=500, detail="Failed to reset password")
 
@@ -555,7 +555,7 @@ async def verify_email(request: EmailVerification, db: AsyncSession = Depends(ge
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
         raise HTTPException(status_code=500, detail="Failed to verify email")
 
@@ -592,6 +592,6 @@ async def resend_verification(
             "verification_token": verification_token,  # Remove this in production
         }
 
-    except Exception as e:
+    except Exception:
         await db.rollback()
         raise HTTPException(status_code=500, detail="Failed to resend verification")

@@ -211,7 +211,7 @@ class DatabaseConfig:
         session = await self.get_session()
         try:
             yield session
-        except Exception as e:
+        except Exception:
             await session.rollback()
             raise
         finally:

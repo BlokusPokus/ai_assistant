@@ -4,13 +4,11 @@ SMS Analytics Service for usage tracking, cost analysis, and performance monitor
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from sqlalchemy import and_, desc, func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from ...database.models.users import User
 from ..models.sms_models import SMSUsageLog
 
 logger = logging.getLogger(__name__)
@@ -737,10 +735,10 @@ class SMSAnalyticsService:
         avg_length = sum(lengths) / len(lengths)
 
         # Categorize by length
-        short_messages = len([l for l in lengths if l <= 160])  # Standard SMS
-        medium_messages = len([l for l in lengths if 160 < l <= 320])  # Multi-part SMS
+        short_messages = len([length for length in lengths if length <= 160])  # Standard SMS
+        medium_messages = len([length for length in lengths if 160 < length <= 320])  # Multi-part SMS
         # Very long messages
-        long_messages = len([l for l in lengths if l > 320])
+        long_messages = len([length for length in lengths if length > 320])
 
         return {
             "average_length": round(avg_length, 2),

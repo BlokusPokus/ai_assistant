@@ -6,21 +6,18 @@ and audit logging for the RBAC system.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from personal_assistant.database.models.rbac_models import (
     AccessAuditLog,
-    Permission,
     Role,
-    RolePermission,
     UserRole,
 )
-from personal_assistant.database.models.users import User
 
 logger = logging.getLogger(__name__)
 

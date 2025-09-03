@@ -19,7 +19,6 @@ Migration Strategy:
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "053_conversation_schema"
@@ -208,5 +207,3 @@ def data_migration():
     # 2. Parse JSON content to extract conversation structure
     # 3. Insert into new normalized tables
     # 4. Preserve existing metadata relationships
-
-    pass

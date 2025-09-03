@@ -3,11 +3,9 @@ User identification service for SMS Router.
 """
 
 import logging
-import re
 from typing import Any, Dict, Optional
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...database.models.users import User
 from ...database.session import AsyncSessionLocal

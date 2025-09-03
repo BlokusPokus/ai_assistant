@@ -7,7 +7,7 @@ Provides comprehensive OAuth event logging for security audit trails and complia
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from fastapi import Request
 

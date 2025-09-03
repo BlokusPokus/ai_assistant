@@ -5,9 +5,9 @@ This module provides utility functions for working with tags, including
 validation, normalization, and tag-based queries.
 """
 
-from typing import Dict, List, Optional, Set
+from typing import Dict, List
 
-from ..constants.tags import LTM_TAGS, get_tag_suggestions, validate_tags
+from ..constants.tags import get_tag_suggestions, validate_tags
 
 
 def normalize_tag(tag: str) -> str:

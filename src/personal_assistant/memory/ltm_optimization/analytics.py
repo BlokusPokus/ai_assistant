@@ -6,14 +6,12 @@ including memory creation metrics, retrieval performance, quality assessment,
 and state-LTM integration metrics.
 """
 
-import logging
 import statistics
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 from ...config.logging_config import get_logger
-from ...types.state import AgentState
 from .config import EnhancedLTMConfig
 
 logger = get_logger("analytics")

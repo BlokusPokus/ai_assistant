@@ -12,7 +12,7 @@ This service orchestrates:
 import logging
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from sqlalchemy import select
 
@@ -57,7 +57,6 @@ class SMSRoutingEngine:
             Formatted TwiML response
         """
         start_time = time.time()
-        processing_success = False
         error_message = None
 
         try:
@@ -138,7 +137,6 @@ class SMSRoutingEngine:
             )
 
             # Step 6: Log successful processing
-            processing_success = True
             await self._log_usage(
                 from_phone, message_body, "inbound", True, time.time() - start_time
             )
@@ -330,7 +328,7 @@ class SMSRoutingEngine:
                 inbound_count = sum(1 for row in stats_data if row[0] == "inbound")
                 outbound_count = sum(1 for row in stats_data if row[0] == "outbound")
                 success_count = sum(1 for row in stats_data if row[1] is True)
-                failure_count = sum(1 for row in stats_data if row[1] is False)
+                sum(1 for row in stats_data if row[1] is False)
 
                 processing_times = [row[2] for row in stats_data if row[2] is not None]
                 avg_processing_time = (

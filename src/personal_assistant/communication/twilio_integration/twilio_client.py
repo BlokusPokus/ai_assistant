@@ -9,7 +9,6 @@ from twilio.twiml.messaging_response import MessagingResponse
 from ...core import AgentCore
 
 # adjust import as needed
-from ...memory.user import get_user_id_by_phone
 from ...sms_router.services.user_identification import UserIdentificationService
 
 # Load environment variables from config file

@@ -3,10 +3,9 @@ Error handler for the agent core system that centralizes error processing and us
 """
 
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from .exceptions import (
-    AgentCoreError,
     AgentExecutionError,
     AgentMemoryError,
     ContextError,

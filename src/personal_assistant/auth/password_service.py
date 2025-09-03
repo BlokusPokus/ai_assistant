@@ -126,7 +126,6 @@ class PasswordService:
             Tuple of (score, description) where score is 0-100
         """
         score = 0
-        feedback = []
 
         # Length score (max 25 points)
         if len(password) >= 8:

@@ -5,13 +5,11 @@ This module provides intelligent tag suggestions for LTM memories based on conte
 semantic similarity, and user behavior patterns.
 """
 
-import logging
 import re
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 from ...config.logging_config import get_logger
-from ...constants.tags import LTM_TAGS, validate_tags
+from ...constants.tags import LTM_TAGS
 from .config import LTMConfig
 
 logger = get_logger("enhanced_tag_suggester")

@@ -5,7 +5,6 @@ This service handles OAuth token encryption, storage, and management
 including token refresh, validation, and secure storage.
 """
 
-import secrets
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -13,9 +12,7 @@ from cryptography.fernet import Fernet
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from personal_assistant.config.settings import settings
 from personal_assistant.oauth.exceptions import OAuthTokenError
-from personal_assistant.oauth.models.integration import OAuthIntegration
 from personal_assistant.oauth.models.token import OAuthToken
 
 

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import httpx
 from dotenv import load_dotenv
@@ -17,14 +17,11 @@ from .email_internal import (
     format_delete_email_response,
     format_email_content_response,
     format_email_list_response,
-    format_error_response,
     format_move_email_response,
     format_send_email_response,
-    format_success_response,
     get_environment_error_message,
     get_token_expiration,
     handle_email_not_found,
-    handle_http_response,
     is_token_valid,
     parse_email_content_response,
     parse_email_response,

@@ -3,7 +3,6 @@ Example usage of the enhanced LLM Planner Tool with automatic tool guidelines.
 This demonstrates how the planner automatically includes relevant tool guidelines.
 """
 
-import asyncio
 
 from .llm_planner import LLMPlannerTool
 

@@ -7,9 +7,9 @@ role-based access control (RBAC).
 
 import logging
 from functools import wraps
-from typing import Any, Callable, Dict, Optional
+from typing import Callable
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from personal_assistant.database.session import AsyncSessionLocal

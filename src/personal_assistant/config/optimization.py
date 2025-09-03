@@ -105,7 +105,7 @@ class DatabaseOptimizer:
         try:
             # Check if we're in an event loop
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 # We're in an event loop, create the task
                 self._monitoring_task = asyncio.create_task(
                     self._start_performance_monitoring()

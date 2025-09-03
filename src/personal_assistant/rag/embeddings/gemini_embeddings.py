@@ -3,7 +3,6 @@ Gemini embeddings for RAG system.
 Integrates with existing GeminiLLM class for text embedding generation.
 """
 
-import asyncio
 import logging
 from typing import List, Optional
 

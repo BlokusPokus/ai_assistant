@@ -5,9 +5,7 @@ This tool provides functionality for managing Long-Term Memory (LTM) entries,
 which store insights, patterns, and preferences separate from calendar events
 and notes.
 """
-import asyncio
 import logging
-from typing import Any, Dict, List, Optional
 
 from ...constants.tags import LTM_TAGS, get_tag_suggestions, validate_tags
 from ..base import Tool
@@ -315,7 +313,6 @@ class LTMTool:
             if any([memory_type, category, source_type, source_id, metadata]):
                 try:
                     from ...memory.ltm_optimization.context_structures import (
-                        EnhancedContext,
                         create_default_context,
                     )
 

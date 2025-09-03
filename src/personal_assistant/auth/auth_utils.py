@@ -8,7 +8,7 @@ user context management, and other authentication helpers.
 from typing import Any, Dict, Optional
 
 from fastapi import HTTPException, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPBearer
 
 
 class AuthUtils:

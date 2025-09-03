@@ -6,13 +6,10 @@ strategies for the LTM system to ensure optimal performance with
 state management integration.
 """
 
-import asyncio
-import logging
 import statistics
-import time
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from ...config.logging_config import get_logger
 from ...types.state import AgentState

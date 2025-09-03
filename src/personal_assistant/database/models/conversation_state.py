@@ -5,7 +5,6 @@ This model represents the core conversation state in the new normalized schema,
 replacing the JSON blob approach with structured, queryable data.
 """
 
-from datetime import datetime, timezone
 
 from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship

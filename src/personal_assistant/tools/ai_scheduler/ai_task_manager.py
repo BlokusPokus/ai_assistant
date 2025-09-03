@@ -9,8 +9,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_, select
 
 from personal_assistant.database.models.ai_tasks import AITask
 from personal_assistant.database.session import AsyncSessionLocal

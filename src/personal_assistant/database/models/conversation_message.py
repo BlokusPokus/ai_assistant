@@ -5,7 +5,6 @@ This model represents individual conversation messages in the new normalized sch
 enabling efficient querying and analysis of conversation flow.
 """
 
-from datetime import datetime, timezone
 
 from sqlalchemy import JSON, Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import relationship

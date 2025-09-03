@@ -7,8 +7,7 @@ across different providers (Google, Microsoft, Notion, YouTube).
 """
 
 from abc import ABC, abstractmethod
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 class BaseOAuthProvider(ABC):
@@ -36,25 +35,21 @@ class BaseOAuthProvider(ABC):
     @abstractmethod
     def provider_name(self) -> str:
         """Return the name of the OAuth provider."""
-        pass
 
     @property
     @abstractmethod
     def authorization_url(self) -> str:
         """Return the OAuth authorization URL for this provider."""
-        pass
 
     @property
     @abstractmethod
     def token_url(self) -> str:
         """Return the OAuth token exchange URL for this provider."""
-        pass
 
     @property
     @abstractmethod
     def userinfo_url(self) -> str:
         """Return the user info URL for this provider."""
-        pass
 
     @abstractmethod
     def get_authorization_url(self, state: str, scopes: List[str], **kwargs) -> str:
@@ -69,7 +64,6 @@ class BaseOAuthProvider(ABC):
         Returns:
             Complete authorization URL
         """
-        pass
 
     @abstractmethod
     def exchange_code_for_tokens(
@@ -85,7 +79,6 @@ class BaseOAuthProvider(ABC):
         Returns:
             Dictionary containing tokens and metadata
         """
-        pass
 
     @abstractmethod
     def refresh_access_token(self, refresh_token: str, **kwargs) -> Dict[str, Any]:
@@ -99,7 +92,6 @@ class BaseOAuthProvider(ABC):
         Returns:
             Dictionary containing new tokens and metadata
         """
-        pass
 
     @abstractmethod
     def get_user_info(self, access_token: str, **kwargs) -> Dict[str, Any]:
@@ -113,7 +105,6 @@ class BaseOAuthProvider(ABC):
         Returns:
             Dictionary containing user information
         """
-        pass
 
     @abstractmethod
     def validate_token(self, access_token: str, **kwargs) -> bool:
@@ -127,7 +118,6 @@ class BaseOAuthProvider(ABC):
         Returns:
             True if token is valid, False otherwise
         """
-        pass
 
     @abstractmethod
     def get_available_scopes(self) -> List[Dict[str, Any]]:
@@ -137,7 +127,6 @@ class BaseOAuthProvider(ABC):
         Returns:
             List of scope dictionaries with metadata
         """
-        pass
 
     @abstractmethod
     def revoke_token(
@@ -154,7 +143,6 @@ class BaseOAuthProvider(ABC):
         Returns:
             True if token was successfully revoked
         """
-        pass
 
     def get_default_scopes(self) -> List[str]:
         """

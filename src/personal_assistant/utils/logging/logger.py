@@ -14,4 +14,3 @@ def log_interaction(entry):
     Args:
         entry (dict): Dict with user input, tool calls, memory, etc.
     """
-    pass

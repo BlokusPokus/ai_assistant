@@ -9,15 +9,13 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from personal_assistant.monitoring import get_metrics_service
 from personal_assistant.oauth.exceptions import OAuthIntegrationError
-from personal_assistant.oauth.models.consent import OAuthConsent
 from personal_assistant.oauth.models.integration import OAuthIntegration
-from personal_assistant.oauth.models.token import OAuthToken
 from personal_assistant.oauth.providers.base import BaseOAuthProvider
 
 logger = logging.getLogger(__name__)

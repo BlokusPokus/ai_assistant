@@ -3,7 +3,7 @@ Admin routes for SMS Router Service.
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import desc, select

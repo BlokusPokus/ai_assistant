@@ -17,18 +17,15 @@ Key Features:
 
 import logging
 import time
-from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import psutil
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
-    REGISTRY,
     CollectorRegistry,
     Counter,
     Gauge,
     Histogram,
-    Summary,
     generate_latest,
 )
 from prometheus_client.core import CollectorRegistry

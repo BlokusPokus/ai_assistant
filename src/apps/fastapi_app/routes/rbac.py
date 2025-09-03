@@ -5,11 +5,11 @@ This module provides endpoints for managing roles, permissions,
 and viewing audit logs. All endpoints require appropriate permissions.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from pydantic import BaseModel, EmailStr
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +17,6 @@ from apps.fastapi_app.routes.auth import get_current_user, get_db
 from personal_assistant.auth.decorators import require_admin, require_rbac_permission
 from personal_assistant.auth.permission_service import PermissionService
 from personal_assistant.database.models.rbac_models import (
-    AccessAuditLog,
     Permission,
     Role,
     UserRole,

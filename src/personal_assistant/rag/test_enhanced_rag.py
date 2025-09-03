@@ -11,8 +11,6 @@ import sys
 
 from personal_assistant.config.logging_config import setup_logging
 from personal_assistant.config.settings import settings
-from personal_assistant.rag.embeddings.cache import EmbeddingCache, LRUCache
-from personal_assistant.rag.embeddings.gemini_embeddings import GeminiEmbeddings
 from personal_assistant.rag.notion_extractor import NotionContentExtractor
 from personal_assistant.rag.retriever import (
     embed_text,

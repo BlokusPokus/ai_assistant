@@ -13,7 +13,6 @@ This tool creates a page-based note structure in Notion with:
 import logging
 from typing import Optional
 
-from notion_client import Client
 
 from personal_assistant.tools.base import Tool
 
@@ -24,7 +23,6 @@ from .notion_internal import (
     ensure_main_page_exists,
     extract_page_properties,
     get_notion_client,
-    update_table_of_contents,
 )
 
 logger = logging.getLogger(__name__)

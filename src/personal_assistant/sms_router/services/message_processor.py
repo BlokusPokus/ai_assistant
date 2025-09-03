@@ -166,7 +166,7 @@ class MessageProcessor:
         if command_info:
             # Handle command-based processing
             command = command_info["command"]
-            args = command_info["args"]
+            command_info["args"]
 
             # Common command processing
             if command in ["help", "h", "?"]:

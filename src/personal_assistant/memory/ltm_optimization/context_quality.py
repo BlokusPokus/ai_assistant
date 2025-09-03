@@ -6,10 +6,9 @@ injection, ensuring that only relevant, high-quality memories are
 included in the context provided to the LLM.
 """
 
-import logging
 import re
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from ...config.logging_config import get_logger
 from ...types.state import AgentState

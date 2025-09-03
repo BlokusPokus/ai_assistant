@@ -6,8 +6,6 @@ from typing import Optional
 class AgentCoreError(Exception):
     """Base exception for agent core errors."""
 
-    pass
-
 
 class ConversationError(AgentCoreError):
     """Exception raised when conversation management fails."""

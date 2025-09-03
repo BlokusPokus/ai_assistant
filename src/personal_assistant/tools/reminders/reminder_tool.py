@@ -125,8 +125,8 @@ class ReminderTool:
         text = kwargs.get("text")
         time = kwargs.get("time")
         channel = kwargs.get("channel", "sms")
-        task_type = kwargs.get("task_type", "reminder")
-        schedule_type = kwargs.get("schedule_type", "once")
+        kwargs.get("task_type", "reminder")
+        kwargs.get("schedule_type", "once")
         user_id = kwargs.get("user_id", 126)
 
         if not text:

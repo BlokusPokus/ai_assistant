@@ -277,7 +277,7 @@ class OAuthManager:
                 stored_tokens = await self.token_service.store_tokens(
                     db=db, integration_id=integration.id, tokens=tokens
                 )
-            except Exception as token_error:
+            except Exception:
                 raise
 
             # Record consents for requested scopes
@@ -295,7 +295,7 @@ class OAuthManager:
                     integration_id=integration.id,
                     provider_user_id=tokens.get("provider_user_id"),
                 )
-            except Exception as activation_error:
+            except Exception:
                 raise
 
             # Log security event

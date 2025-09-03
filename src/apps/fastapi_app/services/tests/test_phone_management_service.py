@@ -7,18 +7,14 @@ CRUD operations, verification, and primary phone selection.
 
 import unittest
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.fastapi_app.services.phone_management_service import PhoneManagementService
 from personal_assistant.communication.twilio_integration.twilio_client import (
     TwilioService,
 )
-from personal_assistant.core import AgentCore
-from personal_assistant.database.models.users import User
 from personal_assistant.sms_router.models.sms_models import UserPhoneMapping
 from personal_assistant.sms_router.services.phone_validator import PhoneValidator
 

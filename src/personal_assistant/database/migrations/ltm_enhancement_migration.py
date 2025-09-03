@@ -8,23 +8,11 @@ This migration adds new fields and tables to support enhanced LTM functionality:
 
 import asyncio
 import logging
-from datetime import datetime
-from typing import Any, Dict, List
 
 from sqlalchemy import (
-    JSON,
-    Boolean,
-    Column,
-    DateTime,
-    Float,
-    ForeignKey,
-    Integer,
     MetaData,
-    String,
-    Table,
     text,
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 

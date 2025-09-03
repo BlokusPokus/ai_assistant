@@ -6,7 +6,7 @@ Builds agent prompts with intelligent metadata loading based on user context.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, List
 
 from ..config.logging_config import get_logger
 from ..tools.base import ToolRegistry

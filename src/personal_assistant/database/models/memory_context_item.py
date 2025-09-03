@@ -5,7 +5,6 @@ This model represents individual memory context items in the new normalized sche
 enabling efficient querying and quality-based filtering of context information.
 """
 
-from datetime import datetime, timezone
 
 from sqlalchemy import (
     JSON,

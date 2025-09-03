@@ -12,7 +12,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
 from personal_assistant.config.database import db_config

@@ -40,8 +40,6 @@ class PhoneNumberBase(BaseModel):
 class PhoneNumberCreate(PhoneNumberBase):
     """Model for creating a new phone number."""
 
-    pass
-
 
 class PhoneNumberUpdate(BaseModel):
     """Model for updating a phone number."""

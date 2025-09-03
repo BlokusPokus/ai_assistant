@@ -6,10 +6,9 @@ for database, Celery, and Twilio services.
 """
 
 import logging
-import os
 import time
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +89,7 @@ class HealthMonitor:
 
             # Perform simple database query
             async with AsyncSessionLocal() as session:
-                result = await session.execute(text("SELECT 1"))
+                await session.execute(text("SELECT 1"))
                 await session.commit()
 
             response_time = time.time() - start_time

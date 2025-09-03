@@ -11,7 +11,7 @@ This module provides analysis of error patterns in conversation history to:
 import logging
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 

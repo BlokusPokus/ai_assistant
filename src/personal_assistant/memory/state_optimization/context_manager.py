@@ -10,7 +10,7 @@ This module provides intelligent optimization of memory context by:
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:
     from ...types.state import AgentState

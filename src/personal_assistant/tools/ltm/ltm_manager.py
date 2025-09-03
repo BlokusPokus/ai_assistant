@@ -13,7 +13,6 @@ from ...prompts.templates.ltm.tag_selection import get_tag_selection_prompt
 try:
     from ...memory.ltm_optimization import (
         ContextOptimizationManager,
-        LTMConfig,
         SmartLTMRetriever,
     )
 

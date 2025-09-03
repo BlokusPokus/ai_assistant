@@ -5,12 +5,11 @@ This module uses LLM intelligence to decide what memories to create from user in
 """
 
 import json
-import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from ...config.logging_config import get_logger
-from ...constants.tags import LTM_TAGS, validate_tags
+from ...constants.tags import LTM_TAGS
 from ...tools.ltm.ltm_storage import add_ltm_memory
 from ...types.state import AgentState
 from ...utils.ai_tag_validator import validate_ai_generated_tags

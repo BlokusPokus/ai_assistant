@@ -11,7 +11,7 @@ This module provides the main orchestrator for state optimization that:
 import copy
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:
     from ...types.state import AgentState, StateConfig

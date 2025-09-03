@@ -9,9 +9,8 @@ This service provides:
 """
 
 import secrets
-import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from personal_assistant.config.settings import settings
 

@@ -1,9 +1,8 @@
 """
 YouTube Tool for video information, transcripts, and content analysis.
 """
-import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -31,7 +30,6 @@ logger = logging.getLogger(__name__)
 try:
     from youtube_transcript_api import YouTubeTranscriptApi
     from youtube_transcript_api.formatters import (
-        JSONFormatter,
         SRTFormatter,
         TextFormatter,
     )
@@ -420,7 +418,7 @@ class YouTubeTool:
                             transcript = YouTubeTranscriptApi.get_transcript(
                                 video_id, languages=[language]
                             )
-                    except Exception as alt_error:
+                    except Exception:
                         return YouTubeErrorHandler.handle_youtube_error(
                             Exception(
                                 f"YouTube Transcript API version compatibility issue. Error: {str(fetch_error)}"

@@ -6,7 +6,6 @@ document content from various sources and formats.
 """
 
 import json
-import logging
 from typing import Optional
 
 from ..config.logging_config import get_logger

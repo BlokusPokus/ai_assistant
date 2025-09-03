@@ -6,7 +6,7 @@ This module handles the execution of AI tasks using the AI assistant.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from ...database.models.ai_tasks import AITask
 

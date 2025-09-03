@@ -6,9 +6,8 @@ It runs every 10 minutes to check for due AI tasks and execute them.
 """
 
 import logging
-import os
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from .ai_task_manager import AITaskManager
 

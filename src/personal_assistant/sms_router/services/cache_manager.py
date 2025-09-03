@@ -2,7 +2,6 @@
 Cache manager for SMS Router Service.
 """
 
-import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Optional

@@ -4,7 +4,7 @@ Email Tool Metadata
 This module provides enhanced metadata for the email tool to improve AI understanding.
 """
 
-from .ai_enhancements import AIEnhancementManager, EnhancementPriority, EnhancementType
+from .ai_enhancements import AIEnhancementManager, EnhancementPriority
 from .tool_metadata import (
     ToolCategory,
     ToolComplexity,

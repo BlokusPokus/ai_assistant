@@ -7,7 +7,7 @@ separated from the general task execution.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # Import the existing AI scheduler components
 from ...tools.ai_scheduler.ai_task_manager import AITaskManager

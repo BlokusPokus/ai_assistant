@@ -8,7 +8,7 @@ Defines the LangGraph agent state, including memory, tool calls, loop counters, 
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Tuple
 
 from ..config.logging_config import get_logger
 from .messages import ToolCall

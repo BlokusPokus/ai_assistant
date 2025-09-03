@@ -9,7 +9,6 @@ This module handles AI-specific background tasks including:
 
 import asyncio
 import logging
-import os
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 

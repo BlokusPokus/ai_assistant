@@ -6,9 +6,7 @@ Builds agent prompts from memory, recent actions, tools, and user input.
 Injects into Gemini calls.
 """
 
-import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 
 from ..config.logging_config import get_logger
 from ..tools.base import ToolRegistry

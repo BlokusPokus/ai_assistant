@@ -5,7 +5,7 @@ This module provides configuration settings for the LTM optimization system.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Dict, List
 
 
 @dataclass

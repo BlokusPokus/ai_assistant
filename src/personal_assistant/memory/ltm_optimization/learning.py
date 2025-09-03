@@ -5,10 +5,9 @@ This module combines pattern learning and preference learning functionality
 into a single, manageable interface for LTM optimization.
 """
 
-import logging
 import re
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from ...config.logging_config import get_logger
 from ...tools.ltm.ltm_storage import add_ltm_memory

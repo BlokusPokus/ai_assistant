@@ -8,7 +8,7 @@ Injects into Gemini calls.
 
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
 
 from ...config.logging_config import get_logger
 from ...tools.base import ToolRegistry

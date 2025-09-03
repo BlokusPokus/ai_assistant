@@ -2,16 +2,13 @@
 SMS Performance Monitor for real-time metrics and SLA compliance monitoring.
 """
 
-import asyncio
-import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, desc, func, select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...database.models.users import User
 from ...monitoring import get_metrics_service
 from ..models.sms_models import SMSUsageLog
 
@@ -482,7 +479,7 @@ class SMSPerformanceMonitor:
 
             # Get current metrics
             current_metrics = await self.get_real_time_metrics()
-            sla_compliance = await self.check_sla_compliance()
+            await self.check_sla_compliance()
 
             # Check response time
             response_time = current_metrics.get("average_response_time_ms", 0)

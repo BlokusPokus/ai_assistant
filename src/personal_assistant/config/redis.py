@@ -7,7 +7,6 @@ This module provides Redis client configurations for:
 - Health checks and monitoring
 """
 
-from typing import Optional
 
 import redis
 

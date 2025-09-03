@@ -2,9 +2,7 @@
 Internet Tool for web search, news, weather, and content processing.
 """
 import logging
-from typing import Any, Dict, List, Optional
 
-from ...config.settings import settings
 from ..base import Tool
 
 # Import internet-specific error handling
@@ -35,8 +33,7 @@ try:
 except ImportError:
     DUCKDUCKGO_AVAILABLE = False
     USE_DDGS = False
-    logger.warning(
-        "ddgs library not available. Install with: pip install ddgs")
+    logger.warning("ddgs library not available. Install with: pip install ddgs")
 
 
 class InternetTool:
@@ -58,11 +55,9 @@ class InternetTool:
         logger.info(f"🔧 Attempting to initialize DuckDuckGo client...")
         if DUCKDUCKGO_AVAILABLE:
             try:
-                logger.info(
-                    f"🔧 Initializing DuckDuckGo client for text search...")
+                logger.info(f"🔧 Initializing DuckDuckGo client for text search...")
                 self._ddgs = DDGS()
-                logger.info(
-                    f"✅ DuckDuckGo text search client initialized successfully")
+                logger.info(f"✅ DuckDuckGo text search client initialized successfully")
 
                 # Image search functionality has been disabled
                 logger.info(f"ℹ️ Image search functionality disabled")

@@ -5,7 +5,6 @@ This module provides utilities for logging various types of metrics including
 context injection, performance, and error metrics.
 """
 
-import logging
 from typing import Any, Dict, List
 
 from ..config.logging_config import get_logger

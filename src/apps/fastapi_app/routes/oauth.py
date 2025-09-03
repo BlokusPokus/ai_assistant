@@ -12,8 +12,6 @@ from fastapi.security import HTTPBearer
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from personal_assistant.auth.decorators import require_authenticated
-from personal_assistant.config.settings import settings
 from personal_assistant.database.models.users import User
 from personal_assistant.database.session import AsyncSessionLocal
 from personal_assistant.oauth.exceptions import OAuthError, OAuthProviderError

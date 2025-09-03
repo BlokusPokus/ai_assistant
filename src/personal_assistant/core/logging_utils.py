@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 
 # Import structured logging utilities
 try:
-    from ..logging import get_correlation_id, log_with_context
+    from ..logging import log_with_context
 
     STRUCTURED_LOGGING_AVAILABLE = True
 except ImportError:
