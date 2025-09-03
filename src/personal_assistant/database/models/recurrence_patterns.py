@@ -6,7 +6,7 @@ from .base import Base
 
 
 class RecurrencePattern(Base):
-    __tablename__ = 'recurrence_patterns'
+    __tablename__ = "recurrence_patterns"
 
     id = Column(Integer, primary_key=True)
     # daily, weekly, monthly, yearly
@@ -23,11 +23,11 @@ class RecurrencePattern(Base):
 
     def as_dict(self):
         return {
-            'id': self.id,
-            'frequency': self.frequency,
-            'interval': self.interval,
-            'weekdays': self.weekdays,
-            'end_date': self.end_date.isoformat() if self.end_date else None,
-            'max_occurrences': self.max_occurrences,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            "id": self.id,
+            "frequency": self.frequency,
+            "interval": self.interval,
+            "weekdays": self.weekdays,
+            "end_date": self.end_date.isoformat() if self.end_date else None,
+            "max_occurrences": self.max_occurrences,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }

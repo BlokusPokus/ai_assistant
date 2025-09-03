@@ -6,21 +6,21 @@ This module provides OAuth 2.0 integration capabilities for multiple providers
 and progressive feature activation.
 """
 
+from .exceptions import OAuthError, OAuthProviderError, OAuthValidationError
 from .oauth_manager import OAuthManager
-from .exceptions import OAuthError, OAuthValidationError, OAuthProviderError
-
-# Import services and providers for OAuthManager functionality
-from .services import (
-    OAuthTokenService,
-    OAuthConsentService,
-    OAuthIntegrationService,
-    OAuthSecurityService
-)
 from .providers.base import BaseOAuthProvider
 from .providers.google import GoogleOAuthProvider
 from .providers.microsoft import MicrosoftOAuthProvider
 from .providers.notion import NotionOAuthProvider
 from .providers.youtube import YouTubeOAuthProvider
+
+# Import services and providers for OAuthManager functionality
+from .services import (
+    OAuthConsentService,
+    OAuthIntegrationService,
+    OAuthSecurityService,
+    OAuthTokenService,
+)
 
 # Models are imported separately when needed to avoid table conflicts
 # from .models import (
@@ -37,21 +37,17 @@ __version__ = "1.0.0"
 __all__ = [
     # Core OAuth manager
     "OAuthManager",
-
     # Exceptions
     "OAuthError",
     "OAuthValidationError",
     "OAuthProviderError",
-
     # Services
     "OAuthTokenService",
     "OAuthConsentService",
     "OAuthIntegrationService",
     "OAuthSecurityService",
-
     # Provider base
     "BaseOAuthProvider",
-
     # Provider implementations
     "GoogleOAuthProvider",
     "MicrosoftOAuthProvider",

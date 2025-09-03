@@ -8,9 +8,9 @@ and metadata for enhanced observability and debugging.
 
 import json
 import logging
+import uuid
 from datetime import datetime
 from typing import Any, Dict, Optional
-import uuid
 
 
 class StructuredJSONFormatter(logging.Formatter):
@@ -54,21 +54,21 @@ class StructuredJSONFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
             "service": "personal_assistant",
-            "module": self._extract_module_name(record.name)
+            "module": self._extract_module_name(record.name),
         }
 
         # Add correlation ID if available
-        correlation_id = getattr(record, 'correlation_id', None)
+        correlation_id = getattr(record, "correlation_id", None)
         if correlation_id:
             log_entry["correlation_id"] = correlation_id
 
         # Add user context if available
-        user_id = getattr(record, 'user_id', None)
+        user_id = getattr(record, "user_id", None)
         if user_id is not None:
             log_entry["user_id"] = user_id
 
         # Add operation context if available
-        operation = getattr(record, 'operation', None)
+        operation = getattr(record, "operation", None)
         if operation:
             log_entry["operation"] = operation
 
@@ -81,16 +81,18 @@ class StructuredJSONFormatter(logging.Formatter):
             log_entry["exception"] = {
                 "type": record.exc_info[0].__name__ if record.exc_info[0] else None,
                 "message": str(record.exc_info[1]) if record.exc_info[1] else None,
-                "traceback": self.formatException(record.exc_info) if record.exc_info else None
+                "traceback": self.formatException(record.exc_info)
+                if record.exc_info
+                else None,
             }
 
         # Add custom metadata if available
-        metadata = getattr(record, 'metadata', {})
+        metadata = getattr(record, "metadata", {})
         if metadata:
             log_entry["metadata"] = metadata
 
         # Add performance metrics if available
-        duration = getattr(record, 'duration', None)
+        duration = getattr(record, "duration", None)
         if duration is not None:
             log_entry["duration_ms"] = round(duration * 1000, 2)
 
@@ -101,11 +103,11 @@ class StructuredJSONFormatter(logging.Formatter):
                 log_entry.update(extra_fields)
 
         # Add security level for audit logs
-        security_level = getattr(record, 'security_level', None)
+        security_level = getattr(record, "security_level", None)
         if security_level:
             log_entry["security_level"] = security_level
 
-        return json.dumps(log_entry, ensure_ascii=False, separators=(',', ':'))
+        return json.dumps(log_entry, ensure_ascii=False, separators=(",", ":"))
 
     def _extract_module_name(self, logger_name: str) -> str:
         """
@@ -117,8 +119,8 @@ class StructuredJSONFormatter(logging.Formatter):
         Returns:
             Module name (e.g., 'core')
         """
-        if '.' in logger_name:
-            return logger_name.split('.')[-1]
+        if "." in logger_name:
+            return logger_name.split(".")[-1]
         return logger_name
 
     def _extract_extra_fields(self, record: logging.LogRecord) -> Dict[str, Any]:
@@ -137,11 +139,33 @@ class StructuredJSONFormatter(logging.Formatter):
         for key, value in record.__dict__.items():
             # Skip standard logging fields
             if key not in {
-                'name', 'msg', 'args', 'levelname', 'levelno', 'pathname', 'filename',
-                'module', 'lineno', 'funcName', 'created', 'msecs', 'relativeCreated',
-                'thread', 'threadName', 'processName', 'process', 'getMessage',
-                'exc_info', 'exc_text', 'stack_info', 'correlation_id', 'user_id',
-                'operation', 'metadata', 'duration', 'security_level'
+                "name",
+                "msg",
+                "args",
+                "levelname",
+                "levelno",
+                "pathname",
+                "filename",
+                "module",
+                "lineno",
+                "funcName",
+                "created",
+                "msecs",
+                "relativeCreated",
+                "thread",
+                "threadName",
+                "processName",
+                "process",
+                "getMessage",
+                "exc_info",
+                "exc_text",
+                "stack_info",
+                "correlation_id",
+                "user_id",
+                "operation",
+                "metadata",
+                "duration",
+                "security_level",
             }:
                 # Only include serializable values
                 try:
@@ -170,6 +194,7 @@ class CorrelationContext:
             correlation_id: Unique correlation ID
         """
         import threading
+
         thread_id = threading.get_ident()
         self._context[thread_id] = correlation_id
 
@@ -181,6 +206,7 @@ class CorrelationContext:
             Correlation ID if set, None otherwise
         """
         import threading
+
         thread_id = threading.get_ident()
         return self._context.get(thread_id)
 
@@ -189,6 +215,7 @@ class CorrelationContext:
         Clear the correlation ID for the current context.
         """
         import threading
+
         thread_id = threading.get_ident()
         self._context.pop(thread_id, None)
 
@@ -227,9 +254,15 @@ def generate_correlation_id() -> str:
     return str(uuid.uuid4())
 
 
-def log_with_context(logger: logging.Logger, level: str, message: str,
-                     user_id: Optional[int] = None, operation: Optional[str] = None,
-                     metadata: Optional[Dict[str, Any]] = None, **kwargs) -> None:
+def log_with_context(
+    logger: logging.Logger,
+    level: str,
+    message: str,
+    user_id: Optional[int] = None,
+    operation: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+    **kwargs,
+) -> None:
     """
     Log a message with automatic context injection.
 
@@ -246,7 +279,7 @@ def log_with_context(logger: logging.Logger, level: str, message: str,
         "correlation_id": get_correlation_id(),
         "user_id": user_id,
         "operation": operation,
-        "metadata": metadata or {}
+        "metadata": metadata or {},
     }
 
     # Add any additional kwargs

@@ -6,14 +6,15 @@ into requests for protected endpoints.
 """
 
 import time
-from typing import Optional, Dict, Any
-from fastapi import Request, HTTPException, status
+from typing import Any, Dict, Optional
+
+from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-from personal_assistant.auth.jwt_service import jwt_service
 from personal_assistant.auth.auth_utils import AuthUtils
+from personal_assistant.auth.jwt_service import jwt_service
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -38,7 +39,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/api/v1/auth/register",
             "/api/v1/auth/refresh",
             "/webhook/twilio",  # Keep Twilio webhook accessible
-            "/twilio/sms",      # Keep Twilio SMS webhook accessible
+            "/twilio/sms",  # Keep Twilio SMS webhook accessible
             "/sms-router/webhook/sms",  # SMS Router webhook for Twilio
             "/sms-router/webhook/health",  # SMS Router health check
         ]
@@ -65,7 +66,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={"detail": "Authentication required"},
-                headers={"WWW-Authenticate": "Bearer"}
+                headers={"WWW-Authenticate": "Bearer"},
             )
 
         try:
@@ -78,7 +79,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             if not user_id:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid token: missing user information"
+                    detail="Invalid token: missing user information",
                 )
 
             # Inject user context into request state
@@ -88,12 +89,14 @@ class AuthMiddleware(BaseHTTPMiddleware):
             request.state.authenticated = True
 
             # Add user info to request headers for downstream services
-            request.headers.__dict__["_list"].extend([
-                (b"x-user-id", str(user_id).encode()),
-                (b"x-user-email", email.encode() if email else b""),
-                (b"x-user-full-name", full_name.encode() if full_name else b""),
-                (b"x-authenticated", b"true")
-            ])
+            request.headers.__dict__["_list"].extend(
+                [
+                    (b"x-user-id", str(user_id).encode()),
+                    (b"x-user-email", email.encode() if email else b""),
+                    (b"x-user-full-name", full_name.encode() if full_name else b""),
+                    (b"x-authenticated", b"true"),
+                ]
+            )
 
             # Process the request
             response = await call_next(request)
@@ -107,7 +110,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={"detail": "Authentication failed"},
-                headers={"WWW-Authenticate": "Bearer"}
+                headers={"WWW-Authenticate": "Bearer"},
             )
 
     def _should_exclude_path(self, path: str) -> bool:
@@ -161,14 +164,13 @@ def get_current_user(request: Request) -> Dict[str, Any]:
     Raises:
         HTTPException: If user is not authenticated
     """
-    if not hasattr(request.state, 'authenticated') or not request.state.authenticated:
+    if not hasattr(request.state, "authenticated") or not request.state.authenticated:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required"
         )
 
     return {
         "user_id": request.state.user_id,
         "email": request.state.user_email,
-        "full_name": request.state.user_full_name
+        "full_name": request.state.user_full_name,
     }

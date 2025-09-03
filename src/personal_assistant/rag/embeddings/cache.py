@@ -2,10 +2,10 @@
 Caching utilities for embeddings and RAG operations.
 """
 
-import time
 import logging
-from typing import Any, Dict, Optional
+import time
 from collections import OrderedDict
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -95,11 +95,7 @@ class EmbeddingCache:
             ttl_seconds: Time to live for embeddings (1 hour default)
         """
         self.cache = LRUCache(max_size=max_size, ttl_seconds=ttl_seconds)
-        self.stats = {
-            "hits": 0,
-            "misses": 0,
-            "total_requests": 0
-        }
+        self.stats = {"hits": 0, "misses": 0, "total_requests": 0}
 
     def get_embedding(self, text: str) -> Optional[list]:
         """Get cached embedding for text."""
@@ -113,8 +109,7 @@ class EmbeddingCache:
             logger.debug(f"Embedding cache hit for text of length {len(text)}")
         else:
             self.stats["misses"] += 1
-            logger.debug(
-                f"Embedding cache miss for text of length {len(text)}")
+            logger.debug(f"Embedding cache miss for text of length {len(text)}")
 
         return embedding
 
@@ -133,11 +128,7 @@ class EmbeddingCache:
         total = self.stats["total_requests"]
         hit_rate = self.stats["hits"] / total if total > 0 else 0
 
-        return {
-            **self.stats,
-            "hit_rate": hit_rate,
-            "cache_size": self.cache.size()
-        }
+        return {**self.stats, "hit_rate": hit_rate, "cache_size": self.cache.size()}
 
     def clear(self):
         """Clear the cache."""

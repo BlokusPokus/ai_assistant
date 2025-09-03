@@ -1,17 +1,19 @@
+import asyncio
+import os
+import sys
+from datetime import datetime
+
+import click
+
 from personal_assistant.auth.password_service import PasswordService
+from personal_assistant.config.settings import settings
+from personal_assistant.core.agent import AgentCore
 from personal_assistant.database.models.rbac_models import Role, UserRole
 from personal_assistant.database.models.users import User
 from personal_assistant.database.session import AsyncSessionLocal
-from personal_assistant.core.agent import AgentCore
-from personal_assistant.config.settings import settings
-import click
-import asyncio
-import sys
-import os
-from datetime import datetime
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
 @click.group()
@@ -30,7 +32,7 @@ def status():
 
 
 @cli.command()
-@click.argument('message')
+@click.argument("message")
 def process(message):
     """Process a message through the assistant"""
     agent = AgentCore()
@@ -39,10 +41,10 @@ def process(message):
 
 
 @cli.command()
-@click.option('--phone', '-p', required=True, help='Phone number for the admin user')
-@click.option('--email', '-e', required=True, help='Email for the admin user')
-@click.option('--name', '-n', required=True, help='Full name for the admin user')
-@click.option('--password', '-pw', required=True, help='Password for the admin user')
+@click.option("--phone", "-p", required=True, help="Phone number for the admin user")
+@click.option("--email", "-e", required=True, help="Email for the admin user")
+@click.option("--name", "-n", required=True, help="Full name for the admin user")
+@click.option("--password", "-pw", required=True, help="Password for the admin user")
 def create_admin(phone, email, name, password):
     """Create an admin user with phone number authentication"""
 
@@ -59,14 +61,11 @@ def create_admin(phone, email, name, password):
                 existing_user = result.scalar_one_or_none()
 
                 if existing_user:
-                    click.echo(
-                        f"❌ User with phone number {phone} already exists")
+                    click.echo(f"❌ User with phone number {phone} already exists")
                     return
 
                 # Check by email
-                result = await session.execute(
-                    select(User).where(User.email == email)
-                )
+                result = await session.execute(select(User).where(User.email == email))
                 existing_user = result.scalar_one_or_none()
 
                 if existing_user:
@@ -86,7 +85,7 @@ def create_admin(phone, email, name, password):
                     is_active=True,
                     is_verified=True,
                     created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow()
+                    updated_at=datetime.utcnow(),
                 )
 
                 session.add(admin_user)
@@ -95,16 +94,16 @@ def create_admin(phone, email, name, password):
 
                 # Get or create admin role
                 result = await session.execute(
-                    select(Role).where(Role.name == 'administrator')
+                    select(Role).where(Role.name == "administrator")
                 )
                 admin_role = result.scalar_one_or_none()
 
                 if not admin_role:
                     # Create admin role if it doesn't exist
                     admin_role = Role(
-                        name='administrator',
-                        description='System administrator with full access',
-                        created_at=datetime.utcnow()
+                        name="administrator",
+                        description="System administrator with full access",
+                        created_at=datetime.utcnow(),
                     )
                     session.add(admin_role)
                     await session.commit()
@@ -115,7 +114,7 @@ def create_admin(phone, email, name, password):
                     user_id=admin_user.id,
                     role_id=admin_role.id,
                     is_primary=True,
-                    granted_at=datetime.utcnow()
+                    granted_at=datetime.utcnow(),
                 )
 
                 session.add(user_role)
@@ -131,6 +130,7 @@ def create_admin(phone, email, name, password):
         except Exception as e:
             click.echo(f"❌ Error creating admin user: {e}")
             import traceback
+
             traceback.print_exc()
 
     # Run the async function

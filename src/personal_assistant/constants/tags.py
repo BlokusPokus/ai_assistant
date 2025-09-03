@@ -13,7 +13,6 @@ LTM_TAGS = [
     "conversation",
     "document",
     "note",
-
     # Actions & Operations
     "create",
     "delete",
@@ -21,13 +20,11 @@ LTM_TAGS = [
     "search",
     "schedule",
     "remind",
-
     # Importance & Priority
     "important",
     "urgent",
     "critical",
     "low_priority",
-
     # Context & Categories
     "work",
     "personal",
@@ -37,7 +34,6 @@ LTM_TAGS = [
     "shopping",
     "entertainment",
     "education",
-
     # User Behavior & Preferences
     "preference",
     "habit",
@@ -45,26 +41,22 @@ LTM_TAGS = [
     "routine",
     "dislike",
     "favorite",
-
     # Tool & System Usage
     "tool_execution",
     "user_request",
     "system_response",
     "error",
     "success",
-
     # Time & Frequency
     "daily",
     "weekly",
     "monthly",
     "one_time",
     "recurring",
-
     # General
     "general",
     "miscellaneous",
     "other",
-
     # Organization & Management
     "organization",
     "management",
@@ -72,7 +64,6 @@ LTM_TAGS = [
     "automation",
     "efficiency",
     "optimization",
-
     # Communication Styles
     "communication",
     "concise",
@@ -81,14 +72,12 @@ LTM_TAGS = [
     "casual",
     "formal",
     "informal",
-
     # Frequency & Patterns
     "frequent",
     "occasional",
     "rare",
     "consistent",
     "variable",
-
     # Work Styles
     "technical",
     "creative",
@@ -96,7 +85,6 @@ LTM_TAGS = [
     "strategic",
     "tactical",
     "operational",
-
     # Quality & Effectiveness
     "effective",
     "ineffective",
@@ -104,53 +92,45 @@ LTM_TAGS = [
     "simplified",
     "complex",
     "straightforward",
-
     # Project Management
     "project",
     "task",
     "deadline",
     "milestone",
-
     # Health & Wellness
     "exercise",
     "diet",
     "medication",
     "wellness",
-
     # Social
     "friend",
     "family",
     "event",
     "birthday",
-
     # Shopping
     "wishlist",
     "purchase",
     "order",
     "delivery",
-
     # Learning
     "course",
     "lesson",
     "reading",
     "research",
-
     # Finance
     "budget",
     "expense",
     "income",
     "investment",
-
     # Travel
     "flight",
     "hotel",
     "reservation",
     "itinerary",
-
     # Reminders
     "follow_up",
     "due",
-    "overdue"
+    "overdue",
 ]
 
 # Tag Categories for better organization
@@ -158,16 +138,54 @@ TAG_CATEGORIES = {
     "communication": ["email", "meeting", "conversation", "document", "note"],
     "actions": ["create", "delete", "update", "search", "schedule", "remind"],
     "priority": ["important", "urgent", "critical", "low_priority"],
-    "context": ["work", "personal", "health", "finance", "travel", "shopping", "entertainment", "education"],
+    "context": [
+        "work",
+        "personal",
+        "health",
+        "finance",
+        "travel",
+        "shopping",
+        "entertainment",
+        "education",
+    ],
     "behavior": ["preference", "habit", "pattern", "routine", "dislike", "favorite"],
     "system": ["tool_execution", "user_request", "system_response", "error", "success"],
     "time": ["daily", "weekly", "monthly", "one_time", "recurring"],
     "general": ["general", "miscellaneous", "other"],
-    "organization": ["organization", "management", "productivity", "automation", "efficiency", "optimization"],
-    "communication_style": ["communication", "concise", "detailed", "professional", "casual", "formal", "informal"],
+    "organization": [
+        "organization",
+        "management",
+        "productivity",
+        "automation",
+        "efficiency",
+        "optimization",
+    ],
+    "communication_style": [
+        "communication",
+        "concise",
+        "detailed",
+        "professional",
+        "casual",
+        "formal",
+        "informal",
+    ],
     "frequency": ["frequent", "occasional", "rare", "consistent", "variable"],
-    "work_style": ["technical", "creative", "analytical", "strategic", "tactical", "operational"],
-    "quality": ["effective", "ineffective", "streamlined", "simplified", "complex", "straightforward"],
+    "work_style": [
+        "technical",
+        "creative",
+        "analytical",
+        "strategic",
+        "tactical",
+        "operational",
+    ],
+    "quality": [
+        "effective",
+        "ineffective",
+        "streamlined",
+        "simplified",
+        "complex",
+        "straightforward",
+    ],
     "project_management": ["project", "task", "deadline", "milestone"],
     "health": ["exercise", "diet", "medication", "wellness"],
     "social": ["friend", "family", "event", "birthday"],
@@ -175,7 +193,7 @@ TAG_CATEGORIES = {
     "learning": ["course", "lesson", "reading", "research"],
     "finance": ["budget", "expense", "income", "investment"],
     "travel": ["flight", "hotel", "reservation", "itinerary"],
-    "reminders": ["follow_up", "due", "overdue"]
+    "reminders": ["follow_up", "due", "overdue"],
 }
 
 # Validation function to ensure tags are from the allowed list
@@ -228,56 +246,56 @@ def _find_similar_tag(invalid_tag: str) -> str:
 
     # Direct mappings for common cases
     tag_mappings = {
-        'organize': 'organization',
-        'organizing': 'organization',
-        'organised': 'organization',
-        'manage': 'management',
-        'managing': 'management',
-        'productive': 'productivity',
-        'automate': 'automation',
-        'automating': 'automation',
-        'efficient': 'efficiency',
-        'optimize': 'optimization',
-        'optimizing': 'optimization',
-        'communicate': 'communication',
-        'communicating': 'communication',
-        'brief': 'concise',
-        'short': 'concise',
-        'detailed': 'detailed',
-        'thorough': 'detailed',
-        'pro': 'professional',
-        'business': 'professional',
-        'relaxed': 'casual',
-        'informal': 'casual',
-        'formal': 'formal',
-        'official': 'formal',
-        'tech': 'technical',
-        'technology': 'technical',
-        'innovative': 'creative',
-        'artistic': 'creative',
-        'logical': 'analytical',
-        'systematic': 'analytical',
-        'planning': 'strategic',
-        'tactics': 'tactical',
-        'operations': 'operational',
-        'working': 'operational',
-        'successful': 'effective',
-        'useful': 'effective',
-        'streamline': 'streamlined',
-        'simplify': 'simplified',
-        'easy': 'simplified',
-        'complicated': 'complex',
-        'difficult': 'complex',
-        'simple': 'straightforward',
-        'clear': 'straightforward',
-        'often': 'frequent',
-        'regularly': 'frequent',
-        'sometimes': 'occasional',
-        'rarely': 'rare',
-        'consistent': 'consistent',
-        'steady': 'consistent',
-        'changing': 'variable',
-        'inconsistent': 'variable'
+        "organize": "organization",
+        "organizing": "organization",
+        "organised": "organization",
+        "manage": "management",
+        "managing": "management",
+        "productive": "productivity",
+        "automate": "automation",
+        "automating": "automation",
+        "efficient": "efficiency",
+        "optimize": "optimization",
+        "optimizing": "optimization",
+        "communicate": "communication",
+        "communicating": "communication",
+        "brief": "concise",
+        "short": "concise",
+        "detailed": "detailed",
+        "thorough": "detailed",
+        "pro": "professional",
+        "business": "professional",
+        "relaxed": "casual",
+        "informal": "casual",
+        "formal": "formal",
+        "official": "formal",
+        "tech": "technical",
+        "technology": "technical",
+        "innovative": "creative",
+        "artistic": "creative",
+        "logical": "analytical",
+        "systematic": "analytical",
+        "planning": "strategic",
+        "tactics": "tactical",
+        "operations": "operational",
+        "working": "operational",
+        "successful": "effective",
+        "useful": "effective",
+        "streamline": "streamlined",
+        "simplify": "simplified",
+        "easy": "simplified",
+        "complicated": "complex",
+        "difficult": "complex",
+        "simple": "straightforward",
+        "clear": "straightforward",
+        "often": "frequent",
+        "regularly": "frequent",
+        "sometimes": "occasional",
+        "rarely": "rare",
+        "consistent": "consistent",
+        "steady": "consistent",
+        "changing": "variable",
+        "inconsistent": "variable",
     }
 
     # Check direct mappings first
@@ -295,7 +313,7 @@ def _find_similar_tag(invalid_tag: str) -> str:
             if len(valid_tag) >= 3:
                 # Check if they share at least 3 consecutive characters
                 for i in range(len(invalid_lower) - 2):
-                    substring = invalid_lower[i:i+3]
+                    substring = invalid_lower[i : i + 3]
                     if substring in valid_tag.lower():
                         return valid_tag
 
@@ -329,7 +347,9 @@ def get_tag_suggestions(content: str) -> list:
         suggestions.append("work")
     if any(word in content_lower for word in ["personal", "private", "family"]):
         suggestions.append("personal")
-    if any(word in content_lower for word in ["preference", "like", "dislike", "favorite"]):
+    if any(
+        word in content_lower for word in ["preference", "like", "dislike", "favorite"]
+    ):
         suggestions.append("preference")
     if any(word in content_lower for word in ["project", "task", "milestone"]):
         suggestions.append("project")
@@ -347,13 +367,22 @@ def get_tag_suggestions(content: str) -> list:
         suggestions.append("friend")
     if any(word in content_lower for word in ["event", "party", "gathering"]):
         suggestions.append("event")
-    if any(word in content_lower for word in ["wishlist", "purchase", "order", "delivery"]):
+    if any(
+        word in content_lower for word in ["wishlist", "purchase", "order", "delivery"]
+    ):
         suggestions.append("shopping")
-    if any(word in content_lower for word in ["course", "lesson", "reading", "research"]):
+    if any(
+        word in content_lower for word in ["course", "lesson", "reading", "research"]
+    ):
         suggestions.append("learning")
-    if any(word in content_lower for word in ["budget", "expense", "income", "investment"]):
+    if any(
+        word in content_lower for word in ["budget", "expense", "income", "investment"]
+    ):
         suggestions.append("finance")
-    if any(word in content_lower for word in ["flight", "hotel", "reservation", "itinerary"]):
+    if any(
+        word in content_lower
+        for word in ["flight", "hotel", "reservation", "itinerary"]
+    ):
         suggestions.append("travel")
     if any(word in content_lower for word in ["follow up", "remind", "due", "overdue"]):
         suggestions.append("reminders")

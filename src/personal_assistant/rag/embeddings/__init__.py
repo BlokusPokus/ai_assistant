@@ -2,7 +2,7 @@
 Embedding models for RAG system.
 """
 
+from .cache import EmbeddingCache, LRUCache
 from .gemini_embeddings import GeminiEmbeddings
-from .cache import LRUCache, EmbeddingCache
 
 __all__ = ["GeminiEmbeddings", "LRUCache", "EmbeddingCache"]

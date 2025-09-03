@@ -3,25 +3,22 @@ Research Tool for combined internet and YouTube search and analysis.
 """
 import logging
 
-
 from ..base import Tool
-from .research_internal import (
-    validate_sources,
-    validate_analysis_type,
-
-    validate_search_parameters,
-    format_research_response,
-    format_combined_search_response,
-    generate_correlation_insights,
-    generate_research_summary,
-    generate_content_summary,
-    generate_summary_report,
-    generate_detailed_report,
-    generate_academic_report
-)
-from ..youtube.youtube_tool import YouTubeTool
 from ..internet.internet_tool import InternetTool
-
+from ..youtube.youtube_tool import YouTubeTool
+from .research_internal import (
+    format_combined_search_response,
+    format_research_response,
+    generate_academic_report,
+    generate_content_summary,
+    generate_correlation_insights,
+    generate_detailed_report,
+    generate_research_summary,
+    generate_summary_report,
+    validate_analysis_type,
+    validate_search_parameters,
+    validate_sources,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,23 +44,20 @@ class ResearchTool:
             func=self.research_topic,
             description="Comprehensive research combining web and YouTube sources",
             parameters={
-                "topic": {
-                    "type": "string",
-                    "description": "Research topic (required)"
-                },
+                "topic": {"type": "string", "description": "Research topic (required)"},
                 "sources": {
                     "type": "string",
-                    "description": "Sources to include: web, youtube, both (default: both)"
+                    "description": "Sources to include: web, youtube, both (default: both)",
                 },
                 "max_results": {
                     "type": "integer",
-                    "description": "Maximum results per source (default: 5)"
+                    "description": "Maximum results per source (default: 5)",
                 },
                 "include_summary": {
                     "type": "boolean",
-                    "description": "Generate research summary (default: true)"
-                }
-            }
+                    "description": "Generate research summary (default: true)",
+                },
+            },
         )
 
         self.combined_search_tool = Tool(
@@ -71,23 +65,20 @@ class ResearchTool:
             func=self.combined_search,
             description="Search across multiple platforms simultaneously",
             parameters={
-                "query": {
-                    "type": "string",
-                    "description": "Search query (required)"
-                },
+                "query": {"type": "string", "description": "Search query (required)"},
                 "platforms": {
                     "type": "string",
-                    "description": "Platforms to search: web, youtube, news, wikipedia (default: all)"
+                    "description": "Platforms to search: web, youtube, news, wikipedia (default: all)",
                 },
                 "max_results_per_platform": {
                     "type": "integer",
-                    "description": "Maximum results per platform (default: 3)"
+                    "description": "Maximum results per platform (default: 3)",
                 },
                 "correlate_results": {
                     "type": "boolean",
-                    "description": "Correlate results across platforms (default: true)"
-                }
-            }
+                    "description": "Correlate results across platforms (default: true)",
+                },
+            },
         )
 
         self.analyze_content_tool = Tool(
@@ -97,17 +88,17 @@ class ResearchTool:
             parameters={
                 "content_sources": {
                     "type": "string",
-                    "description": "Comma-separated list of content sources or URLs (required)"
+                    "description": "Comma-separated list of content sources or URLs (required)",
                 },
                 "analysis_type": {
                     "type": "string",
-                    "description": "Type of analysis: summary, comparison, synthesis (default: synthesis)"
+                    "description": "Type of analysis: summary, comparison, synthesis (default: synthesis)",
                 },
                 "include_insights": {
                     "type": "boolean",
-                    "description": "Include key insights and patterns (default: true)"
-                }
-            }
+                    "description": "Include key insights and patterns (default: true)",
+                },
+            },
         )
 
         self.generate_research_report_tool = Tool(
@@ -115,23 +106,20 @@ class ResearchTool:
             func=self.generate_research_report,
             description="Generate a comprehensive research report from multiple sources",
             parameters={
-                "topic": {
-                    "type": "string",
-                    "description": "Research topic (required)"
-                },
+                "topic": {"type": "string", "description": "Research topic (required)"},
                 "sources": {
                     "type": "string",
-                    "description": "Sources to include in report (default: all available)"
+                    "description": "Sources to include in report (default: all available)",
                 },
                 "report_format": {
                     "type": "string",
-                    "description": "Report format: summary, detailed, academic (default: summary)"
+                    "description": "Report format: summary, detailed, academic (default: summary)",
                 },
                 "include_citations": {
                     "type": "boolean",
-                    "description": "Include source citations (default: true)"
-                }
-            }
+                    "description": "Include source citations (default: true)",
+                },
+            },
         )
 
         self.find_related_content_tool = Tool(
@@ -141,34 +129,42 @@ class ResearchTool:
             parameters={
                 "seed_content": {
                     "type": "string",
-                    "description": "Seed content or topic to find related items for (required)"
+                    "description": "Seed content or topic to find related items for (required)",
                 },
                 "platforms": {
                     "type": "string",
-                    "description": "Platforms to search for related content (default: all)"
+                    "description": "Platforms to search for related content (default: all)",
                 },
                 "max_related_items": {
                     "type": "integer",
-                    "description": "Maximum number of related items (default: 10)"
+                    "description": "Maximum number of related items (default: 10)",
                 },
                 "relevance_threshold": {
                     "type": "string",
-                    "description": "Relevance threshold: high, medium, low (default: medium)"
-                }
-            }
+                    "description": "Relevance threshold: high, medium, low (default: medium)",
+                },
+            },
         )
 
     def __iter__(self):
         """Makes the class iterable to return all tools"""
-        return iter([
-            self.research_topic_tool,
-            self.combined_search_tool,
-            self.analyze_content_tool,
-            self.generate_research_report_tool,
-            self.find_related_content_tool
-        ])
+        return iter(
+            [
+                self.research_topic_tool,
+                self.combined_search_tool,
+                self.analyze_content_tool,
+                self.generate_research_report_tool,
+                self.find_related_content_tool,
+            ]
+        )
 
-    async def research_topic(self, topic: str, sources: str = "both", max_results: int = 5, include_summary: bool = True) -> str:
+    async def research_topic(
+        self,
+        topic: str,
+        sources: str = "both",
+        max_results: int = 5,
+        include_summary: bool = True,
+    ) -> str:
         """Comprehensive research combining web and YouTube sources"""
         try:
             # Validate parameters
@@ -180,48 +176,60 @@ class ResearchTool:
             sources_list = validate_sources(sources)
 
             logger.info(
-                f"Research request for: {topic} (sources: {sources_list}, max: {max_results}, summary: {include_summary})")
+                f"Research request for: {topic} (sources: {sources_list}, max: {max_results}, summary: {include_summary})"
+            )
 
             # Initialize results storage
-            research_results = {
-                'web': [],
-                'youtube': [],
-                'summary': ''
-            }
+            research_results = {"web": [], "youtube": [], "summary": ""}
 
             # Perform web search if requested
-            if 'web' in sources_list:
+            if "web" in sources_list:
                 try:
                     internet_tool = InternetTool()
-                    web_results = await internet_tool.web_search(topic, max_results=max_results)
-                    research_results['web'] = web_results
+                    web_results = await internet_tool.web_search(
+                        topic, max_results=max_results
+                    )
+                    research_results["web"] = web_results
                 except Exception as e:
                     logger.warning(f"Web search failed: {e}")
-                    research_results['web'] = f"Web search unavailable: {str(e)}"
+                    research_results["web"] = f"Web search unavailable: {str(e)}"
 
             # Perform YouTube search if requested
-            if 'youtube' in sources_list:
+            if "youtube" in sources_list:
                 try:
                     youtube_tool = YouTubeTool()
-                    youtube_results = await youtube_tool.search_videos(topic, max_results=max_results)
-                    research_results['youtube'] = youtube_results
+                    youtube_results = await youtube_tool.search_videos(
+                        topic, max_results=max_results
+                    )
+                    research_results["youtube"] = youtube_results
                 except Exception as e:
                     logger.warning(f"YouTube search failed: {e}")
-                    research_results['youtube'] = f"YouTube search unavailable: {str(e)}"
+                    research_results[
+                        "youtube"
+                    ] = f"YouTube search unavailable: {str(e)}"
 
             # Generate research summary if requested
             if include_summary:
-                research_results['summary'] = generate_research_summary(
-                    topic, research_results)
+                research_results["summary"] = generate_research_summary(
+                    topic, research_results
+                )
 
             # Format the response using internal function
-            return format_research_response(topic, sources_list, max_results, research_results, include_summary)
+            return format_research_response(
+                topic, sources_list, max_results, research_results, include_summary
+            )
 
         except Exception as e:
             logger.error(f"Error in research topic: {e}")
             return f"Error researching topic: {str(e)}"
 
-    async def combined_search(self, query: str, platforms: str = "all", max_results_per_platform: int = 3, correlate_results: bool = True) -> str:
+    async def combined_search(
+        self,
+        query: str,
+        platforms: str = "all",
+        max_results_per_platform: int = 3,
+        correlate_results: bool = True,
+    ) -> str:
         """Search across multiple platforms simultaneously"""
         try:
             # Validate parameters
@@ -230,11 +238,13 @@ class ResearchTool:
 
             # Validate and normalize parameters
             _, max_results_per_platform, _ = validate_search_parameters(
-                5, max_results_per_platform, 10)
+                5, max_results_per_platform, 10
+            )
             platforms_list = validate_sources(platforms)
 
             logger.info(
-                f"Combined search for: {query} (platforms: {platforms_list}, max: {max_results_per_platform}, correlate: {correlate_results})")
+                f"Combined search for: {query} (platforms: {platforms_list}, max: {max_results_per_platform}, correlate: {correlate_results})"
+            )
 
             # Initialize results storage
             search_results = {}
@@ -243,21 +253,28 @@ class ResearchTool:
             # Perform searches across platforms
             for platform in platforms_list:
                 try:
-                    if platform == 'web':
+                    if platform == "web":
                         internet_tool = InternetTool()
-                        results = await internet_tool.web_search(query, max_results=max_results_per_platform)
+                        results = await internet_tool.web_search(
+                            query, max_results=max_results_per_platform
+                        )
                         search_results[platform] = results
-                    elif platform == 'youtube':
+                    elif platform == "youtube":
                         youtube_tool = YouTubeTool()
-                        results = await youtube_tool.search_videos(query, max_results=max_results_per_platform)
+                        results = await youtube_tool.search_videos(
+                            query, max_results=max_results_per_platform
+                        )
                         search_results[platform] = results
-                    elif platform == 'news':
+                    elif platform == "news":
                         # Placeholder for news search
-                        search_results[platform] = f"News search not yet implemented for: {query}"
-                    elif platform == 'wikipedia':
+                        search_results[
+                            platform
+                        ] = f"News search not yet implemented for: {query}"
+                    elif platform == "wikipedia":
                         # Placeholder for Wikipedia search
                         search_results[
-                            platform] = f"Wikipedia search not yet implemented for: {query}"
+                            platform
+                        ] = f"Wikipedia search not yet implemented for: {query}"
                 except Exception as e:
                     logger.warning(f"Search on {platform} failed: {e}")
                     search_results[platform] = f"Search on {platform} failed: {str(e)}"
@@ -265,16 +282,28 @@ class ResearchTool:
             # Generate correlation insights if requested
             if correlate_results:
                 correlation_insights = generate_correlation_insights(
-                    search_results, platforms_list)
+                    search_results, platforms_list
+                )
 
             # Format the response using internal function
-            return format_combined_search_response(query, platforms_list, max_results_per_platform, search_results, correlation_insights)
+            return format_combined_search_response(
+                query,
+                platforms_list,
+                max_results_per_platform,
+                search_results,
+                correlation_insights,
+            )
 
         except Exception as e:
             logger.error(f"Error in combined search: {e}")
             return f"Error performing combined search: {str(e)}"
 
-    async def analyze_content(self, content_sources: str, analysis_type: str = "synthesis", include_insights: bool = True) -> str:
+    async def analyze_content(
+        self,
+        content_sources: str,
+        analysis_type: str = "synthesis",
+        include_insights: bool = True,
+    ) -> str:
         """Analyze and synthesize content from multiple sources"""
         try:
             # Validate parameters
@@ -284,62 +313,73 @@ class ResearchTool:
             analysis_type = validate_analysis_type(analysis_type)
 
             logger.info(
-                f"Content analysis request (sources: {content_sources}, type: {analysis_type}, insights: {include_insights})")
+                f"Content analysis request (sources: {content_sources}, type: {analysis_type}, insights: {include_insights})"
+            )
 
             # Parse content sources
             sources = [s.strip() for s in content_sources.split(",")]
 
             # Initialize analysis results
             analysis_results = {
-                'sources_analyzed': [],
-                'content_summary': '',
-                'key_insights': [],
-                'analysis_type': analysis_type
+                "sources_analyzed": [],
+                "content_summary": "",
+                "key_insights": [],
+                "analysis_type": analysis_type,
             }
 
             # Analyze each source
             for source in sources:
                 try:
-                    if source.startswith('http'):
+                    if source.startswith("http"):
                         # Analyze web content
                         source_analysis = await self._analyze_web_content(source)
-                        analysis_results['sources_analyzed'].append({
-                            'source': source,
-                            'type': 'web',
-                            'analysis': source_analysis
-                        })
-                    elif 'youtube.com' in source or 'youtu.be' in source:
+                        analysis_results["sources_analyzed"].append(
+                            {
+                                "source": source,
+                                "type": "web",
+                                "analysis": source_analysis,
+                            }
+                        )
+                    elif "youtube.com" in source or "youtu.be" in source:
                         # Analyze YouTube content
                         source_analysis = await self._analyze_youtube_content(source)
-                        analysis_results['sources_analyzed'].append({
-                            'source': source,
-                            'type': 'youtube',
-                            'analysis': source_analysis
-                        })
+                        analysis_results["sources_analyzed"].append(
+                            {
+                                "source": source,
+                                "type": "youtube",
+                                "analysis": source_analysis,
+                            }
+                        )
                     else:
                         # Treat as text content
                         source_analysis = self._analyze_text_content(source)
-                        analysis_results['sources_analyzed'].append({
-                            'source': source,
-                            'type': 'text',
-                            'analysis': source_analysis
-                        })
+                        analysis_results["sources_analyzed"].append(
+                            {
+                                "source": source,
+                                "type": "text",
+                                "analysis": source_analysis,
+                            }
+                        )
                 except Exception as e:
                     logger.warning(f"Analysis of {source} failed: {e}")
-                    analysis_results['sources_analyzed'].append({
-                        'source': source,
-                        'type': 'unknown',
-                        'analysis': f"Analysis failed: {str(e)}"
-                    })
+                    analysis_results["sources_analyzed"].append(
+                        {
+                            "source": source,
+                            "type": "unknown",
+                            "analysis": f"Analysis failed: {str(e)}",
+                        }
+                    )
 
             # Generate content summary
-            analysis_results['content_summary'] = generate_content_summary(
-                analysis_results['sources_analyzed'])
+            analysis_results["content_summary"] = generate_content_summary(
+                analysis_results["sources_analyzed"]
+            )
 
             # Generate key insights if requested
             if include_insights:
-                analysis_results['key_insights'] = self._extract_key_insights(
-                    analysis_results['sources_analyzed'])
+                analysis_results["key_insights"] = self._extract_key_insights(
+                    analysis_results["sources_analyzed"]
+                )
 
             # Format the response
             response = f"📊 **Content Analysis Results**\n\n"
@@ -348,21 +388,23 @@ class ResearchTool:
             response += f"📊 **Sources Analyzed**: {len(analysis_results['sources_analyzed'])}\n\n"
 
             # Add content summary
-            if analysis_results['content_summary']:
-                response += f"📋 **Content Summary**\n{analysis_results['content_summary']}\n\n"
+            if analysis_results["content_summary"]:
+                response += (
+                    f"📋 **Content Summary**\n{analysis_results['content_summary']}\n\n"
+                )
 
             # Add key insights
-            if include_insights and analysis_results['key_insights']:
+            if include_insights and analysis_results["key_insights"]:
                 response += f"💡 **Key Insights**\n"
-                for i, insight in enumerate(analysis_results['key_insights'], 1):
+                for i, insight in enumerate(analysis_results["key_insights"], 1):
                     response += f"{i}. {insight}\n"
                 response += "\n"
 
             # Add source analysis details
             response += f"🔍 **Source Analysis Details**\n"
-            for source_analysis in analysis_results['sources_analyzed']:
+            for source_analysis in analysis_results["sources_analyzed"]:
                 response += f"**{source_analysis['type'].upper()}**: {source_analysis['source']}\n"
-                if isinstance(source_analysis['analysis'], str):
+                if isinstance(source_analysis["analysis"], str):
                     response += f"{source_analysis['analysis'][:100]}...\n\n"
                 else:
                     response += f"Analysis completed\n\n"
@@ -374,7 +416,13 @@ class ResearchTool:
             logger.error(f"Error in content analysis: {e}")
             return f"Error analyzing content: {str(e)}"
 
-    async def generate_research_report(self, topic: str, sources: str = "all available", report_format: str = "summary", include_citations: bool = True) -> str:
+    async def generate_research_report(
+        self,
+        topic: str,
+        sources: str = "all available",
+        report_format: str = "summary",
+        include_citations: bool = True,
+    ) -> str:
         """Generate a comprehensive research report from multiple sources"""
         try:
             # Validate parameters
@@ -385,10 +433,12 @@ class ResearchTool:
             if report_format.lower() not in valid_formats:
                 report_format = "summary"
                 logger.warning(
-                    f"Invalid report_format: {report_format}, defaulting to summary")
+                    f"Invalid report_format: {report_format}, defaulting to summary"
+                )
 
             logger.info(
-                f"Research report request for: {topic} (format: {report_format}, citations: {include_citations})")
+                f"Research report request for: {topic} (format: {report_format}, citations: {include_citations})"
+            )
 
             # Determine sources to use
             if sources == "all available":
@@ -402,13 +452,16 @@ class ResearchTool:
             # Generate report based on format
             if report_format == "summary":
                 report_content = generate_summary_report(
-                    topic, research_data, include_citations)
+                    topic, research_data, include_citations
+                )
             elif report_format == "detailed":
                 report_content = generate_detailed_report(
-                    topic, research_data, include_citations)
+                    topic, research_data, include_citations
+                )
             elif report_format == "academic":
                 report_content = generate_academic_report(
-                    topic, research_data, include_citations)
+                    topic, research_data, include_citations
+                )
 
             # Format the response
             response = f"📋 **Research Report for '{topic}'**\n\n"
@@ -425,7 +478,13 @@ class ResearchTool:
             logger.error(f"Error generating research report: {e}")
             return f"Error generating research report: {str(e)}"
 
-    async def find_related_content(self, seed_content: str, platforms: str = "all", max_related_items: int = 10, relevance_threshold: str = "medium") -> str:
+    async def find_related_content(
+        self,
+        seed_content: str,
+        platforms: str = "all",
+        max_related_items: int = 10,
+        relevance_threshold: str = "medium",
+    ) -> str:
         """Find related content across different platforms"""
         try:
             # Validate parameters
@@ -435,45 +494,55 @@ class ResearchTool:
             if max_related_items < 1 or max_related_items > 50:
                 max_related_items = 10
                 logger.warning(
-                    f"Invalid max_related_items: {max_related_items}, defaulting to 10")
+                    f"Invalid max_related_items: {max_related_items}, defaulting to 10"
+                )
 
             valid_thresholds = ["high", "medium", "low"]
             if relevance_threshold.lower() not in valid_thresholds:
                 relevance_threshold = "medium"
                 logger.warning(
-                    f"Invalid relevance_threshold: {relevance_threshold}, defaulting to medium")
+                    f"Invalid relevance_threshold: {relevance_threshold}, defaulting to medium"
+                )
 
             platforms_list = validate_sources(platforms)
 
             logger.info(
-                f"Related content search for: {seed_content} (platforms: {platforms_list}, max: {max_related_items}, threshold: {relevance_threshold})")
+                f"Related content search for: {seed_content} (platforms: {platforms_list}, max: {max_related_items}, threshold: {relevance_threshold})"
+            )
 
             # Find related content on each platform
             related_content = {}
 
             for platform in platforms_list:
                 try:
-                    if platform == 'web':
+                    if platform == "web":
                         # Find related web content
-                        related_web = await self._find_related_web_content(seed_content, max_related_items, relevance_threshold)
-                        related_content['web'] = related_web
-                    elif platform == 'youtube':
+                        related_web = await self._find_related_web_content(
+                            seed_content, max_related_items, relevance_threshold
+                        )
+                        related_content["web"] = related_web
+                    elif platform == "youtube":
                         # Find related YouTube content
-                        related_youtube = await self._find_related_youtube_content(seed_content, max_related_items, relevance_threshold)
-                        related_content['youtube'] = related_youtube
-                    elif platform == 'news':
+                        related_youtube = await self._find_related_youtube_content(
+                            seed_content, max_related_items, relevance_threshold
+                        )
+                        related_content["youtube"] = related_youtube
+                    elif platform == "news":
                         # Find related news content
-                        related_news = await self._find_related_news_content(seed_content, max_related_items, relevance_threshold)
-                        related_content['news'] = related_news
+                        related_news = await self._find_related_news_content(
+                            seed_content, max_related_items, relevance_threshold
+                        )
+                        related_content["news"] = related_news
                 except Exception as e:
-                    logger.warning(
-                        f"Finding related content on {platform} failed: {e}")
+                    logger.warning(f"Finding related content on {platform} failed: {e}")
                     related_content[
-                        platform] = f"Related content search unavailable: {str(e)}"
+                        platform
+                    ] = f"Related content search unavailable: {str(e)}"
 
             # Generate relevance analysis
             relevance_analysis = self._analyze_content_relevance(
-                seed_content, related_content, relevance_threshold)
+                seed_content, related_content, relevance_threshold
+            )
 
             # Format the response
             response = f"🔗 **Related Content for '{seed_content}'**\n\n"

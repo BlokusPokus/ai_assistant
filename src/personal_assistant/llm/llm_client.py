@@ -1,9 +1,8 @@
 # agent_core/llm/llm_client.py
 
 from ..config.logging_config import get_logger
-from ..utils.text_cleaner import clean_text_for_logging
-
 from ..types.messages import FinalAnswer, ToolCall
+from ..utils.text_cleaner import clean_text_for_logging
 
 # Configure module logger
 logger = get_logger("llm")
@@ -48,18 +47,15 @@ class LLMClient:
             logger.debug(f"Functions available: {functions}")
 
             # Convert functions list to the format expected by the model
-            tools = [
-                {
-                    "type": "function",
-                    "function": func
-                } for func in functions
-            ]
+            tools = [{"type": "function", "function": func} for func in functions]
 
             # Make the API call to the LLM
             response = self.model.chat(
                 messages=[{"role": "user", "content": prompt}],
-                tools=tools if tools else None,  # Only include tools if we have functions
-                tool_choice="auto"  # Let the model decide whether to use tools
+                tools=tools
+                if tools
+                else None,  # Only include tools if we have functions
+                tool_choice="auto",  # Let the model decide whether to use tools
             )
 
             # Clean response before logging
@@ -70,7 +66,10 @@ class LLMClient:
 
         except Exception as e:
             logger.error(f"Error in LLM completion: {str(e)}")
-            return {"error": str(e), "content": "I encountered an error processing your request."}
+            return {
+                "error": str(e),
+                "content": "I encountered an error processing your request.",
+            }
 
     # ------------------------
     # Response Processing
@@ -113,20 +112,20 @@ class LLMClient:
             function_call = response["function_call"]
             logger.debug(f"=== FUNCTION CALL DETECTED: {function_call} ===")
             tool_call = ToolCall(
-                name=function_call["name"],
-                args=function_call["arguments"]
+                name=function_call["name"], args=function_call["arguments"]
             )
             logger.debug(f"=== CREATED TOOL CALL: {tool_call} ===")
             return tool_call
 
         # If no function call, treat as final answer
         content = (
-            response.get("text") or  # Standard text field
-            response.get("content") or  # Alternative content field
-            response.get("output") or  # Another possible field
+            response.get("text")
+            or response.get("content")  # Standard text field
+            or response.get("output")  # Alternative content field
+            or  # Another possible field
             # Nested message format
-            response.get("message", {}).get("content") or
-            "No valid response content found"  # Fallback
+            response.get("message", {}).get("content")
+            or "No valid response content found"  # Fallback
         )
 
         # Clean content before logging

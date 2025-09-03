@@ -9,18 +9,20 @@ This module provides:
 - Migration documentation generation
 """
 
-import logging
+import asyncio
 import hashlib
 import json
+import logging
 import os
-from typing import Dict, Any, List, Optional, Tuple
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from dataclasses import dataclass, asdict
 from pathlib import Path
-from sqlalchemy import text, inspect, MetaData
+from typing import Any, Dict, List, Optional, Tuple
+
+from sqlalchemy import MetaData, inspect, text
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from personal_assistant.config.database import db_config
-import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MigrationRecord:
     """Migration record for tracking applied migrations."""
+
     id: int
     migration_name: str
     version: str
@@ -44,6 +47,7 @@ class MigrationRecord:
 @dataclass
 class MigrationFile:
     """Migration file information."""
+
     file_path: Path
     migration_name: str
     version: str
@@ -57,7 +61,11 @@ class MigrationFile:
 class MigrationManager:
     """Enhanced database migration manager with safety features."""
 
-    def __init__(self, migrations_dir: str = "src/personal_assistant/database/migrations", auto_initialize: bool = False):
+    def __init__(
+        self,
+        migrations_dir: str = "src/personal_assistant/database/migrations",
+        auto_initialize: bool = False,
+    ):
         self.migrations_dir = Path(migrations_dir)
         self.metadata = MetaData()
         self.migration_table_name = "migration_history"
@@ -83,11 +91,11 @@ class MigrationManager:
             except RuntimeError:
                 # No event loop, will initialize when first used
                 logger.debug(
-                    "No event loop available, migration table will initialize when first used")
+                    "No event loop available, migration table will initialize when first used"
+                )
                 self._initialized = False
         except Exception as e:
-            logger.warning(
-                f"Failed to start migration table initialization: {e}")
+            logger.warning(f"Failed to start migration table initialization: {e}")
             self._initialized = False
 
     async def _ensure_initialized(self):
@@ -105,16 +113,21 @@ class MigrationManager:
         try:
             async with db_config.get_session_context() as session:
                 # Check if table exists
-                check_query = text("""
+                check_query = text(
+                    """
                     SELECT 1 FROM information_schema.tables 
                     WHERE table_name = :table_name
-                """)
+                """
+                )
 
-                result = await session.execute(check_query, {"table_name": self.migration_table_name})
+                result = await session.execute(
+                    check_query, {"table_name": self.migration_table_name}
+                )
 
                 if not result.fetchone():
                     # Create migration tracking table
-                    create_query = text("""
+                    create_query = text(
+                        """
                         CREATE TABLE migration_history (
                             id SERIAL PRIMARY KEY,
                             migration_name VARCHAR(255) NOT NULL,
@@ -129,13 +142,13 @@ class MigrationManager:
                             error_message TEXT,
                             UNIQUE(migration_name, version)
                         )
-                    """)
+                    """
+                    )
 
                     await session.execute(create_query)
                     await session.commit()
 
-                    logger.info(
-                        "Migration tracking table created successfully")
+                    logger.info("Migration tracking table created successfully")
                 else:
                     logger.info("Migration tracking table already exists")
 
@@ -144,7 +157,7 @@ class MigrationManager:
 
     def _calculate_checksum(self, content: str) -> str:
         """Calculate SHA-256 checksum of content."""
-        return hashlib.sha256(content.encode('utf-8')).hexdigest()
+        return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
     def _parse_migration_file(self, file_path: Path) -> Optional[MigrationFile]:
         """Parse a migration file and extract metadata."""
@@ -152,7 +165,7 @@ class MigrationManager:
             if not file_path.exists():
                 return None
 
-            content = file_path.read_text(encoding='utf-8')
+            content = file_path.read_text(encoding="utf-8")
 
             # Extract migration metadata from SQL comments or filename
             migration_name = file_path.stem
@@ -185,7 +198,7 @@ class MigrationManager:
                 rollback_sql=rollback_sql,
                 rollback_checksum=rollback_checksum,
                 dependencies=dependencies,
-                description=description
+                description=description,
             )
 
         except Exception as e:
@@ -195,7 +208,7 @@ class MigrationManager:
     def _extract_version_from_filename(self, filename: str) -> str:
         """Extract version from migration filename."""
         # Expected format: 001_migration_name.sql or 001_migration_name.py
-        parts = filename.split('_', 1)
+        parts = filename.split("_", 1)
         if len(parts) > 1 and parts[0].isdigit():
             return parts[0]
         return "unknown"
@@ -203,22 +216,22 @@ class MigrationManager:
     def _extract_dependencies(self, content: str) -> List[str]:
         """Extract dependencies from migration file comments."""
         dependencies = []
-        lines = content.split('\n')
+        lines = content.split("\n")
 
         for line in lines:
-            if line.strip().startswith('-- DEPENDS:'):
-                dep_line = line.replace('-- DEPENDS:', '').strip()
-                dependencies.extend([d.strip() for d in dep_line.split(',')])
+            if line.strip().startswith("-- DEPENDS:"):
+                dep_line = line.replace("-- DEPENDS:", "").strip()
+                dependencies.extend([d.strip() for d in dep_line.split(",")])
 
         return dependencies
 
     def _extract_description(self, content: str) -> str:
         """Extract description from migration file comments."""
-        lines = content.split('\n')
+        lines = content.split("\n")
 
         for line in lines:
-            if line.strip().startswith('-- DESCRIPTION:'):
-                return line.replace('-- DESCRIPTION:', '').strip()
+            if line.strip().startswith("-- DESCRIPTION:"):
+                return line.replace("-- DESCRIPTION:", "").strip()
 
         return "No description provided"
 
@@ -229,14 +242,17 @@ class MigrationManager:
 
             async with db_config.get_session_context() as session:
                 # Get applied migrations
-                applied_query = text("""
+                applied_query = text(
+                    """
                     SELECT migration_name, version FROM migration_history 
                     WHERE status = 'applied'
-                """)
+                """
+                )
 
                 result = await session.execute(applied_query)
-                applied_migrations = {(row.migration_name, row.version)
-                                      for row in result.fetchall()}
+                applied_migrations = {
+                    (row.migration_name, row.version) for row in result.fetchall()
+                }
 
                 # Get all migration files
                 migration_files = []
@@ -244,12 +260,16 @@ class MigrationManager:
                     migration_file = self._parse_migration_file(file_path)
                     if migration_file:
                         # Check if already applied
-                        if (migration_file.migration_name, migration_file.version) not in applied_migrations:
+                        if (
+                            migration_file.migration_name,
+                            migration_file.version,
+                        ) not in applied_migrations:
                             migration_files.append(migration_file)
 
                 # Sort by version and check dependencies
                 sorted_migrations = self._sort_migrations_by_dependencies(
-                    migration_files)
+                    migration_files
+                )
 
                 return sorted_migrations
 
@@ -257,7 +277,9 @@ class MigrationManager:
             logger.error(f"Failed to get pending migrations: {e}")
             return []
 
-    def _sort_migrations_by_dependencies(self, migrations: List[MigrationFile]) -> List[MigrationFile]:
+    def _sort_migrations_by_dependencies(
+        self, migrations: List[MigrationFile]
+    ) -> List[MigrationFile]:
         """Sort migrations by dependencies to ensure correct application order."""
         # Simple topological sort for dependencies
         migration_map = {m.migration_name: m for m in migrations}
@@ -281,7 +303,9 @@ class MigrationManager:
 
         return sorted_migrations
 
-    async def apply_migration(self, migration_file: MigrationFile, user: str = "system") -> bool:
+    async def apply_migration(
+        self, migration_file: MigrationFile, user: str = "system"
+    ) -> bool:
         """Apply a single migration with safety checks."""
         try:
             await self._ensure_initialized()
@@ -290,28 +314,35 @@ class MigrationManager:
 
             async with db_config.get_session_context() as session:
                 # Validate migration hasn't been applied
-                check_query = text("""
+                check_query = text(
+                    """
                     SELECT 1 FROM migration_history 
                     WHERE migration_name = :name AND version = :version
-                """)
+                """
+                )
 
-                result = await session.execute(check_query, {
-                    "name": migration_file.migration_name,
-                    "version": migration_file.version
-                })
+                result = await session.execute(
+                    check_query,
+                    {
+                        "name": migration_file.migration_name,
+                        "version": migration_file.version,
+                    },
+                )
 
                 if result.fetchone():
                     logger.warning(
-                        f"Migration {migration_file.migration_name} already applied")
+                        f"Migration {migration_file.migration_name} already applied"
+                    )
                     return False
 
                 # Read and validate migration content
-                content = migration_file.file_path.read_text(encoding='utf-8')
+                content = migration_file.file_path.read_text(encoding="utf-8")
                 current_checksum = self._calculate_checksum(content)
 
                 if current_checksum != migration_file.checksum:
                     logger.error(
-                        f"Migration checksum mismatch for {migration_file.migration_name}")
+                        f"Migration checksum mismatch for {migration_file.migration_name}"
+                    )
                     return False
 
                 # Extract SQL statements (remove comments and split by semicolon)
@@ -323,78 +354,89 @@ class MigrationManager:
                         await session.execute(text(sql))
 
                 # Record migration
-                execution_time = (
-                    datetime.now() - start_time).total_seconds() * 1000
+                execution_time = (datetime.now() - start_time).total_seconds() * 1000
 
-                insert_query = text("""
+                insert_query = text(
+                    """
                     INSERT INTO migration_history 
                     (migration_name, version, checksum, applied_by, rollback_sql, rollback_checksum, execution_time_ms)
                     VALUES (:name, :version, :checksum, :user, :rollback_sql, :rollback_checksum, :execution_time)
-                """)
+                """
+                )
 
-                await session.execute(insert_query, {
-                    "name": migration_file.migration_name,
-                    "version": migration_file.version,
-                    "checksum": migration_file.checksum,
-                    "user": user,
-                    "rollback_sql": migration_file.rollback_sql,
-                    "rollback_checksum": migration_file.rollback_checksum,
-                    "execution_time": int(execution_time)
-                })
+                await session.execute(
+                    insert_query,
+                    {
+                        "name": migration_file.migration_name,
+                        "version": migration_file.version,
+                        "checksum": migration_file.checksum,
+                        "user": user,
+                        "rollback_sql": migration_file.rollback_sql,
+                        "rollback_checksum": migration_file.rollback_checksum,
+                        "execution_time": int(execution_time),
+                    },
+                )
 
                 await session.commit()
 
                 logger.info(
-                    f"Migration {migration_file.migration_name} applied successfully in {execution_time:.2f}ms")
+                    f"Migration {migration_file.migration_name} applied successfully in {execution_time:.2f}ms"
+                )
                 return True
 
         except Exception as e:
             logger.error(
-                f"Failed to apply migration {migration_file.migration_name}: {e}")
+                f"Failed to apply migration {migration_file.migration_name}: {e}"
+            )
 
             # Record failed migration
             try:
                 async with db_config.get_session_context() as session:
                     execution_time = (
-                        datetime.now() - start_time).total_seconds() * 1000
+                        datetime.now() - start_time
+                    ).total_seconds() * 1000
 
-                    insert_query = text("""
+                    insert_query = text(
+                        """
                         INSERT INTO migration_history 
                         (migration_name, version, checksum, applied_by, execution_time_ms, status, error_message)
                         VALUES (:name, :version, :checksum, :user, :execution_time, 'failed', :error)
-                    """)
+                    """
+                    )
 
-                    await session.execute(insert_query, {
-                        "name": migration_file.migration_name,
-                        "version": migration_file.version,
-                        "checksum": migration_file.checksum,
-                        "user": user,
-                        "execution_time": int(execution_time),
-                        "error": str(e)
-                    })
+                    await session.execute(
+                        insert_query,
+                        {
+                            "name": migration_file.migration_name,
+                            "version": migration_file.version,
+                            "checksum": migration_file.checksum,
+                            "user": user,
+                            "execution_time": int(execution_time),
+                            "error": str(e),
+                        },
+                    )
 
                     await session.commit()
             except Exception as record_error:
-                logger.error(
-                    f"Failed to record failed migration: {record_error}")
+                logger.error(f"Failed to record failed migration: {record_error}")
 
             return False
 
     def _extract_sql_statements(self, content: str) -> List[str]:
         """Extract SQL statements from migration content."""
         # Remove comments
-        lines = content.split('\n')
+        lines = content.split("\n")
         clean_lines = []
 
         for line in lines:
             stripped = line.strip()
-            if stripped and not stripped.startswith('--'):
+            if stripped and not stripped.startswith("--"):
                 clean_lines.append(line)
 
-        clean_content = '\n'.join(clean_lines)
+        clean_content = "\n".join(clean_lines)
 
         # Split by semicolon (simple approach)
-        statements = [s.strip() for s in clean_content.split(';') if s.strip()]
+        statements = [s.strip() for s in clean_content.split(";") if s.strip()]
 
         return statements
 
@@ -405,52 +447,56 @@ class MigrationManager:
 
             async with db_config.get_session_context() as session:
                 # Get migration record
-                get_query = text("""
+                get_query = text(
+                    """
                     SELECT * FROM migration_history 
                     WHERE migration_name = :name AND version = :version AND status = 'applied'
-                """)
+                """
+                )
 
-                result = await session.execute(get_query, {
-                    "name": migration_name,
-                    "version": version
-                })
+                result = await session.execute(
+                    get_query, {"name": migration_name, "version": version}
+                )
 
                 migration_record = result.fetchone()
                 if not migration_record:
-                    logger.error(
-                        f"Migration {migration_name} not found or not applied")
+                    logger.error(f"Migration {migration_name} not found or not applied")
                     return False
 
                 # Check if rollback SQL exists
                 if not migration_record.rollback_sql:
                     logger.error(
-                        f"No rollback SQL available for migration {migration_name}")
+                        f"No rollback SQL available for migration {migration_name}"
+                    )
                     return False
 
                 # Validate rollback checksum
                 if migration_record.rollback_checksum:
                     current_rollback_checksum = self._calculate_checksum(
-                        migration_record.rollback_sql)
+                        migration_record.rollback_sql
+                    )
                     if current_rollback_checksum != migration_record.rollback_checksum:
                         logger.error(
-                            f"Rollback checksum mismatch for migration {migration_name}")
+                            f"Rollback checksum mismatch for migration {migration_name}"
+                        )
                         return False
 
                 # Execute rollback
                 await session.execute(text(migration_record.rollback_sql))
 
                 # Update migration status
-                update_query = text("""
+                update_query = text(
+                    """
                     UPDATE migration_history 
                     SET status = 'rolled_back' 
                     WHERE id = :id
-                """)
+                """
+                )
 
                 await session.execute(update_query, {"id": migration_record.id})
                 await session.commit()
 
-                logger.info(
-                    f"Migration {migration_name} rolled back successfully")
+                logger.info(f"Migration {migration_name} rolled back successfully")
                 return True
 
         except Exception as e:
@@ -464,29 +510,34 @@ class MigrationManager:
 
             async with db_config.get_session_context() as session:
                 # Get migration statistics
-                stats_query = text("""
+                stats_query = text(
+                    """
                     SELECT 
                         status,
                         COUNT(*) as count,
                         AVG(execution_time_ms) as avg_execution_time
                     FROM migration_history 
                     GROUP BY status
-                """)
+                """
+                )
 
                 result = await session.execute(stats_query)
-                stats = {row.status: {"count": row.count, "avg_time": row.avg_execution_time}
-                         for row in result.fetchall()}
+                stats = {
+                    row.status: {"count": row.count, "avg_time": row.avg_execution_time}
+                    for row in result.fetchall()
+                }
 
                 # Get recent migrations
-                recent_query = text("""
+                recent_query = text(
+                    """
                     SELECT * FROM migration_history 
                     ORDER BY applied_at DESC 
                     LIMIT 10
-                """)
+                """
+                )
 
                 result = await session.execute(recent_query)
-                recent_migrations = [dict(row._mapping)
-                                     for row in result.fetchall()]
+                recent_migrations = [dict(row._mapping) for row in result.fetchall()]
 
                 # Get pending migrations
                 pending_migrations = await self.get_pending_migrations()
@@ -500,13 +551,13 @@ class MigrationManager:
                             "name": m.migration_name,
                             "version": m.version,
                             "description": m.description,
-                            "dependencies": m.dependencies
+                            "dependencies": m.dependencies,
                         }
                         for m in pending_migrations
                     ],
                     "total_applied": stats.get("applied", {}).get("count", 0),
                     "total_failed": stats.get("failed", {}).get("count", 0),
-                    "total_rolled_back": stats.get("rolled_back", {}).get("count", 0)
+                    "total_rolled_back": stats.get("rolled_back", {}).get("count", 0),
                 }
 
         except Exception as e:
@@ -525,7 +576,7 @@ class MigrationManager:
                     "status": "success",
                     "message": "No pending migrations",
                     "applied_count": 0,
-                    "failed_count": 0
+                    "failed_count": 0,
                 }
 
             applied_count = 0
@@ -546,7 +597,7 @@ class MigrationManager:
                 "applied_count": applied_count,
                 "failed_count": failed_count,
                 "failed_migrations": failed_migrations,
-                "total_pending": len(pending_migrations)
+                "total_pending": len(pending_migrations),
             }
 
         except Exception as e:
@@ -555,7 +606,7 @@ class MigrationManager:
                 "status": "error",
                 "error": str(e),
                 "applied_count": 0,
-                "failed_count": 0
+                "failed_count": 0,
             }
 
     def generate_migration_documentation(self) -> str:
@@ -592,7 +643,7 @@ class MigrationManager:
 
             # Write documentation
             doc_path = self.migrations_dir / "MIGRATION_DOCUMENTATION.md"
-            doc_path.write_text(doc, encoding='utf-8')
+            doc_path.write_text(doc, encoding="utf-8")
 
             logger.info(f"Migration documentation generated: {doc_path}")
             return str(doc_path)

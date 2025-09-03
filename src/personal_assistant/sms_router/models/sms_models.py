@@ -3,7 +3,18 @@ SMS Router Service database models.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Text, JSON, Index
+
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import relationship
 
 from ...database.models.base import Base
@@ -11,7 +22,8 @@ from ...database.models.base import Base
 
 class SMSRouterConfig(Base):
     """Configuration for SMS routing behavior."""
-    __tablename__ = 'sms_router_configs'
+
+    __tablename__ = "sms_router_configs"
 
     id = Column(Integer, primary_key=True)
     config_key = Column(String(100), unique=True, nullable=False)
@@ -19,8 +31,7 @@ class SMSRouterConfig(Base):
     description = Column(Text)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow,
-                        onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def __repr__(self):
         return f"<SMSRouterConfig(id={self.id}, key='{self.config_key}', active={self.is_active})>"
@@ -28,10 +39,11 @@ class SMSRouterConfig(Base):
 
 class SMSUsageLog(Base):
     """Log of SMS usage for analytics and billing."""
-    __tablename__ = 'sms_usage_logs'
+
+    __tablename__ = "sms_usage_logs"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     phone_number = Column(String(20), nullable=False)
     # 'inbound' or 'outbound'
     message_direction = Column(String(10), nullable=False)
@@ -53,17 +65,17 @@ class SMSUsageLog(Base):
 
 class UserPhoneMapping(Base):
     """Additional phone number mappings for users (extends users.phone_number)."""
-    __tablename__ = 'user_phone_mappings'
+
+    __tablename__ = "user_phone_mappings"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     phone_number = Column(String(20), nullable=False)
     is_primary = Column(Boolean, default=False)
     is_verified = Column(Boolean, default=False)
     verification_method = Column(String(50))  # 'sms', 'manual', 'oauth'
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow,
-                        onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     user = relationship("User", back_populates="phone_mappings")
@@ -73,9 +85,9 @@ class UserPhoneMapping(Base):
 
 
 # Create indexes for performance
-Index('idx_sms_usage_logs_user_id', SMSUsageLog.user_id)
-Index('idx_sms_usage_logs_phone_number', SMSUsageLog.phone_number)
-Index('idx_sms_usage_logs_created_at', SMSUsageLog.created_at)
-Index('idx_user_phone_mappings_user_id', UserPhoneMapping.user_id)
-Index('idx_user_phone_mappings_phone_number', UserPhoneMapping.phone_number)
-Index('idx_sms_router_configs_key', SMSRouterConfig.config_key)
+Index("idx_sms_usage_logs_user_id", SMSUsageLog.user_id)
+Index("idx_sms_usage_logs_phone_number", SMSUsageLog.phone_number)
+Index("idx_sms_usage_logs_created_at", SMSUsageLog.created_at)
+Index("idx_user_phone_mappings_user_id", UserPhoneMapping.user_id)
+Index("idx_user_phone_mappings_phone_number", UserPhoneMapping.phone_number)
+Index("idx_sms_router_configs_key", SMSRouterConfig.config_key)

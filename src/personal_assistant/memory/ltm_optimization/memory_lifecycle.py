@@ -7,13 +7,13 @@ storage optimization coordinated with state management data.
 """
 
 import logging
-from typing import List, Dict, Optional, Any
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
 
 from ...config.logging_config import get_logger
 from ...tools.ltm.ltm_storage import add_ltm_memory, delete_ltm_memory
 from ...types.state import AgentState
-from .config import LTMConfig, EnhancedLTMConfig
+from .config import EnhancedLTMConfig, LTMConfig
 
 logger = get_logger("memory_lifecycle")
 
@@ -21,6 +21,7 @@ logger = get_logger("memory_lifecycle")
 # ============================================================================
 # ENHANCED MEMORY LIFECYCLE MANAGEMENT WITH STATE INTEGRATION
 # ============================================================================
+
 
 class EnhancedMemoryLifecycleManager:
     """Enhanced memory lifecycle manager with state integration"""
@@ -30,9 +31,7 @@ class EnhancedMemoryLifecycleManager:
         self.logger = get_logger("enhanced_memory_lifecycle")
 
     async def manage_memory_lifecycle_with_state(
-        self,
-        user_id: int,
-        state_context: 'AgentState' = None
+        self, user_id: int, state_context: "AgentState" = None
     ) -> Dict[str, Any]:
         """
         Manage memory lifecycle with state context integration
@@ -51,7 +50,7 @@ class EnhancedMemoryLifecycleManager:
             "deleted": 0,
             "updated": 0,
             "state_integrated": 0,
-            "performance_metrics": {}
+            "performance_metrics": {},
         }
 
         try:
@@ -77,7 +76,9 @@ class EnhancedMemoryLifecycleManager:
             storage_optimization = await self._optimize_storage_with_state(
                 user_id, state_context
             )
-            lifecycle_report["performance_metrics"]["storage_optimization"] = storage_optimization
+            lifecycle_report["performance_metrics"][
+                "storage_optimization"
+            ] = storage_optimization
 
             # Step 5: State-LTM lifecycle coordination
             state_coordination = await self._coordinate_state_ltm_lifecycle(
@@ -97,9 +98,7 @@ class EnhancedMemoryLifecycleManager:
             return lifecycle_report
 
     async def _age_memories_with_state_context(
-        self,
-        user_id: int,
-        state_context: 'AgentState' = None
+        self, user_id: int, state_context: "AgentState" = None
     ) -> List[dict]:
         """Age memories with state context awareness"""
 
@@ -115,8 +114,7 @@ class EnhancedMemoryLifecycleManager:
                 )
 
                 # Apply aging
-                new_importance = self._apply_aging_to_memory(
-                    memory, aging_factor)
+                new_importance = self._apply_aging_to_memory(memory, aging_factor)
                 if new_importance != memory.get("importance_score", 1):
                     await self._update_memory_importance(memory["id"], new_importance)
                     memory["importance_score"] = new_importance
@@ -128,20 +126,19 @@ class EnhancedMemoryLifecycleManager:
             return aged_memories
 
         except Exception as e:
-            self.logger.error(
-                f"Error in state-aware aging for user {user_id}: {e}")
+            self.logger.error(f"Error in state-aware aging for user {user_id}: {e}")
             return []
 
     async def _consolidate_memories_with_state(
-        self,
-        user_id: int,
-        state_context: 'AgentState' = None
+        self, user_id: int, state_context: "AgentState" = None
     ) -> List[dict]:
         """Consolidate memories with state context coordination"""
 
         try:
             # Get memories for consolidation
-            memories = await self._get_memories_for_consolidation(user_id, state_context)
+            memories = await self._get_memories_for_consolidation(
+                user_id, state_context
+            )
 
             if not memories:
                 return []
@@ -173,13 +170,12 @@ class EnhancedMemoryLifecycleManager:
 
         except Exception as e:
             self.logger.error(
-                f"Error in state-aware consolidation for user {user_id}: {e}")
+                f"Error in state-aware consolidation for user {user_id}: {e}"
+            )
             return []
 
     async def _archive_memories_intelligently(
-        self,
-        user_id: int,
-        state_context: 'AgentState' = None
+        self, user_id: int, state_context: "AgentState" = None
     ) -> List[dict]:
         """Intelligently archive memories based on state patterns"""
 
@@ -208,14 +204,11 @@ class EnhancedMemoryLifecycleManager:
             return archived_memories
 
         except Exception as e:
-            self.logger.error(
-                f"Error in intelligent archiving for user {user_id}: {e}")
+            self.logger.error(f"Error in intelligent archiving for user {user_id}: {e}")
             return []
 
     async def _optimize_storage_with_state(
-        self,
-        user_id: int,
-        state_context: 'AgentState' = None
+        self, user_id: int, state_context: "AgentState" = None
     ) -> Dict[str, Any]:
         """Optimize storage with state context coordination"""
 
@@ -224,7 +217,7 @@ class EnhancedMemoryLifecycleManager:
                 "compression_applied": 0,
                 "storage_reduced_bytes": 0,
                 "indexes_optimized": 0,
-                "cache_cleaned": 0
+                "cache_cleaned": 0,
             }
 
             # Apply compression to old, low-importance memories
@@ -232,19 +225,21 @@ class EnhancedMemoryLifecycleManager:
                 user_id, state_context
             )
             optimization_results["compression_applied"] = compression_result.get(
-                "compressed", 0)
+                "compressed", 0
+            )
             optimization_results["storage_reduced_bytes"] = compression_result.get(
-                "bytes_saved", 0)
+                "bytes_saved", 0
+            )
 
             # Optimize database indexes
             index_optimization = await self._optimize_database_indexes(user_id)
             optimization_results["indexes_optimized"] = index_optimization.get(
-                "optimized", 0)
+                "optimized", 0
+            )
 
             # Clean up cache
             cache_cleanup = await self._cleanup_cache(user_id)
-            optimization_results["cache_cleaned"] = cache_cleanup.get(
-                "cleaned", 0)
+            optimization_results["cache_cleaned"] = cache_cleanup.get("cleaned", 0)
 
             self.logger.info(
                 f"Storage optimization completed for user {user_id}: {optimization_results}"
@@ -252,14 +247,11 @@ class EnhancedMemoryLifecycleManager:
             return optimization_results
 
         except Exception as e:
-            self.logger.error(
-                f"Error in storage optimization for user {user_id}: {e}")
+            self.logger.error(f"Error in storage optimization for user {user_id}: {e}")
             return {}
 
     async def _coordinate_state_ltm_lifecycle(
-        self,
-        user_id: int,
-        state_context: 'AgentState' = None
+        self, user_id: int, state_context: "AgentState" = None
     ) -> int:
         """Coordinate LTM lifecycle with state management"""
 
@@ -270,23 +262,31 @@ class EnhancedMemoryLifecycleManager:
                 return coordination_count
 
             # Coordinate memory lifecycle with state focus changes
-            if hasattr(state_context, 'focus') and state_context.focus:
+            if hasattr(state_context, "focus") and state_context.focus:
                 focus_coordination = await self._coordinate_with_focus_changes(
                     user_id, state_context.focus
                 )
                 coordination_count += focus_coordination
 
             # Coordinate with tool usage patterns
-            if hasattr(state_context, 'last_tool_result') and state_context.last_tool_result:
+            if (
+                hasattr(state_context, "last_tool_result")
+                and state_context.last_tool_result
+            ):
                 tool_coordination = await self._coordinate_with_tool_patterns(
                     user_id, state_context.last_tool_result
                 )
                 coordination_count += tool_coordination
 
             # Coordinate with conversation patterns
-            if hasattr(state_context, 'conversation_history') and state_context.conversation_history:
-                conversation_coordination = await self._coordinate_with_conversation_patterns(
-                    user_id, state_context.conversation_history
+            if (
+                hasattr(state_context, "conversation_history")
+                and state_context.conversation_history
+            ):
+                conversation_coordination = (
+                    await self._coordinate_with_conversation_patterns(
+                        user_id, state_context.conversation_history
+                    )
                 )
                 coordination_count += conversation_coordination
 
@@ -297,13 +297,12 @@ class EnhancedMemoryLifecycleManager:
 
         except Exception as e:
             self.logger.error(
-                f"Error in state-LTM coordination for user {user_id}: {e}")
+                f"Error in state-LTM coordination for user {user_id}: {e}"
+            )
             return 0
 
     def _calculate_state_aware_aging_factor(
-        self,
-        memory: dict,
-        state_context: 'AgentState' = None
+        self, memory: dict, state_context: "AgentState" = None
     ) -> float:
         """Calculate aging factor based on state context"""
 
@@ -313,25 +312,35 @@ class EnhancedMemoryLifecycleManager:
             return base_aging_factor
 
         # Adjust aging based on current focus
-        if hasattr(state_context, 'focus') and state_context.focus:
-            focus_areas = state_context.focus if isinstance(
-                state_context.focus, list) else [state_context.focus]
+        if hasattr(state_context, "focus") and state_context.focus:
+            focus_areas = (
+                state_context.focus
+                if isinstance(state_context.focus, list)
+                else [state_context.focus]
+            )
             memory_tags = set(memory.get("tags", []))
             memory_content = memory.get("content", "").lower()
 
             # Reduce aging for memories relevant to current focus
             for focus in focus_areas:
-                if (focus.lower() in memory_content or
-                        any(focus.lower() in tag.lower() for tag in memory_tags)):
+                if focus.lower() in memory_content or any(
+                    focus.lower() in tag.lower() for tag in memory_tags
+                ):
                     base_aging_factor *= 0.7  # Age slower
                     break
 
         # Adjust aging based on tool usage relevance
-        if hasattr(state_context, 'last_tool_result') and state_context.last_tool_result:
+        if (
+            hasattr(state_context, "last_tool_result")
+            and state_context.last_tool_result
+        ):
             tool_result = str(state_context.last_tool_result).lower()
             memory_content = memory.get("content", "").lower()
 
-            if any(tool_word in memory_content for tool_word in ['tool', 'function', 'api', 'automation']):
+            if any(
+                tool_word in memory_content
+                for tool_word in ["tool", "function", "api", "automation"]
+            ):
                 base_aging_factor *= 0.8  # Age slower for tool-related memories
 
         return max(0.3, base_aging_factor)  # Minimum aging factor
@@ -346,9 +355,7 @@ class EnhancedMemoryLifecycleManager:
         return new_importance
 
     def _group_memories_by_state_aware_similarity(
-        self,
-        memories: List[dict],
-        state_context: 'AgentState' = None
+        self, memories: List[dict], state_context: "AgentState" = None
     ) -> List[List[dict]]:
         """Group memories by state-aware similarity"""
 
@@ -363,7 +370,7 @@ class EnhancedMemoryLifecycleManager:
             processed.add(i)
 
             # Find similar memories with state context consideration
-            for j, other_memory in enumerate(memories[i+1:], i+1):
+            for j, other_memory in enumerate(memories[i + 1 :], i + 1):
                 if j in processed:
                     continue
 
@@ -404,10 +411,7 @@ class EnhancedMemoryLifecycleManager:
         return False
 
     def _are_memories_similar_with_state(
-        self,
-        memory1: dict,
-        memory2: dict,
-        state_context: 'AgentState' = None
+        self, memory1: dict, memory2: dict, state_context: "AgentState" = None
     ) -> bool:
         """Check if memories are similar with state context consideration"""
 
@@ -423,37 +427,34 @@ class EnhancedMemoryLifecycleManager:
         )
 
         # Combine base and state similarity
-        combined_similarity = (base_similarity * 0.7) + \
-            (state_similarity * 0.3)
+        combined_similarity = (base_similarity * 0.7) + (state_similarity * 0.3)
 
         return combined_similarity > self.config.consolidation_similarity_threshold
 
     def _calculate_state_context_similarity(
-        self,
-        memory1: dict,
-        memory2: dict,
-        state_context: 'AgentState'
+        self, memory1: dict, memory2: dict, state_context: "AgentState"
     ) -> float:
         """Calculate similarity based on state context"""
 
         similarity_score = 0.0
 
         # Focus area similarity
-        if hasattr(state_context, 'focus') and state_context.focus:
-            focus_areas = state_context.focus if isinstance(
-                state_context.focus, list) else [state_context.focus]
+        if hasattr(state_context, "focus") and state_context.focus:
+            focus_areas = (
+                state_context.focus
+                if isinstance(state_context.focus, list)
+                else [state_context.focus]
+            )
 
             memory1_focus_match = any(
-                focus.lower() in memory1.get("content", "").lower() or
-                any(focus.lower() in tag.lower()
-                    for tag in memory1.get("tags", []))
+                focus.lower() in memory1.get("content", "").lower()
+                or any(focus.lower() in tag.lower() for tag in memory1.get("tags", []))
                 for focus in focus_areas
             )
 
             memory2_focus_match = any(
-                focus.lower() in memory2.get("content", "").lower() or
-                any(focus.lower() in tag.lower()
-                    for tag in memory2.get("tags", []))
+                focus.lower() in memory2.get("content", "").lower()
+                or any(focus.lower() in tag.lower() for tag in memory2.get("tags", []))
                 for focus in focus_areas
             )
 
@@ -461,17 +462,20 @@ class EnhancedMemoryLifecycleManager:
                 similarity_score += 0.5
 
         # Tool usage similarity
-        if hasattr(state_context, 'last_tool_result') and state_context.last_tool_result:
+        if (
+            hasattr(state_context, "last_tool_result")
+            and state_context.last_tool_result
+        ):
             tool_result = str(state_context.last_tool_result).lower()
 
             memory1_tool_match = any(
                 tool_word in memory1.get("content", "").lower()
-                for tool_word in ['tool', 'function', 'api', 'automation']
+                for tool_word in ["tool", "function", "api", "automation"]
             )
 
             memory2_tool_match = any(
                 tool_word in memory2.get("content", "").lower()
-                for tool_word in ['tool', 'function', 'api', 'automation']
+                for tool_word in ["tool", "function", "api", "automation"]
             )
 
             if memory1_tool_match and memory2_tool_match:
@@ -480,9 +484,7 @@ class EnhancedMemoryLifecycleManager:
         return min(1.0, similarity_score)
 
     def _calculate_state_aware_archiving_score(
-        self,
-        memory: dict,
-        state_context: 'AgentState' = None
+        self, memory: dict, state_context: "AgentState" = None
     ) -> float:
         """Calculate archiving score based on state context"""
 
@@ -508,22 +510,32 @@ class EnhancedMemoryLifecycleManager:
         # State context adjustments
         if state_context:
             # Reduce archiving score for memories relevant to current focus
-            if hasattr(state_context, 'focus') and state_context.focus:
-                focus_areas = state_context.focus if isinstance(
-                    state_context.focus, list) else [state_context.focus]
+            if hasattr(state_context, "focus") and state_context.focus:
+                focus_areas = (
+                    state_context.focus
+                    if isinstance(state_context.focus, list)
+                    else [state_context.focus]
+                )
                 memory_tags = set(memory.get("tags", []))
                 memory_content = memory.get("content", "").lower()
 
                 for focus in focus_areas:
-                    if (focus.lower() in memory_content or
-                            any(focus.lower() in tag.lower() for tag in memory_tags)):
+                    if focus.lower() in memory_content or any(
+                        focus.lower() in tag.lower() for tag in memory_tags
+                    ):
                         base_score *= 0.6  # Less likely to archive
                         break
 
             # Reduce archiving score for tool-related memories if tools are being used
-            if hasattr(state_context, 'last_tool_result') and state_context.last_tool_result:
+            if (
+                hasattr(state_context, "last_tool_result")
+                and state_context.last_tool_result
+            ):
                 memory_content = memory.get("content", "").lower()
-                if any(tool_word in memory_content for tool_word in ['tool', 'function', 'api', 'automation']):
+                if any(
+                    tool_word in memory_content
+                    for tool_word in ["tool", "function", "api", "automation"]
+                ):
                     base_score *= 0.7  # Less likely to archive
 
         return min(1.0, base_score)
@@ -537,8 +549,7 @@ class EnhancedMemoryLifecycleManager:
                 return 0
 
             if isinstance(created_at, str):
-                created_dt = datetime.fromisoformat(
-                    created_at.replace('Z', '+00:00'))
+                created_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
             else:
                 created_dt = created_at
 
@@ -549,10 +560,7 @@ class EnhancedMemoryLifecycleManager:
             return 0
 
     async def _consolidate_group_with_state(
-        self,
-        user_id: int,
-        memory_group: List[dict],
-        state_context: 'AgentState' = None
+        self, user_id: int, memory_group: List[dict], state_context: "AgentState" = None
     ) -> Optional[dict]:
         """Consolidate a group of memories with state context"""
 
@@ -566,9 +574,9 @@ class EnhancedMemoryLifecycleManager:
                 key=lambda x: (
                     x.get("importance_score", 1),
                     self._calculate_state_relevance_score(x, state_context),
-                    x.get("created_at", "")
+                    x.get("created_at", ""),
                 ),
-                reverse=True
+                reverse=True,
             )
 
             # Use the most relevant memory as the base
@@ -596,10 +604,18 @@ class EnhancedMemoryLifecycleManager:
                     "consolidated_at": datetime.now(timezone.utc).isoformat(),
                     "original_memory_ids": [m["id"] for m in memory_group],
                     "state_context": {
-                        "focus": state_context.focus if state_context and hasattr(state_context, 'focus') else None,
-                        "tool_usage": bool(state_context and hasattr(state_context, 'last_tool_result') and state_context.last_tool_result)
-                    } if state_context else None
-                }
+                        "focus": state_context.focus
+                        if state_context and hasattr(state_context, "focus")
+                        else None,
+                        "tool_usage": bool(
+                            state_context
+                            and hasattr(state_context, "last_tool_result")
+                            and state_context.last_tool_result
+                        ),
+                    }
+                    if state_context
+                    else None,
+                },
             }
 
             # Save consolidated memory
@@ -611,15 +627,12 @@ class EnhancedMemoryLifecycleManager:
                 return {"id": memory_id, **consolidated_data}
 
         except Exception as e:
-            self.logger.error(
-                f"Error consolidating memory group with state: {e}")
+            self.logger.error(f"Error consolidating memory group with state: {e}")
 
         return None
 
     def _calculate_state_relevance_score(
-        self,
-        memory: dict,
-        state_context: 'AgentState' = None
+        self, memory: dict, state_context: "AgentState" = None
     ) -> float:
         """Calculate state relevance score for a memory"""
 
@@ -629,9 +642,12 @@ class EnhancedMemoryLifecycleManager:
         score = 0.0
 
         # Focus area relevance
-        if hasattr(state_context, 'focus') and state_context.focus:
-            focus_areas = state_context.focus if isinstance(
-                state_context.focus, list) else [state_context.focus]
+        if hasattr(state_context, "focus") and state_context.focus:
+            focus_areas = (
+                state_context.focus
+                if isinstance(state_context.focus, list)
+                else [state_context.focus]
+            )
             memory_tags = set(memory.get("tags", []))
             memory_content = memory.get("content", "").lower()
 
@@ -642,17 +658,21 @@ class EnhancedMemoryLifecycleManager:
                     score += 0.3
 
         # Tool usage relevance
-        if hasattr(state_context, 'last_tool_result') and state_context.last_tool_result:
+        if (
+            hasattr(state_context, "last_tool_result")
+            and state_context.last_tool_result
+        ):
             memory_content = memory.get("content", "").lower()
-            if any(tool_word in memory_content for tool_word in ['tool', 'function', 'api', 'automation']):
+            if any(
+                tool_word in memory_content
+                for tool_word in ["tool", "function", "api", "automation"]
+            ):
                 score += 0.3
 
         return min(1.0, score)
 
     def _combine_memory_content_with_state(
-        self,
-        memory_group: List[dict],
-        state_context: 'AgentState' = None
+        self, memory_group: List[dict], state_context: "AgentState" = None
     ) -> str:
         """Combine memory content with state context consideration"""
 
@@ -668,9 +688,8 @@ class EnhancedMemoryLifecycleManager:
         # Sort by state relevance for better content ordering
         sorted_group = sorted(
             memory_group,
-            key=lambda x: self._calculate_state_relevance_score(
-                x, state_context),
-            reverse=True
+            key=lambda x: self._calculate_state_relevance_score(x, state_context),
+            reverse=True,
         )
 
         for i, memory in enumerate(sorted_group):
@@ -678,7 +697,11 @@ class EnhancedMemoryLifecycleManager:
             if content:
                 # Add state context indicator if relevant
                 state_indicator = ""
-                if state_context and self._calculate_state_relevance_score(memory, state_context) > 0.5:
+                if (
+                    state_context
+                    and self._calculate_state_relevance_score(memory, state_context)
+                    > 0.5
+                ):
                     state_indicator = " [State-Relevant]"
 
                 content_parts.append(f"{i+1}. {content}{state_indicator}")
@@ -686,9 +709,7 @@ class EnhancedMemoryLifecycleManager:
         return "\n\n".join(content_parts)
 
     def _combine_memory_tags_with_state(
-        self,
-        memory_group: List[dict],
-        state_context: 'AgentState' = None
+        self, memory_group: List[dict], state_context: "AgentState" = None
     ) -> List[str]:
         """Combine memory tags with state context consideration"""
 
@@ -700,19 +721,21 @@ class EnhancedMemoryLifecycleManager:
             all_tags.update(tags)
 
             # Identify state-relevant tags
-            if state_context and self._calculate_state_relevance_score(memory, state_context) > 0.5:
+            if (
+                state_context
+                and self._calculate_state_relevance_score(memory, state_context) > 0.5
+            ):
                 state_relevant_tags.update(tags)
 
         # Prioritize state-relevant tags
-        combined_tags = list(state_relevant_tags) + \
-            [tag for tag in all_tags if tag not in state_relevant_tags]
+        combined_tags = list(state_relevant_tags) + [
+            tag for tag in all_tags if tag not in state_relevant_tags
+        ]
 
         return combined_tags
 
     async def _coordinate_with_focus_changes(
-        self,
-        user_id: int,
-        focus_areas: List[str]
+        self, user_id: int, focus_areas: List[str]
     ) -> int:
         """Coordinate memory lifecycle with focus area changes"""
 
@@ -720,7 +743,9 @@ class EnhancedMemoryLifecycleManager:
             coordination_count = 0
 
             # Boost importance of memories related to new focus areas
-            focus_memories = await self._get_memories_by_focus_areas(user_id, focus_areas)
+            focus_memories = await self._get_memories_by_focus_areas(
+                user_id, focus_areas
+            )
 
             for memory in focus_memories:
                 current_importance = memory.get("importance_score", 1)
@@ -740,9 +765,7 @@ class EnhancedMemoryLifecycleManager:
             return 0
 
     async def _coordinate_with_tool_patterns(
-        self,
-        user_id: int,
-        tool_result: Any
+        self, user_id: int, tool_result: Any
     ) -> int:
         """Coordinate memory lifecycle with tool usage patterns"""
 
@@ -770,9 +793,7 @@ class EnhancedMemoryLifecycleManager:
             return 0
 
     async def _coordinate_with_conversation_patterns(
-        self,
-        user_id: int,
-        conversation_history: List[dict]
+        self, user_id: int, conversation_history: List[dict]
     ) -> int:
         """Coordinate memory lifecycle with conversation patterns"""
 
@@ -783,7 +804,8 @@ class EnhancedMemoryLifecycleManager:
             if len(conversation_history) > 10:
                 # Long conversations might indicate complex topics - preserve related memories
                 recent_topics = self._extract_recent_conversation_topics(
-                    conversation_history[-10:])
+                    conversation_history[-10:]
+                )
 
                 for topic in recent_topics:
                     topic_memories = await self._get_memories_by_topic(user_id, topic)
@@ -793,7 +815,9 @@ class EnhancedMemoryLifecycleManager:
                         new_importance = min(10, current_importance + 0.3)
 
                         if new_importance != current_importance:
-                            await self._update_memory_importance(memory["id"], new_importance)
+                            await self._update_memory_importance(
+                                memory["id"], new_importance
+                            )
                             coordination_count += 1
 
             self.logger.info(
@@ -802,11 +826,12 @@ class EnhancedMemoryLifecycleManager:
             return coordination_count
 
         except Exception as e:
-            self.logger.error(
-                f"Error in conversation pattern coordination: {e}")
+            self.logger.error(f"Error in conversation pattern coordination: {e}")
             return 0
 
-    def _extract_recent_conversation_topics(self, recent_conversations: List[dict]) -> List[str]:
+    def _extract_recent_conversation_topics(
+        self, recent_conversations: List[dict]
+    ) -> List[str]:
         """Extract topics from recent conversations"""
 
         topics = set()
@@ -818,8 +843,12 @@ class EnhancedMemoryLifecycleManager:
             # Convert to string if it's not already
             if isinstance(content_raw, dict):
                 # If content is a dict, try to extract text from common fields
-                content = str(content_raw.get("text", content_raw.get(
-                    "message", content_raw.get("content", ""))))
+                content = str(
+                    content_raw.get(
+                        "text",
+                        content_raw.get("message", content_raw.get("content", "")),
+                    )
+                )
             else:
                 content = str(content_raw)
 
@@ -838,84 +867,107 @@ class EnhancedMemoryLifecycleManager:
         return list(topics)
 
     # Placeholder methods for database operations
-    async def _get_memories_for_aging(self, user_id: int, state_context: 'AgentState' = None) -> List[dict]:
+    async def _get_memories_for_aging(
+        self, user_id: int, state_context: "AgentState" = None
+    ) -> List[dict]:
         """Get memories that need aging"""
         # This would need to be implemented with actual database queries
         self.logger.warning(
-            "_get_memories_for_aging not implemented - returning empty list")
+            "_get_memories_for_aging not implemented - returning empty list"
+        )
         return []
 
-    async def _get_memories_for_consolidation(self, user_id: int, state_context: 'AgentState' = None) -> List[dict]:
+    async def _get_memories_for_consolidation(
+        self, user_id: int, state_context: "AgentState" = None
+    ) -> List[dict]:
         """Get memories for consolidation"""
         # This would need to be implemented with actual database queries
         self.logger.warning(
-            "_get_memories_for_consolidation not implemented - returning empty list")
+            "_get_memories_for_consolidation not implemented - returning empty list"
+        )
         return []
 
-    async def _get_memories_for_archiving(self, user_id: int, state_context: 'AgentState' = None) -> List[dict]:
+    async def _get_memories_for_archiving(
+        self, user_id: int, state_context: "AgentState" = None
+    ) -> List[dict]:
         """Get memories for archiving"""
         # This would need to be implemented with actual database queries
         self.logger.warning(
-            "_get_memories_for_archiving not implemented - returning empty list")
+            "_get_memories_for_archiving not implemented - returning empty list"
+        )
         return []
 
-    async def _apply_storage_compression(self, user_id: int, state_context: 'AgentState' = None) -> Dict[str, Any]:
+    async def _apply_storage_compression(
+        self, user_id: int, state_context: "AgentState" = None
+    ) -> Dict[str, Any]:
         """Apply storage compression"""
         # This would need to be implemented with actual compression logic
         self.logger.warning(
-            "_apply_storage_compression not implemented - returning placeholder")
+            "_apply_storage_compression not implemented - returning placeholder"
+        )
         return {"compressed": 0, "bytes_saved": 0}
 
     async def _optimize_database_indexes(self, user_id: int) -> Dict[str, Any]:
         """Optimize database indexes"""
         # This would need to be implemented with actual database optimization
         self.logger.warning(
-            "_optimize_database_indexes not implemented - returning placeholder")
+            "_optimize_database_indexes not implemented - returning placeholder"
+        )
         return {"optimized": 0}
 
     async def _cleanup_cache(self, user_id: int) -> Dict[str, Any]:
         """Clean up cache"""
         # This would need to be implemented with actual cache cleanup
-        self.logger.warning(
-            "_cleanup_cache not implemented - returning placeholder")
+        self.logger.warning("_cleanup_cache not implemented - returning placeholder")
         return {"cleaned": 0}
 
-    async def _get_memories_by_focus_areas(self, user_id: int, focus_areas: List[str]) -> List[dict]:
+    async def _get_memories_by_focus_areas(
+        self, user_id: int, focus_areas: List[str]
+    ) -> List[dict]:
         """Get memories by focus areas"""
         # This would need to be implemented with actual database queries
         self.logger.warning(
-            "_get_memories_by_focus_areas not implemented - returning empty list")
+            "_get_memories_by_focus_areas not implemented - returning empty list"
+        )
         return []
 
     async def _get_tool_related_memories(self, user_id: int) -> List[dict]:
         """Get tool-related memories"""
         # This would need to be implemented with actual database queries
         self.logger.warning(
-            "_get_tool_related_memories not implemented - returning empty list")
+            "_get_tool_related_memories not implemented - returning empty list"
+        )
         return []
 
     async def _get_memories_by_topic(self, user_id: int, topic: str) -> List[dict]:
         """Get memories by topic"""
         # This would need to be implemented with actual database queries
         self.logger.warning(
-            "_get_memories_by_topic not implemented - returning empty list")
+            "_get_memories_by_topic not implemented - returning empty list"
+        )
         return []
 
-    async def _archive_memory_with_state_context(self, memory_id: str, state_context: 'AgentState' = None) -> bool:
+    async def _archive_memory_with_state_context(
+        self, memory_id: str, state_context: "AgentState" = None
+    ) -> bool:
         """Archive memory with state context"""
         # This would need to be implemented with actual database updates
-        self.logger.info(
-            f"Would archive memory {memory_id} with state context")
+        self.logger.info(f"Would archive memory {memory_id} with state context")
         return True
 
-    async def _update_memory_importance(self, memory_id: str, new_importance: float) -> bool:
+    async def _update_memory_importance(
+        self, memory_id: str, new_importance: float
+    ) -> bool:
         """Update memory importance score"""
         # This would need to be implemented with actual database updates
         self.logger.info(
-            f"Would update memory {memory_id} importance to {new_importance}")
+            f"Would update memory {memory_id} importance to {new_importance}"
+        )
         return True
 
-    async def _mark_memories_for_deletion(self, user_id: int, memory_ids: List[str]) -> bool:
+    async def _mark_memories_for_deletion(
+        self, user_id: int, memory_ids: List[str]
+    ) -> bool:
         """Mark memories for deletion"""
         # This would need to be implemented with actual database updates
         self.logger.info(f"Would mark {len(memory_ids)} memories for deletion")
@@ -940,19 +992,19 @@ class EnhancedMemoryLifecycleManager:
             results = await self.manage_memory_lifecycle_with_state(user_id, None)
 
             self.logger.info(
-                f"Memory optimization completed for user {user_id}: {results}")
+                f"Memory optimization completed for user {user_id}: {results}"
+            )
             return results
 
         except Exception as e:
-            self.logger.error(
-                f"Error optimizing user memories for user {user_id}: {e}")
+            self.logger.error(f"Error optimizing user memories for user {user_id}: {e}")
             return {
                 "archived": 0,
                 "consolidated": 0,
                 "deleted": 0,
                 "updated": 0,
                 "state_integrated": 0,
-                "performance_metrics": {}
+                "performance_metrics": {},
             }
 
 
@@ -960,17 +1012,19 @@ class EnhancedMemoryLifecycleManager:
 # LEGACY CLASSES (Maintained for backward compatibility)
 # ============================================================================
 
+
 class MemoryLifecycleManager:
     """Legacy memory lifecycle manager (maintained for backward compatibility)"""
 
     def __init__(self, config: LTMConfig = None):
         self.config = config or LTMConfig()
-        self.enhanced_manager = EnhancedMemoryLifecycleManager(
-            EnhancedLTMConfig())
+        self.enhanced_manager = EnhancedMemoryLifecycleManager(EnhancedLTMConfig())
 
     async def manage_memory_lifecycle(self, user_id: int) -> dict:
         """Legacy method - delegates to enhanced manager"""
-        return await self.enhanced_manager.manage_memory_lifecycle_with_state(user_id, None)
+        return await self.enhanced_manager.manage_memory_lifecycle_with_state(
+            user_id, None
+        )
 
 
 class MemoryConsolidator:
@@ -978,12 +1032,13 @@ class MemoryConsolidator:
 
     def __init__(self, config: LTMConfig = None):
         self.config = config or LTMConfig()
-        self.enhanced_manager = EnhancedMemoryLifecycleManager(
-            EnhancedLTMConfig())
+        self.enhanced_manager = EnhancedMemoryLifecycleManager(EnhancedLTMConfig())
 
     async def consolidate_user_memories(self, user_id: int) -> List[dict]:
         """Legacy method - delegates to enhanced manager"""
-        return await self.enhanced_manager._consolidate_memories_with_state(user_id, None)
+        return await self.enhanced_manager._consolidate_memories_with_state(
+            user_id, None
+        )
 
     def _are_memories_similar(self, memory1: dict, memory2: dict) -> bool:
         """Legacy similarity check"""
@@ -1015,7 +1070,10 @@ class MemoryConsolidator:
 # CONVENIENCE FUNCTIONS
 # ============================================================================
 
-def get_enhanced_lifecycle_manager(config: EnhancedLTMConfig = None) -> EnhancedMemoryLifecycleManager:
+
+def get_enhanced_lifecycle_manager(
+    config: EnhancedLTMConfig = None,
+) -> EnhancedMemoryLifecycleManager:
     """Get enhanced memory lifecycle manager with configuration"""
     return EnhancedMemoryLifecycleManager(config)
 
@@ -1030,7 +1088,9 @@ def get_consolidator(config: LTMConfig = None) -> MemoryConsolidator:
     return MemoryConsolidator(config)
 
 
-def get_lifecycle_components(config: LTMConfig = None) -> tuple[MemoryLifecycleManager, MemoryConsolidator]:
+def get_lifecycle_components(
+    config: LTMConfig = None,
+) -> tuple[MemoryLifecycleManager, MemoryConsolidator]:
     """Get both legacy lifecycle manager and consolidator with shared configuration"""
     shared_config = config or LTMConfig()
     return MemoryLifecycleManager(shared_config), MemoryConsolidator(shared_config)

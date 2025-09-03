@@ -36,8 +36,15 @@ class DocumentProcessor:
             return None
 
         # Try multiple possible content keys in order of preference
-        content_keys = ["content", "document", "text",
-                        "body", "summary", "message", "description"]
+        content_keys = [
+            "content",
+            "document",
+            "text",
+            "body",
+            "summary",
+            "message",
+            "description",
+        ]
 
         for key in content_keys:
             if key in doc and doc[key] is not None:
@@ -48,15 +55,15 @@ class DocumentProcessor:
                     if content.strip():
                         return content.strip()
                     else:
-                        logger.debug(
-                            f"Content from key '{key}' is empty or whitespace")
+                        logger.debug(f"Content from key '{key}' is empty or whitespace")
                         continue
 
                 # Handle structured content by converting to string
                 elif isinstance(content, (list, dict)):
                     try:
                         serialized = json.dumps(
-                            content, default=str, ensure_ascii=False)
+                            content, default=str, ensure_ascii=False
+                        )
                         if serialized and serialized.strip():
                             # Truncate very long content to prevent memory issues
                             if len(serialized) > 500:
@@ -64,11 +71,13 @@ class DocumentProcessor:
                             return serialized.strip()
                         else:
                             logger.debug(
-                                f"Serialized content from key '{key}' is empty")
+                                f"Serialized content from key '{key}' is empty"
+                            )
                             continue
                     except Exception as e:
                         logger.warning(
-                            f"Failed to serialize structured content from key '{key}': {e}")
+                            f"Failed to serialize structured content from key '{key}': {e}"
+                        )
                         continue
 
                 # Handle numeric or boolean content
@@ -77,14 +86,22 @@ class DocumentProcessor:
 
                 else:
                     logger.debug(
-                        f"Unsupported content type from key '{key}': {type(content)}")
+                        f"Unsupported content type from key '{key}': {type(content)}"
+                    )
                     continue
 
         # Fallback: try to extract from any string values that might contain content
         for key, value in doc.items():
             if isinstance(value, str) and value.strip() and len(value.strip()) > 10:
                 # Avoid using metadata keys as content
-                if key.lower() not in ["id", "type", "source", "created_at", "updated_at", "user_id"]:
+                if key.lower() not in [
+                    "id",
+                    "type",
+                    "source",
+                    "created_at",
+                    "updated_at",
+                    "user_id",
+                ]:
                     logger.debug(f"Using fallback content from key '{key}'")
                     return value.strip()
             elif isinstance(value, (int, float, bool)):
@@ -92,7 +109,8 @@ class DocumentProcessor:
                 str_value = str(value)
                 if len(str_value) > 10:
                     logger.debug(
-                        f"Using fallback content from numeric/boolean key '{key}': {str_value}")
+                        f"Using fallback content from numeric/boolean key '{key}': {str_value}"
+                    )
                     return str_value
 
         logger.debug("No valid content found in document")

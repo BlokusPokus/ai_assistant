@@ -9,14 +9,12 @@ maintaining strict user isolation and supporting 10,000+ users efficiently.
 from .config import settings
 
 # Import services only when needed to avoid circular dependencies
-__all__ = [
-    "settings"
-]
+__all__ = ["settings"]
 
 __version__ = "1.0.0"
 __all__ = [
     "settings",
-    "SMSRoutingEngine", 
+    "SMSRoutingEngine",
     "UserIdentificationService",
-    "AgentIntegrationService"
+    "AgentIntegrationService",
 ]

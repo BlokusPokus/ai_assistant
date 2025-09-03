@@ -8,20 +8,21 @@ instead of JSON blobs, providing better performance, queryability, and maintaina
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any
-from sqlalchemy import select, and_, desc
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config.logging_config import get_logger
-from ..database.session import AsyncSessionLocal
-from ..types.state import AgentState, StateConfig
-from .state_optimization import StateOptimizationManager
-from ..rag.retriever import embed_and_index
+from ..database.models.conversation_message import ConversationMessage
 
 # Import the new models
 from ..database.models.conversation_state import ConversationState
-from ..database.models.conversation_message import ConversationMessage
 from ..database.models.memory_context_item import MemoryContextItem
+from ..database.session import AsyncSessionLocal
+from ..rag.retriever import embed_and_index
+from ..types.state import AgentState, StateConfig
+from .state_optimization import StateOptimizationManager
 
 logger = get_logger("normalized_storage")
 
@@ -35,15 +36,12 @@ def _get_state_optimization_manager() -> StateOptimizationManager:
     if _state_optimization_manager is None:
         config = StateConfig()
         _state_optimization_manager = StateOptimizationManager(config)
-        logger.info(
-            "🔧 State optimization manager initialized for normalized storage")
+        logger.info("🔧 State optimization manager initialized for normalized storage")
     return _state_optimization_manager
 
 
 async def save_state_normalized(
-    conversation_id: str,
-    state: AgentState,
-    user_id: int = None
+    conversation_id: str, state: AgentState, user_id: int = None
 ) -> None:
     """
     Save conversation state using the new normalized database schema.
@@ -68,11 +66,12 @@ async def save_state_normalized(
         raise ValueError("user_id is required for normalized storage")
 
     logger.info(
-        f"💾 Saving state using normalized schema for conversation: {conversation_id}")
+        f"💾 Saving state using normalized schema for conversation: {conversation_id}"
+    )
     logger.info(
-        f"💾 Original state has {len(state.conversation_history)} conversation items")
-    logger.info(
-        f"💾 Original memory context has {len(state.memory_context)} items")
+        f"💾 Original state has {len(state.conversation_history)} conversation items"
+    )
+    logger.info(f"💾 Original memory context has {len(state.memory_context)} items")
 
     try:
         # Step 1: Optimize state before saving (reuse existing optimization)
@@ -81,20 +80,27 @@ async def save_state_normalized(
 
         # Create a copy for optimization to avoid modifying the original
         import copy
+
         state_copy = copy.deepcopy(state)
-        optimized_state = await optimization_manager.optimize_state_for_saving(state_copy)
+        optimized_state = await optimization_manager.optimize_state_for_saving(
+            state_copy
+        )
 
         # Log optimization results
-        conv_reduction = len(state.conversation_history) - \
-            len(optimized_state.conversation_history)
-        context_reduction = len(state.memory_context) - \
-            len(optimized_state.memory_context)
+        conv_reduction = len(state.conversation_history) - len(
+            optimized_state.conversation_history
+        )
+        context_reduction = len(state.memory_context) - len(
+            optimized_state.memory_context
+        )
 
         logger.info(f"🔧 Optimization complete:")
         logger.info(
-            f"  Conversation history: {len(state.conversation_history)} → {len(optimized_state.conversation_history)} items ({conv_reduction:+d})")
+            f"  Conversation history: {len(state.conversation_history)} → {len(optimized_state.conversation_history)} items ({conv_reduction:+d})"
+        )
         logger.info(
-            f"  Memory context: {len(state.memory_context)} → {len(optimized_state.memory_context)} items ({context_reduction:+d})")
+            f"  Memory context: {len(state.memory_context)} → {len(optimized_state.memory_context)} items ({context_reduction:+d})"
+        )
 
         # Step 2: Save using normalized schema
         logger.info("💾 Saving optimized state using normalized schema...")
@@ -103,14 +109,16 @@ async def save_state_normalized(
             # Check if conversation already exists
             existing_state = await session.execute(
                 select(ConversationState).where(
-                    ConversationState.conversation_id == conversation_id)
+                    ConversationState.conversation_id == conversation_id
+                )
             )
             existing_state = existing_state.scalar_one_or_none()
 
             if existing_state:
                 # Update existing conversation state
                 logger.info(
-                    f"🔄 Updating existing conversation state: {conversation_id}")
+                    f"🔄 Updating existing conversation state: {conversation_id}"
+                )
                 existing_state.user_input = optimized_state.user_input
                 existing_state.focus_areas = optimized_state.focus
                 existing_state.step_count = optimized_state.step_count
@@ -119,8 +127,7 @@ async def save_state_normalized(
                 conversation_state = existing_state
             else:
                 # Create new conversation state
-                logger.info(
-                    f"🆕 Creating new conversation state: {conversation_id}")
+                logger.info(f"🆕 Creating new conversation state: {conversation_id}")
                 conversation_state = ConversationState.from_agent_state(
                     conversation_id, user_id, optimized_state
                 )
@@ -129,17 +136,20 @@ async def save_state_normalized(
 
             # Step 3: Save conversation messages
             logger.info(
-                f"💬 Saving {len(optimized_state.conversation_history)} conversation messages...")
+                f"💬 Saving {len(optimized_state.conversation_history)} conversation messages..."
+            )
 
             # Clear existing messages if updating
             if existing_state:
                 await session.execute(
                     select(ConversationMessage).where(
-                        ConversationMessage.conversation_id == conversation_id)
+                        ConversationMessage.conversation_id == conversation_id
+                    )
                 )
                 existing_messages = await session.execute(
                     select(ConversationMessage).where(
-                        ConversationMessage.conversation_id == conversation_id)
+                        ConversationMessage.conversation_id == conversation_id
+                    )
                 )
                 for msg in existing_messages.scalars():
                     await session.delete(msg)
@@ -147,18 +157,21 @@ async def save_state_normalized(
             # Save new messages
             for item in optimized_state.conversation_history:
                 message = ConversationMessage.from_conversation_item(
-                    conversation_id, item)
+                    conversation_id, item
+                )
                 session.add(message)
 
             # Step 4: Save memory context items
             logger.info(
-                f"🧠 Saving {len(optimized_state.memory_context)} memory context items...")
+                f"🧠 Saving {len(optimized_state.memory_context)} memory context items..."
+            )
 
             # Clear existing context items if updating
             if existing_state:
                 existing_context = await session.execute(
                     select(MemoryContextItem).where(
-                        MemoryContextItem.conversation_id == conversation_id)
+                        MemoryContextItem.conversation_id == conversation_id
+                    )
                 )
                 for ctx in existing_context.scalars():
                     await session.delete(ctx)
@@ -166,27 +179,30 @@ async def save_state_normalized(
             # Save new context items
             for item in optimized_state.memory_context:
                 context_item = MemoryContextItem.from_memory_context_item(
-                    conversation_id, item)
+                    conversation_id, item
+                )
                 session.add(context_item)
 
             # Step 5: Save focus areas as context items
             if optimized_state.focus:
-                logger.info(
-                    f"🎯 Saving {len(optimized_state.focus)} focus areas...")
+                logger.info(f"🎯 Saving {len(optimized_state.focus)} focus areas...")
                 for focus_area in optimized_state.focus:
                     focus_item = MemoryContextItem.from_focus_area(
-                        conversation_id, focus_area)
+                        conversation_id, focus_area
+                    )
                     session.add(focus_item)
 
             # Commit all changes
             await session.commit()
             logger.info(
-                f"✅ Successfully saved state using normalized schema for conversation {conversation_id}")
+                f"✅ Successfully saved state using normalized schema for conversation {conversation_id}"
+            )
 
             # Step 6: Generate RAG embeddings for the conversation state
             try:
                 logger.info(
-                    f"🧠 Generating RAG embeddings for conversation {conversation_id}")
+                    f"🧠 Generating RAG embeddings for conversation {conversation_id}"
+                )
 
                 # Create a summary for RAG indexing
                 rag_content = f"Conversation: {conversation_id}\nUser Input: {optimized_state.user_input}\nFocus Areas: {', '.join(optimized_state.focus) if optimized_state.focus else 'None'}"
@@ -198,14 +214,16 @@ async def save_state_normalized(
                         "conversation_id": conversation_id,
                         "type": "conversation_state",
                         "source": "normalized_storage",
-                        "storage_method": "normalized"
-                    }
+                        "storage_method": "normalized",
+                    },
                 )
                 logger.info(
-                    f"✅ RAG embeddings generated for conversation {conversation_id}")
+                    f"✅ RAG embeddings generated for conversation {conversation_id}"
+                )
             except Exception as e:
                 logger.warning(
-                    f"⚠️ Failed to generate RAG embeddings for conversation {conversation_id}: {e}")
+                    f"⚠️ Failed to generate RAG embeddings for conversation {conversation_id}: {e}"
+                )
                 # Continue without embeddings - system will still work
 
     except Exception as e:
@@ -218,7 +236,7 @@ async def load_state_normalized(
     user_id: int = None,
     max_messages: int = 50,
     max_context_items: int = 20,
-    min_relevance_score: float = 0.3
+    min_relevance_score: float = 0.3,
 ) -> Optional[AgentState]:
     """
     Load conversation state using the new normalized database schema.
@@ -240,7 +258,8 @@ async def load_state_normalized(
         AgentState object if found, None otherwise
     """
     logger.info(
-        f"📂 Loading state using normalized schema for conversation: {conversation_id}")
+        f"📂 Loading state using normalized schema for conversation: {conversation_id}"
+    )
 
     try:
         async with AsyncSessionLocal() as session:
@@ -248,24 +267,24 @@ async def load_state_normalized(
             logger.info("📋 Loading conversation state...")
             state_result = await session.execute(
                 select(ConversationState).where(
-                    ConversationState.conversation_id == conversation_id)
+                    ConversationState.conversation_id == conversation_id
+                )
             )
             conversation_state = state_result.scalar_one_or_none()
 
             if not conversation_state:
-                logger.warning(
-                    f"⚠️ No conversation state found for: {conversation_id}")
+                logger.warning(f"⚠️ No conversation state found for: {conversation_id}")
                 return None
 
             # Validate user_id if provided
             if user_id and conversation_state.user_id != user_id:
                 logger.warning(
-                    f"⚠️ User ID mismatch for conversation {conversation_id}")
+                    f"⚠️ User ID mismatch for conversation {conversation_id}"
+                )
                 return None
 
             # Step 2: Load conversation messages (most recent first)
-            logger.info(
-                f"💬 Loading up to {max_messages} conversation messages...")
+            logger.info(f"💬 Loading up to {max_messages} conversation messages...")
             messages_result = await session.execute(
                 select(ConversationMessage)
                 .where(ConversationMessage.conversation_id == conversation_id)
@@ -278,31 +297,35 @@ async def load_state_normalized(
             conversation_history = []
             for msg in reversed(messages):  # Reverse to get chronological order
                 history_item = {
-                    'role': msg.role,
-                    'content': msg.content,
-                    'timestamp': msg.timestamp.isoformat() if msg.timestamp else None
+                    "role": msg.role,
+                    "content": msg.content,
+                    "timestamp": msg.timestamp.isoformat() if msg.timestamp else None,
                 }
 
                 # Add tool-specific information if available
                 if msg.tool_name:
-                    history_item['tool_name'] = msg.tool_name
+                    history_item["tool_name"] = msg.tool_name
                 if msg.tool_success:
-                    history_item['tool_success'] = msg.tool_success
+                    history_item["tool_success"] = msg.tool_success
                 if msg.additional_data:
-                    history_item.update(json.loads(msg.additional_data) if isinstance(
-                        msg.additional_data, str) else msg.additional_data)
+                    history_item.update(
+                        json.loads(msg.additional_data)
+                        if isinstance(msg.additional_data, str)
+                        else msg.additional_data
+                    )
 
                 conversation_history.append(history_item)
 
             # Step 3: Load memory context items (highest relevance first)
             logger.info(
-                f"🧠 Loading up to {max_context_items} context items with relevance >= {min_relevance_score}...")
+                f"🧠 Loading up to {max_context_items} context items with relevance >= {min_relevance_score}..."
+            )
             context_result = await session.execute(
                 select(MemoryContextItem)
                 .where(
                     and_(
                         MemoryContextItem.conversation_id == conversation_id,
-                        MemoryContextItem.relevance_score >= min_relevance_score
+                        MemoryContextItem.relevance_score >= min_relevance_score,
                     )
                 )
                 .order_by(desc(MemoryContextItem.relevance_score))
@@ -314,27 +337,31 @@ async def load_state_normalized(
             memory_context = []
             for ctx in context_items:
                 context_item = {
-                    'content': ctx.content,
-                    'source': ctx.source,
-                    'relevance_score': ctx.relevance_score,
-                    'context_type': ctx.context_type
+                    "content": ctx.content,
+                    "source": ctx.source,
+                    "relevance_score": ctx.relevance_score,
+                    "context_type": ctx.context_type,
                 }
 
                 # Add optional fields if available
                 if ctx.original_role:
-                    context_item['role'] = ctx.original_role
+                    context_item["role"] = ctx.original_role
                 if ctx.focus_area:
-                    context_item['focus_area'] = ctx.focus_area
+                    context_item["focus_area"] = ctx.focus_area
                 if ctx.preference_type:
-                    context_item['preference_type'] = ctx.preference_type
+                    context_item["preference_type"] = ctx.preference_type
                 if ctx.additional_data:
                     try:
-                        metadata = json.loads(ctx.additional_data) if isinstance(
-                            ctx.additional_data, str) else ctx.additional_data
+                        metadata = (
+                            json.loads(ctx.additional_data)
+                            if isinstance(ctx.additional_data, str)
+                            else ctx.additional_data
+                        )
                         context_item.update(metadata)
                     except json.JSONDecodeError:
                         logger.warning(
-                            f"⚠️ Failed to parse metadata for context item {ctx.id}")
+                            f"⚠️ Failed to parse metadata for context item {ctx.id}"
+                        )
 
                 memory_context.append(context_item)
 
@@ -358,11 +385,10 @@ async def load_state_normalized(
                 conversation_history=conversation_history,
                 focus=focus_areas,
                 step_count=conversation_state.step_count or 0,
-                last_tool_result=conversation_state.last_tool_result
+                last_tool_result=conversation_state.last_tool_result,
             )
 
-            logger.info(
-                f"✅ Successfully loaded state using normalized schema:")
+            logger.info(f"✅ Successfully loaded state using normalized schema:")
             logger.info(f"  Messages loaded: {len(conversation_history)}")
             logger.info(f"  Context items loaded: {len(memory_context)}")
             logger.info(f"  Focus areas: {focus_areas}")
@@ -375,9 +401,7 @@ async def load_state_normalized(
 
 
 async def update_state_partial(
-    conversation_id: str,
-    updates: Dict[str, Any],
-    user_id: int = None
+    conversation_id: str, updates: Dict[str, Any], user_id: int = None
 ) -> bool:
     """
     Update specific parts of a conversation state using normalized schema.
@@ -396,81 +420,83 @@ async def update_state_partial(
     Returns:
         True if update successful, False otherwise
     """
-    logger.info(
-        f"🔄 Updating state partially for conversation: {conversation_id}")
+    logger.info(f"🔄 Updating state partially for conversation: {conversation_id}")
 
     try:
         async with AsyncSessionLocal() as session:
             # Verify conversation exists and user has access
             state_result = await session.execute(
                 select(ConversationState).where(
-                    ConversationState.conversation_id == conversation_id)
+                    ConversationState.conversation_id == conversation_id
+                )
             )
             conversation_state = state_result.scalar_one_or_none()
 
             if not conversation_state:
-                logger.warning(
-                    f"⚠️ No conversation state found for: {conversation_id}")
+                logger.warning(f"⚠️ No conversation state found for: {conversation_id}")
                 return False
 
             if user_id and conversation_state.user_id != user_id:
                 logger.warning(
-                    f"⚠️ User ID mismatch for conversation {conversation_id}")
+                    f"⚠️ User ID mismatch for conversation {conversation_id}"
+                )
                 return False
 
             # Update conversation state fields
             updated = False
-            if 'user_input' in updates:
-                conversation_state.user_input = updates['user_input']
+            if "user_input" in updates:
+                conversation_state.user_input = updates["user_input"]
                 updated = True
 
-            if 'focus_areas' in updates:
-                conversation_state.focus_areas = updates['focus_areas']
+            if "focus_areas" in updates:
+                conversation_state.focus_areas = updates["focus_areas"]
                 updated = True
 
-            if 'step_count' in updates:
-                conversation_state.step_count = updates['step_count']
+            if "step_count" in updates:
+                conversation_state.step_count = updates["step_count"]
                 updated = True
 
-            if 'last_tool_result' in updates:
-                conversation_state.last_tool_result = updates['last_tool_result']
+            if "last_tool_result" in updates:
+                conversation_state.last_tool_result = updates["last_tool_result"]
                 updated = True
 
             if updated:
                 conversation_state.updated_at = datetime.now(timezone.utc)
                 logger.info(
-                    f"✅ Updated conversation state fields for {conversation_id}")
+                    f"✅ Updated conversation state fields for {conversation_id}"
+                )
 
             # Add new messages if provided
-            if 'new_messages' in updates:
-                new_messages = updates['new_messages']
+            if "new_messages" in updates:
+                new_messages = updates["new_messages"]
                 logger.info(f"💬 Adding {len(new_messages)} new messages...")
 
                 for message_data in new_messages:
                     message = ConversationMessage.from_conversation_item(
-                        conversation_id, message_data)
+                        conversation_id, message_data
+                    )
                     session.add(message)
 
                 logger.info(f"✅ Added {len(new_messages)} new messages")
 
             # Add new context items if provided
-            if 'new_context_items' in updates:
-                new_context_items = updates['new_context_items']
-                logger.info(
-                    f"🧠 Adding {len(new_context_items)} new context items...")
+            if "new_context_items" in updates:
+                new_context_items = updates["new_context_items"]
+                logger.info(f"🧠 Adding {len(new_context_items)} new context items...")
 
                 for context_data in new_context_items:
                     context_item = MemoryContextItem.from_memory_context_item(
-                        conversation_id, context_data)
+                        conversation_id, context_data
+                    )
                     session.add(context_item)
 
-                logger.info(
-                    f"✅ Added {len(new_context_items)} new context items")
+                logger.info(f"✅ Added {len(new_context_items)} new context items")
 
             # Commit changes
             await session.commit()
             logger.info(
-                f"✅ Successfully updated state partially for conversation {conversation_id}")
+                f"✅ Successfully updated state partially for conversation {conversation_id}"
+            )
             return True
 
     except Exception as e:
@@ -478,7 +504,9 @@ async def update_state_partial(
         return False
 
 
-async def delete_conversation_normalized(conversation_id: str, user_id: int = None) -> bool:
+async def delete_conversation_normalized(
+    conversation_id: str, user_id: int = None
+) -> bool:
     """
     Delete a conversation and all related data using normalized schema.
 
@@ -495,26 +523,26 @@ async def delete_conversation_normalized(conversation_id: str, user_id: int = No
     Returns:
         True if deletion successful, False otherwise
     """
-    logger.info(
-        f"🗑️ Deleting conversation using normalized schema: {conversation_id}")
+    logger.info(f"🗑️ Deleting conversation using normalized schema: {conversation_id}")
 
     try:
         async with AsyncSessionLocal() as session:
             # Verify conversation exists and user has access
             state_result = await session.execute(
                 select(ConversationState).where(
-                    ConversationState.conversation_id == conversation_id)
+                    ConversationState.conversation_id == conversation_id
+                )
             )
             conversation_state = state_result.scalar_one_or_none()
 
             if not conversation_state:
-                logger.warning(
-                    f"⚠️ No conversation state found for: {conversation_id}")
+                logger.warning(f"⚠️ No conversation state found for: {conversation_id}")
                 return False
 
             if user_id and conversation_state.user_id != user_id:
                 logger.warning(
-                    f"⚠️ User ID mismatch for conversation {conversation_id}")
+                    f"⚠️ User ID mismatch for conversation {conversation_id}"
+                )
                 return False
 
             # Delete conversation state (CASCADE will handle related records)
@@ -522,7 +550,8 @@ async def delete_conversation_normalized(conversation_id: str, user_id: int = No
             await session.commit()
 
             logger.info(
-                f"✅ Successfully deleted conversation {conversation_id} and all related data")
+                f"✅ Successfully deleted conversation {conversation_id} and all related data"
+            )
             return True
 
     except Exception as e:

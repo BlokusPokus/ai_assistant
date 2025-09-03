@@ -6,7 +6,7 @@ memory blocks to fit within specified constraints. These utilities are used
 by the agent runner and other memory components to ensure efficient memory usage.
 """
 
-from typing import List, Dict
+from typing import Dict, List
 
 from sqlalchemy import select
 
@@ -22,8 +22,7 @@ def apply_context_limits(memory_blocks: List[dict], max_length: int) -> None:
         max_length: Maximum total content length allowed
     """
     # Limit total context size
-    total_content_length = sum(len(block.get("content", ""))
-                               for block in memory_blocks)
+    total_content_length = sum(len(block.get("content", "")) for block in memory_blocks)
 
     if total_content_length > max_length:
         # Truncate content to fit within limits
@@ -53,11 +52,9 @@ def truncate_context_blocks(memory_blocks: List[dict], max_length: int) -> None:
             remaining_length = max_length - current_length
             if remaining_length > 100:  # Only keep if we can keep meaningful content
                 truncated_content = content[:remaining_length] + "..."
-                truncated_blocks.append({
-                    **block,
-                    "content": truncated_content,
-                    "truncated": True
-                })
+                truncated_blocks.append(
+                    {**block, "content": truncated_content, "truncated": True}
+                )
             break
 
     # Replace the original list with truncated blocks

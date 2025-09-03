@@ -6,11 +6,12 @@ Provides request correlation tracking across all services and components.
 """
 
 import uuid
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
-from ..logging import set_correlation_id, get_correlation_id
+from ..logging import get_correlation_id, set_correlation_id
 
 
 class CorrelationIDMiddleware(BaseHTTPMiddleware):
@@ -78,4 +79,4 @@ def get_request_correlation_id(request: Request) -> str:
     Returns:
         Correlation ID for the request
     """
-    return getattr(request.state, 'correlation_id', get_correlation_id() or 'unknown')
+    return getattr(request.state, "correlation_id", get_correlation_id() or "unknown")

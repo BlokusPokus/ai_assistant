@@ -7,14 +7,15 @@ including CRUD operations, preferences management, and data validation.
 
 import logging
 from datetime import datetime
-from typing import Optional, Dict, Any, List
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, func
-from sqlalchemy.exc import IntegrityError
+from typing import Any, Dict, List, Optional
 
-from personal_assistant.database.models.users import User
-from personal_assistant.database.models.user_settings import UserSetting
+from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from personal_assistant.auth.password_service import password_service
+from personal_assistant.database.models.user_settings import UserSetting
+from personal_assistant.database.models.users import User
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +37,7 @@ class UserService:
             User object if found, None otherwise
         """
         try:
-            result = await self.db.execute(
-                select(User).where(User.id == user_id)
-            )
+            result = await self.db.execute(select(User).where(User.id == user_id))
             return result.scalar_one_or_none()
         except Exception as e:
             logger.error(f"Error retrieving user {user_id}: {e}")
@@ -55,9 +54,7 @@ class UserService:
             User object if found, None otherwise
         """
         try:
-            result = await self.db.execute(
-                select(User).where(User.email == email)
-            )
+            result = await self.db.execute(select(User).where(User.email == email))
             return result.scalar_one_or_none()
         except Exception as e:
             logger.error(f"Error retrieving user by email {email}: {e}")
@@ -79,11 +76,12 @@ class UserService:
             )
             return result.scalar_one_or_none()
         except Exception as e:
-            logger.error(
-                f"Error retrieving user by phone number {phone_number}: {e}")
+            logger.error(f"Error retrieving user by phone number {phone_number}: {e}")
             return None
 
-    async def list_users(self, skip: int = 0, limit: int = 100) -> tuple[List[User], int]:
+    async def list_users(
+        self, skip: int = 0, limit: int = 100
+    ) -> tuple[List[User], int]:
         """
         List users with pagination.
 
@@ -96,17 +94,12 @@ class UserService:
         """
         try:
             # Get total count
-            count_result = await self.db.execute(
-                select(func.count(User.id))
-            )
+            count_result = await self.db.execute(select(func.count(User.id)))
             total = count_result.scalar()
 
             # Get users with pagination
             result = await self.db.execute(
-                select(User)
-                .offset(skip)
-                .limit(limit)
-                .order_by(User.created_at.desc())
+                select(User).offset(skip).limit(limit).order_by(User.created_at.desc())
             )
             users = result.scalars().all()
 
@@ -115,7 +108,9 @@ class UserService:
             logger.error(f"Error listing users: {e}")
             return [], 0
 
-    async def update_user(self, user_id: int, user_data: Dict[str, Any]) -> Optional[User]:
+    async def update_user(
+        self, user_id: int, user_data: Dict[str, Any]
+    ) -> Optional[User]:
         """
         Update user profile.
 
@@ -131,18 +126,15 @@ class UserService:
             update_data = {k: v for k, v in user_data.items() if v is not None}
 
             if not update_data:
-                logger.warning(
-                    f"No valid data provided for user {user_id} update")
+                logger.warning(f"No valid data provided for user {user_id} update")
                 return await self.get_user_by_id(user_id)
 
             # Add updated timestamp
-            update_data['updated_at'] = datetime.utcnow()
+            update_data["updated_at"] = datetime.utcnow()
 
             # Update user
             await self.db.execute(
-                update(User)
-                .where(User.id == user_id)
-                .values(**update_data)
+                update(User).where(User.id == user_id).values(**update_data)
             )
             await self.db.commit()
 
@@ -169,20 +161,16 @@ class UserService:
             True if successful, False otherwise
         """
         try:
-            update_data = {
-                'is_active': False,
-                'updated_at': datetime.utcnow()
-            }
+            update_data = {"is_active": False, "updated_at": datetime.utcnow()}
 
             await self.db.execute(
-                update(User)
-                .where(User.id == user_id)
-                .values(**update_data)
+                update(User).where(User.id == user_id).values(**update_data)
             )
             await self.db.commit()
 
             logger.info(
-                f"User {user_id} deactivated. Reason: {reason or 'No reason provided'}")
+                f"User {user_id} deactivated. Reason: {reason or 'No reason provided'}"
+            )
             return True
         except Exception as e:
             await self.db.rollback()
@@ -201,10 +189,9 @@ class UserService:
         """
         try:
             result = await self.db.execute(
-                select(UserSetting)
-                .where(
+                select(UserSetting).where(
                     UserSetting.user_id == user_id,
-                    UserSetting.category == 'preferences'
+                    UserSetting.category == "preferences",
                 )
             )
             settings = result.scalars().all()
@@ -215,8 +202,7 @@ class UserService:
 
             return preferences
         except Exception as e:
-            logger.error(
-                f"Error retrieving preferences for user {user_id}: {e}")
+            logger.error(f"Error retrieving preferences for user {user_id}: {e}")
             return {}
 
     async def get_user_settings(self, user_id: int) -> Dict[str, Any]:
@@ -231,10 +217,8 @@ class UserService:
         """
         try:
             result = await self.db.execute(
-                select(UserSetting)
-                .where(
-                    UserSetting.user_id == user_id,
-                    UserSetting.category == 'settings'
+                select(UserSetting).where(
+                    UserSetting.user_id == user_id, UserSetting.category == "settings"
                 )
             )
             settings = result.scalars().all()
@@ -248,7 +232,9 @@ class UserService:
             logger.error(f"Error retrieving settings for user {user_id}: {e}")
             return {}
 
-    async def update_user_preferences(self, user_id: int, preferences: Dict[str, Any]) -> bool:
+    async def update_user_preferences(
+        self, user_id: int, preferences: Dict[str, Any]
+    ) -> bool:
         """
         Update user preferences.
 
@@ -263,11 +249,10 @@ class UserService:
             for key, value in preferences.items():
                 # Check if setting exists
                 existing_setting = await self.db.execute(
-                    select(UserSetting)
-                    .where(
+                    select(UserSetting).where(
                         UserSetting.user_id == user_id,
                         UserSetting.key == key,
-                        UserSetting.category == 'preferences'
+                        UserSetting.category == "preferences",
                     )
                 )
                 existing_setting = existing_setting.scalar_one_or_none()
@@ -279,12 +264,9 @@ class UserService:
                         .where(
                             UserSetting.user_id == user_id,
                             UserSetting.key == key,
-                            UserSetting.category == 'preferences'
+                            UserSetting.category == "preferences",
                         )
-                        .values(
-                            value=str(value),
-                            updated_at=datetime.utcnow()
-                        )
+                        .values(value=str(value), updated_at=datetime.utcnow())
                     )
                 else:
                     # Create new setting
@@ -292,10 +274,10 @@ class UserService:
                         user_id=user_id,
                         key=key,
                         value=str(value),
-                        category='preferences',
-                        setting_type='string',
+                        category="preferences",
+                        setting_type="string",
                         created_at=datetime.utcnow(),
-                        updated_at=datetime.utcnow()
+                        updated_at=datetime.utcnow(),
                     )
                     self.db.add(new_setting)
 
@@ -307,7 +289,9 @@ class UserService:
             logger.error(f"Error updating preferences for user {user_id}: {e}")
             return False
 
-    async def update_user_settings(self, user_id: int, settings: Dict[str, Any]) -> bool:
+    async def update_user_settings(
+        self, user_id: int, settings: Dict[str, Any]
+    ) -> bool:
         """
         Update user settings.
 
@@ -322,11 +306,10 @@ class UserService:
             for key, value in settings.items():
                 # Check if setting exists
                 existing_setting = await self.db.execute(
-                    select(UserSetting)
-                    .where(
+                    select(UserSetting).where(
                         UserSetting.user_id == user_id,
                         UserSetting.key == key,
-                        UserSetting.category == 'settings'
+                        UserSetting.category == "settings",
                     )
                 )
                 existing_setting = existing_setting.scalar_one_or_none()
@@ -338,12 +321,9 @@ class UserService:
                         .where(
                             UserSetting.user_id == user_id,
                             UserSetting.key == key,
-                            UserSetting.category == 'settings'
+                            UserSetting.category == "settings",
                         )
-                        .values(
-                            value=str(value),
-                            updated_at=datetime.utcnow()
-                        )
+                        .values(value=str(value), updated_at=datetime.utcnow())
                     )
                 else:
                     # Create new setting
@@ -351,10 +331,10 @@ class UserService:
                         user_id=user_id,
                         key=key,
                         value=str(value),
-                        category='settings',
-                        setting_type='string',
+                        category="settings",
+                        setting_type="string",
                         created_at=datetime.utcnow(),
-                        updated_at=datetime.utcnow()
+                        updated_at=datetime.utcnow(),
                     )
                     self.db.add(new_setting)
 
@@ -378,19 +358,18 @@ class UserService:
         """
         try:
             # Hash password
-            hashed_password = password_service.hash_password(
-                user_data['password'])
+            hashed_password = password_service.hash_password(user_data["password"])
 
             # Create user object
             new_user = User(
-                email=user_data['email'],
-                phone_number=user_data.get('phone_number'),
-                full_name=user_data['full_name'],
+                email=user_data["email"],
+                phone_number=user_data.get("phone_number"),
+                full_name=user_data["full_name"],
                 hashed_password=hashed_password,
-                is_active=user_data.get('is_active', True),
-                is_verified=user_data.get('is_verified', False),
+                is_active=user_data.get("is_active", True),
+                is_verified=user_data.get("is_verified", False),
                 created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                updated_at=datetime.utcnow(),
             )
 
             self.db.add(new_user)
@@ -429,29 +408,26 @@ class UserService:
 
             # Get preferences and settings counts
             prefs_result = await self.db.execute(
-                select(func.count(UserSetting.id))
-                .where(
+                select(func.count(UserSetting.id)).where(
                     UserSetting.user_id == user_id,
-                    UserSetting.category == 'preferences'
+                    UserSetting.category == "preferences",
                 )
             )
             prefs_count = prefs_result.scalar() or 0
 
             settings_result = await self.db.execute(
-                select(func.count(UserSetting.id))
-                .where(
-                    UserSetting.user_id == user_id,
-                    UserSetting.category == 'settings'
+                select(func.count(UserSetting.id)).where(
+                    UserSetting.user_id == user_id, UserSetting.category == "settings"
                 )
             )
             settings_count = settings_result.scalar() or 0
 
             return {
-                'user_id': user_id,
-                'preferences_count': prefs_count,
-                'settings_count': settings_count,
-                'account_age_days': (datetime.utcnow() - user.created_at).days,
-                'last_activity': user.last_login or user.updated_at
+                "user_id": user_id,
+                "preferences_count": prefs_count,
+                "settings_count": settings_count,
+                "account_age_days": (datetime.utcnow() - user.created_at).days,
+                "last_activity": user.last_login or user.updated_at,
             }
         except Exception as e:
             logger.error(f"Error getting stats for user {user_id}: {e}")

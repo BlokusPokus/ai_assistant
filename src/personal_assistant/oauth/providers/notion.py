@@ -6,8 +6,10 @@ accessing and managing Notion workspaces and pages.
 """
 
 import urllib.parse
+from typing import Any, Dict, List
+
 import requests
-from typing import Dict, List, Any
+
 from .base import BaseOAuthProvider
 
 
@@ -34,12 +36,7 @@ class NotionOAuthProvider(BaseOAuthProvider):
     def userinfo_url(self) -> str:
         return "https://api.notion.com/v1/users/me"
 
-    def get_authorization_url(
-        self,
-        state: str,
-        scopes: List[str],
-        **kwargs
-    ) -> str:
+    def get_authorization_url(self, state: str, scopes: List[str], **kwargs) -> str:
         """
         Generate Notion OAuth authorization URL.
 
@@ -68,9 +65,7 @@ class NotionOAuthProvider(BaseOAuthProvider):
         return f"{self.authorization_url}?{query_string}"
 
     def exchange_code_for_tokens(
-        self,
-        authorization_code: str,
-        **kwargs
+        self, authorization_code: str, **kwargs
     ) -> Dict[str, Any]:
         """
         Exchange authorization code for Notion OAuth tokens.
@@ -96,12 +91,13 @@ class NotionOAuthProvider(BaseOAuthProvider):
                 data=data,
                 auth=(self.client_id, self.client_secret),
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
-                timeout=30
+                timeout=30,
             )
 
             if response.status_code != 200:
                 raise Exception(
-                    f"Notion OAuth token exchange failed: {response.status_code} - {response.text}")
+                    f"Notion OAuth token exchange failed: {response.status_code} - {response.text}"
+                )
 
             # Parse the response
             token_data = response.json()
@@ -124,21 +120,18 @@ class NotionOAuthProvider(BaseOAuthProvider):
                 "workspace_icon": token_data.get("workspace_icon"),
                 "bot_id": token_data.get("bot_id"),
                 "provider_user_id": user_info.get("id"),
-                "provider_email": user_info.get("person", {}).get("email") if user_info.get("person") else None,
+                "provider_email": user_info.get("person", {}).get("email")
+                if user_info.get("person")
+                else None,
                 "provider_name": user_info.get("name"),
                 # Include the full response for debugging
-                "raw_response": token_data
+                "raw_response": token_data,
             }
 
         except Exception as e:
-            raise Exception(
-                f"Failed to exchange authorization code for tokens: {e}")
+            raise Exception(f"Failed to exchange authorization code for tokens: {e}")
 
-    def refresh_access_token(
-        self,
-        refresh_token: str,
-        **kwargs
-    ) -> Dict[str, Any]:
+    def refresh_access_token(self, refresh_token: str, **kwargs) -> Dict[str, Any]:
         """
         Refresh Notion OAuth access token.
 
@@ -162,12 +155,13 @@ class NotionOAuthProvider(BaseOAuthProvider):
                 data=data,
                 auth=(self.client_id, self.client_secret),
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
-                timeout=30
+                timeout=30,
             )
 
             if response.status_code != 200:
                 raise Exception(
-                    f"Notion OAuth token refresh failed: {response.status_code} - {response.text}")
+                    f"Notion OAuth token refresh failed: {response.status_code} - {response.text}"
+                )
 
             # Parse the response
             token_data = response.json()
@@ -184,11 +178,7 @@ class NotionOAuthProvider(BaseOAuthProvider):
         except Exception as e:
             raise Exception(f"Failed to refresh access token: {e}")
 
-    def get_user_info(
-        self,
-        access_token: str,
-        **kwargs
-    ) -> Dict[str, Any]:
+    def get_user_info(self, access_token: str, **kwargs) -> Dict[str, Any]:
         """
         Get Notion user information.
 
@@ -205,25 +195,22 @@ class NotionOAuthProvider(BaseOAuthProvider):
                 self.userinfo_url,
                 headers={
                     "Authorization": f"Bearer {access_token}",
-                    "Notion-Version": "2022-06-28"
+                    "Notion-Version": "2022-06-28",
                 },
-                timeout=30
+                timeout=30,
             )
 
             if response.status_code != 200:
                 raise Exception(
-                    f"Failed to get user info: {response.status_code} - {response.text}")
+                    f"Failed to get user info: {response.status_code} - {response.text}"
+                )
 
             return response.json()
 
         except Exception as e:
             raise Exception(f"Failed to get user info: {e}")
 
-    def validate_token(
-        self,
-        access_token: str,
-        **kwargs
-    ) -> bool:
+    def validate_token(self, access_token: str, **kwargs) -> bool:
         """
         Validate Notion OAuth access token.
 
@@ -284,10 +271,7 @@ class NotionOAuthProvider(BaseOAuthProvider):
         ]
 
     def revoke_token(
-        self,
-        token: str,
-        token_type: str = "access_token",
-        **kwargs
+        self, token: str, token_type: str = "access_token", **kwargs
     ) -> bool:
         """
         Revoke Notion OAuth token.

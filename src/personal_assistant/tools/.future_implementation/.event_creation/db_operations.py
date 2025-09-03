@@ -43,7 +43,9 @@ class EventDatabaseOperations:
             logger.error(f"Error getting events for user {user_id}: {e}")
             return []
 
-    async def get_upcoming_events(self, user_id: int, hours_ahead: int = 24) -> List[Event]:
+    async def get_upcoming_events(
+        self, user_id: int, hours_ahead: int = 24
+    ) -> List[Event]:
         """Get upcoming events for a user."""
         try:
             now = datetime.now()
@@ -55,15 +57,14 @@ class EventDatabaseOperations:
                     and_(
                         Event.user_id == user_id,
                         Event.start_time >= now,
-                        Event.start_time <= end_time
+                        Event.start_time <= end_time,
                     )
                 )
                 .order_by(Event.start_time.asc())
             )
             return result.scalars().all()
         except Exception as e:
-            logger.error(
-                f"Error getting upcoming events for user {user_id}: {e}")
+            logger.error(f"Error getting upcoming events for user {user_id}: {e}")
             return []
 
     async def get_recurring_events(self, user_id: int) -> List[Event]:
@@ -71,18 +72,12 @@ class EventDatabaseOperations:
         try:
             result = await self.db_session.execute(
                 select(Event)
-                .where(
-                    and_(
-                        Event.user_id == user_id,
-                        Event.is_recurring == True
-                    )
-                )
+                .where(and_(Event.user_id == user_id, Event.is_recurring == True))
                 .order_by(Event.start_time.asc())
             )
             return result.scalars().all()
         except Exception as e:
-            logger.error(
-                f"Error getting recurring events for user {user_id}: {e}")
+            logger.error(f"Error getting recurring events for user {user_id}: {e}")
             return []
 
     async def get_event_instances(self, parent_event_id: int) -> List[Event]:
@@ -96,7 +91,8 @@ class EventDatabaseOperations:
             return result.scalars().all()
         except Exception as e:
             logger.error(
-                f"Error getting event instances for parent {parent_event_id}: {e}")
+                f"Error getting event instances for parent {parent_event_id}: {e}"
+            )
             return []
 
     async def delete_event(self, event_id: int, user_id: int) -> bool:
@@ -115,7 +111,9 @@ class EventDatabaseOperations:
 
                 # Delete the recurrence pattern
                 if event.recurrence_pattern_id:
-                    pattern = await self.db_session.get(RecurrencePattern, event.recurrence_pattern_id)
+                    pattern = await self.db_session.get(
+                        RecurrencePattern, event.recurrence_pattern_id
+                    )
                     if pattern:
                         await self.db_session.delete(pattern)
 
@@ -128,7 +126,9 @@ class EventDatabaseOperations:
             await self.db_session.rollback()
             return False
 
-    async def update_event(self, event_id: int, user_id: int, updates: Dict[str, Any]) -> bool:
+    async def update_event(
+        self, event_id: int, user_id: int, updates: Dict[str, Any]
+    ) -> bool:
         """Update an event."""
         try:
             event = await self.get_event_by_id(event_id)
@@ -136,7 +136,7 @@ class EventDatabaseOperations:
                 return False
 
             # Update allowed fields
-            allowed_fields = ['title', 'description', 'start_time', 'end_time']
+            allowed_fields = ["title", "description", "start_time", "end_time"]
             for field, value in updates.items():
                 if field in allowed_fields and hasattr(event, field):
                     setattr(event, field, value)
@@ -160,8 +160,8 @@ class EventDatabaseOperations:
                         Event.user_id == user_id,
                         or_(
                             Event.title.ilike(search_term),
-                            Event.description.ilike(search_term)
-                        )
+                            Event.description.ilike(search_term),
+                        ),
                     )
                 )
                 .order_by(Event.start_time.desc())
@@ -171,7 +171,9 @@ class EventDatabaseOperations:
             logger.error(f"Error searching events for user {user_id}: {e}")
             return []
 
-    async def get_creation_logs(self, user_id: int, limit: int = 20) -> List[EventCreationLog]:
+    async def get_creation_logs(
+        self, user_id: int, limit: int = 20
+    ) -> List[EventCreationLog]:
         """Get event creation logs for a user."""
         try:
             result = await self.db_session.execute(
@@ -182,18 +184,23 @@ class EventDatabaseOperations:
             )
             return result.scalars().all()
         except Exception as e:
-            logger.error(
-                f"Error getting creation logs for user {user_id}: {e}")
+            logger.error(f"Error getting creation logs for user {user_id}: {e}")
             return []
 
-    async def check_event_conflicts(self, user_id: int, start_time: datetime, end_time: datetime, exclude_event_id: Optional[int] = None) -> List[Event]:
+    async def check_event_conflicts(
+        self,
+        user_id: int,
+        start_time: datetime,
+        end_time: datetime,
+        exclude_event_id: Optional[int] = None,
+    ) -> List[Event]:
         """Check for conflicting events."""
         try:
             query = select(Event).where(
                 and_(
                     Event.user_id == user_id,
                     Event.start_time < end_time,
-                    Event.end_time > start_time
+                    Event.end_time > start_time,
                 )
             )
 
@@ -204,8 +211,7 @@ class EventDatabaseOperations:
             return result.scalars().all()
 
         except Exception as e:
-            logger.error(
-                f"Error checking event conflicts for user {user_id}: {e}")
+            logger.error(f"Error checking event conflicts for user {user_id}: {e}")
             return []
 
     async def get_event_statistics(self, user_id: int) -> Dict[str, Any]:
@@ -220,10 +226,7 @@ class EventDatabaseOperations:
             # Get recurring events
             recurring_result = await self.db_session.execute(
                 select(Event).where(
-                    and_(
-                        Event.user_id == user_id,
-                        Event.is_recurring == True
-                    )
+                    and_(Event.user_id == user_id, Event.is_recurring == True)
                 )
             )
             recurring_events = len(recurring_result.scalars().all())
@@ -234,18 +237,17 @@ class EventDatabaseOperations:
             upcoming_count = len(upcoming_events)
 
             return {
-                'total_events': total_events,
-                'recurring_events': recurring_events,
-                'upcoming_events': upcoming_count,
-                'one_time_events': total_events - recurring_events
+                "total_events": total_events,
+                "recurring_events": recurring_events,
+                "upcoming_events": upcoming_count,
+                "one_time_events": total_events - recurring_events,
             }
 
         except Exception as e:
-            logger.error(
-                f"Error getting event statistics for user {user_id}: {e}")
+            logger.error(f"Error getting event statistics for user {user_id}: {e}")
             return {
-                'total_events': 0,
-                'recurring_events': 0,
-                'upcoming_events': 0,
-                'one_time_events': 0
+                "total_events": 0,
+                "recurring_events": 0,
+                "upcoming_events": 0,
+                "one_time_events": 0,
             }

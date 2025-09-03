@@ -19,7 +19,9 @@ class GeminiEmbeddings:
     Integrates with existing GeminiLLM class.
     """
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-embedding-001"):
+    def __init__(
+        self, api_key: Optional[str] = None, model: str = "gemini-embedding-001"
+    ):
         """
         Initialize Gemini embeddings.
 
@@ -44,8 +46,7 @@ class GeminiEmbeddings:
         if self._llm_client is None:
             if not self.api_key:
                 raise ValueError("Gemini API key not configured")
-            self._llm_client = GeminiLLM(
-                api_key=self.api_key, model="gemini-2.0-flash")
+            self._llm_client = GeminiLLM(api_key=self.api_key, model="gemini-2.0-flash")
         return self._llm_client
 
     async def embed_text(self, text: str) -> List[float]:
@@ -82,7 +83,8 @@ class GeminiEmbeddings:
                 self._cache_misses += 1
 
                 logger.debug(
-                    f"Generated embedding of length {len(embedding)} for text of length {len(text)}")
+                    f"Generated embedding of length {len(embedding)} for text of length {len(text)}"
+                )
                 return embedding
             else:
                 logger.error("No embedding returned from Gemini API")
@@ -127,7 +129,7 @@ class GeminiEmbeddings:
             "cache_misses": self._cache_misses,
             "total_requests": total_requests,
             "hit_rate": hit_rate,
-            "cache_size": len(self._embedding_cache)
+            "cache_size": len(self._embedding_cache),
         }
 
     def clear_cache(self):
@@ -139,5 +141,5 @@ class GeminiEmbeddings:
 
     def __del__(self):
         """Cleanup when object is destroyed."""
-        if hasattr(self, '_embedding_cache'):
+        if hasattr(self, "_embedding_cache"):
             self.clear_cache()

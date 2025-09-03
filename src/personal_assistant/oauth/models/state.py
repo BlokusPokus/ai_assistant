@@ -7,18 +7,17 @@ attacks during OAuth flows.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ARRAY
-from sqlalchemy import Index
+
+from sqlalchemy import ARRAY, Boolean, Column, DateTime, Index, Integer, String, Text
 
 from personal_assistant.database.models.base import Base
 
 
 class OAuthState(Base):
-    __tablename__ = 'oauth_state'
+    __tablename__ = "oauth_state"
 
     id = Column(Integer, primary_key=True)
-    state_token = Column(String(255), nullable=False,
-                         unique=True)  # Unique state token
+    state_token = Column(String(255), nullable=False, unique=True)  # Unique state token
     # google, microsoft, notion, youtube
     provider = Column(String(50), nullable=False)
     # User ID if known at state creation
@@ -32,8 +31,8 @@ class OAuthState(Base):
 
     # Index for performance
     __table_args__ = (
-        Index('idx_oauth_states_token', 'state_token'),
-        Index('idx_oauth_states_expires', 'expires_at'),
+        Index("idx_oauth_states_token", "state_token"),
+        Index("idx_oauth_states_expires", "expires_at"),
     )
 
     def __repr__(self):

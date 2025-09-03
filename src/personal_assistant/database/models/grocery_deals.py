@@ -6,7 +6,7 @@ from .base import Base
 
 
 class GroceryDeal(Base):
-    __tablename__ = 'grocery_deals'
+    __tablename__ = "grocery_deals"
 
     id = Column(Integer, primary_key=True)
     source = Column(String)

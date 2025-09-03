@@ -6,10 +6,10 @@ from .base import Base
 
 
 class EventCreationLog(Base):
-    __tablename__ = 'event_creation_logs'
+    __tablename__ = "event_creation_logs"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
+    user_id = Column(Integer, ForeignKey("users.id"))
     user_input = Column(Text)
     parsed_details = Column(JSON)  # Store parsed event details as JSON
     created_events = Column(Integer, default=0)  # Number of events created
@@ -21,11 +21,11 @@ class EventCreationLog(Base):
 
     def as_dict(self):
         return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'user_input': self.user_input,
-            'parsed_details': self.parsed_details,
-            'created_events': self.created_events,
-            'errors': self.errors,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            "id": self.id,
+            "user_id": self.user_id,
+            "user_input": self.user_input,
+            "parsed_details": self.parsed_details,
+            "created_events": self.created_events,
+            "errors": self.errors,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }

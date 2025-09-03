@@ -31,7 +31,7 @@ class PromptBuilder:
     - ADHD-optimized user experience
     """
 
-    def __init__(self, tool_registry: 'ToolRegistry'):
+    def __init__(self, tool_registry: "ToolRegistry"):
         """
         Initialize the prompt builder with a tool registry.
 

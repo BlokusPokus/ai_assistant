@@ -4,17 +4,17 @@ LLM-based Memory Creator
 This module uses LLM intelligence to decide what memories to create from user interactions.
 """
 
-import logging
 import json
-from typing import List, Dict, Optional, Any
+import logging
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from ...config.logging_config import get_logger
-from ...tools.ltm.ltm_storage import add_ltm_memory
 from ...constants.tags import LTM_TAGS, validate_tags
-from ...utils.ai_tag_validator import validate_ai_generated_tags
+from ...tools.ltm.ltm_storage import add_ltm_memory
 from ...types.state import AgentState
-from .config import LTMConfig, EnhancedLTMConfig
+from ...utils.ai_tag_validator import validate_ai_generated_tags
+from .config import EnhancedLTMConfig, LTMConfig
 from .enhanced_tag_suggester import EnhancedTagSuggester
 
 logger = get_logger("llm_memory_creator")
@@ -34,7 +34,7 @@ class LLMMemoryCreator:
         user_input: str,
         agent_response: str,
         tool_result: str = None,
-        conversation_context: str = None
+        conversation_context: str = None,
     ) -> List[dict]:
         """Use LLM to intelligently create memories from interaction"""
 
@@ -66,8 +66,7 @@ class LLMMemoryCreator:
                 if memory:
                     created_memories.append(memory)
 
-            logger.info(
-                f"LLM created {len(memory_specs)} memory specifications")
+            logger.info(f"LLM created {len(memory_specs)} memory specifications")
             return created_memories
 
         except Exception as e:
@@ -81,7 +80,7 @@ class LLMMemoryCreator:
         agent_response: str,
         state_data: AgentState,
         tool_result: str = None,
-        conversation_context: str = None
+        conversation_context: str = None,
     ) -> List[dict]:
         """
         Use LLM to intelligently create memories from interaction with state data integration.
@@ -102,15 +101,19 @@ class LLMMemoryCreator:
         """
         try:
             logger.info(
-                f"Starting enhanced LLM memory creation with state for user {user_id}")
+                f"Starting enhanced LLM memory creation with state for user {user_id}"
+            )
 
             # Prepare enhanced prompt with state data
             prompt = self._create_enhanced_memory_creation_prompt(
-                user_input, agent_response, state_data, tool_result, conversation_context
+                user_input,
+                agent_response,
+                state_data,
+                tool_result,
+                conversation_context,
             )
 
-            logger.info(
-                f"Created enhanced prompt with {len(prompt)} characters")
+            logger.info(f"Created enhanced prompt with {len(prompt)} characters")
 
             # Get LLM response
             logger.info("Calling LLM for enhanced memory creation...")
@@ -119,29 +122,32 @@ class LLMMemoryCreator:
 
             # Parse the LLM response
             memory_specs = self._parse_enhanced_llm_response(llm_response)
-            logger.info(
-                f"Parsed {len(memory_specs)} enhanced memory specifications")
+            logger.info(f"Parsed {len(memory_specs)} enhanced memory specifications")
 
             # Validate and score memory quality
             validated_specs = []
             for spec in memory_specs:
                 quality_score = await self._validate_memory_quality(spec, state_data)
                 if quality_score >= self._get_quality_threshold():
-                    spec['quality_score'] = quality_score
+                    spec["quality_score"] = quality_score
                     validated_specs.append(spec)
                 else:
                     logger.info(
-                        f"Memory spec rejected due to low quality: {spec.get('content', '')[:50]}...")
+                        f"Memory spec rejected due to low quality: {spec.get('content', '')[:50]}..."
+                    )
 
             # Create actual memories with quality validation
             created_memories = []
             for spec in validated_specs:
-                memory = await self._create_enhanced_memory_from_spec(user_id, spec, state_data)
+                memory = await self._create_enhanced_memory_from_spec(
+                    user_id, spec, state_data
+                )
                 if memory:
                     created_memories.append(memory)
 
             logger.info(
-                f"Enhanced LLM created {len(created_memories)} quality-validated memories")
+                f"Enhanced LLM created {len(created_memories)} quality-validated memories"
+            )
             return created_memories
 
         except Exception as e:
@@ -153,7 +159,7 @@ class LLMMemoryCreator:
         user_input: str,
         agent_response: str,
         tool_result: str = None,
-        conversation_context: str = None
+        conversation_context: str = None,
     ) -> str:
         """Create an enhanced prompt for LLM memory creation"""
 
@@ -163,15 +169,18 @@ class LLMMemoryCreator:
 
         # Analyze the interaction for context clues
         interaction_analysis = self._analyze_interaction_context(
-            user_input, agent_response, tool_result)
+            user_input, agent_response, tool_result
+        )
 
         # Get suggested tags based on content analysis
         suggested_tags = self._get_suggested_tags_from_content(
-            user_input, agent_response)
+            user_input, agent_response
+        )
 
         # Determine potential memory types based on content
         potential_memory_types = self._identify_potential_memory_types(
-            user_input, agent_response, tool_result)
+            user_input, agent_response, tool_result
+        )
 
         prompt = f"""You are an advanced AI memory creation system for a personal AI assistant. Your job is to intelligently analyze user interactions and create high-quality, actionable memories that will help the AI better understand and serve the user.
 
@@ -239,7 +248,7 @@ Analyze the interaction and create high-quality memories:"""
         agent_response: str,
         state_data: AgentState,
         tool_result: str = None,
-        conversation_context: str = None
+        conversation_context: str = None,
     ) -> str:
         """
         Create an enhanced prompt for LLM memory creation with state data integration.
@@ -254,22 +263,26 @@ Analyze the interaction and create high-quality memories:"""
 
         # Analyze the interaction for context clues
         interaction_analysis = self._analyze_interaction_context(
-            user_input, agent_response, tool_result)
+            user_input, agent_response, tool_result
+        )
 
         # Get suggested tags based on content analysis
         suggested_tags = self._get_suggested_tags_from_content(
-            user_input, agent_response)
+            user_input, agent_response
+        )
 
         # Determine potential memory types based on content
         potential_memory_types = self._identify_potential_memory_types(
-            user_input, agent_response, tool_result)
+            user_input, agent_response, tool_result
+        )
 
         # Analyze state data for additional context
         state_analysis = self._analyze_state_data_for_context(state_data)
 
         # Get context-aware tag suggestions
         context_aware_tags = self._get_context_aware_tag_suggestions(
-            user_input, agent_response, state_data)
+            user_input, agent_response, state_data
+        )
 
         prompt = f"""You are an advanced AI memory creation system for a personal AI assistant with access to comprehensive user state data. Your job is to intelligently analyze user interactions and create high-quality, actionable memories that will help the AI better understand and serve the user.
 
@@ -353,7 +366,8 @@ Analyze the interaction with state context and create high-quality memories:"""
             if state_data.conversation_history:
                 history_length = len(state_data.conversation_history)
                 analysis_parts.append(
-                    f"Conversation History: {history_length} exchanges")
+                    f"Conversation History: {history_length} exchanges"
+                )
 
                 # Analyze recent conversation patterns
                 # Last 3 exchanges
@@ -361,33 +375,45 @@ Analyze the interaction with state context and create high-quality memories:"""
                 if recent_exchanges:
                     topics = []
                     for exchange in recent_exchanges:
-                        user_input = exchange.get('user_input', '')
+                        user_input = exchange.get("user_input", "")
                         if user_input:
                             # Extract potential topics (simplified)
-                            if any(word in user_input.lower() for word in ['work', 'project', 'meeting']):
-                                topics.append('work')
-                            elif any(word in user_input.lower() for word in ['health', 'exercise', 'diet']):
-                                topics.append('health')
-                            elif any(word in user_input.lower() for word in ['family', 'personal', 'home']):
-                                topics.append('personal')
+                            if any(
+                                word in user_input.lower()
+                                for word in ["work", "project", "meeting"]
+                            ):
+                                topics.append("work")
+                            elif any(
+                                word in user_input.lower()
+                                for word in ["health", "exercise", "diet"]
+                            ):
+                                topics.append("health")
+                            elif any(
+                                word in user_input.lower()
+                                for word in ["family", "personal", "home"]
+                            ):
+                                topics.append("personal")
 
                     if topics:
                         analysis_parts.append(
-                            f"Recent Topics: {', '.join(set(topics))}")
+                            f"Recent Topics: {', '.join(set(topics))}"
+                        )
 
             # Analyze focus areas
             if state_data.focus:
                 analysis_parts.append(
-                    f"Current Focus Areas: {', '.join(state_data.focus)}")
+                    f"Current Focus Areas: {', '.join(state_data.focus)}"
+                )
 
             # Analyze tool usage
-            if hasattr(state_data, 'last_tool_result') and state_data.last_tool_result:
+            if hasattr(state_data, "last_tool_result") and state_data.last_tool_result:
                 analysis_parts.append("Recent Tool Usage: Yes")
 
             # Analyze step count (conversation complexity)
             if state_data.step_count > 1:
                 analysis_parts.append(
-                    f"Conversation Complexity: {state_data.step_count} steps")
+                    f"Conversation Complexity: {state_data.step_count} steps"
+                )
 
             if not analysis_parts:
                 return "Limited state data available for analysis"
@@ -399,10 +425,7 @@ Analyze the interaction with state context and create high-quality memories:"""
             return "Error analyzing state data"
 
     def _get_context_aware_tag_suggestions(
-        self,
-        user_input: str,
-        agent_response: str,
-        state_data: AgentState
+        self, user_input: str, agent_response: str, state_data: AgentState
     ) -> str:
         """Get context-aware tag suggestions based on state data"""
 
@@ -412,14 +435,14 @@ Analyze the interaction with state context and create high-quality memories:"""
             # Analyze focus areas for tag suggestions
             if state_data.focus:
                 for focus in state_data.focus:
-                    if focus.lower() in ['work', 'job', 'career']:
-                        suggestions.extend(['work', 'professional', 'career'])
-                    elif focus.lower() in ['health', 'wellness', 'fitness']:
-                        suggestions.extend(['health', 'wellness', 'fitness'])
-                    elif focus.lower() in ['family', 'personal', 'home']:
-                        suggestions.extend(['personal', 'family', 'home'])
-                    elif focus.lower() in ['finance', 'money', 'budget']:
-                        suggestions.extend(['finance', 'money', 'budget'])
+                    if focus.lower() in ["work", "job", "career"]:
+                        suggestions.extend(["work", "professional", "career"])
+                    elif focus.lower() in ["health", "wellness", "fitness"]:
+                        suggestions.extend(["health", "wellness", "fitness"])
+                    elif focus.lower() in ["family", "personal", "home"]:
+                        suggestions.extend(["personal", "family", "home"])
+                    elif focus.lower() in ["finance", "money", "budget"]:
+                        suggestions.extend(["finance", "money", "budget"])
 
             # Analyze conversation history for patterns
             if state_data.conversation_history:
@@ -429,27 +452,30 @@ Analyze the interaction with state context and create high-quality memories:"""
 
                 # Last 5 exchanges
                 for exchange in state_data.conversation_history[-5:]:
-                    user_input = exchange.get('user_input', '').lower()
-                    if any(word in user_input for word in ['please', 'thank you', 'would you mind']):
+                    user_input = exchange.get("user_input", "").lower()
+                    if any(
+                        word in user_input
+                        for word in ["please", "thank you", "would you mind"]
+                    ):
                         formal_count += 1
-                    elif any(word in user_input for word in ['hey', 'cool', 'awesome']):
+                    elif any(word in user_input for word in ["hey", "cool", "awesome"]):
                         casual_count += 1
 
                 if formal_count > casual_count:
-                    suggestions.append('formal_communication')
+                    suggestions.append("formal_communication")
                 elif casual_count > formal_count:
-                    suggestions.append('casual_communication')
+                    suggestions.append("casual_communication")
 
             # Analyze tool usage patterns
-            if hasattr(state_data, 'last_tool_result') and state_data.last_tool_result:
-                suggestions.append('tool_usage')
+            if hasattr(state_data, "last_tool_result") and state_data.last_tool_result:
+                suggestions.append("tool_usage")
 
                 # Add specific tool-related tags
                 tool_result = str(state_data.last_tool_result).lower()
-                if 'success' in tool_result or 'created' in tool_result:
-                    suggestions.append('successful_automation')
-                elif 'error' in tool_result or 'failed' in tool_result:
-                    suggestions.append('learning_from_failure')
+                if "success" in tool_result or "created" in tool_result:
+                    suggestions.append("successful_automation")
+                elif "error" in tool_result or "failed" in tool_result:
+                    suggestions.append("learning_from_failure")
 
             if not suggestions:
                 return "No specific context-aware tag suggestions"
@@ -461,9 +487,7 @@ Analyze the interaction with state context and create high-quality memories:"""
             return "Error generating context-aware tag suggestions"
 
     async def _validate_memory_quality(
-        self,
-        memory_spec: Dict[str, Any],
-        state_data: AgentState
+        self, memory_spec: Dict[str, Any], state_data: AgentState
     ) -> float:
         """
         Validate memory quality and return a quality score.
@@ -480,12 +504,11 @@ Analyze the interaction with state context and create high-quality memories:"""
             quality_score = 0.0
 
             # Content quality (30%)
-            content_score = self._score_content_quality(
-                memory_spec.get('content', ''))
+            content_score = self._score_content_quality(memory_spec.get("content", ""))
             quality_score += content_score * 0.3
 
             # Tag relevance (25%)
-            tag_score = self._score_tag_relevance(memory_spec.get('tags', []))
+            tag_score = self._score_tag_relevance(memory_spec.get("tags", []))
             quality_score += tag_score * 0.25
 
             # State relevance (25%)
@@ -497,7 +520,8 @@ Analyze the interaction with state context and create high-quality memories:"""
             quality_score += type_score * 0.2
 
             logger.info(
-                f"Memory quality score: {quality_score:.2f} for content: {memory_spec.get('content', '')[:50]}...")
+                f"Memory quality score: {quality_score:.2f} for content: {memory_spec.get('content', '')[:50]}..."
+            )
 
             return quality_score
 
@@ -520,11 +544,17 @@ Analyze the interaction with state context and create high-quality memories:"""
             score += 0.1
 
         # Specificity bonus
-        if any(word in content.lower() for word in ['prefers', 'likes', 'always', 'usually', 'tends to']):
+        if any(
+            word in content.lower()
+            for word in ["prefers", "likes", "always", "usually", "tends to"]
+        ):
             score += 0.2
 
         # Actionability bonus
-        if any(word in content.lower() for word in ['should', 'will', 'can', 'help', 'improve']):
+        if any(
+            word in content.lower()
+            for word in ["should", "will", "can", "help", "improve"]
+        ):
             score += 0.1
 
         return min(1.0, score)
@@ -554,28 +584,33 @@ Analyze the interaction with state context and create high-quality memories:"""
 
         return min(1.0, score)
 
-    def _score_state_relevance(self, memory_spec: Dict[str, Any], state_data: AgentState) -> float:
+    def _score_state_relevance(
+        self, memory_spec: Dict[str, Any], state_data: AgentState
+    ) -> float:
         """Score how well the memory relates to current user state"""
 
         try:
             score = 0.5  # Base score
 
             # Focus area relevance
-            if state_data.focus and memory_spec.get('category'):
-                category = memory_spec['category'].lower()
+            if state_data.focus and memory_spec.get("category"):
+                category = memory_spec["category"].lower()
                 focus_lower = [f.lower() for f in state_data.focus]
 
                 if any(focus in category or category in focus for focus in focus_lower):
                     score += 0.3
 
             # Conversation history relevance
-            if state_data.conversation_history and memory_spec.get('content'):
-                content_lower = memory_spec['content'].lower()
+            if state_data.conversation_history and memory_spec.get("content"):
+                content_lower = memory_spec["content"].lower()
                 recent_topics = []
 
                 for exchange in state_data.conversation_history[-3:]:
-                    user_input = exchange.get('user_input', '').lower()
-                    if any(word in user_input for word in ['work', 'health', 'family', 'finance']):
+                    user_input = exchange.get("user_input", "").lower()
+                    if any(
+                        word in user_input
+                        for word in ["work", "health", "family", "finance"]
+                    ):
                         recent_topics.append(user_input)
 
                 if any(topic in content_lower for topic in recent_topics):
@@ -591,27 +626,38 @@ Analyze the interaction with state context and create high-quality memories:"""
         """Score if the memory type is appropriate for the content"""
 
         try:
-            memory_type = memory_spec.get('memory_type', '').lower()
-            content = memory_spec.get('content', '').lower()
+            memory_type = memory_spec.get("memory_type", "").lower()
+            content = memory_spec.get("content", "").lower()
 
             score = 0.5  # Base score
 
             # Type-content alignment
-            if memory_type == 'preference':
-                if any(word in content for word in ['prefers', 'likes', 'wants', 'needs']):
+            if memory_type == "preference":
+                if any(
+                    word in content for word in ["prefers", "likes", "wants", "needs"]
+                ):
                     score += 0.3
-            elif memory_type == 'pattern':
-                if any(word in content for word in ['always', 'usually', 'tends to', 'typically']):
+            elif memory_type == "pattern":
+                if any(
+                    word in content
+                    for word in ["always", "usually", "tends to", "typically"]
+                ):
                     score += 0.3
-            elif memory_type == 'learning':
-                if any(word in content for word in ['learned', 'discovered', 'figured out', 'understood']):
+            elif memory_type == "learning":
+                if any(
+                    word in content
+                    for word in ["learned", "discovered", "figured out", "understood"]
+                ):
                     score += 0.3
-            elif memory_type == 'tool_usage':
-                if any(word in content for word in ['tool', 'used', 'executed', 'automated']):
+            elif memory_type == "tool_usage":
+                if any(
+                    word in content
+                    for word in ["tool", "used", "executed", "automated"]
+                ):
                     score += 0.3
 
             # Confidence alignment
-            confidence = memory_spec.get('confidence_score', 0.5)
+            confidence = memory_spec.get("confidence_score", 0.5)
             if confidence >= 0.7 and score >= 0.7:
                 score += 0.2
 
@@ -630,10 +676,7 @@ Analyze the interaction with state context and create high-quality memories:"""
             return 0.5  # Default threshold
 
     async def _create_enhanced_memory_from_spec(
-        self,
-        user_id: int,
-        spec: Dict[str, Any],
-        state_data: AgentState
+        self, user_id: int, spec: Dict[str, Any], state_data: AgentState
     ) -> Optional[dict]:
         """
         Create an enhanced memory from specification with state data integration.
@@ -644,28 +687,28 @@ Analyze the interaction with state context and create high-quality memories:"""
 
         try:
             # Extract basic fields
-            content = spec.get('content', '')
-            tags = spec.get('tags', [])
-            importance_score = spec.get('importance_score', 5)
-            memory_type = spec.get('memory_type', 'general')
-            category = spec.get('category', 'general')
-            confidence_score = spec.get('confidence_score', 0.7)
+            content = spec.get("content", "")
+            tags = spec.get("tags", [])
+            importance_score = spec.get("importance_score", 5)
+            memory_type = spec.get("memory_type", "general")
+            category = spec.get("category", "general")
+            confidence_score = spec.get("confidence_score", 0.7)
 
             # Create enhanced context
             enhanced_context = {
-                'memory_type': memory_type,
-                'category': category,
-                'confidence_score': confidence_score,
-                'source_type': 'llm_enhanced',
-                'quality_score': spec.get('quality_score', 0.7),
-                'state_relevance': spec.get('state_relevance', ''),
-                'cross_reference': spec.get('cross_reference', ''),
-                'metadata': {
-                    'llm_generated': True,
-                    'state_integrated': True,
-                    'quality_validated': True,
-                    'creation_timestamp': datetime.now().isoformat()
-                }
+                "memory_type": memory_type,
+                "category": category,
+                "confidence_score": confidence_score,
+                "source_type": "llm_enhanced",
+                "quality_score": spec.get("quality_score", 0.7),
+                "state_relevance": spec.get("state_relevance", ""),
+                "cross_reference": spec.get("cross_reference", ""),
+                "metadata": {
+                    "llm_generated": True,
+                    "state_integrated": True,
+                    "quality_validated": True,
+                    "creation_timestamp": datetime.now().isoformat(),
+                },
             }
 
             # Create memory
@@ -679,8 +722,8 @@ Analyze the interaction with state context and create high-quality memories:"""
                 memory_type=memory_type,
                 category=category,
                 confidence_score=confidence_score,
-                source_type='llm_enhanced',
-                created_by='llm_memory_creator_enhanced'
+                source_type="llm_enhanced",
+                created_by="llm_memory_creator_enhanced",
             )
 
             return memory
@@ -697,16 +740,17 @@ Analyze the interaction with state context and create high-quality memories:"""
 
             # Try to extract JSON from the response
             # Look for JSON array in the response
-            start_idx = llm_response.find('[')
-            end_idx = llm_response.rfind(']')
+            start_idx = llm_response.find("[")
+            end_idx = llm_response.rfind("]")
 
             if start_idx != -1 and end_idx != -1:
-                json_str = llm_response[start_idx:end_idx + 1]
+                json_str = llm_response[start_idx : end_idx + 1]
                 logger.info(f"Extracted JSON string: {json_str}")
 
                 memory_specs = json.loads(json_str)
                 logger.info(
-                    f"Successfully parsed JSON, got {len(memory_specs)} memory specs")
+                    f"Successfully parsed JSON, got {len(memory_specs)} memory specs"
+                )
 
                 # Validate the structure
                 validated_specs = []
@@ -719,7 +763,8 @@ Analyze the interaction with state context and create high-quality memories:"""
                         logger.warning(f"Spec {i} is invalid: {spec}")
 
                 logger.info(
-                    f"Validation complete: {len(validated_specs)} valid specs out of {len(memory_specs)}")
+                    f"Validation complete: {len(validated_specs)} valid specs out of {len(memory_specs)}"
+                )
                 return validated_specs
             else:
                 logger.warning("No JSON array found in LLM response")
@@ -744,8 +789,8 @@ Analyze the interaction with state context and create high-quality memories:"""
 
         try:
             # Extract JSON from response
-            json_start = llm_response.find('[')
-            json_end = llm_response.rfind(']') + 1
+            json_start = llm_response.find("[")
+            json_end = llm_response.rfind("]") + 1
 
             if json_start == -1 or json_end == 0:
                 logger.warning("No JSON array found in LLM response")
@@ -760,15 +805,15 @@ Analyze the interaction with state context and create high-quality memories:"""
                 if self._validate_memory_spec(spec):
                     # Add default values for missing fields
                     enhanced_spec = {
-                        'content': spec.get('content', ''),
-                        'tags': spec.get('tags', []),
-                        'importance_score': spec.get('importance_score', 5),
-                        'memory_type': spec.get('memory_type', 'general'),
-                        'category': spec.get('category', 'general'),
-                        'confidence_score': spec.get('confidence_score', 0.7),
-                        'context': spec.get('context', ''),
-                        'state_relevance': spec.get('state_relevance', ''),
-                        'cross_reference': spec.get('cross_reference', '')
+                        "content": spec.get("content", ""),
+                        "tags": spec.get("tags", []),
+                        "importance_score": spec.get("importance_score", 5),
+                        "memory_type": spec.get("memory_type", "general"),
+                        "category": spec.get("category", "general"),
+                        "confidence_score": spec.get("confidence_score", 0.7),
+                        "context": spec.get("context", ""),
+                        "state_relevance": spec.get("state_relevance", ""),
+                        "cross_reference": spec.get("cross_reference", ""),
                     }
                     enhanced_specs.append(enhanced_spec)
 
@@ -784,17 +829,17 @@ Analyze the interaction with state context and create high-quality memories:"""
     def _validate_memory_spec(self, spec: Dict[str, Any]) -> bool:
         """Validate memory specification has required fields"""
 
-        required_fields = ['content', 'tags']
+        required_fields = ["content", "tags"]
         for field in required_fields:
             if field not in spec or not spec[field]:
                 return False
 
         # Validate content length
-        if len(spec['content'].strip()) < 10:
+        if len(spec["content"].strip()) < 10:
             return False
 
         # Validate tags
-        if not isinstance(spec['tags'], list) or len(spec['tags']) == 0:
+        if not isinstance(spec["tags"], list) or len(spec["tags"]) == 0:
             return False
 
         return True
@@ -803,29 +848,69 @@ Analyze the interaction with state context and create high-quality memories:"""
         """Organize tags by category for better prompt structure"""
 
         categories = {
-            "Communication & Information": ["email", "meeting", "conversation", "document", "note"],
-            "Actions & Operations": ["create", "delete", "update", "search", "schedule", "remind"],
-            "Importance & Priority": ["important", "urgent", "critical", "low_priority"],
-            "Context & Categories": ["work", "personal", "health", "finance", "travel", "shopping", "entertainment", "education"],
-            "User Behavior": ["preference", "habit", "pattern", "routine", "dislike", "favorite"],
-            "Tool & System": ["tool_execution", "user_request", "system_response", "error", "success"],
+            "Communication & Information": [
+                "email",
+                "meeting",
+                "conversation",
+                "document",
+                "note",
+            ],
+            "Actions & Operations": [
+                "create",
+                "delete",
+                "update",
+                "search",
+                "schedule",
+                "remind",
+            ],
+            "Importance & Priority": [
+                "important",
+                "urgent",
+                "critical",
+                "low_priority",
+            ],
+            "Context & Categories": [
+                "work",
+                "personal",
+                "health",
+                "finance",
+                "travel",
+                "shopping",
+                "entertainment",
+                "education",
+            ],
+            "User Behavior": [
+                "preference",
+                "habit",
+                "pattern",
+                "routine",
+                "dislike",
+                "favorite",
+            ],
+            "Tool & System": [
+                "tool_execution",
+                "user_request",
+                "system_response",
+                "error",
+                "success",
+            ],
             "Time & Frequency": ["daily", "weekly", "monthly", "one_time", "recurring"],
             "Health & Wellness": ["exercise", "diet", "medication", "wellness"],
             "Social": ["friend", "family", "event", "birthday"],
-            "Learning": ["course", "lesson", "reading", "research"]
+            "Learning": ["course", "lesson", "reading", "research"],
         }
 
         result = []
         for category, category_tags in categories.items():
-            available_in_category = [
-                tag for tag in category_tags if tag in tags]
+            available_in_category = [tag for tag in category_tags if tag in tags]
             if available_in_category:
-                result.append(
-                    f"**{category}:** {', '.join(available_in_category)}")
+                result.append(f"**{category}:** {', '.join(available_in_category)}")
 
         return "\n".join(result)
 
-    def _analyze_interaction_context(self, user_input: str, agent_response: str, tool_result: str = None) -> str:
+    def _analyze_interaction_context(
+        self, user_input: str, agent_response: str, tool_result: str = None
+    ) -> str:
         """Analyze the interaction for context clues"""
 
         analysis_parts = []
@@ -834,13 +919,17 @@ Analyze the interaction with state context and create high-quality memories:"""
         user_lower = user_input.lower()
 
         # Communication style analysis
-        if any(word in user_lower for word in ["please", "thank you", "would you mind"]):
+        if any(
+            word in user_lower for word in ["please", "thank you", "would you mind"]
+        ):
             analysis_parts.append("• User shows formal communication style")
         elif any(word in user_lower for word in ["hey", "cool", "awesome"]):
             analysis_parts.append("• User shows casual communication style")
 
         # Information needs analysis
-        if any(word in user_lower for word in ["explain", "how does", "what do you mean"]):
+        if any(
+            word in user_lower for word in ["explain", "how does", "what do you mean"]
+        ):
             analysis_parts.append("• User seeks detailed explanations")
         elif any(word in user_lower for word in ["just", "simple", "quick"]):
             analysis_parts.append("• User prefers concise information")
@@ -849,7 +938,8 @@ Analyze the interaction with state context and create high-quality memories:"""
         if tool_result:
             if "Error" in str(tool_result):
                 analysis_parts.append(
-                    "• Tool usage encountered an error - learning opportunity")
+                    "• Tool usage encountered an error - learning opportunity"
+                )
             elif "success" in str(tool_result).lower():
                 analysis_parts.append("• Tool usage was successful")
 
@@ -868,12 +958,13 @@ Analyze the interaction with state context and create high-quality memories:"""
             analysis_parts.append(f"• Topics discussed: {', '.join(topics)}")
 
         if not analysis_parts:
-            analysis_parts.append(
-                "• General conversation - look for subtle patterns")
+            analysis_parts.append("• General conversation - look for subtle patterns")
 
         return "\n".join(analysis_parts)
 
-    def _get_suggested_tags_from_content(self, user_input: str, agent_response: str) -> List[str]:
+    def _get_suggested_tags_from_content(
+        self, user_input: str, agent_response: str
+    ) -> List[str]:
         """Get suggested tags based on content analysis using enhanced tag suggester"""
 
         combined_content = f"{user_input} {agent_response}"
@@ -882,55 +973,80 @@ Analyze the interaction with state context and create high-quality memories:"""
         suggested_tags, confidence = self.tag_suggester.suggest_tags_for_content(
             content=combined_content,
             memory_type=None,  # We don't know the memory type yet
-            category=None,      # We don't know the category yet
+            category=None,  # We don't know the category yet
             existing_tags=None,
-            user_context=None
+            user_context=None,
         )
 
         logger.info(
-            f"Enhanced tag suggester suggested {len(suggested_tags)} tags with confidence {confidence:.2f}")
+            f"Enhanced tag suggester suggested {len(suggested_tags)} tags with confidence {confidence:.2f}"
+        )
 
         return suggested_tags
 
-    def _identify_potential_memory_types(self, user_input: str, agent_response: str, tool_result: str = None) -> str:
+    def _identify_potential_memory_types(
+        self, user_input: str, agent_response: str, tool_result: str = None
+    ) -> str:
         """Identify potential memory types based on interaction content"""
 
         potential_types = []
         combined_text = f"{user_input} {agent_response}".lower()
 
         # Preference detection
-        if any(word in combined_text for word in ["prefer", "like", "want", "need", "favorite"]):
+        if any(
+            word in combined_text
+            for word in ["prefer", "like", "want", "need", "favorite"]
+        ):
             potential_types.append(
-                "• **Preference**: User expressing likes/dislikes or needs")
+                "• **Preference**: User expressing likes/dislikes or needs"
+            )
 
         # Pattern detection
-        if any(word in combined_text for word in ["always", "usually", "typically", "habit", "routine"]):
+        if any(
+            word in combined_text
+            for word in ["always", "usually", "typically", "habit", "routine"]
+        ):
             potential_types.append(
-                "• **Pattern**: User describing recurring behaviors or routines")
+                "• **Pattern**: User describing recurring behaviors or routines"
+            )
 
         # Interest detection
-        if any(word in combined_text for word in ["interested in", "curious about", "want to learn"]):
+        if any(
+            word in combined_text
+            for word in ["interested in", "curious about", "want to learn"]
+        ):
             potential_types.append(
-                "• **Interest**: User showing curiosity or interest in topics")
+                "• **Interest**: User showing curiosity or interest in topics"
+            )
 
         # Communication style detection
-        if any(word in combined_text for word in ["explain", "tell me more", "detailed", "simple", "quick"]):
+        if any(
+            word in combined_text
+            for word in ["explain", "tell me more", "detailed", "simple", "quick"]
+        ):
             potential_types.append(
-                "• **Communication**: User showing communication preferences")
+                "• **Communication**: User showing communication preferences"
+            )
 
         # Learning pattern detection
-        if any(word in combined_text for word in ["learn", "understand", "figure out", "now I know"]):
+        if any(
+            word in combined_text
+            for word in ["learn", "understand", "figure out", "now I know"]
+        ):
             potential_types.append(
-                "• **Learning**: User showing learning patterns or moments")
+                "• **Learning**: User showing learning patterns or moments"
+            )
 
         # Tool usage detection
         if tool_result:
             potential_types.append(
-                "• **Tool Usage**: Interaction involved tool execution")
+                "• **Tool Usage**: Interaction involved tool execution"
+            )
 
         if not potential_types:
             potential_types.append(
-                "• **General**: Look for subtle insights in the conversation")
+                "• **General**: Look for subtle insights in the conversation"
+            )
 
         return "\n".join(potential_types)
 
@@ -939,59 +1055,64 @@ Analyze the interaction with state context and create high-quality memories:"""
 
         try:
             # Handle different LLM interfaces
-            if hasattr(self.llm, 'acall'):
+            if hasattr(self.llm, "acall"):
                 response = await self.llm.acall(prompt)
-            elif hasattr(self.llm, 'agenerate'):
+            elif hasattr(self.llm, "agenerate"):
                 response = await self.llm.agenerate(prompt)
-            elif hasattr(self.llm, 'aask'):
+            elif hasattr(self.llm, "aask"):
                 response = await self.llm.aask(prompt)
-            elif hasattr(self.llm, 'complete'):
+            elif hasattr(self.llm, "complete"):
                 # Handle GeminiLLM.complete method
                 response = self.llm.complete(prompt, functions={})
-                logger.info(
-                    f"GeminiLLM.complete response type: {type(response)}")
+                logger.info(f"GeminiLLM.complete response type: {type(response)}")
                 logger.info(f"GeminiLLM.complete response: {response}")
 
                 # Extract content from response
-                if isinstance(response, dict) and 'content' in response:
-                    response = response['content']
+                if isinstance(response, dict) and "content" in response:
+                    response = response["content"]
                     logger.info(f"Extracted content from dict: {response}")
-                elif hasattr(response, 'candidates') and response.candidates:
+                elif hasattr(response, "candidates") and response.candidates:
                     # Handle Gemini response object
                     candidate = response.candidates[0]
-                    if hasattr(candidate, 'content') and candidate.content:
+                    if hasattr(candidate, "content") and candidate.content:
                         content_parts = candidate.content.parts
                         text_parts = [
-                            part.text for part in content_parts if hasattr(part, 'text')]
-                        response = '\n'.join(text_parts)
+                            part.text for part in content_parts if hasattr(part, "text")
+                        ]
+                        response = "\n".join(text_parts)
                         logger.info(
-                            f"Extracted content from Gemini response: {response[:200]}...")
+                            f"Extracted content from Gemini response: {response[:200]}..."
+                        )
                     else:
                         response = str(candidate.content)
                         logger.info(
-                            f"Used string representation of candidate content: {response[:200]}...")
+                            f"Used string representation of candidate content: {response[:200]}..."
+                        )
                 else:
                     response = str(response)
                     logger.info(
-                        f"Used string representation of response: {response[:200]}...")
-            elif hasattr(self.llm, 'generate'):
+                        f"Used string representation of response: {response[:200]}..."
+                    )
+            elif hasattr(self.llm, "generate"):
                 # Handle sync generate method
                 response = self.llm.generate(prompt)
-            elif hasattr(self.llm, 'ask'):
+            elif hasattr(self.llm, "ask"):
                 # Handle sync ask method
                 response = self.llm.ask(prompt)
-            elif hasattr(self.llm, 'call'):
+            elif hasattr(self.llm, "call"):
                 # Handle sync call method
                 response = self.llm.call(prompt)
             else:
                 # Last resort: try to get response from the LLM object
                 logger.warning(
-                    f"Unknown LLM interface for {type(self.llm)}, attempting to get response")
-                if hasattr(self.llm, 'response'):
+                    f"Unknown LLM interface for {type(self.llm)}, attempting to get response"
+                )
+                if hasattr(self.llm, "response"):
                     response = self.llm.response
                 else:
                     raise AttributeError(
-                        f"LLM object {type(self.llm)} has no known response method")
+                        f"LLM object {type(self.llm)} has no known response method"
+                    )
 
             return str(response)
 
@@ -1007,10 +1128,11 @@ Analyze the interaction with state context and create high-quality memories:"""
             r"Tool (\w+) result:",
             r"(\w+)_tool result:",
             r"(\w+) tool result:",
-            r"(\w+) result:"
+            r"(\w+) result:",
         ]
 
         import re
+
         for pattern in tool_patterns:
             match = re.search(pattern, tool_result, re.IGNORECASE)
             if match:
@@ -1018,7 +1140,9 @@ Analyze the interaction with state context and create high-quality memories:"""
 
         return None
 
-    async def _create_memory_from_spec(self, user_id: int, memory_spec: dict) -> Optional[dict]:
+    async def _create_memory_from_spec(
+        self, user_id: int, memory_spec: dict
+    ) -> Optional[dict]:
         """
         Create a memory from a memory specification.
 
@@ -1031,27 +1155,27 @@ Analyze the interaction with state context and create high-quality memories:"""
         """
         try:
             # Extract memory data from specification
-            content = memory_spec.get('content', '')
-            tags = memory_spec.get('tags', [])
-            importance_score = memory_spec.get('importance_score', 5)
-            memory_type = memory_spec.get('memory_type', 'general')
-            category = memory_spec.get('category', 'personal')
-            confidence_score = memory_spec.get('confidence_score', 0.8)
-            context = memory_spec.get('context', '')
+            content = memory_spec.get("content", "")
+            tags = memory_spec.get("tags", [])
+            importance_score = memory_spec.get("importance_score", 5)
+            memory_type = memory_spec.get("memory_type", "general")
+            category = memory_spec.get("category", "personal")
+            confidence_score = memory_spec.get("confidence_score", 0.8)
+            context = memory_spec.get("context", "")
 
             # Validate and clean tags using the AI tag validator
             if tags:
                 # Convert tags list to comma-separated string for validation
-                tags_string = ",".join(tags) if isinstance(
-                    tags, list) else str(tags)
-                valid_tags, invalid_tags, correction_explanation = validate_ai_generated_tags(
-                    tags_string, content, context
-                )
+                tags_string = ",".join(tags) if isinstance(tags, list) else str(tags)
+                (
+                    valid_tags,
+                    invalid_tags,
+                    correction_explanation,
+                ) = validate_ai_generated_tags(tags_string, content, context)
                 tags = valid_tags
 
                 if invalid_tags:
-                    logger.warning(
-                        f"Invalid tags in memory spec: {invalid_tags}")
+                    logger.warning(f"Invalid tags in memory spec: {invalid_tags}")
                     logger.info(f"Correction: {correction_explanation}")
             else:
                 # If no tags provided, get suggestions based on content
@@ -1059,18 +1183,18 @@ Analyze the interaction with state context and create high-quality memories:"""
 
             # Create memory data
             memory_data = {
-                'user_id': user_id,
-                'content': content,
-                'tags': tags,
+                "user_id": user_id,
+                "content": content,
+                "tags": tags,
                 # Clamp between 1-10
-                'importance_score': min(max(importance_score, 1), 10),
-                'memory_type': memory_type,
-                'category': category,
+                "importance_score": min(max(importance_score, 1), 10),
+                "memory_type": memory_type,
+                "category": category,
                 # Clamp between 0-1
-                'confidence_score': min(max(confidence_score, 0.0), 1.0),
-                'context': context,
-                'created_at': datetime.now().isoformat(),
-                'last_accessed': datetime.now().isoformat()
+                "confidence_score": min(max(confidence_score, 0.0), 1.0),
+                "context": context,
+                "created_at": datetime.now().isoformat(),
+                "last_accessed": datetime.now().isoformat(),
             }
 
             # Add memory to storage with correct parameter order
@@ -1083,14 +1207,15 @@ Analyze the interaction with state context and create high-quality memories:"""
                 memory_type=memory_type,
                 category=category,
                 confidence_score=confidence_score,
-                created_by='llm_memory_creator'
+                created_by="llm_memory_creator",
             )
 
-            if memory_result and memory_result.get('id'):
-                memory_id = memory_result['id']
+            if memory_result and memory_result.get("id"):
+                memory_id = memory_result["id"]
                 logger.info(
-                    f"Successfully created memory {memory_id} for user {user_id}")
-                memory_data['id'] = memory_id
+                    f"Successfully created memory {memory_id} for user {user_id}"
+                )
+                memory_data["id"] = memory_id
                 return memory_data
             else:
                 logger.warning(f"Failed to create memory for user {user_id}")

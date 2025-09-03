@@ -2,17 +2,17 @@
 Manages conversation state, IDs, and archival logic.
 Uses the new normalized database structure for persistence.
 """
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy import desc, select
+from sqlalchemy.exc import SQLAlchemyError
 
+from ..config.settings import settings
 from ..database.crud.utils import add_record_no_commit
 from ..database.session import AsyncSessionLocal
-import logging
-from sqlalchemy.exc import SQLAlchemyError
-from ..config.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ async def get_conversation_id(user_id: int) -> Optional[str]:
     """
     Retrieve the latest conversation_id for a user, or None if not found.
 
-    This function queries the new normalized database schema for the most recent 
+    This function queries the new normalized database schema for the most recent
     conversation associated with the given user.
 
     Args:
@@ -58,11 +58,11 @@ async def get_conversation_id(user_id: int) -> Optional[str]:
 
             if conversation_id:
                 logger.debug(
-                    f"Found conversation ID in normalized storage: {conversation_id}")
+                    f"Found conversation ID in normalized storage: {conversation_id}"
+                )
                 return conversation_id
             else:
-                logger.debug(
-                    f"No conversation found in normalized storage")
+                logger.debug(f"No conversation found in normalized storage")
                 return None
     except Exception as e:
         logger.error(f"Error getting conversation ID for user {user_id}: {e}")
@@ -88,13 +88,11 @@ async def create_new_conversation(user_id: int) -> Optional[str]:
         return None
 
     try:
-
         # Validate user exists (you'll need to implement this)
         # await validate_user_exists(user_id)
 
         conversation_id = str(uuid.uuid4())
-        logger.info(
-            f"Creating new conversation {conversation_id} for user {user_id}")
+        logger.info(f"Creating new conversation {conversation_id} for user {user_id}")
 
         async with AsyncSessionLocal() as session:
             async with session.begin():  # Start transaction
@@ -111,14 +109,16 @@ async def create_new_conversation(user_id: int) -> Optional[str]:
                         "step_count": 0,
                         "last_tool_result": None,
                         "created_at": datetime.now(timezone.utc),
-                        "updated_at": datetime.now(timezone.utc)
+                        "updated_at": datetime.now(timezone.utc),
                     }
-                    await add_record_no_commit(session, ConversationState, conversation_state_data)
+                    await add_record_no_commit(
+                        session, ConversationState, conversation_state_data
+                    )
                     logger.debug(
-                        f"✅ Created conversation in normalized storage: {conversation_id}")
+                        f"✅ Created conversation in normalized storage: {conversation_id}"
+                    )
 
-                    logger.info(
-                        f"Successfully created conversation {conversation_id}")
+                    logger.info(f"Successfully created conversation {conversation_id}")
                     return conversation_id
 
                 except SQLAlchemyError as e:
@@ -126,12 +126,10 @@ async def create_new_conversation(user_id: int) -> Optional[str]:
                     raise  # This will trigger rollback
 
     except SQLAlchemyError as e:
-        logger.error(
-            f"Failed to create conversation for user {user_id}: {e}")
+        logger.error(f"Failed to create conversation for user {user_id}: {e}")
         return None
     except Exception as e:
-        logger.error(
-            f"Unexpected error creating conversation for user {user_id}: {e}")
+        logger.error(f"Unexpected error creating conversation for user {user_id}: {e}")
         return None
 
 
@@ -160,8 +158,9 @@ def should_resume_conversation(last_timestamp: Optional[datetime]) -> bool:
 
     # Database returns timezone-aware timestamps, so we need timezone-aware comparison
     # Define cutoff time (configurable minutes ago) - use timezone-aware UTC datetime
-    cutoff = datetime.now(
-        timezone.utc) - timedelta(minutes=settings.CONVERSATION_RESUME_WINDOW_MINUTES)
+    cutoff = datetime.now(timezone.utc) - timedelta(
+        minutes=settings.CONVERSATION_RESUME_WINDOW_MINUTES
+    )
 
     # Compare last activity to cutoff
     # If last_timestamp > cutoff, the conversation is recent enough to resume

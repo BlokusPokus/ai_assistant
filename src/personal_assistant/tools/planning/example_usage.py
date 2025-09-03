@@ -4,6 +4,7 @@ This demonstrates how the planner automatically includes relevant tool guideline
 """
 
 import asyncio
+
 from .llm_planner import LLMPlannerTool
 
 
@@ -20,7 +21,7 @@ async def demonstrate_enhanced_planning():
     note_plan = await planner.create_intelligent_plan(
         user_request="Help me create a meeting note template for my development team",
         planning_style="adhd_friendly",
-        include_guidelines=True  # This will automatically include Notion notes guidelines
+        include_guidelines=True,  # This will automatically include Notion notes guidelines
     )
 
     print(note_plan)
@@ -33,7 +34,7 @@ async def demonstrate_enhanced_planning():
     search_plan = await planner.create_intelligent_plan(
         user_request="I need to find information about API design patterns in my codebase",
         planning_style="detailed",
-        include_guidelines=True  # This will include search tool guidelines
+        include_guidelines=True,  # This will include search tool guidelines
     )
 
     print(search_plan)
@@ -46,7 +47,7 @@ async def demonstrate_enhanced_planning():
     basic_plan = await planner.create_intelligent_plan(
         user_request="Help me organize my project files",
         planning_style="concise",
-        include_guidelines=False  # This will NOT include tool guidelines
+        include_guidelines=False,  # This will NOT include tool guidelines
     )
 
     print(basic_plan)
@@ -75,7 +76,7 @@ def show_guideline_integration():
         "Create a meeting note about our sprint planning",
         "Search for authentication code in my project",
         "Edit the main configuration file",
-        "Run the test suite for my application"
+        "Run the test suite for my application",
     ]
 
     for request in test_requests:
@@ -100,12 +101,15 @@ async def demonstrate_llm_tool_identification():
             class MockResponse:
                 def __init__(self, content):
                     self.content = content
+
             return MockResponse("notion_notes, codebase_search")
 
     planner.set_llm_client(MockLLMClient())
 
     # Test LLM tool identification
-    test_request = "I need to research API design patterns and create notes about my findings"
+    test_request = (
+        "I need to research API design patterns and create notes about my findings"
+    )
 
     print(f"User Request: '{test_request}'")
     print("\n🤖 LLM Analysis:")
@@ -119,9 +123,9 @@ async def demonstrate_llm_tool_identification():
         if relevant_tools:
             print("\n📚 Guidelines that would be included:")
             guidelines = planner._extract_relevant_guidelines(
-                relevant_tools, max_length=200)
-            print(guidelines[:500] + "..." if len(guidelines)
-                  > 500 else guidelines)
+                relevant_tools, max_length=200
+            )
+            print(guidelines[:500] + "..." if len(guidelines) > 500 else guidelines)
 
     except Exception as e:
         print(f"❌ LLM tool identification failed: {e}")

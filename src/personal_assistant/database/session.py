@@ -5,19 +5,23 @@ This module provides backward compatibility while using the new enhanced
 database configuration with connection pooling.
 """
 
-import sys
 import logging
+import os
+import sys
+
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
 from personal_assistant.config.database import (
+    db_config,
     get_session,
     get_session_context,
-    db_config
 )
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-import os
 
-DATABASE_URL = os.getenv(
-    "REAL_DB_URL") or "postgresql+asyncpg://ianleblanc:password@localhost:5432/postgres"
+DATABASE_URL = (
+    os.getenv("REAL_DB_URL")
+    or "postgresql+asyncpg://ianleblanc:password@localhost:5432/postgres"
+)
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -34,15 +38,11 @@ AsyncSessionLocal = sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
     autocommit=False,
-    autoflush=False
+    autoflush=False,
 )
 
 # Re-export for backward compatibility
-__all__ = [
-    "get_session",
-    "get_session_context",
-    "db_config"
-]
+__all__ = ["get_session", "get_session_context", "db_config"]
 
 # Lazy initialization of engine and session factory
 
@@ -52,6 +52,7 @@ def _get_engine():
     if db_config.engine is None:
         # This will trigger initialization when first accessed
         import asyncio
+
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
@@ -89,6 +90,7 @@ def get_db():
     This is a synchronous wrapper that FastAPI can use with Depends().
     It will be called for each request and return the session.
     """
+
     async def _get_db():
         return AsyncSessionLocal()
 

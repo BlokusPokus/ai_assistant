@@ -6,7 +6,17 @@ with enhanced metadata and categorization support.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, JSON, DateTime
+
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.sql import func
 
 from .base import Base
@@ -15,13 +25,13 @@ from .base import Base
 class UserSetting(Base):
     """User settings and preferences storage."""
 
-    __tablename__ = 'user_settings'
+    __tablename__ = "user_settings"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     key = Column(String(255), nullable=False)
     value = Column(Text)
-    setting_type = Column(String(50), nullable=False, default='string')
+    setting_type = Column(String(50), nullable=False, default="string")
     is_public = Column(Boolean, default=False)
     validation_rules = Column(JSON)
     category = Column(String(100))

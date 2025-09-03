@@ -7,10 +7,10 @@ tool usage patterns, and user behavior patterns from state data.
 """
 
 import logging
-from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime, timezone
 import re
-from collections import defaultdict, Counter
+from collections import Counter, defaultdict
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
 from ...config.logging_config import get_logger
 from ...types.state import AgentState
@@ -25,7 +25,7 @@ class PatternRecognitionEngine:
 
     This engine analyzes:
     - Conversation flow patterns
-    - Tool usage patterns  
+    - Tool usage patterns
     - User behavior patterns
     - Temporal patterns
     - State-to-memory conversion
@@ -37,8 +37,7 @@ class PatternRecognitionEngine:
         self.logger = get_logger("pattern_recognition")
 
     async def analyze_conversation_flow(
-        self,
-        conversation_history: List[dict]
+        self, conversation_history: List[dict]
     ) -> List[Dict[str, Any]]:
         """
         Analyze conversation patterns for memory creation.
@@ -57,26 +56,23 @@ class PatternRecognitionEngine:
         try:
             # Analyze communication style patterns
             communication_patterns = self._analyze_communication_style(
-                conversation_history)
+                conversation_history
+            )
             patterns.extend(communication_patterns)
 
             # Analyze topic preference patterns
-            topic_patterns = self._analyze_topic_preferences(
-                conversation_history)
+            topic_patterns = self._analyze_topic_preferences(conversation_history)
             patterns.extend(topic_patterns)
 
             # Analyze response format patterns
-            format_patterns = self._analyze_response_formats(
-                conversation_history)
+            format_patterns = self._analyze_response_formats(conversation_history)
             patterns.extend(format_patterns)
 
             # Analyze conversation length patterns
-            length_patterns = self._analyze_conversation_lengths(
-                conversation_history)
+            length_patterns = self._analyze_conversation_lengths(conversation_history)
             patterns.extend(length_patterns)
 
-            self.logger.info(
-                f"Identified {len(patterns)} conversation patterns")
+            self.logger.info(f"Identified {len(patterns)} conversation patterns")
 
         except Exception as e:
             self.logger.error(f"Error analyzing conversation flow: {e}")
@@ -84,8 +80,7 @@ class PatternRecognitionEngine:
         return patterns
 
     async def detect_tool_usage_patterns(
-        self,
-        tool_calls: List[dict]
+        self, tool_calls: List[dict]
     ) -> List[Dict[str, Any]]:
         """
         Detect patterns in tool usage from state data.
@@ -126,8 +121,7 @@ class PatternRecognitionEngine:
         return patterns
 
     async def recognize_user_behavior_patterns(
-        self,
-        interactions: List[dict]
+        self, interactions: List[dict]
     ) -> List[Dict[str, Any]]:
         """
         Recognize user behavior patterns from state interactions.
@@ -160,8 +154,7 @@ class PatternRecognitionEngine:
             learning_patterns = self._analyze_user_learning(interactions)
             patterns.extend(learning_patterns)
 
-            self.logger.info(
-                f"Identified {len(patterns)} user behavior patterns")
+            self.logger.info(f"Identified {len(patterns)} user behavior patterns")
 
         except Exception as e:
             self.logger.error(f"Error recognizing user behavior patterns: {e}")
@@ -169,8 +162,7 @@ class PatternRecognitionEngine:
         return patterns
 
     async def analyze_temporal_patterns(
-        self,
-        state_data: AgentState
+        self, state_data: AgentState
     ) -> List[Dict[str, Any]]:
         """
         Analyze temporal patterns from state data.
@@ -193,13 +185,13 @@ class PatternRecognitionEngine:
             patterns.extend(day_patterns)
 
             # Analyze session duration patterns
-            duration_patterns = self._analyze_session_duration_patterns(
-                state_data)
+            duration_patterns = self._analyze_session_duration_patterns(state_data)
             patterns.extend(duration_patterns)
 
             # Analyze interaction frequency patterns
             frequency_patterns = self._analyze_interaction_frequency_patterns(
-                state_data)
+                state_data
+            )
             patterns.extend(frequency_patterns)
 
             self.logger.info(f"Identified {len(patterns)} temporal patterns")
@@ -210,9 +202,7 @@ class PatternRecognitionEngine:
         return patterns
 
     async def convert_state_to_memories(
-        self,
-        user_id: int,
-        state_data: AgentState
+        self, user_id: int, state_data: AgentState
     ) -> List[Dict[str, Any]]:
         """
         Convert state data to memories using pattern recognition.
@@ -237,16 +227,20 @@ class PatternRecognitionEngine:
                 )
                 for pattern in conversation_patterns:
                     memory = self._convert_pattern_to_memory(
-                        user_id, pattern, "conversation")
+                        user_id, pattern, "conversation"
+                    )
                     if memory:
                         memories.append(memory)
 
             # Analyze tool usage patterns
-            if hasattr(state_data, 'last_tool_result') and state_data.last_tool_result:
-                tool_patterns = await self.detect_tool_usage_patterns([state_data.last_tool_result])
+            if hasattr(state_data, "last_tool_result") and state_data.last_tool_result:
+                tool_patterns = await self.detect_tool_usage_patterns(
+                    [state_data.last_tool_result]
+                )
                 for pattern in tool_patterns:
                     memory = self._convert_pattern_to_memory(
-                        user_id, pattern, "tool_usage")
+                        user_id, pattern, "tool_usage"
+                    )
                     if memory:
                         memories.append(memory)
 
@@ -257,37 +251,38 @@ class PatternRecognitionEngine:
                 )
                 for pattern in behavior_patterns:
                     memory = self._convert_pattern_to_memory(
-                        user_id, pattern, "user_behavior")
+                        user_id, pattern, "user_behavior"
+                    )
                     if memory:
                         memories.append(memory)
 
             # Analyze temporal patterns
             temporal_patterns = await self.analyze_temporal_patterns(state_data)
             for pattern in temporal_patterns:
-                memory = self._convert_pattern_to_memory(
-                    user_id, pattern, "temporal")
+                memory = self._convert_pattern_to_memory(user_id, pattern, "temporal")
                 if memory:
                     memories.append(memory)
 
             # Analyze focus area patterns
             if state_data.focus:
-                focus_patterns = self._analyze_focus_area_patterns(
-                    state_data.focus)
+                focus_patterns = self._analyze_focus_area_patterns(state_data.focus)
                 for pattern in focus_patterns:
-                    memory = self._convert_pattern_to_memory(
-                        user_id, pattern, "focus")
+                    memory = self._convert_pattern_to_memory(user_id, pattern, "focus")
                     if memory:
                         memories.append(memory)
 
             self.logger.info(
-                f"Converted {len(memories)} patterns to memories for user {user_id}")
+                f"Converted {len(memories)} patterns to memories for user {user_id}"
+            )
 
         except Exception as e:
             self.logger.error(f"Error converting state to memories: {e}")
 
         return memories
 
-    def _analyze_communication_style(self, conversation_history: List[dict]) -> List[Dict[str, Any]]:
+    def _analyze_communication_style(
+        self, conversation_history: List[dict]
+    ) -> List[Dict[str, Any]]:
         """Analyze communication style patterns"""
         patterns = []
 
@@ -297,9 +292,12 @@ class PatternRecognitionEngine:
             total_messages = len(conversation_history)
 
             for exchange in conversation_history:
-                user_input = exchange.get('user_input', '').lower()
+                user_input = exchange.get("user_input", "").lower()
 
-                for style, indicators in self.config.communication_style_indicators.items():
+                for (
+                    style,
+                    indicators,
+                ) in self.config.communication_style_indicators.items():
                     for indicator in indicators:
                         if indicator.lower() in user_input:
                             style_counts[style] += 1
@@ -307,23 +305,29 @@ class PatternRecognitionEngine:
 
             # Create patterns for dominant styles
             for style, count in style_counts.items():
-                if count >= max(2, total_messages * 0.3):  # At least 2 or 30% of messages
-                    patterns.append({
-                        'type': 'communication_style',
-                        'subtype': style,
-                        'confidence': min(0.9, count / total_messages),
-                        'frequency': count,
-                        'total_messages': total_messages,
-                        'description': f"User tends to use {style} communication style",
-                        'tags': ['communication', 'style', style, 'pattern']
-                    })
+                if count >= max(
+                    2, total_messages * 0.3
+                ):  # At least 2 or 30% of messages
+                    patterns.append(
+                        {
+                            "type": "communication_style",
+                            "subtype": style,
+                            "confidence": min(0.9, count / total_messages),
+                            "frequency": count,
+                            "total_messages": total_messages,
+                            "description": f"User tends to use {style} communication style",
+                            "tags": ["communication", "style", style, "pattern"],
+                        }
+                    )
 
         except Exception as e:
             self.logger.error(f"Error analyzing communication style: {e}")
 
         return patterns
 
-    def _analyze_topic_preferences(self, conversation_history: List[dict]) -> List[Dict[str, Any]]:
+    def _analyze_topic_preferences(
+        self, conversation_history: List[dict]
+    ) -> List[Dict[str, Any]]:
         """Analyze topic preference patterns"""
         patterns = []
 
@@ -333,7 +337,7 @@ class PatternRecognitionEngine:
             total_messages = len(conversation_history)
 
             for exchange in conversation_history:
-                user_input = exchange.get('user_input', '').lower()
+                user_input = exchange.get("user_input", "").lower()
 
                 for topic, keywords in self.config.topic_preference_keywords.items():
                     for keyword in keywords:
@@ -343,23 +347,29 @@ class PatternRecognitionEngine:
 
             # Create patterns for frequent topics
             for topic, count in topic_counts.items():
-                if count >= max(2, total_messages * 0.2):  # At least 2 or 20% of messages
-                    patterns.append({
-                        'type': 'topic_preference',
-                        'subtype': topic,
-                        'confidence': min(0.8, count / total_messages),
-                        'frequency': count,
-                        'total_messages': total_messages,
-                        'description': f"User frequently discusses {topic} topics",
-                        'tags': ['topic', 'preference', topic, 'pattern']
-                    })
+                if count >= max(
+                    2, total_messages * 0.2
+                ):  # At least 2 or 20% of messages
+                    patterns.append(
+                        {
+                            "type": "topic_preference",
+                            "subtype": topic,
+                            "confidence": min(0.8, count / total_messages),
+                            "frequency": count,
+                            "total_messages": total_messages,
+                            "description": f"User frequently discusses {topic} topics",
+                            "tags": ["topic", "preference", topic, "pattern"],
+                        }
+                    )
 
         except Exception as e:
             self.logger.error(f"Error analyzing topic preferences: {e}")
 
         return patterns
 
-    def _analyze_response_formats(self, conversation_history: List[dict]) -> List[Dict[str, Any]]:
+    def _analyze_response_formats(
+        self, conversation_history: List[dict]
+    ) -> List[Dict[str, Any]]:
         """Analyze response format preference patterns"""
         patterns = []
 
@@ -369,9 +379,12 @@ class PatternRecognitionEngine:
             total_messages = len(conversation_history)
 
             for exchange in conversation_history:
-                user_input = exchange.get('user_input', '').lower()
+                user_input = exchange.get("user_input", "").lower()
 
-                for format_type, indicators in self.config.response_format_indicators.items():
+                for (
+                    format_type,
+                    indicators,
+                ) in self.config.response_format_indicators.items():
                     for indicator in indicators:
                         if indicator.lower() in user_input:
                             format_counts[format_type] += 1
@@ -379,23 +392,29 @@ class PatternRecognitionEngine:
 
             # Create patterns for preferred formats
             for format_type, count in format_counts.items():
-                if count >= max(2, total_messages * 0.25):  # At least 2 or 25% of messages
-                    patterns.append({
-                        'type': 'response_format',
-                        'subtype': format_type,
-                        'confidence': min(0.85, count / total_messages),
-                        'frequency': count,
-                        'total_messages': total_messages,
-                        'description': f"User prefers {format_type} responses",
-                        'tags': ['response', 'format', format_type, 'preference']
-                    })
+                if count >= max(
+                    2, total_messages * 0.25
+                ):  # At least 2 or 25% of messages
+                    patterns.append(
+                        {
+                            "type": "response_format",
+                            "subtype": format_type,
+                            "confidence": min(0.85, count / total_messages),
+                            "frequency": count,
+                            "total_messages": total_messages,
+                            "description": f"User prefers {format_type} responses",
+                            "tags": ["response", "format", format_type, "preference"],
+                        }
+                    )
 
         except Exception as e:
             self.logger.error(f"Error analyzing response formats: {e}")
 
         return patterns
 
-    def _analyze_conversation_lengths(self, conversation_history: List[dict]) -> List[Dict[str, Any]]:
+    def _analyze_conversation_lengths(
+        self, conversation_history: List[dict]
+    ) -> List[Dict[str, Any]]:
         """Analyze conversation length patterns"""
         patterns = []
 
@@ -404,30 +423,33 @@ class PatternRecognitionEngine:
                 return patterns
 
             # Calculate average message lengths
-            user_lengths = [len(exchange.get('user_input', ''))
-                            for exchange in conversation_history]
+            user_lengths = [
+                len(exchange.get("user_input", "")) for exchange in conversation_history
+            ]
             avg_user_length = sum(user_lengths) / len(user_lengths)
 
             # Determine length preference
             if avg_user_length > 100:
-                length_type = 'detailed'
+                length_type = "detailed"
                 description = "User tends to provide detailed, lengthy inputs"
             elif avg_user_length > 50:
-                length_type = 'moderate'
+                length_type = "moderate"
                 description = "User provides moderate length inputs"
             else:
-                length_type = 'concise'
+                length_type = "concise"
                 description = "User tends to provide concise, brief inputs"
 
-            patterns.append({
-                'type': 'conversation_length',
-                'subtype': length_type,
-                'confidence': 0.7,
-                'avg_length': avg_user_length,
-                'total_messages': len(conversation_history),
-                'description': description,
-                'tags': ['conversation', 'length', length_type, 'pattern']
-            })
+            patterns.append(
+                {
+                    "type": "conversation_length",
+                    "subtype": length_type,
+                    "confidence": 0.7,
+                    "avg_length": avg_user_length,
+                    "total_messages": len(conversation_history),
+                    "description": description,
+                    "tags": ["conversation", "length", length_type, "pattern"],
+                }
+            )
 
         except Exception as e:
             self.logger.error(f"Error analyzing conversation lengths: {e}")
@@ -444,28 +466,34 @@ class PatternRecognitionEngine:
             total_tools = len(tool_calls)
 
             for tool_call in tool_calls:
-                tool_name = tool_call.get('tool_name', 'unknown')
+                tool_name = tool_call.get("tool_name", "unknown")
                 tool_counts[tool_name] += 1
 
             # Create patterns for frequently used tools
             for tool_name, count in tool_counts.items():
-                if count >= max(2, total_tools * 0.3):  # At least 2 or 30% of tool calls
-                    patterns.append({
-                        'type': 'tool_preference',
-                        'subtype': tool_name,
-                        'confidence': min(0.8, count / total_tools),
-                        'frequency': count,
-                        'total_tools': total_tools,
-                        'description': f"User frequently uses {tool_name} tool",
-                        'tags': ['tool', 'preference', tool_name, 'usage']
-                    })
+                if count >= max(
+                    2, total_tools * 0.3
+                ):  # At least 2 or 30% of tool calls
+                    patterns.append(
+                        {
+                            "type": "tool_preference",
+                            "subtype": tool_name,
+                            "confidence": min(0.8, count / total_tools),
+                            "frequency": count,
+                            "total_tools": total_tools,
+                            "description": f"User frequently uses {tool_name} tool",
+                            "tags": ["tool", "preference", tool_name, "usage"],
+                        }
+                    )
 
         except Exception as e:
             self.logger.error(f"Error analyzing tool preferences: {e}")
 
         return patterns
 
-    def _analyze_tool_success_patterns(self, tool_calls: List[dict]) -> List[Dict[str, Any]]:
+    def _analyze_tool_success_patterns(
+        self, tool_calls: List[dict]
+    ) -> List[Dict[str, Any]]:
         """Analyze tool success/failure patterns"""
         patterns = []
 
@@ -476,23 +504,36 @@ class PatternRecognitionEngine:
 
             for tool_call in tool_calls:
                 # Check for success indicators in tool results
-                result = str(tool_call.get('result', '')).lower()
-                if any(success_indicator in result for success_indicator in ['success', 'created', 'updated', 'completed']):
+                result = str(tool_call.get("result", "")).lower()
+                if any(
+                    success_indicator in result
+                    for success_indicator in [
+                        "success",
+                        "created",
+                        "updated",
+                        "completed",
+                    ]
+                ):
                     success_count += 1
-                elif any(failure_indicator in result for failure_indicator in ['error', 'failed', 'not found', 'invalid']):
+                elif any(
+                    failure_indicator in result
+                    for failure_indicator in ["error", "failed", "not found", "invalid"]
+                ):
                     failure_count += 1
 
             # Create success pattern if significant
             if success_count > 0 and success_count >= total_tools * 0.6:
-                patterns.append({
-                    'type': 'tool_success',
-                    'subtype': 'high_success_rate',
-                    'confidence': min(0.9, success_count / total_tools),
-                    'success_rate': success_count / total_tools,
-                    'total_tools': total_tools,
-                    'description': "User has high success rate with tools",
-                    'tags': ['tool', 'success', 'pattern', 'efficiency']
-                })
+                patterns.append(
+                    {
+                        "type": "tool_success",
+                        "subtype": "high_success_rate",
+                        "confidence": min(0.9, success_count / total_tools),
+                        "success_rate": success_count / total_tools,
+                        "total_tools": total_tools,
+                        "description": "User has high success rate with tools",
+                        "tags": ["tool", "success", "pattern", "efficiency"],
+                    }
+                )
 
         except Exception as e:
             self.logger.error(f"Error analyzing tool success patterns: {e}")
@@ -512,31 +553,35 @@ class PatternRecognitionEngine:
             usage_frequency = len(tool_calls) / max(1, len(tool_calls))
 
             if usage_frequency > 0.8:
-                frequency_type = 'high'
+                frequency_type = "high"
                 description = "User frequently uses tools"
             elif usage_frequency > 0.4:
-                frequency_type = 'moderate'
+                frequency_type = "moderate"
                 description = "User moderately uses tools"
             else:
-                frequency_type = 'low'
+                frequency_type = "low"
                 description = "User infrequently uses tools"
 
-            patterns.append({
-                'type': 'tool_frequency',
-                'subtype': frequency_type,
-                'confidence': 0.6,
-                'frequency_rate': usage_frequency,
-                'total_tools': len(tool_calls),
-                'description': description,
-                'tags': ['tool', 'frequency', frequency_type, 'pattern']
-            })
+            patterns.append(
+                {
+                    "type": "tool_frequency",
+                    "subtype": frequency_type,
+                    "confidence": 0.6,
+                    "frequency_rate": usage_frequency,
+                    "total_tools": len(tool_calls),
+                    "description": description,
+                    "tags": ["tool", "frequency", frequency_type, "pattern"],
+                }
+            )
 
         except Exception as e:
             self.logger.error(f"Error analyzing tool frequency: {e}")
 
         return patterns
 
-    def _analyze_tool_combinations(self, tool_calls: List[dict]) -> List[Dict[str, Any]]:
+    def _analyze_tool_combinations(
+        self, tool_calls: List[dict]
+    ) -> List[Dict[str, Any]]:
         """Analyze tool combination patterns"""
         patterns = []
 
@@ -547,8 +592,8 @@ class PatternRecognitionEngine:
             # Find common tool combinations
             tool_sequences = []
             for i in range(len(tool_calls) - 1):
-                current_tool = tool_calls[i].get('tool_name', 'unknown')
-                next_tool = tool_calls[i + 1].get('tool_name', 'unknown')
+                current_tool = tool_calls[i].get("tool_name", "unknown")
+                next_tool = tool_calls[i + 1].get("tool_name", "unknown")
                 tool_sequences.append((current_tool, next_tool))
 
             # Count combinations
@@ -557,22 +602,26 @@ class PatternRecognitionEngine:
             # Create patterns for common combinations
             for (tool1, tool2), count in combination_counts.items():
                 if count >= 2:  # At least 2 occurrences
-                    patterns.append({
-                        'type': 'tool_combination',
-                        'subtype': f"{tool1}_and_{tool2}",
-                        'confidence': min(0.7, count / len(tool_sequences)),
-                        'frequency': count,
-                        'total_sequences': len(tool_sequences),
-                        'description': f"User commonly uses {tool1} followed by {tool2}",
-                        'tags': ['tool', 'combination', tool1, tool2, 'pattern']
-                    })
+                    patterns.append(
+                        {
+                            "type": "tool_combination",
+                            "subtype": f"{tool1}_and_{tool2}",
+                            "confidence": min(0.7, count / len(tool_sequences)),
+                            "frequency": count,
+                            "total_sequences": len(tool_sequences),
+                            "description": f"User commonly uses {tool1} followed by {tool2}",
+                            "tags": ["tool", "combination", tool1, tool2, "pattern"],
+                        }
+                    )
 
         except Exception as e:
             self.logger.error(f"Error analyzing tool combinations: {e}")
 
         return patterns
 
-    def _analyze_interaction_timing(self, interactions: List[dict]) -> List[Dict[str, Any]]:
+    def _analyze_interaction_timing(
+        self, interactions: List[dict]
+    ) -> List[Dict[str, Any]]:
         """Analyze interaction timing patterns"""
         patterns = []
 
@@ -586,30 +635,34 @@ class PatternRecognitionEngine:
 
             # Determine if user tends to have multiple interactions in sequence
             if interaction_count > 5:
-                timing_type = 'extended_session'
+                timing_type = "extended_session"
                 description = "User tends to have extended interaction sessions"
             elif interaction_count > 2:
-                timing_type = 'moderate_session'
+                timing_type = "moderate_session"
                 description = "User tends to have moderate interaction sessions"
             else:
-                timing_type = 'brief_session'
+                timing_type = "brief_session"
                 description = "User tends to have brief interaction sessions"
 
-            patterns.append({
-                'type': 'interaction_timing',
-                'subtype': timing_type,
-                'confidence': 0.6,
-                'interaction_count': interaction_count,
-                'description': description,
-                'tags': ['interaction', 'timing', timing_type, 'pattern']
-            })
+            patterns.append(
+                {
+                    "type": "interaction_timing",
+                    "subtype": timing_type,
+                    "confidence": 0.6,
+                    "interaction_count": interaction_count,
+                    "description": description,
+                    "tags": ["interaction", "timing", timing_type, "pattern"],
+                }
+            )
 
         except Exception as e:
             self.logger.error(f"Error analyzing interaction timing: {e}")
 
         return patterns
 
-    def _analyze_user_preferences(self, interactions: List[dict]) -> List[Dict[str, Any]]:
+    def _analyze_user_preferences(
+        self, interactions: List[dict]
+    ) -> List[Dict[str, Any]]:
         """Analyze user preference patterns"""
         patterns = []
 
@@ -619,7 +672,7 @@ class PatternRecognitionEngine:
             preference_count = 0
 
             for interaction in interactions:
-                user_input = str(interaction.get('user_input', '')).lower()
+                user_input = str(interaction.get("user_input", "")).lower()
                 for indicator in preference_indicators:
                     if indicator.lower() in user_input:
                         preference_count += 1
@@ -629,24 +682,26 @@ class PatternRecognitionEngine:
                 preference_rate = preference_count / len(interactions)
 
                 if preference_rate > 0.5:
-                    preference_type = 'high'
+                    preference_type = "high"
                     description = "User frequently expresses preferences"
                 elif preference_rate > 0.2:
-                    preference_type = 'moderate'
+                    preference_type = "moderate"
                     description = "User moderately expresses preferences"
                 else:
-                    preference_type = 'low'
+                    preference_type = "low"
                     description = "User infrequently expresses preferences"
 
-                patterns.append({
-                    'type': 'user_preferences',
-                    'subtype': preference_type,
-                    'confidence': min(0.8, preference_rate),
-                    'preference_rate': preference_rate,
-                    'total_interactions': len(interactions),
-                    'description': description,
-                    'tags': ['user', 'preferences', preference_type, 'pattern']
-                })
+                patterns.append(
+                    {
+                        "type": "user_preferences",
+                        "subtype": preference_type,
+                        "confidence": min(0.8, preference_rate),
+                        "preference_rate": preference_rate,
+                        "total_interactions": len(interactions),
+                        "description": description,
+                        "tags": ["user", "preferences", preference_type, "pattern"],
+                    }
+                )
 
         except Exception as e:
             self.logger.error(f"Error analyzing user preferences: {e}")
@@ -659,12 +714,18 @@ class PatternRecognitionEngine:
 
         try:
             # Look for habit indicators
-            habit_indicators = ['always', 'never',
-                                'usually', 'typically', 'tend to', 'avoid']
+            habit_indicators = [
+                "always",
+                "never",
+                "usually",
+                "typically",
+                "tend to",
+                "avoid",
+            ]
             habit_count = 0
 
             for interaction in interactions:
-                user_input = str(interaction.get('user_input', '')).lower()
+                user_input = str(interaction.get("user_input", "")).lower()
                 for indicator in habit_indicators:
                     if indicator in user_input:
                         habit_count += 1
@@ -674,21 +735,23 @@ class PatternRecognitionEngine:
                 habit_rate = habit_count / len(interactions)
 
                 if habit_rate > 0.3:
-                    habit_type = 'habitual'
+                    habit_type = "habitual"
                     description = "User frequently discusses habits and routines"
                 else:
-                    habit_type = 'occasional'
+                    habit_type = "occasional"
                     description = "User occasionally discusses habits and routines"
 
-                patterns.append({
-                    'type': 'user_habits',
-                    'subtype': habit_type,
-                    'confidence': min(0.7, habit_rate),
-                    'habit_rate': habit_rate,
-                    'total_interactions': len(interactions),
-                    'description': description,
-                    'tags': ['user', 'habits', habit_type, 'pattern']
-                })
+                patterns.append(
+                    {
+                        "type": "user_habits",
+                        "subtype": habit_type,
+                        "confidence": min(0.7, habit_rate),
+                        "habit_rate": habit_rate,
+                        "total_interactions": len(interactions),
+                        "description": description,
+                        "tags": ["user", "habits", habit_type, "pattern"],
+                    }
+                )
 
         except Exception as e:
             self.logger.error(f"Error analyzing user habits: {e}")
@@ -705,7 +768,7 @@ class PatternRecognitionEngine:
             learning_count = 0
 
             for interaction in interactions:
-                user_input = str(interaction.get('user_input', '')).lower()
+                user_input = str(interaction.get("user_input", "")).lower()
                 for indicator in learning_indicators:
                     if indicator.lower() in user_input:
                         learning_count += 1
@@ -715,31 +778,35 @@ class PatternRecognitionEngine:
                 learning_rate = learning_count / len(interactions)
 
                 if learning_rate > 0.4:
-                    learning_type = 'active_learner'
+                    learning_type = "active_learner"
                     description = "User actively seeks learning and understanding"
                 elif learning_rate > 0.2:
-                    learning_type = 'moderate_learner'
+                    learning_type = "moderate_learner"
                     description = "User moderately seeks learning and understanding"
                 else:
-                    learning_type = 'passive_learner'
+                    learning_type = "passive_learner"
                     description = "User occasionally seeks learning and understanding"
 
-                patterns.append({
-                    'type': 'user_learning',
-                    'subtype': learning_type,
-                    'confidence': min(0.75, learning_rate),
-                    'learning_rate': learning_rate,
-                    'total_interactions': len(interactions),
-                    'description': description,
-                    'tags': ['user', 'learning', learning_type, 'pattern']
-                })
+                patterns.append(
+                    {
+                        "type": "user_learning",
+                        "subtype": learning_type,
+                        "confidence": min(0.75, learning_rate),
+                        "learning_rate": learning_rate,
+                        "total_interactions": len(interactions),
+                        "description": description,
+                        "tags": ["user", "learning", learning_type, "pattern"],
+                    }
+                )
 
         except Exception as e:
             self.logger.error(f"Error analyzing user learning: {e}")
 
         return patterns
 
-    def _analyze_time_of_day_patterns(self, state_data: AgentState) -> List[Dict[str, Any]]:
+    def _analyze_time_of_day_patterns(
+        self, state_data: AgentState
+    ) -> List[Dict[str, Any]]:
         """Analyze time-of-day patterns from state data"""
         patterns = []
 
@@ -755,7 +822,9 @@ class PatternRecognitionEngine:
 
         return patterns
 
-    def _analyze_day_of_week_patterns(self, state_data: AgentState) -> List[Dict[str, Any]]:
+    def _analyze_day_of_week_patterns(
+        self, state_data: AgentState
+    ) -> List[Dict[str, Any]]:
         """Analyze day-of-week patterns from state data"""
         patterns = []
 
@@ -771,7 +840,9 @@ class PatternRecognitionEngine:
 
         return patterns
 
-    def _analyze_session_duration_patterns(self, state_data: AgentState) -> List[Dict[str, Any]]:
+    def _analyze_session_duration_patterns(
+        self, state_data: AgentState
+    ) -> List[Dict[str, Any]]:
         """Analyze session duration patterns from state data"""
         patterns = []
 
@@ -783,12 +854,13 @@ class PatternRecognitionEngine:
             pass
 
         except Exception as e:
-            self.logger.error(
-                f"Error analyzing session duration patterns: {e}")
+            self.logger.error(f"Error analyzing session duration patterns: {e}")
 
         return patterns
 
-    def _analyze_interaction_frequency_patterns(self, state_data: AgentState) -> List[Dict[str, Any]]:
+    def _analyze_interaction_frequency_patterns(
+        self, state_data: AgentState
+    ) -> List[Dict[str, Any]]:
         """Analyze interaction frequency patterns from state data"""
         patterns = []
 
@@ -800,12 +872,13 @@ class PatternRecognitionEngine:
             pass
 
         except Exception as e:
-            self.logger.error(
-                f"Error analyzing interaction frequency patterns: {e}")
+            self.logger.error(f"Error analyzing interaction frequency patterns: {e}")
 
         return patterns
 
-    def _analyze_focus_area_patterns(self, focus_areas: List[str]) -> List[Dict[str, Any]]:
+    def _analyze_focus_area_patterns(
+        self, focus_areas: List[str]
+    ) -> List[Dict[str, Any]]:
         """Analyze focus area patterns"""
         patterns = []
 
@@ -817,24 +890,26 @@ class PatternRecognitionEngine:
             focus_count = len(focus_areas)
 
             if focus_count > 3:
-                focus_type = 'broad_focus'
+                focus_type = "broad_focus"
                 description = "User has broad focus areas"
             elif focus_count > 1:
-                focus_type = 'moderate_focus'
+                focus_type = "moderate_focus"
                 description = "User has moderate focus areas"
             else:
-                focus_type = 'narrow_focus'
+                focus_type = "narrow_focus"
                 description = "User has narrow focus areas"
 
-            patterns.append({
-                'type': 'focus_area',
-                'subtype': focus_type,
-                'confidence': 0.8,
-                'focus_count': focus_count,
-                'focus_areas': focus_areas,
-                'description': description,
-                'tags': ['focus', 'area', focus_type, 'pattern']
-            })
+            patterns.append(
+                {
+                    "type": "focus_area",
+                    "subtype": focus_type,
+                    "confidence": 0.8,
+                    "focus_count": focus_count,
+                    "focus_areas": focus_areas,
+                    "description": description,
+                    "tags": ["focus", "area", focus_type, "pattern"],
+                }
+            )
 
         except Exception as e:
             self.logger.error(f"Error analyzing focus area patterns: {e}")
@@ -842,10 +917,7 @@ class PatternRecognitionEngine:
         return patterns
 
     def _convert_pattern_to_memory(
-        self,
-        user_id: int,
-        pattern: Dict[str, Any],
-        source_type: str
+        self, user_id: int, pattern: Dict[str, Any], source_type: str
     ) -> Optional[Dict[str, Any]]:
         """
         Convert a recognized pattern to a memory-ready structure.
@@ -861,36 +933,42 @@ class PatternRecognitionEngine:
         try:
             # Calculate importance score based on pattern confidence and frequency
             base_importance = 3  # Base importance for patterns
-            confidence_boost = int(pattern.get('confidence', 0.5) * 3)
-            frequency_boost = min(2, pattern.get('frequency', 1) // 2)
+            confidence_boost = int(pattern.get("confidence", 0.5) * 3)
+            frequency_boost = min(2, pattern.get("frequency", 1) // 2)
 
             importance_score = min(
-                10, base_importance + confidence_boost + frequency_boost)
+                10, base_importance + confidence_boost + frequency_boost
+            )
 
             # Create memory structure
             memory = {
-                'user_id': user_id,
-                'content': pattern.get('description', 'Pattern identified'),
-                'tags': pattern.get('tags', []),
-                'importance_score': importance_score,
-                'context': f"Pattern type: {pattern.get('type')}, Subtype: {pattern.get('subtype')}",
-                'enhanced_context': {
-                    'memory_type': 'pattern',
-                    'category': source_type,
-                    'confidence_score': pattern.get('confidence', 0.5),
-                    'source_type': source_type,
-                    'metadata': {
-                        'pattern_type': pattern.get('type'),
-                        'pattern_subtype': pattern.get('subtype'),
-                        'frequency': pattern.get('frequency', 1),
-                        'total_count': pattern.get('total_messages', pattern.get('total_tools', pattern.get('total_interactions', 1)))
-                    }
+                "user_id": user_id,
+                "content": pattern.get("description", "Pattern identified"),
+                "tags": pattern.get("tags", []),
+                "importance_score": importance_score,
+                "context": f"Pattern type: {pattern.get('type')}, Subtype: {pattern.get('subtype')}",
+                "enhanced_context": {
+                    "memory_type": "pattern",
+                    "category": source_type,
+                    "confidence_score": pattern.get("confidence", 0.5),
+                    "source_type": source_type,
+                    "metadata": {
+                        "pattern_type": pattern.get("type"),
+                        "pattern_subtype": pattern.get("subtype"),
+                        "frequency": pattern.get("frequency", 1),
+                        "total_count": pattern.get(
+                            "total_messages",
+                            pattern.get(
+                                "total_tools", pattern.get("total_interactions", 1)
+                            ),
+                        ),
+                    },
                 },
-                'memory_type': 'pattern',
-                'category': source_type,
-                'confidence_score': pattern.get('confidence', 0.5),
-                'source_type': source_type,
-                'created_by': 'pattern_recognition_engine'
+                "memory_type": "pattern",
+                "category": source_type,
+                "confidence_score": pattern.get("confidence", 0.5),
+                "source_type": source_type,
+                "created_by": "pattern_recognition_engine",
             }
 
             return memory
@@ -916,46 +994,56 @@ class PatternRecognitionEngine:
 
         try:
             # Analyze conversation patterns
-            if hasattr(state, 'conversation_history') and state.conversation_history:
-                conversation_patterns = await self.analyze_conversation_flow(state.conversation_history)
+            if hasattr(state, "conversation_history") and state.conversation_history:
+                conversation_patterns = await self.analyze_conversation_flow(
+                    state.conversation_history
+                )
                 patterns.extend(conversation_patterns)
                 self.logger.info(
-                    f"Found {len(conversation_patterns)} conversation patterns")
+                    f"Found {len(conversation_patterns)} conversation patterns"
+                )
 
             # Analyze tool usage patterns
-            if hasattr(state, 'last_tool_result') and state.last_tool_result:
+            if hasattr(state, "last_tool_result") and state.last_tool_result:
                 # Create a mock tool calls list from the last tool result
                 tool_calls = [
-                    {'result': str(state.last_tool_result), 'timestamp': datetime.now().isoformat()}]
+                    {
+                        "result": str(state.last_tool_result),
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                ]
                 tool_patterns = await self.detect_tool_usage_patterns(tool_calls)
                 patterns.extend(tool_patterns)
-                self.logger.info(
-                    f"Found {len(tool_patterns)} tool usage patterns")
+                self.logger.info(f"Found {len(tool_patterns)} tool usage patterns")
 
             # Analyze user behavior patterns
-            if hasattr(state, 'user_input') and state.user_input:
+            if hasattr(state, "user_input") and state.user_input:
                 # Convert string input to proper interaction format
                 interaction_data = [
-                    {'user_input': state.user_input, 'timestamp': datetime.now().isoformat()}]
-                behavior_patterns = await self.recognize_user_behavior_patterns(interaction_data)
+                    {
+                        "user_input": state.user_input,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                ]
+                behavior_patterns = await self.recognize_user_behavior_patterns(
+                    interaction_data
+                )
                 patterns.extend(behavior_patterns)
-                self.logger.info(
-                    f"Found {len(behavior_patterns)} behavior patterns")
+                self.logger.info(f"Found {len(behavior_patterns)} behavior patterns")
 
             # Analyze focus area patterns
-            if hasattr(state, 'focus') and state.focus:
-                focus_areas = state.focus if isinstance(
-                    state.focus, list) else [state.focus]
+            if hasattr(state, "focus") and state.focus:
+                focus_areas = (
+                    state.focus if isinstance(state.focus, list) else [state.focus]
+                )
                 focus_patterns = self._analyze_focus_area_patterns(focus_areas)
                 patterns.extend(focus_patterns)
-                self.logger.info(
-                    f"Found {len(focus_patterns)} focus area patterns")
+                self.logger.info(f"Found {len(focus_patterns)} focus area patterns")
 
             # Analyze temporal patterns
             temporal_patterns = await self.analyze_temporal_patterns(state)
             patterns.extend(temporal_patterns)
-            self.logger.info(
-                f"Found {len(temporal_patterns)} temporal patterns")
+            self.logger.info(f"Found {len(temporal_patterns)} temporal patterns")
 
             self.logger.info(f"Total patterns identified: {len(patterns)}")
 
@@ -964,7 +1052,9 @@ class PatternRecognitionEngine:
 
         return patterns
 
-    async def analyze_temporal_patterns(self, state: AgentState) -> List[Dict[str, Any]]:
+    async def analyze_temporal_patterns(
+        self, state: AgentState
+    ) -> List[Dict[str, Any]]:
         """
         Analyze temporal patterns from state data.
 
@@ -978,28 +1068,30 @@ class PatternRecognitionEngine:
 
         try:
             # Analyze conversation timing patterns
-            if hasattr(state, 'conversation_history') and state.conversation_history:
+            if hasattr(state, "conversation_history") and state.conversation_history:
                 # Simple temporal analysis based on conversation length
                 conversation_count = len(state.conversation_history)
 
                 if conversation_count > 10:
-                    pattern_type = 'extended_conversation'
+                    pattern_type = "extended_conversation"
                     description = "User engages in extended conversations"
                 elif conversation_count > 5:
-                    pattern_type = 'moderate_conversation'
+                    pattern_type = "moderate_conversation"
                     description = "User engages in moderate conversations"
                 else:
-                    pattern_type = 'brief_conversation'
+                    pattern_type = "brief_conversation"
                     description = "User prefers brief conversations"
 
-                patterns.append({
-                    'type': 'temporal',
-                    'subtype': pattern_type,
-                    'confidence': 0.7,
-                    'conversation_count': conversation_count,
-                    'description': description,
-                    'tags': ['temporal', 'conversation', pattern_type, 'pattern']
-                })
+                patterns.append(
+                    {
+                        "type": "temporal",
+                        "subtype": pattern_type,
+                        "confidence": 0.7,
+                        "conversation_count": conversation_count,
+                        "description": description,
+                        "tags": ["temporal", "conversation", pattern_type, "pattern"],
+                    }
+                )
 
         except Exception as e:
             self.logger.error(f"Error analyzing temporal patterns: {e}")

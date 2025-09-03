@@ -6,7 +6,8 @@ about when, why, and how LTM memories were created.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey
+
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -19,10 +20,11 @@ class LTMContext(Base):
     This table stores structured context data that provides rich information
     about when, why, and how memories were created.
     """
-    __tablename__ = 'ltm_contexts'
+
+    __tablename__ = "ltm_contexts"
 
     id = Column(Integer, primary_key=True)
-    memory_id = Column(Integer, ForeignKey('ltm_memories.id'), nullable=False)
+    memory_id = Column(Integer, ForeignKey("ltm_memories.id"), nullable=False)
 
     # Context categorization
     # temporal, spatial, social, environmental, etc.
@@ -51,5 +53,5 @@ class LTMContext(Base):
             "context_key": self.context_key,
             "context_value": self.context_value,
             "confidence": self.confidence,
-            "created_at": self.created_at.isoformat() if self.created_at else None
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }

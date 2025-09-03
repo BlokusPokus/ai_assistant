@@ -35,10 +35,10 @@ def process_email_queue(self) -> Dict[str, Any]:
         # For now, return a placeholder response
 
         result = {
-            'task_id': task_id,
-            'status': 'success',
-            'emails_processed': 0,
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "success",
+            "emails_processed": 0,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         logger.info(f"Email queue processing completed: {result}")
@@ -66,10 +66,10 @@ def send_daily_email_summary(self) -> Dict[str, Any]:
         # TODO: Implement daily email summary logic
 
         result = {
-            'task_id': task_id,
-            'status': 'success',
-            'summaries_sent': 0,
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "success",
+            "summaries_sent": 0,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         logger.info(f"Daily email summary completed: {result}")
@@ -81,7 +81,9 @@ def send_daily_email_summary(self) -> Dict[str, Any]:
 
 
 @app.task(bind=True, max_retries=3, default_retry_delay=300)
-def send_notification_email(self, user_id: int, subject: str, message: str) -> Dict[str, Any]:
+def send_notification_email(
+    self, user_id: int, subject: str, message: str
+) -> Dict[str, Any]:
     """
     Send a notification email to a specific user.
 
@@ -91,18 +93,17 @@ def send_notification_email(self, user_id: int, subject: str, message: str) -> D
     3. Tracks delivery status
     """
     task_id = self.request.id
-    logger.info(
-        f"Starting notification email task {task_id} for user {user_id}")
+    logger.info(f"Starting notification email task {task_id} for user {user_id}")
 
     try:
         # TODO: Implement notification email logic
 
         result = {
-            'task_id': task_id,
-            'status': 'success',
-            'user_id': user_id,
-            'email_sent': True,
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "success",
+            "user_id": user_id,
+            "email_sent": True,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         logger.info(f"Notification email completed: {result}")

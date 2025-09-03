@@ -8,7 +8,7 @@ that are used by the main CalendarTool class.
 import logging
 import os
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -92,29 +92,27 @@ def build_calendar_headers(token: str, content_type: str = None) -> Dict[str, st
     return headers
 
 
-def build_calendar_view_params(start_datetime: str, end_datetime: str, count: int) -> Dict[str, Any]:
+def build_calendar_view_params(
+    start_datetime: str, end_datetime: str, count: int
+) -> Dict[str, Any]:
     """Build query parameters for calendar view"""
     return {
-        'startDateTime': start_datetime,
-        'endDateTime': end_datetime,
-        '$top': count,
-        '$orderby': 'start/dateTime asc',
-        '$select': 'subject,start,end,location,bodyPreview,organizer'
+        "startDateTime": start_datetime,
+        "endDateTime": end_datetime,
+        "$top": count,
+        "$orderby": "start/dateTime asc",
+        "$select": "subject,start,end,location,bodyPreview,organizer",
     }
 
 
-def build_event_data(subject: str, start_dt: datetime, end_dt: datetime, location: str = "") -> Dict[str, Any]:
+def build_event_data(
+    subject: str, start_dt: datetime, end_dt: datetime, location: str = ""
+) -> Dict[str, Any]:
     """Build event data for creation"""
     event_data = {
         "subject": subject,
-        "start": {
-            "dateTime": start_dt.isoformat(),
-            "timeZone": "UTC"
-        },
-        "end": {
-            "dateTime": end_dt.isoformat(),
-            "timeZone": "UTC"
-        }
+        "start": {"dateTime": start_dt.isoformat(), "timeZone": "UTC"},
+        "end": {"dateTime": end_dt.isoformat(), "timeZone": "UTC"},
     }
 
     if location:
@@ -126,25 +124,28 @@ def build_event_data(subject: str, start_dt: datetime, end_dt: datetime, locatio
 def parse_calendar_event(event: Dict[str, Any]) -> Dict[str, Any]:
     """Parse calendar event from Microsoft Graph API response"""
     return {
-        'id': event.get('id', ''),
-        'subject': event.get('subject', 'Untitled Event'),
-        'start': event.get('start', {}).get('dateTime', ''),
-        'end': event.get('end', {}).get('dateTime', ''),
-        'location': event.get('location', {}).get('displayName', 'No location'),
-        'preview': event.get('bodyPreview', ''),
-        'organizer': event.get('organizer', {}).get('emailAddress', {}).get('name', 'Unknown')
+        "id": event.get("id", ""),
+        "subject": event.get("subject", "Untitled Event"),
+        "start": event.get("start", {}).get("dateTime", ""),
+        "end": event.get("end", {}).get("dateTime", ""),
+        "location": event.get("location", {}).get("displayName", "No location"),
+        "preview": event.get("bodyPreview", ""),
+        "organizer": event.get("organizer", {})
+        .get("emailAddress", {})
+        .get("name", "Unknown"),
     }
 
 
 def parse_event_details(event: Dict[str, Any]) -> str:
     """Parse and format detailed event information"""
-    start = event.get('start', {}).get('dateTime', 'Unknown')
-    end = event.get('end', {}).get('dateTime', 'Unknown')
-    subject = event.get('subject', 'Untitled Event')
-    body = event.get('body', {}).get('content', 'No description')
-    location = event.get('location', {}).get('displayName', 'No location')
-    organizer = event.get('organizer', {}).get(
-        'emailAddress', {}).get('name', 'Unknown')
+    start = event.get("start", {}).get("dateTime", "Unknown")
+    end = event.get("end", {}).get("dateTime", "Unknown")
+    subject = event.get("subject", "Untitled Event")
+    body = event.get("body", {}).get("content", "No description")
+    location = event.get("location", {}).get("displayName", "No location")
+    organizer = (
+        event.get("organizer", {}).get("emailAddress", {}).get("name", "Unknown")
+    )
 
     result = f"Event: {subject}\n"
     result += f"Start: {start}\n"
@@ -172,7 +173,9 @@ def format_error_response(error: str, data: Any = None) -> Dict[str, Any]:
     return response
 
 
-def handle_http_response(response, success_message: str, error_prefix: str = "Failed") -> Dict[str, Any]:
+def handle_http_response(
+    response, success_message: str, error_prefix: str = "Failed"
+) -> Dict[str, Any]:
     """Handle HTTP response and return appropriate format"""
     if response.status_code in [200, 201, 202, 204]:
         return format_success_response(success_message)
@@ -208,14 +211,18 @@ def get_datetime_range(days: int) -> tuple[str, str]:
     return start_datetime, end_datetime
 
 
-def parse_start_time_with_duration(start_time: str, duration: int) -> tuple[datetime, datetime]:
+def parse_start_time_with_duration(
+    start_time: str, duration: int
+) -> tuple[datetime, datetime]:
     """Parse start time and calculate end time with specified duration"""
     start_dt = datetime.strptime(start_time, "%Y-%m-%d %H:%M")
     end_dt = start_dt + timedelta(minutes=duration)
     return start_dt, end_dt
 
 
-def format_calendar_events_response(events: List[Dict[str, Any]], count: int, days: int) -> str:
+def format_calendar_events_response(
+    events: List[Dict[str, Any]], count: int, days: int
+) -> str:
     """Format calendar events response for display"""
     if not events:
         return f"📅 No events found in the next {days} days."
@@ -234,7 +241,9 @@ def format_calendar_events_response(events: List[Dict[str, Any]], count: int, da
     return response
 
 
-def format_create_event_response(success: bool, message: str, subject: str, start_time: str) -> str:
+def format_create_event_response(
+    success: bool, message: str, subject: str, start_time: str
+) -> str:
     """Format create event response for display"""
     if success:
         return f"✅ {message}\n📅 Event: {subject}\n🕐 Start: {start_time}\n⏱️ Response Time: <3 seconds (target)"
@@ -252,5 +261,7 @@ def format_delete_event_response(success: bool, message: str, event_id: str) -> 
 
 def format_event_details_response(event_details: str) -> str:
     """Format event details response for display"""
-    response = f"📅 Event Details\n\n{event_details}\n\n⏱️ Response Time: <3 seconds (target)"
+    response = (
+        f"📅 Event Details\n\n{event_details}\n\n⏱️ Response Time: <3 seconds (target)"
+    )
     return response

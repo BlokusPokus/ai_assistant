@@ -5,10 +5,12 @@ This service provides JWT token generation, validation, and refresh
 capabilities with configurable expiration times and secure secret management.
 """
 
-import jwt
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
+import jwt
 from fastapi import HTTPException, status
+
 from personal_assistant.config.settings import settings
 
 
@@ -20,27 +22,27 @@ class JWTService:
         self.secret_key = self._get_secret_key()
         self.algorithm = "HS256"
         self.access_token_expire_minutes = getattr(
-            settings, 'ACCESS_TOKEN_EXPIRE_MINUTES', 15)
+            settings, "ACCESS_TOKEN_EXPIRE_MINUTES", 15
+        )
         self.refresh_token_expire_days = getattr(
-            settings, 'REFRESH_TOKEN_EXPIRE_DAYS', 7)
+            settings, "REFRESH_TOKEN_EXPIRE_DAYS", 7
+        )
 
     def _get_secret_key(self) -> str:
         """Get JWT secret key from environment or generate a secure one."""
-        secret_key = getattr(settings, 'JWT_SECRET_KEY', None)
+        secret_key = getattr(settings, "JWT_SECRET_KEY", None)
         if not secret_key:
             # In production, this should always be set via environment
-            if getattr(settings, 'ENVIRONMENT', 'development') == 'production':
-                raise ValueError(
-                    "JWT_SECRET_KEY must be set in production environment")
+            if getattr(settings, "ENVIRONMENT", "development") == "production":
+                raise ValueError("JWT_SECRET_KEY must be set in production environment")
             # For development, generate a random key (not secure for production)
             import secrets
+
             secret_key = secrets.token_urlsafe(32)  # nosec B105
         return secret_key
 
     def create_access_token(
-        self,
-        data: Dict[str, Any],
-        expires_delta: Optional[timedelta] = None
+        self, data: Dict[str, Any], expires_delta: Optional[timedelta] = None
     ) -> str:
         """
         Create an access token.
@@ -56,17 +58,16 @@ class JWTService:
         if expires_delta:
             expire = datetime.utcnow() + expires_delta
         else:
-            expire = datetime.utcnow() + timedelta(minutes=self.access_token_expire_minutes)
+            expire = datetime.utcnow() + timedelta(
+                minutes=self.access_token_expire_minutes
+            )
 
         to_encode.update({"exp": expire, "type": "access"})
-        encoded_jwt = jwt.encode(
-            to_encode, self.secret_key, algorithm=self.algorithm)
+        encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
         return encoded_jwt
 
     def create_refresh_token(
-        self,
-        data: Dict[str, Any],
-        expires_delta: Optional[timedelta] = None
+        self, data: Dict[str, Any], expires_delta: Optional[timedelta] = None
     ) -> str:
         """
         Create a refresh token.
@@ -85,8 +86,7 @@ class JWTService:
             expire = datetime.utcnow() + timedelta(days=self.refresh_token_expire_days)
 
         to_encode.update({"exp": expire, "type": "refresh"})
-        encoded_jwt = jwt.encode(
-            to_encode, self.secret_key, algorithm=self.algorithm)
+        encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
         return encoded_jwt
 
     def verify_token(self, token: str) -> Dict[str, Any]:
@@ -103,8 +103,7 @@ class JWTService:
             HTTPException: If token is invalid or expired
         """
         try:
-            payload = jwt.decode(token, self.secret_key,
-                                 algorithms=[self.algorithm])
+            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
             return payload
         except jwt.ExpiredSignatureError:
             raise HTTPException(
@@ -175,8 +174,9 @@ class JWTService:
         """
         payload = self.verify_refresh_token(refresh_token)
         # Remove refresh-specific fields
-        user_data = {k: v for k, v in payload.items()
-                     if k not in ["exp", "type", "iat"]}
+        user_data = {
+            k: v for k, v in payload.items() if k not in ["exp", "type", "iat"]
+        }
         return self.create_access_token(user_data)
 
 

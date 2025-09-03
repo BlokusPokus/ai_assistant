@@ -5,9 +5,10 @@ This module provides utility functions for token extraction,
 user context management, and other authentication helpers.
 """
 
-from typing import Optional, Dict, Any
-from fastapi import Request, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Any, Dict, Optional
+
+from fastapi import HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 
 class AuthUtils:
@@ -35,7 +36,9 @@ class AuthUtils:
         return None
 
     @staticmethod
-    def extract_token_from_cookie(request: Request, cookie_name: str = "access_token") -> Optional[str]:
+    def extract_token_from_cookie(
+        request: Request, cookie_name: str = "access_token"
+    ) -> Optional[str]:
         """
         Extract JWT token from cookies.
 
@@ -89,7 +92,7 @@ class AuthUtils:
         if user_id != token_user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied: You can only access your own data"
+                detail="Access denied: You can only access your own data",
             )
 
     @staticmethod
@@ -112,7 +115,7 @@ class AuthUtils:
             "sub": str(user_id),  # JWT standard subject claim
             "iat": None,  # Will be set by JWT service
             "exp": None,  # Will be set by JWT service
-            "type": None  # Will be set by JWT service
+            "type": None,  # Will be set by JWT service
         }
 
 

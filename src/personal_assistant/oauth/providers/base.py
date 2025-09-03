@@ -7,8 +7,8 @@ across different providers (Google, Microsoft, Notion, YouTube).
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class BaseOAuthProvider(ABC):
@@ -57,12 +57,7 @@ class BaseOAuthProvider(ABC):
         pass
 
     @abstractmethod
-    def get_authorization_url(
-        self,
-        state: str,
-        scopes: List[str],
-        **kwargs
-    ) -> str:
+    def get_authorization_url(self, state: str, scopes: List[str], **kwargs) -> str:
         """
         Generate the OAuth authorization URL.
 
@@ -78,9 +73,7 @@ class BaseOAuthProvider(ABC):
 
     @abstractmethod
     def exchange_code_for_tokens(
-        self,
-        authorization_code: str,
-        **kwargs
+        self, authorization_code: str, **kwargs
     ) -> Dict[str, Any]:
         """
         Exchange authorization code for access and refresh tokens.
@@ -95,11 +88,7 @@ class BaseOAuthProvider(ABC):
         pass
 
     @abstractmethod
-    def refresh_access_token(
-        self,
-        refresh_token: str,
-        **kwargs
-    ) -> Dict[str, Any]:
+    def refresh_access_token(self, refresh_token: str, **kwargs) -> Dict[str, Any]:
         """
         Refresh an expired access token using a refresh token.
 
@@ -113,11 +102,7 @@ class BaseOAuthProvider(ABC):
         pass
 
     @abstractmethod
-    def get_user_info(
-        self,
-        access_token: str,
-        **kwargs
-    ) -> Dict[str, Any]:
+    def get_user_info(self, access_token: str, **kwargs) -> Dict[str, Any]:
         """
         Get user information using an access token.
 
@@ -131,11 +116,7 @@ class BaseOAuthProvider(ABC):
         pass
 
     @abstractmethod
-    def validate_token(
-        self,
-        access_token: str,
-        **kwargs
-    ) -> bool:
+    def validate_token(self, access_token: str, **kwargs) -> bool:
         """
         Validate if an access token is still valid.
 
@@ -160,10 +141,7 @@ class BaseOAuthProvider(ABC):
 
     @abstractmethod
     def revoke_token(
-        self,
-        token: str,
-        token_type: str = "access_token",
-        **kwargs
+        self, token: str, token_type: str = "access_token", **kwargs
     ) -> bool:
         """
         Revoke an OAuth token.
@@ -206,8 +184,8 @@ class BaseOAuthProvider(ABC):
         Returns:
             Tuple of (is_valid, invalid_scopes)
         """
-        available_scopes = [scope["scope_name"]
-                            for scope in self.get_available_scopes()]
-        invalid_scopes = [
-            scope for scope in scopes if scope not in available_scopes]
+        available_scopes = [
+            scope["scope_name"] for scope in self.get_available_scopes()
+        ]
+        invalid_scopes = [scope for scope in scopes if scope not in available_scopes]
         return len(invalid_scopes) == 0, invalid_scopes

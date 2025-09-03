@@ -6,7 +6,8 @@ of new features, enabling gradual rollout and A/B testing capabilities.
 """
 
 import os
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from ..config.logging_config import get_logger
 
 logger = get_logger("feature_flags")
@@ -18,37 +19,33 @@ FEATURE_FLAGS = {
         "default": True,  # Changed to True - use new storage by default
         "description": "Use new normalized database schema instead of JSON blobs",
         "env_var": "USE_NORMALIZED_STORAGE",
-        "type": "boolean"
+        "type": "boolean",
     },
-
     "NORMALIZED_STORAGE_FALLBACK": {
         "default": False,  # Changed to False - no fallback needed
         "description": "Fallback to old storage if normalized storage fails",
         "env_var": "NORMALIZED_STORAGE_FALLBACK",
-        "type": "boolean"
+        "type": "boolean",
     },
-
     "NORMALIZED_STORAGE_LOGGING": {
         "default": True,
         "description": "Enable detailed logging for normalized storage operations",
         "env_var": "NORMALIZED_STORAGE_LOGGING",
-        "type": "boolean"
+        "type": "boolean",
     },
-
     # Future feature flags can be added here
     "ENABLE_ADAPTIVE_CONTEXT_SIZING": {
         "default": False,
         "description": "Enable dynamic context sizing based on input complexity",
         "env_var": "ENABLE_ADAPTIVE_CONTEXT_SIZING",
-        "type": "boolean"
+        "type": "boolean",
     },
-
     "ENABLE_CONTEXT_QUALITY_VALIDATION": {
         "default": True,
         "description": "Enable context quality validation before LLM injection",
         "env_var": "ENABLE_CONTEXT_QUALITY_VALIDATION",
-        "type": "boolean"
-    }
+        "type": "boolean",
+    },
 }
 
 
@@ -79,7 +76,8 @@ class FeatureFlagManager:
             self._cache[flag_name] = value
 
             logger.info(
-                f"🚩 Feature flag '{flag_name}': {value} ({flag_config['description']})")
+                f"🚩 Feature flag '{flag_name}': {value} ({flag_config['description']})"
+            )
 
         self._initialized = True
         logger.info("✅ Feature flag manager initialized")
@@ -96,32 +94,40 @@ class FeatureFlagManager:
             The resolved value of the feature flag
         """
         # Check environment variable first
-        env_var = flag_config.get('env_var')
+        env_var = flag_config.get("env_var")
         if env_var:
             env_value = os.getenv(env_var)
             if env_value is not None:
                 try:
-                    if flag_config['type'] == 'boolean':
+                    if flag_config["type"] == "boolean":
                         # Handle various boolean string representations
-                        if env_value.lower() in ('true', '1', 'yes', 'on', 'enabled'):
+                        if env_value.lower() in ("true", "1", "yes", "on", "enabled"):
                             return True
-                        elif env_value.lower() in ('false', '0', 'no', 'off', 'disabled'):
+                        elif env_value.lower() in (
+                            "false",
+                            "0",
+                            "no",
+                            "off",
+                            "disabled",
+                        ):
                             return False
                         else:
                             logger.warning(
-                                f"⚠️ Invalid boolean value for {flag_name}: {env_value}, using default")
-                    elif flag_config['type'] == 'integer':
+                                f"⚠️ Invalid boolean value for {flag_name}: {env_value}, using default"
+                            )
+                    elif flag_config["type"] == "integer":
                         return int(env_value)
-                    elif flag_config['type'] == 'float':
+                    elif flag_config["type"] == "float":
                         return float(env_value)
                     else:
                         return env_value
                 except (ValueError, TypeError) as e:
                     logger.warning(
-                        f"⚠️ Failed to parse environment variable for {flag_name}: {e}, using default")
+                        f"⚠️ Failed to parse environment variable for {flag_name}: {e}, using default"
+                    )
 
         # Return default value
-        return flag_config['default']
+        return flag_config["default"]
 
     def is_enabled(self, flag_name: str) -> bool:
         """
@@ -145,7 +151,7 @@ class FeatureFlagManager:
         value = self._cache[flag_name]
 
         # Ensure boolean flags return boolean values
-        if FEATURE_FLAGS[flag_name]['type'] == 'boolean':
+        if FEATURE_FLAGS[flag_name]["type"] == "boolean":
             return bool(value)
 
         return value
@@ -205,16 +211,19 @@ class FeatureFlagManager:
             raise KeyError(f"Feature flag '{flag_name}' not found")
 
         # Validate type
-        expected_type = FEATURE_FLAGS[flag_name]['type']
-        if expected_type == 'boolean' and not isinstance(value, bool):
+        expected_type = FEATURE_FLAGS[flag_name]["type"]
+        if expected_type == "boolean" and not isinstance(value, bool):
             raise ValueError(
-                f"Feature flag '{flag_name}' expects boolean value, got {type(value)}")
-        elif expected_type == 'integer' and not isinstance(value, int):
+                f"Feature flag '{flag_name}' expects boolean value, got {type(value)}"
+            )
+        elif expected_type == "integer" and not isinstance(value, int):
             raise ValueError(
-                f"Feature flag '{flag_name}' expects integer value, got {type(value)}")
-        elif expected_type == 'float' and not isinstance(value, (int, float)):
+                f"Feature flag '{flag_name}' expects integer value, got {type(value)}"
+            )
+        elif expected_type == "float" and not isinstance(value, (int, float)):
             raise ValueError(
-                f"Feature flag '{flag_name}' expects float value, got {type(value)}")
+                f"Feature flag '{flag_name}' expects float value, got {type(value)}"
+            )
 
         self._cache[flag_name] = value
         logger.info(f"🚩 Feature flag '{flag_name}' overridden to: {value}")
@@ -281,16 +290,17 @@ def setup_feature_flags_from_env():
 
     # Set up normalized storage flags
     if os.getenv("USE_NORMALIZED_STORAGE"):
-        os.environ["USE_NORMALIZED_STORAGE"] = os.getenv(
-            "USE_NORMALIZED_STORAGE")
+        os.environ["USE_NORMALIZED_STORAGE"] = os.getenv("USE_NORMALIZED_STORAGE")
 
     if os.getenv("NORMALIZED_STORAGE_FALLBACK"):
         os.environ["NORMALIZED_STORAGE_FALLBACK"] = os.getenv(
-            "NORMALIZED_STORAGE_FALLBACK")
+            "NORMALIZED_STORAGE_FALLBACK"
+        )
 
     if os.getenv("NORMALIZED_STORAGE_LOGGING"):
         os.environ["NORMALIZED_STORAGE_LOGGING"] = os.getenv(
-            "NORMALIZED_STORAGE_LOGGING")
+            "NORMALIZED_STORAGE_LOGGING"
+        )
 
     logger.info("✅ Feature flags configured from environment variables")
 

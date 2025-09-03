@@ -8,4 +8,4 @@ events and notes.
 
 from .ltm_tool import LTMTool
 
-__all__ = ['LTMTool']
+__all__ = ["LTMTool"]

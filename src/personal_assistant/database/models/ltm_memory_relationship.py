@@ -6,7 +6,8 @@ memory networks for better understanding and retrieval.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey
+
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -19,13 +20,12 @@ class LTMMemoryRelationship(Base):
     This table enables finding related memories and building
     memory networks for better understanding and retrieval.
     """
-    __tablename__ = 'ltm_memory_relationships'
+
+    __tablename__ = "ltm_memory_relationships"
 
     id = Column(Integer, primary_key=True)
-    source_memory_id = Column(Integer, ForeignKey(
-        'ltm_memories.id'), nullable=False)
-    target_memory_id = Column(Integer, ForeignKey(
-        'ltm_memories.id'), nullable=False)
+    source_memory_id = Column(Integer, ForeignKey("ltm_memories.id"), nullable=False)
+    target_memory_id = Column(Integer, ForeignKey("ltm_memories.id"), nullable=False)
 
     # Relationship details
     # similar, related, opposite, prerequisite, etc.
@@ -55,5 +55,7 @@ class LTMMemoryRelationship(Base):
             "strength": self.strength,
             "description": self.description,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "last_accessed": self.last_accessed.isoformat() if self.last_accessed else None
+            "last_accessed": self.last_accessed.isoformat()
+            if self.last_accessed
+            else None,
         }

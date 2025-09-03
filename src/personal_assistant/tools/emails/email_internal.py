@@ -8,7 +8,7 @@ that are used by the main EmailTool class.
 import logging
 import os
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +25,7 @@ def validate_email_parameters(count: int, batch_size: int = 10) -> tuple[int, in
 
         if batch_size < 1 or batch_size > 50:
             batch_size = 10
-            logger.warning(
-                f"Invalid batch_size: {batch_size}, defaulting to 10")
+            logger.warning(f"Invalid batch_size: {batch_size}, defaulting to 10")
 
         return count, batch_size
     except (ValueError, TypeError):
@@ -72,7 +71,8 @@ def validate_body(body: str) -> tuple[bool, str]:
 def is_valid_email(email: str) -> bool:
     """Basic email validation"""
     import re
-    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return re.match(pattern, email) is not None
 
 
@@ -88,7 +88,9 @@ def get_token_expiration() -> datetime:
     return datetime.now() + timedelta(hours=1)
 
 
-def build_email_headers(token: str, content_type: str = "application/json") -> Dict[str, str]:
+def build_email_headers(
+    token: str, content_type: str = "application/json"
+) -> Dict[str, str]:
     """Build HTTP headers for email operations"""
     headers = {"Authorization": f"Bearer {token}"}
     if content_type:
@@ -96,33 +98,35 @@ def build_email_headers(token: str, content_type: str = "application/json") -> D
     return headers
 
 
-def build_email_params(top: int, select: str = None, skip: int = 0, orderby: str = None) -> Dict[str, Any]:
+def build_email_params(
+    top: int, select: str = None, skip: int = 0, orderby: str = None
+) -> Dict[str, Any]:
     """Build query parameters for email operations"""
-    params = {'$top': top}
+    params = {"$top": top}
 
     if select:
-        params['$select'] = select
+        params["$select"] = select
     if skip > 0:
-        params['$skip'] = skip
+        params["$skip"] = skip
     if orderby:
-        params['$orderby'] = orderby
+        params["$orderby"] = orderby
 
     return params
 
 
-def build_email_message_data(subject: str, body: str, recipients: List[str], is_html: bool = False) -> Dict[str, Any]:
+def build_email_message_data(
+    subject: str, body: str, recipients: List[str], is_html: bool = False
+) -> Dict[str, Any]:
     """Build email message data for sending"""
-    recipient_list = [{"emailAddress": {"address": email.strip()}}
-                      for email in recipients]
+    recipient_list = [
+        {"emailAddress": {"address": email.strip()}} for email in recipients
+    ]
 
     return {
         "message": {
             "subject": subject,
-            "body": {
-                "contentType": "HTML" if is_html else "Text",
-                "content": body
-            },
-            "toRecipients": recipient_list
+            "body": {"contentType": "HTML" if is_html else "Text", "content": body},
+            "toRecipients": recipient_list,
         }
     }
 
@@ -130,28 +134,34 @@ def build_email_message_data(subject: str, body: str, recipients: List[str], is_
 def parse_email_response(mail: Dict[str, Any]) -> Dict[str, Any]:
     """Parse email response from Microsoft Graph API"""
     return {
-        'id': mail.get('id', ''),
-        'subject': mail.get('subject', 'No Subject'),
-        'preview': mail.get('bodyPreview', ''),
-        'received': mail.get('receivedDateTime', ''),
-        'from_name': mail.get('from', {}).get('emailAddress', {}).get('name', 'Unknown'),
-        'from_email': mail.get('from', {}).get('emailAddress', {}).get('address', '')
+        "id": mail.get("id", ""),
+        "subject": mail.get("subject", "No Subject"),
+        "preview": mail.get("bodyPreview", ""),
+        "received": mail.get("receivedDateTime", ""),
+        "from_name": mail.get("from", {})
+        .get("emailAddress", {})
+        .get("name", "Unknown"),
+        "from_email": mail.get("from", {}).get("emailAddress", {}).get("address", ""),
     }
 
 
-def parse_email_content_response(mail: Dict[str, Any], clean_body: str) -> Dict[str, Any]:
+def parse_email_content_response(
+    mail: Dict[str, Any], clean_body: str
+) -> Dict[str, Any]:
     """Parse email content response from Microsoft Graph API"""
     return {
-        'id': mail.get('id', ''),
-        'subject': mail.get('subject', 'No Subject'),
-        'body': clean_body,
-        'received': mail.get('receivedDateTime', ''),
-        'from_name': mail.get('from', {}).get('emailAddress', {}).get('name', 'Unknown'),
-        'from_email': mail.get('from', {}).get('emailAddress', {}).get('address', ''),
-        'to_recipients': [
-            recipient.get('emailAddress', {}).get('address', '')
-            for recipient in mail.get('toRecipients', [])
-        ]
+        "id": mail.get("id", ""),
+        "subject": mail.get("subject", "No Subject"),
+        "body": clean_body,
+        "received": mail.get("receivedDateTime", ""),
+        "from_name": mail.get("from", {})
+        .get("emailAddress", {})
+        .get("name", "Unknown"),
+        "from_email": mail.get("from", {}).get("emailAddress", {}).get("address", ""),
+        "to_recipients": [
+            recipient.get("emailAddress", {}).get("address", "")
+            for recipient in mail.get("toRecipients", [])
+        ],
     }
 
 
@@ -171,7 +181,9 @@ def format_error_response(error: str, data: Any = None) -> Dict[str, Any]:
     return response
 
 
-def handle_http_response(response, success_message: str, error_prefix: str = "Failed") -> Dict[str, Any]:
+def handle_http_response(
+    response, success_message: str, error_prefix: str = "Failed"
+) -> Dict[str, Any]:
     """Handle HTTP response and return appropriate format"""
     if response.status_code in [200, 202, 204]:
         return format_success_response(success_message)
@@ -225,7 +237,7 @@ def format_email_list_response(emails: List[Dict[str, Any]], count: int) -> str:
 
 def format_email_content_response(email_data: Dict[str, Any]) -> str:
     """Format email content response for display"""
-    email = email_data.get('email', {})
+    email = email_data.get("email", {})
 
     response = f"📧 Email Content\n\n"
     response += f"**ID:** {email.get('id', 'Unknown')}\n"
@@ -255,7 +267,13 @@ def format_delete_email_response(success: bool, message: str, message_id: str) -
         return f"❌ {message}\n⏱️ Response Time: <3 seconds (target)"
 
 
-def format_move_email_response(success: bool, message: str, email_id: str, destination_folder: str, previous_folder: str = "unknown") -> str:
+def format_move_email_response(
+    success: bool,
+    message: str,
+    email_id: str,
+    destination_folder: str,
+    previous_folder: str = "unknown",
+) -> str:
     """Format move email response for display"""
     if success:
         return f"✅ {message}\n📧 Email ID: {email_id}\n📁 Moved from: {previous_folder}\n📁 Moved to: {destination_folder}\n⏱️ Response Time: <3 seconds (target)"

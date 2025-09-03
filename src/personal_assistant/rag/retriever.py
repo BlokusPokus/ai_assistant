@@ -4,19 +4,19 @@ Enhanced with real Gemini embeddings and prepared for Notion integration.
 """
 
 import hashlib
+import json
 import logging
 from typing import Dict, List, Optional
 
 import numpy as np
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 
 from ..config.logging_config import get_logger
-from ..database.models.conversation_state import ConversationState
 from ..database.models.conversation_message import ConversationMessage
+from ..database.models.conversation_state import ConversationState
 from ..database.models.memory_context_item import MemoryContextItem
 from ..database.session import AsyncSessionLocal
 from .embeddings.gemini_embeddings import GeminiEmbeddings
-import json
 
 # Configure module logger
 logger = get_logger("rag")
@@ -50,7 +50,8 @@ async def embed_text(text: str) -> List[float]:
 
         if embedding:
             logger.debug(
-                f"Generated embedding of length {len(embedding)} for text of length {len(text)}")
+                f"Generated embedding of length {len(embedding)} for text of length {len(text)}"
+            )
             return embedding
         else:
             logger.warning("No embedding returned from Gemini API")
@@ -141,7 +142,7 @@ async def embed_and_index(document: str, metadata: Dict) -> None:
             existing_message = await session.execute(
                 select(ConversationMessage).where(
                     ConversationMessage.content == document,
-                    ConversationMessage.conversation_id == conversation_id
+                    ConversationMessage.conversation_id == conversation_id,
                 )
             )
 
@@ -157,8 +158,12 @@ async def embed_and_index(document: str, metadata: Dict) -> None:
                 "message_type": "rag_document",
                 "additional_data": {
                     "embedding": embedding,
-                    **{k: v for k, v in metadata.items() if k not in ["user_id", "conversation_id"]}
-                }
+                    **{
+                        k: v
+                        for k, v in metadata.items()
+                        if k not in ["user_id", "conversation_id"]
+                    },
+                },
             }
 
             message = ConversationMessage(**message_data)
@@ -166,7 +171,8 @@ async def embed_and_index(document: str, metadata: Dict) -> None:
             await session.commit()
 
             logger.info(
-                f"Successfully indexed document for user {user_id} in conversation {conversation_id}")
+                f"Successfully indexed document for user {user_id} in conversation {conversation_id}"
+            )
 
     except Exception as e:
         logger.error(f"Error in embed_and_index: {e}")
@@ -188,8 +194,7 @@ async def query_knowledge_base(user_id: int, input_text: str) -> List[Dict]:
             query_vector = await embed_text(input_text)
 
             if not query_vector:
-                logger.error(
-                    "Failed to generate query embedding, cannot proceed")
+                logger.error("Failed to generate query embedding, cannot proceed")
                 return []
 
             # Query conversation messages with embeddings
@@ -210,43 +215,51 @@ async def query_knowledge_base(user_id: int, input_text: str) -> List[Dict]:
             scored = []
             for message in messages:
                 # Check if message has embedding in additional_data
-                if message.additional_data and 'embedding' in message.additional_data:
+                if message.additional_data and "embedding" in message.additional_data:
                     try:
-                        chunk_embedding = message.additional_data['embedding']
+                        chunk_embedding = message.additional_data["embedding"]
 
                         # Validate embedding format
                         if not isinstance(chunk_embedding, list) or not chunk_embedding:
                             logger.warning(
-                                f"Invalid embedding format for message {message.id}: not a list or empty")
+                                f"Invalid embedding format for message {message.id}: not a list or empty"
+                            )
                             continue
 
                         # Ensure all elements are numeric
-                        if not all(isinstance(x, (int, float)) for x in chunk_embedding):
+                        if not all(
+                            isinstance(x, (int, float)) for x in chunk_embedding
+                        ):
                             logger.warning(
-                                f"Invalid embedding format for message {message.id}: non-numeric elements")
+                                f"Invalid embedding format for message {message.id}: non-numeric elements"
+                            )
                             continue
 
                     except Exception as e:
                         logger.warning(
-                            f"Error processing message {message.id} embedding: {e}")
+                            f"Error processing message {message.id} embedding: {e}"
+                        )
                         continue
 
-                    similarity = cosine_similarity(
-                        query_vector, chunk_embedding)
+                    similarity = cosine_similarity(query_vector, chunk_embedding)
 
                     # Create metadata dict from additional_data
                     metadata_dict = message.additional_data.copy()
-                    metadata_dict.update({
-                        "source": "normalized_storage",
-                        "message_id": message.id,
-                        "conversation_id": message.conversation_id,
-                        "similarity_score": similarity
-                    })
+                    metadata_dict.update(
+                        {
+                            "source": "normalized_storage",
+                            "message_id": message.id,
+                            "conversation_id": message.conversation_id,
+                            "similarity_score": similarity,
+                        }
+                    )
 
-                    scored.append((similarity, {
-                        "content": message.content,
-                        "metadata": metadata_dict
-                    }))
+                    scored.append(
+                        (
+                            similarity,
+                            {"content": message.content, "metadata": metadata_dict},
+                        )
+                    )
 
             # Sort by similarity and return top results
             scored.sort(key=lambda x: x[0], reverse=True)
@@ -255,7 +268,8 @@ async def query_knowledge_base(user_id: int, input_text: str) -> List[Dict]:
             results = [entry for _, entry in scored[:5]]
 
             logger.info(
-                f"Retrieved {len(results)} relevant documents for user {user_id}")
+                f"Retrieved {len(results)} relevant documents for user {user_id}"
+            )
             return results
 
     except Exception as e:
@@ -277,15 +291,12 @@ async def get_embedding_stats() -> Dict[str, any]:
         return {
             "embedding_model": "GeminiEmbeddings",
             "cache_stats": cache_stats,
-            "fallback_used": cache_stats.get("cache_misses", 0) > 0
+            "fallback_used": cache_stats.get("cache_misses", 0) > 0,
         }
 
     except Exception as e:
         logger.error(f"Error getting embedding stats: {e}")
-        return {
-            "embedding_model": "Unknown",
-            "error": str(e)
-        }
+        return {"embedding_model": "Unknown", "error": str(e)}
 
 
 async def generate_embeddings_for_content(content: str, metadata: Dict) -> bool:
@@ -309,7 +320,8 @@ async def generate_embeddings_for_content(content: str, metadata: Dict) -> bool:
             return False
 
         logger.info(
-            f"🧠 Generating embeddings for content (user: {metadata['user_id']})")
+            f"🧠 Generating embeddings for content (user: {metadata['user_id']})"
+        )
 
         # Generate embedding
         embedding = await embed_text(content)
@@ -321,8 +333,7 @@ async def generate_embeddings_for_content(content: str, metadata: Dict) -> bool:
         # Store in database
         await embed_and_index(content, metadata)
 
-        logger.info(
-            f"✅ Successfully generated and stored embeddings for content")
+        logger.info(f"✅ Successfully generated and stored embeddings for content")
         return True
 
     except Exception as e:
@@ -330,7 +341,9 @@ async def generate_embeddings_for_content(content: str, metadata: Dict) -> bool:
         return False
 
 
-async def generate_missing_embeddings(user_id: int = None, batch_size: int = 10) -> Dict[str, any]:
+async def generate_missing_embeddings(
+    user_id: int = None, batch_size: int = 10
+) -> Dict[str, any]:
     """
     Generate embeddings for chunks that don't have them.
 
@@ -349,8 +362,8 @@ async def generate_missing_embeddings(user_id: int = None, batch_size: int = 10)
                     select(ConversationMessage)
                     .where(ConversationMessage.message_type == "rag_document")
                     .where(
-                        (ConversationMessage.additional_data.is_(None)) |
-                        (ConversationMessage.additional_data.notlike('%"embedding"%'))
+                        (ConversationMessage.additional_data.is_(None))
+                        | (ConversationMessage.additional_data.notlike('%"embedding"%'))
                     )
                 )
             else:
@@ -358,8 +371,8 @@ async def generate_missing_embeddings(user_id: int = None, batch_size: int = 10)
                     select(ConversationMessage)
                     .where(ConversationMessage.message_type == "rag_document")
                     .where(
-                        (ConversationMessage.additional_data.is_(None)) |
-                        (ConversationMessage.additional_data.notlike('%"embedding"%'))
+                        (ConversationMessage.additional_data.is_(None))
+                        | (ConversationMessage.additional_data.notlike('%"embedding"%'))
                     )
                 )
 
@@ -370,21 +383,27 @@ async def generate_missing_embeddings(user_id: int = None, batch_size: int = 10)
             additional_messages = []
             if user_id:
                 all_messages_stmt = select(ConversationMessage).where(
-                    ConversationMessage.message_type == "rag_document")
+                    ConversationMessage.message_type == "rag_document"
+                )
             else:
                 all_messages_stmt = select(ConversationMessage).where(
-                    ConversationMessage.message_type == "rag_document")
+                    ConversationMessage.message_type == "rag_document"
+                )
 
             all_messages_result = await session.execute(all_messages_stmt)
             all_messages = all_messages_result.scalars().all()
 
             for message in all_messages:
-                if message.additional_data and 'embedding' in message.additional_data:
+                if message.additional_data and "embedding" in message.additional_data:
                     # Check if embedding is effectively empty
-                    embedding = message.additional_data['embedding']
-                    if (isinstance(embedding, list) and len(embedding) == 0) or \
-                       (isinstance(embedding, str) and embedding in ['[]', '{}', '']) or \
-                       (isinstance(embedding, dict) and len(embedding) == 0):
+                    embedding = message.additional_data["embedding"]
+                    if (
+                        (isinstance(embedding, list) and len(embedding) == 0)
+                        or (
+                            isinstance(embedding, str) and embedding in ["[]", "{}", ""]
+                        )
+                        or (isinstance(embedding, dict) and len(embedding) == 0)
+                    ):
                         additional_messages.append(message)
 
             # Combine both lists
@@ -397,11 +416,12 @@ async def generate_missing_embeddings(user_id: int = None, batch_size: int = 10)
                     "processed": 0,
                     "successful": 0,
                     "failed": 0,
-                    "message": "All messages already have embeddings"
+                    "message": "All messages already have embeddings",
                 }
 
             logger.info(
-                f"Found {len(all_messages_to_process)} messages without embeddings")
+                f"Found {len(all_messages_to_process)} messages without embeddings"
+            )
 
             # Process in batches
             total_processed = 0
@@ -409,19 +429,20 @@ async def generate_missing_embeddings(user_id: int = None, batch_size: int = 10)
             total_failed = 0
 
             for i in range(0, len(all_messages_to_process), batch_size):
-                batch = all_messages_to_process[i:i + batch_size]
+                batch = all_messages_to_process[i : i + batch_size]
                 logger.info(
-                    f"Processing batch {i//batch_size + 1}/{(len(all_messages_to_process) + batch_size - 1)//batch_size}")
+                    f"Processing batch {i//batch_size + 1}/{(len(all_messages_to_process) + batch_size - 1)//batch_size}"
+                )
 
                 for message in batch:
                     try:
                         if not message.content:
                             logger.warning(
-                                f"Message {message.id}: No content, skipping")
+                                f"Message {message.id}: No content, skipping"
+                            )
                             continue
 
-                        logger.debug(
-                            f"Generating embedding for message {message.id}")
+                        logger.debug(f"Generating embedding for message {message.id}")
 
                         # Generate embedding
                         embedding = await embed_text(message.content)
@@ -430,29 +451,30 @@ async def generate_missing_embeddings(user_id: int = None, batch_size: int = 10)
                             # Update the message with the embedding in additional_data
                             if not message.additional_data:
                                 message.additional_data = {}
-                            message.additional_data['embedding'] = embedding
+                            message.additional_data["embedding"] = embedding
                             total_successful += 1
                             logger.debug(
-                                f"✅ Embedding generated for message {message.id}")
+                                f"✅ Embedding generated for message {message.id}"
+                            )
                         else:
                             total_failed += 1
                             logger.warning(
-                                f"❌ Failed to generate embedding for message {message.id}")
+                                f"❌ Failed to generate embedding for message {message.id}"
+                            )
 
                     except Exception as e:
                         total_failed += 1
-                        logger.error(
-                            f"❌ Error processing message {message.id}: {e}")
+                        logger.error(f"❌ Error processing message {message.id}: {e}")
 
                     total_processed += 1
 
                 # Commit batch
                 await session.commit()
-                logger.info(
-                    f"Batch committed: {len(batch)} messages processed")
+                logger.info(f"Batch committed: {len(batch)} messages processed")
 
                 # Small delay to avoid rate limiting
                 import asyncio
+
                 await asyncio.sleep(1)
 
             logger.info(f"🎉 Embedding generation complete!")
@@ -465,7 +487,9 @@ async def generate_missing_embeddings(user_id: int = None, batch_size: int = 10)
                 "processed": total_processed,
                 "successful": total_successful,
                 "failed": total_failed,
-                "success_rate": round((total_successful / total_processed * 100), 2) if total_processed > 0 else 0
+                "success_rate": round((total_successful / total_processed * 100), 2)
+                if total_processed > 0
+                else 0,
             }
 
     except Exception as e:
@@ -475,7 +499,7 @@ async def generate_missing_embeddings(user_id: int = None, batch_size: int = 10)
             "total_messages": 0,
             "processed": 0,
             "successful": 0,
-            "failed": 0
+            "failed": 0,
         }
 
 
@@ -490,45 +514,64 @@ async def get_query_performance_stats() -> Dict[str, any]:
         async with AsyncSessionLocal() as session:
             # Get basic statistics for RAG documents
             total_messages_stmt = select(ConversationMessage).where(
-                ConversationMessage.message_type == "rag_document")
+                ConversationMessage.message_type == "rag_document"
+            )
             total_messages_result = await session.execute(total_messages_stmt)
             total_messages = len(total_messages_result.scalars().all())
 
-            messages_with_embeddings_stmt = select(ConversationMessage).where(
-                ConversationMessage.message_type == "rag_document",
-                ConversationMessage.additional_data.isnot(None)
-            ).where(ConversationMessage.additional_data.like('%"embedding"%'))
-            messages_with_embeddings_result = await session.execute(messages_with_embeddings_stmt)
+            messages_with_embeddings_stmt = (
+                select(ConversationMessage)
+                .where(
+                    ConversationMessage.message_type == "rag_document",
+                    ConversationMessage.additional_data.isnot(None),
+                )
+                .where(ConversationMessage.additional_data.like('%"embedding"%'))
+            )
+            messages_with_embeddings_result = await session.execute(
+                messages_with_embeddings_stmt
+            )
             messages_with_embeddings = len(
-                messages_with_embeddings_result.scalars().all())
+                messages_with_embeddings_result.scalars().all()
+            )
 
             # Calculate embedding coverage
             embedding_coverage = (
-                messages_with_embeddings / total_messages * 100) if total_messages > 0 else 0
+                (messages_with_embeddings / total_messages * 100)
+                if total_messages > 0
+                else 0
+            )
 
             # Get conversation distribution (instead of user distribution)
-            conversation_distribution_stmt = select(ConversationMessage.conversation_id, func.count(
-                ConversationMessage.id)).where(
-                ConversationMessage.message_type == "rag_document"
-            ).group_by(ConversationMessage.conversation_id)
-            conversation_distribution_result = await session.execute(conversation_distribution_stmt)
-            conversation_distribution = dict(
-                conversation_distribution_result.all())
+            conversation_distribution_stmt = (
+                select(
+                    ConversationMessage.conversation_id,
+                    func.count(ConversationMessage.id),
+                )
+                .where(ConversationMessage.message_type == "rag_document")
+                .group_by(ConversationMessage.conversation_id)
+            )
+            conversation_distribution_result = await session.execute(
+                conversation_distribution_stmt
+            )
+            conversation_distribution = dict(conversation_distribution_result.all())
 
             # Performance recommendations
             recommendations = []
 
             if embedding_coverage < 80:
                 recommendations.append(
-                    "Low embedding coverage detected. Consider running bulk embedding generation.")
+                    "Low embedding coverage detected. Consider running bulk embedding generation."
+                )
 
             if total_messages > 1000:
                 recommendations.append(
-                    "Large number of RAG documents detected. Consider implementing document archiving.")
+                    "Large number of RAG documents detected. Consider implementing document archiving."
+                )
 
             if max(conversation_distribution.values()) > 500:
                 recommendations.append(
-                    "Some conversations have many RAG documents. Consider implementing conversation-specific document limits.")
+                    "Some conversations have many RAG documents. Consider implementing conversation-specific document limits."
+                )
 
             return {
                 "total_messages": total_messages,
@@ -541,8 +584,8 @@ async def get_query_performance_stats() -> Dict[str, any]:
                     "Early termination optimization",
                     "Hybrid scoring (text + vector)",
                     "Efficient metadata grouping",
-                    "Batch processing with early termination"
-                ]
+                    "Batch processing with early termination",
+                ],
             }
 
     except Exception as e:
@@ -554,6 +597,6 @@ async def get_query_performance_stats() -> Dict[str, any]:
                 "Early termination optimization",
                 "Hybrid scoring (text + vector)",
                 "Efficient metadata grouping",
-                "Batch processing with early termination"
-            ]
+                "Batch processing with early termination",
+            ],
         }

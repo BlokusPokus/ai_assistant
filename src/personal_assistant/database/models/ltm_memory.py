@@ -1,7 +1,17 @@
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text, Float, Boolean
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -20,10 +30,11 @@ class LTMMemory(Base):
     - Enhanced metadata tracking
     - Relationship capabilities
     """
-    __tablename__ = 'ltm_memories'
+
+    __tablename__ = "ltm_memories"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     # Memory content (insight, pattern, preference)
     content = Column(Text, nullable=False)
@@ -69,8 +80,9 @@ class LTMMemory(Base):
     # Relationship tracking
     # List of related memory IDs
     related_memory_ids = Column(JSON, nullable=True)
-    parent_memory_id = Column(Integer, ForeignKey(
-        'ltm_memories.id'), nullable=True)  # Parent memory if this is a child
+    parent_memory_id = Column(
+        Integer, ForeignKey("ltm_memories.id"), nullable=True
+    )  # Parent memory if this is a child
 
     # Metadata
     # Additional flexible metadata
@@ -99,15 +111,19 @@ class LTMMemory(Base):
             "source_id": self.source_id,
             "created_by": self.created_by,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "last_accessed": self.last_accessed.isoformat() if self.last_accessed else None,
-            "last_modified": self.last_modified.isoformat() if self.last_modified else None,
+            "last_accessed": self.last_accessed.isoformat()
+            if self.last_accessed
+            else None,
+            "last_modified": self.last_modified.isoformat()
+            if self.last_modified
+            else None,
             "access_count": self.access_count,
             "last_access_context": self.last_access_context,
             "related_memory_ids": self.related_memory_ids,
             "parent_memory_id": self.parent_memory_id,
             "metadata": self.memory_metadata,
             "is_archived": self.is_archived,
-            "archive_reason": self.archive_reason
+            "archive_reason": self.archive_reason,
         }
 
     def update_access_stats(self, access_context: str = None):
@@ -124,7 +140,8 @@ class LTMMemory(Base):
 
         # Recency boost (memories accessed recently get a boost)
         days_since_access = (
-            datetime.utcnow() - self.last_accessed).days if self.last_accessed else 30
+            (datetime.utcnow() - self.last_accessed).days if self.last_accessed else 30
+        )
         recency_boost = max(0, (30 - days_since_access) / 30) * 0.2
 
         # Usage boost (frequently accessed memories get a boost)
@@ -141,13 +158,17 @@ class LTMMemory(Base):
 
     # Relationships to related tables
     contexts = relationship(
-        "LTMContext", back_populates="memory", cascade="all, delete-orphan")
+        "LTMContext", back_populates="memory", cascade="all, delete-orphan"
+    )
     access_logs = relationship(
-        "LTMMemoryAccess", back_populates="memory", cascade="all, delete-orphan")
+        "LTMMemoryAccess", back_populates="memory", cascade="all, delete-orphan"
+    )
     tag_entries = relationship(
-        "LTMMemoryTag", back_populates="memory", cascade="all, delete-orphan")
+        "LTMMemoryTag", back_populates="memory", cascade="all, delete-orphan"
+    )
 
     # Self-referential relationships
-    parent_memory = relationship("LTMMemory", remote_side=[
-                                 id], back_populates="child_memories")
+    parent_memory = relationship(
+        "LTMMemory", remote_side=[id], back_populates="child_memories"
+    )
     child_memories = relationship("LTMMemory", back_populates="parent_memory")

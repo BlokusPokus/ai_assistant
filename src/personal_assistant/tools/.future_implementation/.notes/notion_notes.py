@@ -10,7 +10,6 @@ from notion_client import Client
 from notion_client.errors import APIResponseError
 
 from ...config.settings import settings
-
 from ..base import Tool
 
 logger = logging.getLogger(__name__)
@@ -39,19 +38,13 @@ class NotionNotesTool:
             func=self.create_note,
             description="Create a new note in Notion with content. Title and tags are optional.",
             parameters={
-                "content": {
-                    "type": "string",
-                    "description": "Note content (required)"
-                },
-                "title": {
-                    "type": "string",
-                    "description": "Note title (optional)"
-                },
+                "content": {"type": "string", "description": "Note content (required)"},
+                "title": {"type": "string", "description": "Note title (optional)"},
                 "tags": {
                     "type": "string",
-                    "description": "Comma-separated tags (optional)"
-                }
-            }
+                    "description": "Comma-separated tags (optional)",
+                },
+            },
         )
 
         self.create_note_enhanced_tool = Tool(
@@ -59,39 +52,33 @@ class NotionNotesTool:
             func=self.create_note_enhanced,
             description="Create a new note in Notion with enhanced properties including summary, importance, status, and category.",
             parameters={
-                "content": {
-                    "type": "string",
-                    "description": "Note content (required)"
-                },
-                "title": {
-                    "type": "string",
-                    "description": "Note title (optional)"
-                },
+                "content": {"type": "string", "description": "Note content (required)"},
+                "title": {"type": "string", "description": "Note title (optional)"},
                 "tags": {
                     "type": "string",
-                    "description": "Comma-separated tags (optional)"
+                    "description": "Comma-separated tags (optional)",
                 },
                 "summary": {
                     "type": "string",
-                    "description": "Brief summary of the note content (optional)"
+                    "description": "Brief summary of the note content (optional)",
                 },
                 "importance": {
                     "type": "string",
-                    "description": "Importance level: High, Medium, or Low (optional)"
+                    "description": "Importance level: High, Medium, or Low (optional)",
                 },
                 "status": {
                     "type": "string",
-                    "description": "Note status: Draft, In Progress, Complete, or Archived (optional)"
+                    "description": "Note status: Draft, In Progress, Complete, or Archived (optional)",
                 },
                 "category": {
                     "type": "string",
-                    "description": "Note category: Work, Personal, Learning, Planning, or Research (optional)"
+                    "description": "Note category: Work, Personal, Learning, Planning, or Research (optional)",
                 },
                 "template_id": {
                     "type": "string",
-                    "description": "Template ID to apply (optional)"
-                }
-            }
+                    "description": "Template ID to apply (optional)",
+                },
+            },
         )
 
         self.get_note_tool = Tool(
@@ -101,9 +88,9 @@ class NotionNotesTool:
             parameters={
                 "note_id": {
                     "type": "string",
-                    "description": "Notion page ID of the note to retrieve"
+                    "description": "Notion page ID of the note to retrieve",
                 }
-            }
+            },
         )
 
         self.update_note_tool = Tool(
@@ -113,37 +100,34 @@ class NotionNotesTool:
             parameters={
                 "note_id": {
                     "type": "string",
-                    "description": "Notion page ID of the note to update"
+                    "description": "Notion page ID of the note to update",
                 },
                 "content": {
                     "type": "string",
-                    "description": "New note content (optional)"
+                    "description": "New note content (optional)",
                 },
-                "title": {
-                    "type": "string",
-                    "description": "New note title (optional)"
-                },
+                "title": {"type": "string", "description": "New note title (optional)"},
                 "tags": {
                     "type": "string",
-                    "description": "New comma-separated tags (optional)"
+                    "description": "New comma-separated tags (optional)",
                 },
                 "summary": {
                     "type": "string",
-                    "description": "New note summary (optional)"
+                    "description": "New note summary (optional)",
                 },
                 "importance": {
                     "type": "string",
-                    "description": "New importance level: High, Medium, or Low (optional)"
+                    "description": "New importance level: High, Medium, or Low (optional)",
                 },
                 "status": {
                     "type": "string",
-                    "description": "New note status: Draft, In Progress, Complete, or Archived (optional)"
+                    "description": "New note status: Draft, In Progress, Complete, or Archived (optional)",
                 },
                 "category": {
                     "type": "string",
-                    "description": "New note category: Work, Personal, Learning, Planning, or Research (optional)"
-                }
-            }
+                    "description": "New note category: Work, Personal, Learning, Planning, or Research (optional)",
+                },
+            },
         )
 
         self.delete_note_tool = Tool(
@@ -153,9 +137,9 @@ class NotionNotesTool:
             parameters={
                 "note_id": {
                     "type": "string",
-                    "description": "Notion page ID of the note to archive"
+                    "description": "Notion page ID of the note to archive",
                 }
-            }
+            },
         )
 
         self.search_notes_tool = Tool(
@@ -165,9 +149,9 @@ class NotionNotesTool:
             parameters={
                 "query": {
                     "type": "string",
-                    "description": "Search query to find matching notes"
+                    "description": "Search query to find matching notes",
                 }
-            }
+            },
         )
 
         self.search_notes_enhanced_tool = Tool(
@@ -177,29 +161,29 @@ class NotionNotesTool:
             parameters={
                 "query": {
                     "type": "string",
-                    "description": "Search query to find matching notes"
+                    "description": "Search query to find matching notes",
                 },
                 "importance": {
                     "type": "string",
-                    "description": "Filter by importance: High, Medium, or Low (optional)"
+                    "description": "Filter by importance: High, Medium, or Low (optional)",
                 },
                 "status": {
                     "type": "string",
-                    "description": "Filter by status: Draft, In Progress, Complete, or Archived (optional)"
+                    "description": "Filter by status: Draft, In Progress, Complete, or Archived (optional)",
                 },
                 "category": {
                     "type": "string",
-                    "description": "Filter by category: Work, Personal, Learning, Planning, or Research (optional)"
+                    "description": "Filter by category: Work, Personal, Learning, Planning, or Research (optional)",
                 },
                 "tags": {
                     "type": "string",
-                    "description": "Filter by tags, comma-separated (optional)"
+                    "description": "Filter by tags, comma-separated (optional)",
                 },
                 "limit": {
                     "type": "integer",
-                    "description": "Maximum number of results (default: 20)"
-                }
-            }
+                    "description": "Maximum number of results (default: 20)",
+                },
+            },
         )
 
         self.create_template_tool = Tool(
@@ -209,54 +193,58 @@ class NotionNotesTool:
             parameters={
                 "template_name": {
                     "type": "string",
-                    "description": "Name of the template"
+                    "description": "Name of the template",
                 },
                 "template_type": {
                     "type": "string",
-                    "description": "Type of template: standard, meeting, project, or research"
+                    "description": "Type of template: standard, meeting, project, or research",
                 },
                 "sections": {
                     "type": "string",
-                    "description": "Comma-separated list of template sections"
+                    "description": "Comma-separated list of template sections",
                 },
                 "required_fields": {
                     "type": "string",
-                    "description": "Comma-separated list of required fields"
-                }
-            }
+                    "description": "Comma-separated list of required fields",
+                },
+            },
         )
 
         self.get_templates_tool = Tool(
             name="get_note_templates",
             func=self.get_note_templates,
             description="Get available note templates for creating new notes.",
-            parameters={}
+            parameters={},
         )
 
         self.add_database_properties_tool = Tool(
             name="add_database_properties",
             func=self.add_database_properties,
             description="Add new properties to the Notion database for enhanced note organization.",
-            parameters={}
+            parameters={},
         )
 
     def __iter__(self):
         """Makes the class iterable to return all tools"""
-        return iter([
-            # self.create_note_tool,
-            self.create_note_enhanced_tool,
-            self.get_note_tool,
-            self.update_note_tool,
-            self.delete_note_tool,
-            # self.search_notes_tool,
-            self.search_notes_enhanced_tool,
-            self.create_template_tool,
-            self.get_templates_tool,
-            self.add_database_properties_tool
-        ])
+        return iter(
+            [
+                # self.create_note_tool,
+                self.create_note_enhanced_tool,
+                self.get_note_tool,
+                self.update_note_tool,
+                self.delete_note_tool,
+                # self.search_notes_tool,
+                self.search_notes_enhanced_tool,
+                self.create_template_tool,
+                self.get_templates_tool,
+                self.add_database_properties_tool,
+            ]
+        )
 
     # Basic note operations (from original notion_notes.py)
-    async def create_note(self, content: str, title: Optional[str] = None, tags: Optional[str] = None) -> str:
+    async def create_note(
+        self, content: str, title: Optional[str] = None, tags: Optional[str] = None
+    ) -> str:
         """Create a new note in Notion"""
         try:
             client = get_notion_client()
@@ -266,23 +254,13 @@ class NotionNotesTool:
 
             # Prepare properties for the note
             properties = {
-                "Name": {
-                    "title": [
-                        {
-                            "text": {
-                                "content": title or "Untitled Note"
-                            }
-                        }
-                    ]
-                }
+                "Name": {"title": [{"text": {"content": title or "Untitled Note"}}]}
             }
 
             # Add tags if provided
             if tags:
                 properties["Tags"] = {
-                    "multi_select": [
-                        {"name": tag.strip()} for tag in tags.split(",")
-                    ]
+                    "multi_select": [{"name": tag.strip()} for tag in tags.split(",")]
                 }
 
             # Create the page in Notion
@@ -295,20 +273,17 @@ class NotionNotesTool:
                         "type": "paragraph",
                         "paragraph": {
                             "rich_text": [
-                                {
-                                    "type": "text",
-                                    "text": {
-                                        "content": content
-                                    }
-                                }
+                                {"type": "text", "text": {"content": content}}
                             ]
-                        }
+                        },
                     }
-                ]
+                ],
             )
 
             note_id = response["id"]
-            return f"Successfully created note '{title or 'Untitled'}' with ID: {note_id}"
+            return (
+                f"Successfully created note '{title or 'Untitled'}' with ID: {note_id}"
+            )
 
         except APIResponseError as e:
             logger.error(f"Notion API error: {e}")
@@ -379,7 +354,17 @@ class NotionNotesTool:
             logger.error(f"Unexpected error retrieving note: {e}")
             return f"Error retrieving note: {str(e)}"
 
-    async def update_note(self, note_id: str, content: Optional[str] = None, title: Optional[str] = None, tags: Optional[str] = None, summary: Optional[str] = None, importance: Optional[str] = None, status: Optional[str] = None, category: Optional[str] = None) -> str:
+    async def update_note(
+        self,
+        note_id: str,
+        content: Optional[str] = None,
+        title: Optional[str] = None,
+        tags: Optional[str] = None,
+        summary: Optional[str] = None,
+        importance: Optional[str] = None,
+        status: Optional[str] = None,
+        category: Optional[str] = None,
+    ) -> str:
         """Update an existing note in Notion"""
         try:
             client = get_notion_client()
@@ -392,62 +377,37 @@ class NotionNotesTool:
             properties = {}
 
             if title:
-                properties["Name"] = {
-                    "title": [
-                        {
-                            "text": {
-                                "content": title
-                            }
-                        }
-                    ]
-                }
+                properties["Name"] = {"title": [{"text": {"content": title}}]}
 
             if tags:
                 properties["Tags"] = {
-                    "multi_select": [
-                        {"name": tag.strip()} for tag in tags.split(",")
-                    ]
+                    "multi_select": [{"name": tag.strip()} for tag in tags.split(",")]
                 }
 
             if summary:
-                properties["Summary"] = {
-                    "rich_text": [
-                        {
-                            "text": {
-                                "content": summary
-                            }
-                        }
-                    ]
-                }
+                properties["Summary"] = {"rich_text": [{"text": {"content": summary}}]}
 
             if importance and importance in ["High", "Medium", "Low"]:
-                properties["Importance"] = {
-                    "select": {
-                        "name": importance
-                    }
-                }
+                properties["Importance"] = {"select": {"name": importance}}
 
             if status and status in ["Draft", "In Progress", "Complete", "Archived"]:
                 # Check if Status is multi_select in the database
-                if "Status" in current_properties and current_properties["Status"].get("type") == "multi_select":
-                    properties["Status"] = {
-                        "multi_select": [
-                            {"name": status}
-                        ]
-                    }
+                if (
+                    "Status" in current_properties
+                    and current_properties["Status"].get("type") == "multi_select"
+                ):
+                    properties["Status"] = {"multi_select": [{"name": status}]}
                 else:
-                    properties["Status"] = {
-                        "select": {
-                            "name": status
-                        }
-                    }
+                    properties["Status"] = {"select": {"name": status}}
 
-            if category and category in ["Work", "Personal", "Learning", "Planning", "Research"]:
-                properties["Category"] = {
-                    "select": {
-                        "name": category
-                    }
-                }
+            if category and category in [
+                "Work",
+                "Personal",
+                "Learning",
+                "Planning",
+                "Research",
+            ]:
+                properties["Category"] = {"select": {"name": category}}
 
             # Update page properties
             if properties:
@@ -469,16 +429,11 @@ class NotionNotesTool:
                             "type": "paragraph",
                             "paragraph": {
                                 "rich_text": [
-                                    {
-                                        "type": "text",
-                                        "text": {
-                                            "content": content
-                                        }
-                                    }
+                                    {"type": "text", "text": {"content": content}}
                                 ]
-                            }
+                            },
                         }
-                    ]
+                    ],
                 )
 
             return f"Successfully updated note with ID: {note_id}"
@@ -518,12 +473,7 @@ class NotionNotesTool:
             # Search in the database - using 'Name' property instead of 'Title'
             response = client.databases.query(
                 database_id=settings.NOTION_DATABASE_ID,
-                filter={
-                    "property": "Name",
-                    "title": {
-                        "contains": query
-                    }
-                }
+                filter={"property": "Name", "title": {"contains": query}},
             )
 
             results = response["results"]
@@ -539,7 +489,9 @@ class NotionNotesTool:
 
                 formatted_results.append(f"- {title} (ID: {page['id']})")
 
-            return f"Found {len(results)} notes matching '{query}':\n" + "\n".join(formatted_results)
+            return f"Found {len(results)} notes matching '{query}':\n" + "\n".join(
+                formatted_results
+            )
 
         except APIResponseError as e:
             logger.error(f"Notion API error: {e}")
@@ -558,7 +510,7 @@ class NotionNotesTool:
         importance: Optional[str] = None,
         status: Optional[str] = None,
         category: Optional[str] = None,
-        template_id: Optional[str] = None
+        template_id: Optional[str] = None,
     ) -> str:
         """Create a new note in Notion with enhanced properties"""
         try:
@@ -576,81 +528,54 @@ class NotionNotesTool:
                 template_data = await self._get_template(template_id)
                 if template_data:
                     # Merge template with provided data
-                    title = title or template_data.get(
-                        "default_title", "Untitled Note")
-                    content = content or template_data.get(
-                        "default_content", "")
+                    title = title or template_data.get("default_title", "Untitled Note")
+                    content = content or template_data.get("default_content", "")
                     tags = tags or template_data.get("default_tags", "")
-                    summary = summary or template_data.get(
-                        "default_summary", "")
+                    summary = summary or template_data.get("default_summary", "")
                     importance = importance or template_data.get(
-                        "default_importance", "Medium")
-                    status = status or template_data.get(
-                        "default_status", "Draft")
+                        "default_importance", "Medium"
+                    )
+                    status = status or template_data.get("default_status", "Draft")
                     category = category or template_data.get(
-                        "default_category", "Personal")
+                        "default_category", "Personal"
+                    )
 
             # Prepare properties for the note
             properties = {
-                "Name": {
-                    "title": [
-                        {
-                            "text": {
-                                "content": title or "Untitled Note"
-                            }
-                        }
-                    ]
-                }
+                "Name": {"title": [{"text": {"content": title or "Untitled Note"}}]}
             }
 
             # Add tags if provided
             if tags:
                 properties["Tags"] = {
-                    "multi_select": [
-                        {"name": tag.strip()} for tag in tags.split(",")
-                    ]
+                    "multi_select": [{"name": tag.strip()} for tag in tags.split(",")]
                 }
 
             # Add new properties if provided
             if summary:
-                properties["Summary"] = {
-                    "rich_text": [
-                        {
-                            "text": {
-                                "content": summary
-                            }
-                        }
-                    ]
-                }
+                properties["Summary"] = {"rich_text": [{"text": {"content": summary}}]}
 
             if importance and importance in ["High", "Medium", "Low"]:
-                properties["Importance"] = {
-                    "select": {
-                        "name": importance
-                    }
-                }
+                properties["Importance"] = {"select": {"name": importance}}
 
             if status and status in ["Draft", "In Progress", "Complete", "Archived"]:
                 # Check if Status is multi_select in the database
-                if "Status" in current_properties and current_properties["Status"].get("type") == "multi_select":
-                    properties["Status"] = {
-                        "multi_select": [
-                            {"name": status}
-                        ]
-                    }
+                if (
+                    "Status" in current_properties
+                    and current_properties["Status"].get("type") == "multi_select"
+                ):
+                    properties["Status"] = {"multi_select": [{"name": status}]}
                 else:
-                    properties["Status"] = {
-                        "select": {
-                            "name": status
-                        }
-                    }
+                    properties["Status"] = {"select": {"name": status}}
 
-            if category and category in ["Work", "Personal", "Learning", "Planning", "Research"]:
-                properties["Category"] = {
-                    "select": {
-                        "name": category
-                    }
-                }
+            if category and category in [
+                "Work",
+                "Personal",
+                "Learning",
+                "Planning",
+                "Research",
+            ]:
+                properties["Category"] = {"select": {"name": category}}
 
             # Create the page in Notion
             response = client.pages.create(
@@ -662,16 +587,11 @@ class NotionNotesTool:
                         "type": "paragraph",
                         "paragraph": {
                             "rich_text": [
-                                {
-                                    "type": "text",
-                                    "text": {
-                                        "content": content
-                                    }
-                                }
+                                {"type": "text", "text": {"content": content}}
                             ]
-                        }
+                        },
                     }
-                ]
+                ],
             )
 
             note_id = response["id"]
@@ -693,7 +613,7 @@ class NotionNotesTool:
         status: Optional[str] = None,
         category: Optional[str] = None,
         tags: Optional[str] = None,
-        limit: int = 20
+        limit: int = 20,
     ) -> str:
         """Enhanced search across notes with content search and property filters"""
         try:
@@ -712,80 +632,73 @@ class NotionNotesTool:
             # Add property filters with correct types
             if importance:
                 # Check if Importance is multi_select in the database
-                if "Importance" in current_properties and current_properties["Importance"].get("type") == "multi_select":
-                    filters.append({
-                        "property": "Importance",
-                        "multi_select": {
-                            "contains": importance
+                if (
+                    "Importance" in current_properties
+                    and current_properties["Importance"].get("type") == "multi_select"
+                ):
+                    filters.append(
+                        {
+                            "property": "Importance",
+                            "multi_select": {"contains": importance},
                         }
-                    })
+                    )
                 else:
-                    filters.append({
-                        "property": "Importance",
-                        "select": {
-                            "equals": importance
-                        }
-                    })
+                    filters.append(
+                        {"property": "Importance", "select": {"equals": importance}}
+                    )
 
             if status:
                 # Check if Status is multi_select in the database
-                if "Status" in current_properties and current_properties["Status"].get("type") == "multi_select":
-                    filters.append({
-                        "property": "Status",
-                        "multi_select": {
-                            "contains": status
-                        }
-                    })
+                if (
+                    "Status" in current_properties
+                    and current_properties["Status"].get("type") == "multi_select"
+                ):
+                    filters.append(
+                        {"property": "Status", "multi_select": {"contains": status}}
+                    )
                 else:
-                    filters.append({
-                        "property": "Status",
-                        "select": {
-                            "equals": status
-                        }
-                    })
+                    filters.append({"property": "Status", "select": {"equals": status}})
 
             if category:
                 # Check if Category is multi_select in the database
-                if "Category" in current_properties and current_properties["Category"].get("type") == "multi_select":
-                    filters.append({
-                        "property": "Category",
-                        "multi_select": {
-                            "contains": category
-                        }
-                    })
+                if (
+                    "Category" in current_properties
+                    and current_properties["Category"].get("type") == "multi_select"
+                ):
+                    filters.append(
+                        {"property": "Category", "multi_select": {"contains": category}}
+                    )
                 else:
-                    filters.append({
-                        "property": "Category",
-                        "select": {
-                            "equals": category
-                        }
-                    })
+                    filters.append(
+                        {"property": "Category", "select": {"equals": category}}
+                    )
 
             if tags:
                 tag_list = [tag.strip() for tag in tags.split(",")]
-                filters.append({
-                    "property": "Tags",
-                    "multi_select": {
-                        "contains_any_of": tag_list
-                    }
-                })
+                filters.append(
+                    {"property": "Tags", "multi_select": {"contains_any_of": tag_list}}
+                )
 
             # Combine filters with AND logic
-            filter_condition = {"and": filters} if len(
-                filters) > 1 else filters[0] if filters else None
+            filter_condition = (
+                {"and": filters}
+                if len(filters) > 1
+                else filters[0]
+                if filters
+                else None
+            )
 
             # Search in database with filters
             if filter_condition:
                 response = client.databases.query(
                     database_id=settings.NOTION_DATABASE_ID,
                     filter=filter_condition,
-                    page_size=limit
+                    page_size=limit,
                 )
             else:
                 # No filters, just get all pages
                 response = client.databases.query(
-                    database_id=settings.NOTION_DATABASE_ID,
-                    page_size=limit
+                    database_id=settings.NOTION_DATABASE_ID, page_size=limit
                 )
 
             results = response["results"]
@@ -794,22 +707,23 @@ class NotionNotesTool:
             if query:
                 # Search by title first
                 title_results = [
-                    page for page in results if self._matches_title(page, query)]
+                    page for page in results if self._matches_title(page, query)
+                ]
 
                 # Search by content using Notion's search API
                 content_results = await self._search_content(query, limit)
 
                 # Combine and deduplicate results
                 all_results = self._combine_search_results(
-                    title_results, content_results)
+                    title_results, content_results
+                )
                 results = all_results[:limit]
             else:
                 # No text query, just use filtered results
                 pass
 
             if not results:
-                filter_desc = self._describe_filters(
-                    importance, status, category, tags)
+                filter_desc = self._describe_filters(importance, status, category, tags)
                 return f"No notes found matching criteria: {filter_desc}"
 
             # Format results with enhanced information
@@ -841,9 +755,11 @@ class NotionNotesTool:
 
                 formatted_results.append(result_line)
 
-            filter_desc = self._describe_filters(
-                importance, status, category, tags)
-            return f"Found {len(results)} notes matching criteria: {filter_desc}\n\n" + "\n".join(formatted_results)
+            filter_desc = self._describe_filters(importance, status, category, tags)
+            return (
+                f"Found {len(results)} notes matching criteria: {filter_desc}\n\n"
+                + "\n".join(formatted_results)
+            )
 
         except APIResponseError as e:
             logger.error(f"Notion API error: {e}")
@@ -857,7 +773,7 @@ class NotionNotesTool:
         template_name: str,
         template_type: str,
         sections: str,
-        required_fields: str
+        required_fields: str,
     ) -> str:
         """Create a new note template"""
         try:
@@ -877,7 +793,7 @@ class NotionNotesTool:
                 "type": template_type,
                 "sections": sections_list,
                 "required_fields": required_list,
-                "created_at": asyncio.get_event_loop().time()
+                "created_at": asyncio.get_event_loop().time(),
             }
 
             # Store template (for now, just return success - in production, store in database/file)
@@ -898,30 +814,57 @@ class NotionNotesTool:
                     "id": "template_standard",
                     "name": "Standard Note",
                     "type": "standard",
-                    "sections": ["title", "summary", "content", "key_takeaways", "tags"],
-                    "required_fields": ["title", "content", "tags"]
+                    "sections": [
+                        "title",
+                        "summary",
+                        "content",
+                        "key_takeaways",
+                        "tags",
+                    ],
+                    "required_fields": ["title", "content", "tags"],
                 },
                 {
                     "id": "template_meeting",
                     "name": "Meeting Notes",
                     "type": "meeting",
-                    "sections": ["title", "attendees", "agenda", "notes", "action_items", "next_steps"],
-                    "required_fields": ["title", "attendees", "notes"]
+                    "sections": [
+                        "title",
+                        "attendees",
+                        "agenda",
+                        "notes",
+                        "action_items",
+                        "next_steps",
+                    ],
+                    "required_fields": ["title", "attendees", "notes"],
                 },
                 {
                     "id": "template_project",
                     "name": "Project Notes",
                     "type": "project",
-                    "sections": ["title", "description", "objectives", "timeline", "resources", "status"],
-                    "required_fields": ["title", "description", "objectives"]
+                    "sections": [
+                        "title",
+                        "description",
+                        "objectives",
+                        "timeline",
+                        "resources",
+                        "status",
+                    ],
+                    "required_fields": ["title", "description", "objectives"],
                 },
                 {
                     "id": "template_research",
                     "name": "Research Notes",
                     "type": "research",
-                    "sections": ["title", "topic", "findings", "sources", "conclusions", "tags"],
-                    "required_fields": ["title", "topic", "findings"]
-                }
+                    "sections": [
+                        "title",
+                        "topic",
+                        "findings",
+                        "sources",
+                        "conclusions",
+                        "tags",
+                    ],
+                    "required_fields": ["title", "topic", "findings"],
+                },
             ]
 
             formatted_templates = []
@@ -951,26 +894,27 @@ class NotionNotesTool:
             database = client.databases.retrieve(settings.NOTION_DATABASE_ID)
             current_properties = database.get("properties", {})
 
-            print(
-                f"Current database properties: {list(current_properties.keys())}")
+            print(f"Current database properties: {list(current_properties.keys())}")
 
             # Check if Status is already multi_select (which seems to be the case)
-            status_type = "multi_select" if "Status" in current_properties and current_properties["Status"].get(
-                "type") == "multi_select" else "select"
+            status_type = (
+                "multi_select"
+                if "Status" in current_properties
+                and current_properties["Status"].get("type") == "multi_select"
+                else "select"
+            )
 
             # Define new properties to add with correct Notion API structure
             new_properties = {
                 "Summary": {
-                    "rich_text": {
-                        "description": "Brief summary of the note content"
-                    }
+                    "rich_text": {"description": "Brief summary of the note content"}
                 },
                 "Importance": {
                     "select": {
                         "options": [
                             {"name": "High", "color": "red"},
                             {"name": "Medium", "color": "yellow"},
-                            {"name": "Low", "color": "blue"}
+                            {"name": "Low", "color": "blue"},
                         ]
                     }
                 },
@@ -980,7 +924,7 @@ class NotionNotesTool:
                             {"name": "Draft", "color": "gray"},
                             {"name": "In Progress", "color": "yellow"},
                             {"name": "Complete", "color": "green"},
-                            {"name": "Archived", "color": "gray"}
+                            {"name": "Archived", "color": "gray"},
                         ]
                     }
                 },
@@ -991,7 +935,7 @@ class NotionNotesTool:
                             {"name": "Personal", "color": "green"},
                             {"name": "Learning", "color": "purple"},
                             {"name": "Planning", "color": "orange"},
-                            {"name": "Research", "color": "pink"}
+                            {"name": "Research", "color": "pink"},
                         ]
                     }
                 },
@@ -999,7 +943,7 @@ class NotionNotesTool:
                     "date": {
                         "description": "When the note was last reviewed or updated"
                     }
-                }
+                },
             }
 
             # Check which properties already exist
@@ -1016,17 +960,19 @@ class NotionNotesTool:
                 return "All new properties already exist in the database."
 
             # Add new properties
-            updated_properties = {
-                **current_properties, **new_properties_to_add}
+            updated_properties = {**current_properties, **new_properties_to_add}
 
             # Update the database
             client.databases.update(
-                database_id=settings.NOTION_DATABASE_ID,
-                properties=updated_properties
+                database_id=settings.NOTION_DATABASE_ID, properties=updated_properties
             )
 
             added_properties = list(new_properties_to_add.keys())
-            existing_properties_str = f" (already existed: {', '.join(existing_properties)})" if existing_properties else ""
+            existing_properties_str = (
+                f" (already existed: {', '.join(existing_properties)})"
+                if existing_properties
+                else ""
+            )
 
             return f"Successfully added properties: {', '.join(added_properties)}{existing_properties_str}"
 
@@ -1051,17 +997,15 @@ class NotionNotesTool:
             # Use Notion's search API to search across all content
             response = client.search(
                 query=query,
-                filter={
-                    "property": "object",
-                    "value": "page"
-                },
-                page_size=limit
+                filter={"property": "object", "value": "page"},
+                page_size=limit,
             )
 
             # Filter results to only include pages from our database
             database_id = settings.NOTION_DATABASE_ID
             filtered_results = [
-                page for page in response["results"]
+                page
+                for page in response["results"]
                 if page.get("parent", {}).get("database_id") == database_id
             ]
 
@@ -1078,7 +1022,9 @@ class NotionNotesTool:
             return query.lower() in title
         return False
 
-    def _combine_search_results(self, title_results: List[Dict], content_results: List[Dict]) -> List[Dict]:
+    def _combine_search_results(
+        self, title_results: List[Dict], content_results: List[Dict]
+    ) -> List[Dict]:
         """Combine and deduplicate search results"""
         combined = {}
 
@@ -1109,7 +1055,9 @@ class NotionNotesTool:
                 return prop["select"]["name"]
         return None
 
-    def _extract_property_multi_select(self, page: Dict, property_name: str) -> List[str]:
+    def _extract_property_multi_select(
+        self, page: Dict, property_name: str
+    ) -> List[str]:
         """Extract values from a multi_select property"""
         if property_name in page["properties"]:
             prop = page["properties"][property_name]
@@ -1117,7 +1065,13 @@ class NotionNotesTool:
                 return [item["name"] for item in prop["multi_select"]]
         return []
 
-    def _describe_filters(self, importance: Optional[str], status: Optional[str], category: Optional[str], tags: Optional[str]) -> str:
+    def _describe_filters(
+        self,
+        importance: Optional[str],
+        status: Optional[str],
+        category: Optional[str],
+        tags: Optional[str],
+    ) -> str:
         """Create a description of applied filters"""
         filters = []
         if importance:
@@ -1141,11 +1095,8 @@ NotesCreateTool = Tool(
     func=lambda **kwargs: asyncio.run(NotionNotesTool().create_note(**kwargs)),
     description="Create a new note in Notion with content. Title and tags are optional.",
     parameters={
-        "content": {
-            "type": "string",
-            "description": "Note content (required)"
-        }
-    }
+        "content": {"type": "string", "description": "Note content (required)"}
+    },
 ).set_category("Notes")
 
 NotesGetTool = Tool(
@@ -1155,9 +1106,9 @@ NotesGetTool = Tool(
     parameters={
         "note_id": {
             "type": "string",
-            "description": "Notion page ID of the note to retrieve"
+            "description": "Notion page ID of the note to retrieve",
         }
-    }
+    },
 ).set_category("Notes")
 
 NotesUpdateTool = Tool(
@@ -1167,9 +1118,9 @@ NotesUpdateTool = Tool(
     parameters={
         "note_id": {
             "type": "string",
-            "description": "Notion page ID of the note to update"
+            "description": "Notion page ID of the note to update",
         }
-    }
+    },
 ).set_category("Notes")
 
 NotesDeleteTool = Tool(
@@ -1179,20 +1130,19 @@ NotesDeleteTool = Tool(
     parameters={
         "note_id": {
             "type": "string",
-            "description": "Notion page ID of the note to delete"
+            "description": "Notion page ID of the note to delete",
         }
-    }
+    },
 ).set_category("Notes")
 
 NotesSearchTool = Tool(
     name="search_notes",
-    func=lambda **kwargs: asyncio.run(
-        NotionNotesTool().search_notes(**kwargs)),
+    func=lambda **kwargs: asyncio.run(NotionNotesTool().search_notes(**kwargs)),
     description="Search existing notes in Notion by title or content",
     parameters={
         "query": {
             "type": "string",
-            "description": "Search query to find matching notes"
+            "description": "Search query to find matching notes",
         }
-    }
+    },
 ).set_category("Notes")

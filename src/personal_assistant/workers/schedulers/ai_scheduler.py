@@ -31,19 +31,21 @@ class AIScheduler:
             logger.error(f"Error getting due tasks: {e}")
             return []
 
-    async def calculate_next_run(self, schedule_type: str, schedule_config: Dict[str, Any]) -> datetime:
+    async def calculate_next_run(
+        self, schedule_type: str, schedule_config: Dict[str, Any]
+    ) -> datetime:
         """Calculate next run time for recurring AI tasks."""
         try:
-            if schedule_type == 'daily':
+            if schedule_type == "daily":
                 return datetime.utcnow() + timedelta(days=1)
-            elif schedule_type == 'weekly':
+            elif schedule_type == "weekly":
                 days_ahead = 7 - datetime.utcnow().weekday()
                 return datetime.utcnow() + timedelta(days=days_ahead)
-            elif schedule_type == 'monthly':
+            elif schedule_type == "monthly":
                 # Simple monthly calculation
                 next_month = datetime.utcnow().replace(day=1) + timedelta(days=32)
                 return next_month.replace(day=1)
-            elif schedule_type == 'custom':
+            elif schedule_type == "custom":
                 # Handle custom cron-like schedules
                 return self._parse_custom_schedule(schedule_config)
             else:
@@ -57,7 +59,7 @@ class AIScheduler:
         """Parse custom schedule configuration."""
         try:
             # This is a simplified parser - will be enhanced in Task 037.2
-            if 'cron' in schedule_config:
+            if "cron" in schedule_config:
                 # TODO: Implement cron parsing
                 pass
 
@@ -76,19 +78,18 @@ class AIScheduler:
             failed_tasks = await self.task_manager.get_failed_task_count()
 
             return {
-                'total_tasks': total_tasks,
-                'pending_tasks': pending_tasks,
-                'completed_tasks': completed_tasks,
-                'failed_tasks': failed_tasks,
-                'success_rate': (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0,
-                'timestamp': datetime.utcnow().isoformat()
+                "total_tasks": total_tasks,
+                "pending_tasks": pending_tasks,
+                "completed_tasks": completed_tasks,
+                "failed_tasks": failed_tasks,
+                "success_rate": (completed_tasks / total_tasks * 100)
+                if total_tasks > 0
+                else 0,
+                "timestamp": datetime.utcnow().isoformat(),
             }
         except Exception as e:
             logger.error(f"Error getting task statistics: {e}")
-            return {
-                'error': str(e),
-                'timestamp': datetime.utcnow().isoformat()
-            }
+            return {"error": str(e), "timestamp": datetime.utcnow().isoformat()}
 
     async def cleanup_old_tasks(self, days_old: int = 30) -> int:
         """Clean up old completed/failed tasks."""

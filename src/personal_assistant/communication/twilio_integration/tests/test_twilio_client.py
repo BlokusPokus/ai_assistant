@@ -13,8 +13,7 @@ from personal_assistant.communication.twilio_integration.twilio_client import (
 from personal_assistant.core import AgentCore
 
 # Load environment variables from config file
-load_dotenv(
-    dotenv_path=f'config/{os.getenv("ENVIRONMENT", "development")}.env')
+load_dotenv(dotenv_path=f'config/{os.getenv("ENVIRONMENT", "development")}.env')
 print("GOOGLE_API_KEY:", os.getenv("GOOGLE_API_KEY"))  # Debugging line
 
 # Configure logging for the test
@@ -25,13 +24,14 @@ logger = logging.getLogger(__name__)
 
 
 class TestTwilioService(unittest.IsolatedAsyncioTestCase):
-
-    @patch('personal_assistant.communication.twilio_integration.twilio_client.Client')
-    @patch('personal_assistant.communication.twilio_integration.twilio_client.UserIdentificationService')
+    @patch("personal_assistant.communication.twilio_integration.twilio_client.Client")
+    @patch(
+        "personal_assistant.communication.twilio_integration.twilio_client.UserIdentificationService"
+    )
     async def asyncSetUp(self, MockUserIdentification, MockClient):
         # Mock the Twilio Client
         self.mock_client = MockClient.return_value
-        self.mock_client.messages.create.return_value.sid = 'SM1234567890'
+        self.mock_client.messages.create.return_value.sid = "SM1234567890"
 
         # Create a mock AgentCore with async run method
         self.mock_agent = Mock(spec=AgentCore)
@@ -49,9 +49,9 @@ class TestTwilioService(unittest.IsolatedAsyncioTestCase):
         """Test SMS webhook handling with a registered user."""
         # Mock user identification returning a valid user
         self.mock_user_identification.identify_user_by_phone.return_value = {
-            'id': 123,
-            'email': 'test@example.com',
-            'full_name': 'Test User'
+            "id": 123,
+            "email": "test@example.com",
+            "full_name": "Test User",
         }
 
         # Simulate an incoming message
@@ -63,7 +63,9 @@ class TestTwilioService(unittest.IsolatedAsyncioTestCase):
         logger.info("Testing handle_sms_webhook with registered user")
 
         # Verify UserIdentificationService was called
-        self.mock_user_identification.identify_user_by_phone.assert_called_once_with(from_number)
+        self.mock_user_identification.identify_user_by_phone.assert_called_once_with(
+            from_number
+        )
 
         # Verify AgentCore.run was called with the message and user ID
         self.mock_agent.run.assert_called_once_with(body, 123)
@@ -86,7 +88,9 @@ class TestTwilioService(unittest.IsolatedAsyncioTestCase):
         logger.info("Testing handle_sms_webhook with unregistered user")
 
         # Verify UserIdentificationService was called
-        self.mock_user_identification.identify_user_by_phone.assert_called_once_with(from_number)
+        self.mock_user_identification.identify_user_by_phone.assert_called_once_with(
+            from_number
+        )
 
         # Verify AgentCore.run was NOT called
         self.mock_agent.run.assert_not_called()
@@ -136,7 +140,9 @@ class TestTwilioService(unittest.IsolatedAsyncioTestCase):
     async def test_handle_sms_webhook_exception_handling(self):
         """Test SMS webhook exception handling."""
         # Mock user identification raising an exception
-        self.mock_user_identification.identify_user_by_phone.side_effect = Exception("Database error")
+        self.mock_user_identification.identify_user_by_phone.side_effect = Exception(
+            "Database error"
+        )
 
         # Simulate an incoming message
         body = "Hello"
@@ -192,10 +198,10 @@ class TestTwilioService(unittest.IsolatedAsyncioTestCase):
         """Test creation of helpful guidance response."""
         phone_number = "+1234567890"
         response = self.twilio_service._create_helpful_guidance_response(phone_number)
-        
+
         self.assertIsInstance(response, MessagingResponse)
         response_str = str(response)
-        
+
         # Check that the response contains helpful guidance
         self.assertIn("Welcome!", response_str)
         self.assertIn("not registered yet", response_str)
@@ -213,18 +219,15 @@ class TestTwilioService(unittest.IsolatedAsyncioTestCase):
 
         # Call the method
         message_sid = await self.twilio_service.send_sms(to_number, message)
-        logger.info(
-            f"Testing send_sms with message: '{message}' to {to_number}")
+        logger.info(f"Testing send_sms with message: '{message}' to {to_number}")
 
         # Check the message SID
-        self.assertEqual(message_sid, 'SM1234567890')
+        self.assertEqual(message_sid, "SM1234567890")
         self.mock_client.messages.create.assert_called_once_with(
-            body=message,
-            from_=self.twilio_service.from_number,
-            to=to_number
+            body=message, from_=self.twilio_service.from_number, to=to_number
         )
 
-    @patch('personal_assistant.communication.twilio_integration.twilio_client.Client')
+    @patch("personal_assistant.communication.twilio_integration.twilio_client.Client")
     async def test_send_sms_twilio_exception(self, MockClient):
         """Test SMS sending with Twilio exception."""
         # Mock AgentCore for this specific test
@@ -238,7 +241,7 @@ class TestTwilioService(unittest.IsolatedAsyncioTestCase):
             status=400,
             uri="fake://uri",
             msg="Error sending message",
-            code=21211  # Common Twilio error code for invalid phone number
+            code=21211,  # Common Twilio error code for invalid phone number
         )
 
         # Simulate sending a message with a Twilio exception
@@ -256,25 +259,27 @@ class TestTwilioService(unittest.IsolatedAsyncioTestCase):
         verification_code = "123456"
 
         # Call the method
-        message_sid = await self.twilio_service.send_verification_sms(to_number, verification_code)
+        message_sid = await self.twilio_service.send_verification_sms(
+            to_number, verification_code
+        )
         logger.info(f"Testing send_verification_sms to {to_number}")
 
         # Check the message SID
-        self.assertEqual(message_sid, 'SM1234567890')
-        
+        self.assertEqual(message_sid, "SM1234567890")
+
         # Verify the message was created with verification content
         self.mock_client.messages.create.assert_called_once()
         call_args = self.mock_client.messages.create.call_args
-        self.assertEqual(call_args[1]['to'], to_number)
-        self.assertEqual(call_args[1]['from_'], self.twilio_service.from_number)
-        
+        self.assertEqual(call_args[1]["to"], to_number)
+        self.assertEqual(call_args[1]["from_"], self.twilio_service.from_number)
+
         # Check that the message contains verification content
-        message_body = call_args[1]['body']
+        message_body = call_args[1]["body"]
         self.assertIn(verification_code, message_body)
         self.assertIn("verification code", message_body)
         self.assertIn("expire in 10 minutes", message_body)
 
-    @patch('personal_assistant.communication.twilio_integration.twilio_client.Client')
+    @patch("personal_assistant.communication.twilio_integration.twilio_client.Client")
     async def test_send_verification_sms_twilio_exception(self, MockClient):
         """Test verification SMS sending with Twilio exception."""
         # Mock AgentCore for this specific test
@@ -288,7 +293,7 @@ class TestTwilioService(unittest.IsolatedAsyncioTestCase):
             status=400,
             uri="fake://uri",
             msg="Error sending verification message",
-            code=21211
+            code=21211,
         )
 
         # Simulate sending verification SMS with a Twilio exception
@@ -297,8 +302,10 @@ class TestTwilioService(unittest.IsolatedAsyncioTestCase):
 
         logger.info("Testing send_verification_sms with TwilioRestException")
         with self.assertRaises(TwilioRestException):
-            await self.twilio_service.send_verification_sms(to_number, verification_code)
+            await self.twilio_service.send_verification_sms(
+                to_number, verification_code
+            )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

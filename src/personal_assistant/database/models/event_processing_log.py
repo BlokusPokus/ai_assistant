@@ -6,10 +6,10 @@ from .base import Base
 
 
 class EventProcessingLog(Base):
-    __tablename__ = 'event_processing_log'
+    __tablename__ = "event_processing_log"
 
     id = Column(Integer, primary_key=True)
-    event_id = Column(Integer, ForeignKey('events.id'))
+    event_id = Column(Integer, ForeignKey("events.id"))
     processed_at = Column(DateTime, default=datetime.utcnow)
     agent_response = Column(Text)
     # pending, processing, completed, failed

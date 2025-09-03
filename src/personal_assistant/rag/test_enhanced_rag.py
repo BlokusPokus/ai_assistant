@@ -4,19 +4,24 @@ Test script for enhanced RAG system.
 Tests real embedding generation, caching, and Notion content extraction.
 """
 
-import logging
-from personal_assistant.config.settings import settings
-from personal_assistant.rag.retriever import embed_text, query_knowledge_base, get_embedding_stats
-from personal_assistant.rag.notion_extractor import NotionContentExtractor
-from personal_assistant.rag.embeddings.cache import LRUCache, EmbeddingCache
-from personal_assistant.rag.embeddings.gemini_embeddings import GeminiEmbeddings
-from personal_assistant.config.logging_config import setup_logging
 import asyncio
-import sys
+import logging
 import os
+import sys
+
+from personal_assistant.config.logging_config import setup_logging
+from personal_assistant.config.settings import settings
+from personal_assistant.rag.embeddings.cache import EmbeddingCache, LRUCache
+from personal_assistant.rag.embeddings.gemini_embeddings import GeminiEmbeddings
+from personal_assistant.rag.notion_extractor import NotionContentExtractor
+from personal_assistant.rag.retriever import (
+    embed_text,
+    get_embedding_stats,
+    query_knowledge_base,
+)
 
 # Add the src directory to the path so we can import modules
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
 # Setup logging
@@ -77,8 +82,7 @@ async def test_content_extractor():
 
         print(f"✅ Content extractor initialized:")
         print(f"   Type: {stats.get('extractor_type', 'Unknown')}")
-        print(
-            f"   Notion tool available: {stats.get('notion_tool_available', False)}")
+        print(f"   Notion tool available: {stats.get('notion_tool_available', False)}")
 
         # Test content parsing with sample text
         sample_content = """# Meeting Notes
@@ -127,7 +131,8 @@ async def test_rag_query():
 
         if results:
             print(
-                f"   First result source: {results[0].get('metadata', {}).get('source', 'Unknown')}")
+                f"   First result source: {results[0].get('metadata', {}).get('source', 'Unknown')}"
+            )
 
     except Exception as e:
         print(f"❌ Error testing RAG query: {e}")
@@ -144,8 +149,7 @@ async def main():
     # Check configuration
     print(f"🔧 Configuration:")
     print(f"   Environment: {settings.ENVIRONMENT}")
-    print(
-        f"   Google API Key: {'✅ Set' if settings.GOOGLE_API_KEY else '❌ Not Set'}")
+    print(f"   Google API Key: {'✅ Set' if settings.GOOGLE_API_KEY else '❌ Not Set'}")
     print(f"   RAG Max Results: {settings.RAG_MAX_RESULTS}")
     print(f"   RAG Context Length: {settings.RAG_MAX_CONTEXT_LENGTH}")
 

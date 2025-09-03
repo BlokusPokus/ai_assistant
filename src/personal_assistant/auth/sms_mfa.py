@@ -10,8 +10,9 @@ This service provides:
 
 import secrets
 import time
-from typing import Dict, Optional, List
 from datetime import datetime, timedelta
+from typing import Dict, List, Optional
+
 from personal_assistant.config.settings import settings
 
 
@@ -59,12 +60,13 @@ class SMSMFAService:
 
         # Store code with expiration and metadata
         self.verification_codes[code_id] = {
-            'phone_number': phone_number,
-            'code': code,
-            'expires_at': datetime.utcnow() + timedelta(minutes=self.code_expiration_minutes),
-            'attempts': 0,
-            'created_at': datetime.utcnow(),
-            'last_attempt': None
+            "phone_number": phone_number,
+            "code": code,
+            "expires_at": datetime.utcnow()
+            + timedelta(minutes=self.code_expiration_minutes),
+            "attempts": 0,
+            "created_at": datetime.utcnow(),
+            "last_attempt": None,
         }
 
         # Send SMS if Twilio client is available
@@ -100,21 +102,21 @@ class SMSMFAService:
         verification_data = self.verification_codes[code_id]
 
         # Check expiration
-        if datetime.utcnow() > verification_data['expires_at']:
+        if datetime.utcnow() > verification_data["expires_at"]:
             del self.verification_codes[code_id]
             return False
 
         # Check attempts
-        if verification_data['attempts'] >= self.max_attempts_per_code:
+        if verification_data["attempts"] >= self.max_attempts_per_code:
             del self.verification_codes[code_id]
             return False
 
         # Update attempt count and timestamp
-        verification_data['attempts'] += 1
-        verification_data['last_attempt'] = datetime.utcnow()
+        verification_data["attempts"] += 1
+        verification_data["last_attempt"] = datetime.utcnow()
 
         # Verify code
-        if verification_data['code'] == code:
+        if verification_data["code"] == code:
             # Success - remove code and return True
             del self.verification_codes[code_id]
             return True
@@ -139,12 +141,14 @@ class SMSMFAService:
 
         for code_id, data in list(self.verification_codes.items()):
             # Clean up expired codes while checking
-            if data['expires_at'] < now:
+            if data["expires_at"] < now:
                 del self.verification_codes[code_id]
                 continue
 
-            if (data['phone_number'] == phone_number and
-                    data['created_at'] > window_start):
+            if (
+                data["phone_number"] == phone_number
+                and data["created_at"] > window_start
+            ):
                 recent_attempts += 1
 
         return recent_attempts >= self.rate_limit_attempts
@@ -163,9 +167,12 @@ class SMSMFAService:
         window_start = now - timedelta(minutes=self.rate_limit_window_minutes)
 
         recent_attempts = sum(
-            1 for data in self.verification_codes.values()
-            if (data['phone_number'] == phone_number and
-                data['created_at'] > window_start)
+            1
+            for data in self.verification_codes.values()
+            if (
+                data["phone_number"] == phone_number
+                and data["created_at"] > window_start
+            )
         )
 
         return max(0, self.rate_limit_attempts - recent_attempts)
@@ -189,10 +196,12 @@ class SMSMFAService:
 
         oldest_attempt = None
         for data in self.verification_codes.values():
-            if (data['phone_number'] == phone_number and
-                    data['created_at'] > window_start):
-                if oldest_attempt is None or data['created_at'] < oldest_attempt:
-                    oldest_attempt = data['created_at']
+            if (
+                data["phone_number"] == phone_number
+                and data["created_at"] > window_start
+            ):
+                if oldest_attempt is None or data["created_at"] < oldest_attempt:
+                    oldest_attempt = data["created_at"]
 
         if oldest_attempt:
             return oldest_attempt + timedelta(minutes=self.rate_limit_window_minutes)
@@ -203,8 +212,9 @@ class SMSMFAService:
         """Clean up expired verification codes."""
         now = datetime.utcnow()
         expired_codes = [
-            code_id for code_id, data in self.verification_codes.items()
-            if data['expires_at'] < now
+            code_id
+            for code_id, data in self.verification_codes.items()
+            if data["expires_at"] < now
         ]
 
         for code_id in expired_codes:
@@ -226,15 +236,15 @@ class SMSMFAService:
         data = self.verification_codes[code_id].copy()
 
         # Check if expired
-        if datetime.utcnow() > data['expires_at']:
+        if datetime.utcnow() > data["expires_at"]:
             return None
 
         # Calculate remaining attempts
-        data['remaining_attempts'] = self.max_attempts_per_code - data['attempts']
+        data["remaining_attempts"] = self.max_attempts_per_code - data["attempts"]
 
         # Calculate time until expiration
-        time_until_expiry = data['expires_at'] - datetime.utcnow()
-        data['expires_in_seconds'] = int(time_until_expiry.total_seconds())
+        time_until_expiry = data["expires_at"] - datetime.utcnow()
+        data["expires_in_seconds"] = int(time_until_expiry.total_seconds())
 
         return data
 
@@ -254,8 +264,9 @@ class SMSMFAService:
 
         # Remove any existing codes for this phone number
         existing_codes = [
-            code_id for code_id, data in self.verification_codes.items()
-            if data['phone_number'] == phone_number
+            code_id
+            for code_id, data in self.verification_codes.items()
+            if data["phone_number"] == phone_number
         ]
 
         for code_id in existing_codes:

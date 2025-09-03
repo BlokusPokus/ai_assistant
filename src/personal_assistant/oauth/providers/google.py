@@ -6,8 +6,10 @@ Google Calendar, Drive, Gmail, and YouTube Data API.
 """
 
 import urllib.parse
+from typing import Any, Dict, List
+
 import requests
-from typing import Dict, List, Any
+
 from .base import BaseOAuthProvider
 
 
@@ -34,12 +36,7 @@ class GoogleOAuthProvider(BaseOAuthProvider):
     def userinfo_url(self) -> str:
         return "https://www.googleapis.com/oauth2/v2/userinfo"
 
-    def get_authorization_url(
-        self,
-        state: str,
-        scopes: List[str],
-        **kwargs
-    ) -> str:
+    def get_authorization_url(self, state: str, scopes: List[str], **kwargs) -> str:
         """
         Generate Google OAuth authorization URL.
 
@@ -70,9 +67,7 @@ class GoogleOAuthProvider(BaseOAuthProvider):
         return f"{self.authorization_url}?{query_string}"
 
     def exchange_code_for_tokens(
-        self,
-        authorization_code: str,
-        **kwargs
+        self, authorization_code: str, **kwargs
     ) -> Dict[str, Any]:
         """
         Exchange authorization code for Google OAuth tokens.
@@ -99,12 +94,13 @@ class GoogleOAuthProvider(BaseOAuthProvider):
                 self.token_url,
                 data=data,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
-                timeout=30
+                timeout=30,
             )
 
             if response.status_code != 200:
                 raise Exception(
-                    f"Google OAuth token exchange failed: {response.status_code} - {response.text}")
+                    f"Google OAuth token exchange failed: {response.status_code} - {response.text}"
+                )
 
             # Parse the response
             token_data = response.json()
@@ -129,18 +125,13 @@ class GoogleOAuthProvider(BaseOAuthProvider):
                 "provider_email": user_info.get("email"),
                 "provider_name": user_info.get("name"),
                 # Include the full response for debugging
-                "raw_response": token_data
+                "raw_response": token_data,
             }
 
         except Exception as e:
-            raise Exception(
-                f"Failed to exchange authorization code for tokens: {e}")
+            raise Exception(f"Failed to exchange authorization code for tokens: {e}")
 
-    def refresh_access_token(
-        self,
-        refresh_token: str,
-        **kwargs
-    ) -> Dict[str, Any]:
+    def refresh_access_token(self, refresh_token: str, **kwargs) -> Dict[str, Any]:
         """
         Refresh Google OAuth access token.
 
@@ -165,12 +156,13 @@ class GoogleOAuthProvider(BaseOAuthProvider):
                 self.token_url,
                 data=data,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
-                timeout=30
+                timeout=30,
             )
 
             if response.status_code != 200:
                 raise Exception(
-                    f"Google OAuth token refresh failed: {response.status_code} - {response.text}")
+                    f"Google OAuth token refresh failed: {response.status_code} - {response.text}"
+                )
 
             # Parse the response
             token_data = response.json()
@@ -186,11 +178,7 @@ class GoogleOAuthProvider(BaseOAuthProvider):
         except Exception as e:
             raise Exception(f"Failed to refresh access token: {e}")
 
-    def get_user_info(
-        self,
-        access_token: str,
-        **kwargs
-    ) -> Dict[str, Any]:
+    def get_user_info(self, access_token: str, **kwargs) -> Dict[str, Any]:
         """
         Get Google user information.
 
@@ -206,23 +194,20 @@ class GoogleOAuthProvider(BaseOAuthProvider):
             response = requests.get(
                 self.userinfo_url,
                 headers={"Authorization": f"Bearer {access_token}"},
-                timeout=30
+                timeout=30,
             )
 
             if response.status_code != 200:
                 raise Exception(
-                    f"Failed to get user info: {response.status_code} - {response.text}")
+                    f"Failed to get user info: {response.status_code} - {response.text}"
+                )
 
             return response.json()
 
         except Exception as e:
             raise Exception(f"Failed to get user info: {e}")
 
-    def validate_token(
-        self,
-        access_token: str,
-        **kwargs
-    ) -> bool:
+    def validate_token(self, access_token: str, **kwargs) -> bool:
         """
         Validate Google OAuth access token.
 
@@ -315,10 +300,7 @@ class GoogleOAuthProvider(BaseOAuthProvider):
         ]
 
     def revoke_token(
-        self,
-        token: str,
-        token_type: str = "access_token",
-        **kwargs
+        self, token: str, token_type: str = "access_token", **kwargs
     ) -> bool:
         """
         Revoke Google OAuth token.

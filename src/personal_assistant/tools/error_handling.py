@@ -7,12 +7,14 @@ to provide better LLM guidance when errors occur.
 
 import logging
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
-def create_error_context(error: Exception, tool_name: str, args: dict, user_intent: str = None) -> dict:
+def create_error_context(
+    error: Exception, tool_name: str, args: dict, user_intent: str = None
+) -> dict:
     """
     Create simple error context dictionary for LLM guidance.
 
@@ -33,7 +35,7 @@ def create_error_context(error: Exception, tool_name: str, args: dict, user_inte
         "timestamp": datetime.now().isoformat(),
         "user_intent": user_intent,
         "recovery_hints": get_recovery_hints(error, tool_name),
-        "suggested_actions": get_suggested_actions(error, tool_name)
+        "suggested_actions": get_suggested_actions(error, tool_name),
     }
 
 
@@ -50,23 +52,52 @@ def classify_error(error: Exception) -> str:
     error_msg = str(error).lower()
 
     # Validation errors
-    if any(word in error_msg for word in ['validation', 'invalid', 'malformed', 'format', 'required']):
+    if any(
+        word in error_msg
+        for word in ["validation", "invalid", "malformed", "format", "required"]
+    ):
         return "validation_error"
 
     # Connection/network errors
-    elif any(word in error_msg for word in ['connection', 'network', 'unreachable', 'refused', 'timeout', 'timed out']):
+    elif any(
+        word in error_msg
+        for word in [
+            "connection",
+            "network",
+            "unreachable",
+            "refused",
+            "timeout",
+            "timed out",
+        ]
+    ):
         return "connection_error"
 
     # Permission/authentication errors
-    elif any(word in error_msg for word in ['permission', 'unauthorized', 'forbidden', 'access denied', 'authentication', 'token']):
+    elif any(
+        word in error_msg
+        for word in [
+            "permission",
+            "unauthorized",
+            "forbidden",
+            "access denied",
+            "authentication",
+            "token",
+        ]
+    ):
         return "permission_error"
 
     # Resource errors
-    elif any(word in error_msg for word in ['resource', 'memory', 'disk', 'quota', 'limit', 'not found', '404']):
+    elif any(
+        word in error_msg
+        for word in ["resource", "memory", "disk", "quota", "limit", "not found", "404"]
+    ):
         return "resource_error"
 
     # Configuration errors
-    elif any(word in error_msg for word in ['configuration', 'config', 'environment', 'missing', 'undefined']):
+    elif any(
+        word in error_msg
+        for word in ["configuration", "config", "environment", "missing", "undefined"]
+    ):
         return "configuration_error"
 
     # Default to general error
@@ -90,33 +121,33 @@ def get_recovery_hints(error_type: str, tool_name: str) -> List[str]:
         "validation_error": [
             "Check parameter format and requirements",
             "Verify input data validity",
-            "Use help command to see parameter details"
+            "Use help command to see parameter details",
         ],
         "connection_error": [
             "Check network connectivity",
             "Try again in a few moments",
-            "Verify service availability"
+            "Verify service availability",
         ],
         "permission_error": [
             "Check user permissions",
             "Verify authentication status",
-            "Contact administrator if needed"
+            "Contact administrator if needed",
         ],
         "resource_error": [
             "Check if the requested resource exists",
             "Verify resource availability",
-            "Try with different parameters"
+            "Try with different parameters",
         ],
         "configuration_error": [
             "Check system configuration",
             "Verify environment variables",
-            "Contact system administrator"
+            "Contact system administrator",
         ],
         "general_error": [
             "Review the error and try again",
             "Check system status",
-            "Ask for help if the problem persists"
-        ]
+            "Ask for help if the problem persists",
+        ],
     }
 
     # Tool-specific hints
@@ -125,44 +156,47 @@ def get_recovery_hints(error_type: str, tool_name: str) -> List[str]:
             "validation_error": [
                 "Ensure date format is YYYY-MM-DD HH:MM",
                 "Check that duration is between 1-1440 minutes",
-                "Verify event subject is not empty"
+                "Verify event subject is not empty",
             ],
             "permission_error": [
                 "Check Microsoft Graph API permissions",
                 "Verify access token is valid",
-                "Ensure calendar access is granted"
-            ]
+                "Ensure calendar access is granted",
+            ],
         },
         "emails": {
             "validation_error": [
                 "Check email address format",
                 "Verify subject and body are not empty",
-                "Ensure recipient addresses are valid"
+                "Ensure recipient addresses are valid",
             ],
             "permission_error": [
                 "Check email sending permissions",
                 "Verify Microsoft Graph API access",
-                "Ensure mailbox access is granted"
-            ]
+                "Ensure mailbox access is granted",
+            ],
         },
         "notion_pages": {
             "validation_error": [
                 "Check page title is not empty",
                 "Verify content format is valid",
-                "Ensure database ID is correct"
+                "Ensure database ID is correct",
             ],
             "permission_error": [
                 "Check Notion API access token",
                 "Verify page/database permissions",
-                "Ensure integration is properly configured"
-            ]
-        }
+                "Ensure integration is properly configured",
+            ],
+        },
     }
 
     # Combine general and tool-specific hints
     hints = general_hints.get(error_type, general_hints["general_error"])
 
-    if tool_name in tool_specific_hints and error_type in tool_specific_hints[tool_name]:
+    if (
+        tool_name in tool_specific_hints
+        and error_type in tool_specific_hints[tool_name]
+    ):
         hints.extend(tool_specific_hints[tool_name][error_type])
 
     return hints
@@ -183,33 +217,33 @@ def get_suggested_actions(error_type: str, tool_name: str) -> List[str]:
         "validation_error": [
             "Ask user to correct the parameters",
             "Suggest the correct format",
-            "Provide examples of valid input"
+            "Provide examples of valid input",
         ],
         "connection_error": [
             "Suggest retrying the operation",
             "Ask user to check their connection",
-            "Offer alternative approaches if available"
+            "Offer alternative approaches if available",
         ],
         "permission_error": [
             "Explain what permissions are needed",
             "Guide user to check their access",
-            "Suggest contacting support if needed"
+            "Suggest contacting support if needed",
         ],
         "resource_error": [
             "Check if resource exists with different parameters",
             "Suggest alternative resources",
-            "Ask user to verify the resource details"
+            "Ask user to verify the resource details",
         ],
         "configuration_error": [
             "Explain what configuration is needed",
             "Guide user to check system settings",
-            "Suggest contacting administrator"
+            "Suggest contacting administrator",
         ],
         "general_error": [
             "Ask user to try again",
             "Request more context about what they're trying to do",
-            "Offer to help troubleshoot the issue"
-        ]
+            "Offer to help troubleshoot the issue",
+        ],
     }
 
     return actions.get(error_type, actions["general_error"])
@@ -277,7 +311,7 @@ def format_tool_error_response(error_context: dict) -> Dict[str, Any]:
         "llm_instructions": generate_llm_instructions(error_context),
         "recovery_hints": error_context["recovery_hints"],
         "suggested_actions": error_context["suggested_actions"],
-        "timestamp": error_context["timestamp"]
+        "timestamp": error_context["timestamp"],
     }
 
 

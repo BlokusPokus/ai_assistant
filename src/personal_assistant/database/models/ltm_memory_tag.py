@@ -6,7 +6,8 @@ tag-based analytics and relationship discovery.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -19,10 +20,11 @@ class LTMMemoryTag(Base):
     This table provides better tag organization and enables
     tag-based analytics and relationship discovery.
     """
-    __tablename__ = 'ltm_memory_tags'
+
+    __tablename__ = "ltm_memory_tags"
 
     id = Column(Integer, primary_key=True)
-    memory_id = Column(Integer, ForeignKey('ltm_memories.id'), nullable=False)
+    memory_id = Column(Integer, ForeignKey("ltm_memories.id"), nullable=False)
     tag_name = Column(String(100), nullable=False)
 
     # Tag metadata
@@ -55,5 +57,5 @@ class LTMMemoryTag(Base):
             "tag_confidence": self.tag_confidence,
             "usage_count": self.usage_count,
             "first_used": self.first_used.isoformat() if self.first_used else None,
-            "last_used": self.last_used.isoformat() if self.last_used else None
+            "last_used": self.last_used.isoformat() if self.last_used else None,
         }

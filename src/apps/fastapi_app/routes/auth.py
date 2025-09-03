@@ -5,23 +5,24 @@ This module provides endpoints for user registration, login,
 logout, and token refresh operations.
 """
 
-from datetime import timedelta, datetime
 import secrets
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
-from pydantic import BaseModel, EmailStr, validator
+from datetime import datetime, timedelta
 from typing import Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
 
-from personal_assistant.database.session import AsyncSessionLocal
-from personal_assistant.database.models.users import User
-from personal_assistant.database.models.auth_tokens import AuthToken
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from pydantic import BaseModel, EmailStr, validator
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from personal_assistant.auth.auth_utils import AuthUtils
+from personal_assistant.auth.constants import TOKEN_TYPE_ACCESS, TOKEN_TYPE_REFRESH
+from personal_assistant.auth.decorators import require_permission
 from personal_assistant.auth.jwt_service import jwt_service
 from personal_assistant.auth.password_service import password_service
-from personal_assistant.auth.auth_utils import AuthUtils
-from personal_assistant.auth.decorators import require_permission
 from personal_assistant.config.settings import settings
-from personal_assistant.auth.constants import TOKEN_TYPE_ACCESS, TOKEN_TYPE_REFRESH
+from personal_assistant.database.models.auth_tokens import AuthToken
+from personal_assistant.database.models.users import User
+from personal_assistant.database.session import AsyncSessionLocal
 
 # Create router
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
@@ -35,18 +36,17 @@ class UserRegister(BaseModel):
     full_name: str
     phone_number: Optional[str] = None
 
-    @validator('phone_number')
+    @validator("phone_number")
     def validate_phone_number(cls, v):
         if v is not None:
             # Basic phone number validation - remove spaces and dashes
-            v = v.replace(' ', '').replace(
-                '-', '').replace('(', '').replace(')', '')
-            if not v.startswith('+') and not v.isdigit():
+            v = v.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+            if not v.startswith("+") and not v.isdigit():
                 raise ValueError(
-                    "Phone number must start with + or contain only digits")
+                    "Phone number must start with + or contain only digits"
+                )
             if len(v) < 10 or len(v) > 15:
-                raise ValueError(
-                    "Phone number must be between 10 and 15 characters")
+                raise ValueError("Phone number must be between 10 and 15 characters")
         return v
 
 
@@ -95,6 +95,7 @@ class PasswordReset(BaseModel):
 class EmailVerification(BaseModel):
     token: str
 
+
 # Dependency to get database session
 
 
@@ -103,12 +104,12 @@ async def get_db() -> AsyncSession:
     async with AsyncSessionLocal() as session:
         yield session
 
+
 # Dependency to get current user (for protected endpoints)
 
 
 async def get_current_user(
-    request: Request,
-    db: AsyncSession = Depends(get_db)
+    request: Request, db: AsyncSession = Depends(get_db)
 ) -> User:
     """
     Get current authenticated user.
@@ -123,10 +124,9 @@ async def get_current_user(
     Raises:
         HTTPException: If not authenticated
     """
-    if not hasattr(request.state, 'authenticated') or not request.state.authenticated:
+    if not hasattr(request.state, "authenticated") or not request.state.authenticated:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required"
         )
 
     user_id = request.state.user_id
@@ -134,18 +134,14 @@ async def get_current_user(
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
         )
 
     return user
 
 
 @router.post("/register", response_model=UserResponse)
-async def register(
-    user_data: UserRegister,
-    db: AsyncSession = Depends(get_db)
-):
+async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     """Register a new user."""
     try:
         # Check if user already exists
@@ -153,10 +149,7 @@ async def register(
         existing_user = result.scalar_one_or_none()
 
         if existing_user:
-            raise HTTPException(
-                status_code=400,
-                detail="Email already registered"
-            )
+            raise HTTPException(status_code=400, detail="Email already registered")
 
         # Validate password strength (this will raise HTTPException if invalid)
         password_service._validate_password(user_data.password)
@@ -176,7 +169,7 @@ async def register(
             is_active=True,
             is_verified=False,  # Email verification required
             verification_token=verification_token,
-            failed_login_attempts=0
+            failed_login_attempts=0,
         )
 
         db.add(new_user)
@@ -190,17 +183,14 @@ async def register(
             id=new_user.id,
             email=new_user.email,
             full_name=new_user.full_name,
-            created_at=new_user.created_at.isoformat()
+            created_at=new_user.created_at.isoformat(),
         )
 
     except HTTPException:
         raise
     except Exception as e:
         await db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to register user"
-        )
+        raise HTTPException(status_code=500, detail="Failed to register user")
 
 
 @router.post("/login", response_model=AuthResponse)
@@ -208,7 +198,7 @@ async def login(
     user_data: UserLogin,
     request: Request,
     response: Response,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Authenticate user and return JWT tokens."""
     try:
@@ -217,17 +207,11 @@ async def login(
         user = result.scalar_one_or_none()
 
         if not user:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid email or password"
-            )
+            raise HTTPException(status_code=401, detail="Invalid email or password")
 
         # Check if account is active
         if not user.is_active:
-            raise HTTPException(
-                status_code=401,
-                detail="Account is deactivated"
-            )
+            raise HTTPException(status_code=401, detail="Account is deactivated")
 
         # Check if email is verified (optional for now)
         if not user.is_verified:
@@ -235,7 +219,9 @@ async def login(
             pass
 
         # Verify password
-        if not password_service.verify_password(user_data.password, user.hashed_password):
+        if not password_service.verify_password(
+            user_data.password, user.hashed_password
+        ):
             # Increment failed login attempts
             user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
             user.updated_at = datetime.utcnow()
@@ -246,14 +232,11 @@ async def login(
                 await db.commit()
                 raise HTTPException(
                     status_code=401,
-                    detail="Account locked due to too many failed attempts. Try again in 30 minutes."
+                    detail="Account locked due to too many failed attempts. Try again in 30 minutes.",
                 )
 
             await db.commit()
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid email or password"
-            )
+            raise HTTPException(status_code=401, detail="Invalid email or password")
 
         # Reset failed login attempts on successful login
         user.failed_login_attempts = 0
@@ -267,23 +250,26 @@ async def login(
                 "sub": user.email,
                 "user_id": user.id,
                 "email": user.email,
-                "full_name": user.full_name
-            })
+                "full_name": user.full_name,
+            }
+        )
         refresh_token = jwt_service.create_refresh_token(
             data={
                 "sub": user.email,
                 "user_id": user.id,
                 "email": user.email,
-                "full_name": user.full_name
-            })
+                "full_name": user.full_name,
+            }
+        )
 
         # Store refresh token in database
         auth_token = AuthToken(
             user_id=user.id,
             token=refresh_token,
             token_type=TOKEN_TYPE_REFRESH,
-            expires_at=datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
-            is_revoked=False
+            expires_at=datetime.utcnow()
+            + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+            is_revoked=False,
         )
 
         db.add(auth_token)
@@ -296,7 +282,7 @@ async def login(
             httponly=True,
             secure=False,  # Set to True in production with HTTPS
             samesite="lax",
-            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
 
         response.set_cookie(
@@ -305,7 +291,7 @@ async def login(
             httponly=True,
             secure=False,  # Set to True in production with HTTPS
             samesite="lax",
-            max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+            max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         )
 
         return AuthResponse(
@@ -317,27 +303,22 @@ async def login(
                 id=user.id,
                 email=user.email,
                 full_name=user.full_name,
-                created_at=user.created_at.isoformat()
+                created_at=user.created_at.isoformat(),
             ),
             mfa_required=False,
-            mfa_setup_required=False
+            mfa_setup_required=False,
         )
 
     except HTTPException:
         raise
     except Exception as e:
         await db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail="Login failed"
-        )
+        raise HTTPException(status_code=500, detail="Login failed")
 
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
-    token_data: TokenRefresh,
-    response: Response,
-    db: AsyncSession = Depends(get_db)
+    token_data: TokenRefresh, response: Response, db: AsyncSession = Depends(get_db)
 ):
     """
     Refresh access token using refresh token.
@@ -360,38 +341,33 @@ async def refresh_token(
 
         if not user_id:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
             )
 
         # Check if refresh token exists in database
         stored_token = await db.execute(
             select(AuthToken).where(
                 AuthToken.user_id == user_id,
-                AuthToken.token == token_data.refresh_token
+                AuthToken.token == token_data.refresh_token,
             )
         )
         stored_token = stored_token.scalar_one_or_none()
 
         if not stored_token:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
             )
 
         # Get user information
         user = await db.get(User, user_id)
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User not found"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
             )
 
         # Create new access token
         user_context = AuthUtils.create_user_context(
-            user_id=user.id,
-            email=user.email,
-            full_name=user.full_name
+            user_id=user.id, email=user.email, full_name=user.full_name
         )
 
         new_access_token = jwt_service.create_access_token(user_context)
@@ -403,21 +379,20 @@ async def refresh_token(
             httponly=True,
             secure=True,
             samesite="strict",
-            max_age=jwt_service.access_token_expire_minutes * 60
+            max_age=jwt_service.access_token_expire_minutes * 60,
         )
 
         return TokenResponse(
             access_token=new_access_token,
             refresh_token=token_data.refresh_token,
-            expires_in=jwt_service.access_token_expire_minutes * 60
+            expires_in=jwt_service.access_token_expire_minutes * 60,
         )
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
 
 
@@ -425,7 +400,7 @@ async def refresh_token(
 async def logout(
     response: Response,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Logout user and invalidate tokens.
@@ -439,9 +414,7 @@ async def logout(
         Success message
     """
     # Remove refresh token from database
-    await db.execute(
-        delete(AuthToken).where(AuthToken.user_id == current_user.id)
-    )
+    await db.execute(delete(AuthToken).where(AuthToken.user_id == current_user.id))
     await db.commit()
 
     # Clear cookies
@@ -456,7 +429,7 @@ async def logout(
 async def get_current_user_info(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get current user information.
@@ -471,14 +444,13 @@ async def get_current_user_info(
         id=current_user.id,
         email=current_user.email,
         full_name=current_user.full_name,
-        created_at=current_user.created_at.isoformat()
+        created_at=current_user.created_at.isoformat(),
     )
 
 
 @router.post("/forgot-password", response_model=dict)
 async def forgot_password(
-    request: PasswordResetRequest,
-    db: AsyncSession = Depends(get_db)
+    request: PasswordResetRequest, db: AsyncSession = Depends(get_db)
 ):
     """Request a password reset for a user."""
     try:
@@ -488,7 +460,9 @@ async def forgot_password(
 
         if not user:
             # Don't reveal if email exists or not
-            return {"message": "If the email exists, a password reset link has been sent"}
+            return {
+                "message": "If the email exists, a password reset link has been sent"
+            }
 
         # Generate secure reset token
         reset_token = secrets.token_urlsafe(32)
@@ -506,41 +480,39 @@ async def forgot_password(
         return {
             "message": "Password reset link sent to your email",
             "reset_token": reset_token,  # Remove this in production
-            "expires_at": reset_expires.isoformat()
+            "expires_at": reset_expires.isoformat(),
         }
 
     except Exception as e:
         await db.rollback()
         raise HTTPException(
-            status_code=500, detail="Failed to process password reset request")
+            status_code=500, detail="Failed to process password reset request"
+        )
 
 
 @router.post("/reset-password", response_model=dict)
-async def reset_password(
-    request: PasswordReset,
-    db: AsyncSession = Depends(get_db)
-):
+async def reset_password(request: PasswordReset, db: AsyncSession = Depends(get_db)):
     """Reset password using reset token."""
     try:
         # Find user with valid reset token
         result = await db.execute(
             select(User).where(
                 User.password_reset_token == request.token,
-                User.password_reset_expires > datetime.utcnow()
+                User.password_reset_expires > datetime.utcnow(),
             )
         )
         user = result.scalar_one_or_none()
 
         if not user:
             raise HTTPException(
-                status_code=400, detail="Invalid or expired reset token")
+                status_code=400, detail="Invalid or expired reset token"
+            )
 
         # Validate new password (this will raise HTTPException if invalid)
         password_service._validate_password(request.new_password)
 
         # Hash new password and clear reset token
-        user.hashed_password = password_service.hash_password(
-            request.new_password)
+        user.hashed_password = password_service.hash_password(request.new_password)
         user.password_reset_token = None
         user.password_reset_expires = None
         user.updated_at = datetime.utcnow()
@@ -557,10 +529,7 @@ async def reset_password(
 
 
 @router.post("/verify-email", response_model=dict)
-async def verify_email(
-    request: EmailVerification,
-    db: AsyncSession = Depends(get_db)
-):
+async def verify_email(request: EmailVerification, db: AsyncSession = Depends(get_db)):
     """Verify user email using verification token."""
     try:
         # Find user with verification token
@@ -570,8 +539,7 @@ async def verify_email(
         user = result.scalar_one_or_none()
 
         if not user:
-            raise HTTPException(
-                status_code=400, detail="Invalid verification token")
+            raise HTTPException(status_code=400, detail="Invalid verification token")
 
         if user.is_verified:
             return {"message": "Email already verified"}
@@ -595,7 +563,7 @@ async def verify_email(
 @router.post("/resend-verification", response_model=dict)
 async def resend_verification(
     request: PasswordResetRequest,  # Reuse email model
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Resend email verification token."""
     try:
@@ -626,5 +594,4 @@ async def resend_verification(
 
     except Exception as e:
         await db.rollback()
-        raise HTTPException(
-            status_code=500, detail="Failed to resend verification")
+        raise HTTPException(status_code=500, detail="Failed to resend verification")

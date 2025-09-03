@@ -15,12 +15,14 @@ import logging.handlers
 import os
 from pathlib import Path
 from typing import Dict, Optional
+
 from .settings import settings
 
 # Import structured logging components
 try:
     from ..logging import StructuredJSONFormatter
     from ..logging.loki_handler import configure_loki_logging
+
     STRUCTURED_LOGGING_AVAILABLE = True
     LOKI_AVAILABLE = True
 except ImportError:
@@ -28,7 +30,9 @@ except ImportError:
     LOKI_AVAILABLE = False
 
 
-def setup_logging(log_level: Optional[str] = None, use_structured_logging: Optional[bool] = None) -> None:
+def setup_logging(
+    log_level: Optional[str] = None, use_structured_logging: Optional[bool] = None
+) -> None:
     """
     Set up centralized logging configuration for all modules.
 
@@ -48,14 +52,15 @@ def setup_logging(log_level: Optional[str] = None, use_structured_logging: Optio
     # Determine if structured logging should be used
     structured_logging = use_structured_logging
     if structured_logging is None:
-        structured_logging = getattr(settings, 'STRUCTURED_LOGGING', False)
+        structured_logging = getattr(settings, "STRUCTURED_LOGGING", False)
 
     # Check environment variable override
     env_structured = os.getenv("PA_STRUCTURED_LOGGING")
     if env_structured:
-        structured_logging = env_structured.lower() in ('true', '1', 'yes', 'on')
+        structured_logging = env_structured.lower() in ("true", "1", "yes", "on")
         print(
-            f"🔧 Structured logging overridden by PA_STRUCTURED_LOGGING: {structured_logging}")
+            f"🔧 Structured logging overridden by PA_STRUCTURED_LOGGING: {structured_logging}"
+        )
 
     # Create logs directory if it doesn't exist
     logs_dir = Path(settings.LOG_DIR)
@@ -69,38 +74,38 @@ def setup_logging(log_level: Optional[str] = None, use_structured_logging: Optio
         "core": {
             "file": f"{settings.LOG_DIR}/core.log",
             "level": getattr(logging, settings.CORE_LOG_LEVEL.upper(), logging.INFO),
-            "description": "Agent lifecycle, state transitions, tool execution"
+            "description": "Agent lifecycle, state transitions, tool execution",
         },
         "llm": {
             "file": f"{settings.LOG_DIR}/llm.log",
             "level": getattr(logging, settings.LLM_LOG_LEVEL.upper(), logging.INFO),
-            "description": "LLM interactions, prompt building, response parsing"
+            "description": "LLM interactions, prompt building, response parsing",
         },
         "memory": {
             "file": f"{settings.LOG_DIR}/memory.log",
             "level": getattr(logging, settings.MEMORY_LOG_LEVEL.upper(), logging.INFO),
-            "description": "Database operations, memory retrieval, conversation management"
+            "description": "Database operations, memory retrieval, conversation management",
         },
         "rag": {
             "file": f"{settings.LOG_DIR}/rag.log",
             "level": getattr(logging, settings.RAG_LOG_LEVEL.upper(), logging.INFO),
-            "description": "Document retrieval, vector search, document processing"
+            "description": "Document retrieval, vector search, document processing",
         },
         "tools": {
             "file": f"{settings.LOG_DIR}/tools.log",
             "level": getattr(logging, settings.TOOLS_LOG_LEVEL.upper(), logging.INFO),
-            "description": "Tool execution, registry operations, tool-specific logic"
+            "description": "Tool execution, registry operations, tool-specific logic",
         },
         "types": {
             "file": f"{settings.LOG_DIR}/types.log",
             "level": getattr(logging, settings.TYPES_LOG_LEVEL.upper(), logging.INFO),
-            "description": "State management, message handling"
+            "description": "State management, message handling",
         },
         "oauth_audit": {
             "file": f"{settings.LOG_DIR}/oauth_audit.log",
             "level": logging.INFO,
-            "description": "OAuth security events, authorization, token management"
-        }
+            "description": "OAuth security events, authorization, token management",
+        },
     }
 
     # Apply environment variable overrides if present
@@ -108,9 +113,11 @@ def setup_logging(log_level: Optional[str] = None, use_structured_logging: Optio
         env_module_level = os.getenv(f"PA_{module_name.upper()}_LOG_LEVEL")
         if env_module_level:
             module_configs[module_name]["level"] = getattr(
-                logging, env_module_level.upper(), logging.INFO)
+                logging, env_module_level.upper(), logging.INFO
+            )
             print(
-                f"🔧 {module_name} logging level overridden by PA_{module_name.upper()}_LOG_LEVEL: {env_module_level}")
+                f"🔧 {module_name} logging level overridden by PA_{module_name.upper()}_LOG_LEVEL: {env_module_level}"
+            )
 
     # Configure each module logger
     for module_name, config in module_configs.items():
@@ -125,7 +132,8 @@ def setup_logging(log_level: Optional[str] = None, use_structured_logging: Optio
         configure_loki_logging()
 
     logging.info(
-        f"Logging configured with level: {level}, structured: {structured_logging}")
+        f"Logging configured with level: {level}, structured: {structured_logging}"
+    )
 
 
 def _suppress_http_logging():
@@ -149,7 +157,9 @@ def _suppress_http_logging():
     logging.getLogger("proto").setLevel(logging.ERROR)
 
 
-def _configure_module_logger(module_name: str, config: Dict, structured_logging: bool = False) -> None:
+def _configure_module_logger(
+    module_name: str, config: Dict, structured_logging: bool = False
+) -> None:
     """
     Configure a specific module logger with file and console handlers.
 
@@ -170,8 +180,7 @@ def _configure_module_logger(module_name: str, config: Dict, structured_logging:
         print(f"🔧 Using structured JSON logging for module: {module_name}")
     else:
         formatter = logging.Formatter(
-            settings.LOG_FORMAT,
-            datefmt=settings.LOG_DATE_FORMAT
+            settings.LOG_FORMAT, datefmt=settings.LOG_DATE_FORMAT
         )
 
     # File handler (if enabled in settings)
@@ -209,10 +218,7 @@ def _configure_root_logger(level: int) -> None:
     console_handler = logging.StreamHandler()
     console_handler.setLevel(level)
 
-    formatter = logging.Formatter(
-        settings.LOG_FORMAT,
-        datefmt=settings.LOG_DATE_FORMAT
-    )
+    formatter = logging.Formatter(settings.LOG_FORMAT, datefmt=settings.LOG_DATE_FORMAT)
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
 

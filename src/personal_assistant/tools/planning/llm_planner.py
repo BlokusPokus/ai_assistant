@@ -5,21 +5,21 @@ Automatically includes relevant tool guidelines for better execution.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 from ..base import Tool
 from .llm_planner_internal import (
-    load_tool_guidelines,
-    identify_relevant_tools_fallback,
-    build_tool_identification_prompt,
-    parse_tool_identification_response,
-    extract_relevant_guidelines,
-    build_planning_prompt,
-    get_style_instructions,
-    create_fallback_plan,
     build_enhanced_planning_prompt,
+    build_planning_prompt,
+    build_tool_identification_prompt,
+    create_fallback_plan,
+    extract_relevant_guidelines,
+    format_tool_info_for_prompt,
     get_planning_summary,
-    format_tool_info_for_prompt
+    get_style_instructions,
+    identify_relevant_tools_fallback,
+    load_tool_guidelines,
+    parse_tool_identification_response,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,9 @@ logger = logging.getLogger(__name__)
 class LLMPlannerTool:
     """Creates intelligent task plans using LLM analysis with tool guidelines."""
 
-    def __init__(self, llm_client=None, guidelines_path: str = "src/personal_assistant/tools"):
+    def __init__(
+        self, llm_client=None, guidelines_path: str = "src/personal_assistant/tools"
+    ):
         """
         Initialize the LLM planner tool.
 
@@ -47,25 +49,25 @@ class LLMPlannerTool:
             parameters={
                 "user_request": {
                     "type": "string",
-                    "description": "The user's request or task to plan"
+                    "description": "The user's request or task to plan",
                 },
                 "available_tools": {
                     "type": "string",
-                    "description": "Comma-separated list of available tools (optional)"
+                    "description": "Comma-separated list of available tools (optional)",
                 },
                 "user_context": {
                     "type": "string",
-                    "description": "Additional context about the user's situation (optional)"
+                    "description": "Additional context about the user's situation (optional)",
                 },
                 "planning_style": {
                     "type": "string",
-                    "description": "Planning style: 'detailed', 'concise', or 'adhd_friendly' (default: 'adhd_friendly')"
+                    "description": "Planning style: 'detailed', 'concise', or 'adhd_friendly' (default: 'adhd_friendly')",
                 },
                 "include_guidelines": {
                     "type": "boolean",
-                    "description": "Whether to include relevant tool guidelines in the plan (default: True)"
-                }
-            }
+                    "description": "Whether to include relevant tool guidelines in the plan (default: True)",
+                },
+            },
         )
 
     def __iter__(self):
@@ -84,7 +86,9 @@ class LLMPlannerTool:
         self.guidelines_cache = load_tool_guidelines(self.guidelines_path)
         return self.guidelines_cache
 
-    async def _identify_relevant_tools_llm(self, user_request: str, available_tools: Optional[str] = None) -> List[str]:
+    async def _identify_relevant_tools_llm(
+        self, user_request: str, available_tools: Optional[str] = None
+    ) -> List[str]:
         """Use LLM to intelligently identify which tools are relevant to the task."""
         if not self.llm_client:
             logger.warning("LLM client not set, using fallback tool detection")
@@ -97,10 +101,13 @@ class LLMPlannerTool:
 
             # Build prompt for tool identification
             tool_identification_prompt = build_tool_identification_prompt(
-                user_request, available_tools, available_guidelines)
+                user_request, available_tools, available_guidelines
+            )
 
             # Get LLM response for tool identification
-            response = await self._get_llm_response(tool_identification_prompt, max_tokens=500)
+            response = await self._get_llm_response(
+                tool_identification_prompt, max_tokens=500
+            )
 
             # Parse the response to extract tool names
             relevant_tools = parse_tool_identification_response(response)
@@ -109,8 +116,7 @@ class LLMPlannerTool:
             return relevant_tools
 
         except Exception as e:
-            logger.error(
-                f"LLM tool identification failed: {e}, using fallback")
+            logger.error(f"LLM tool identification failed: {e}, using fallback")
             return identify_relevant_tools_fallback(user_request, available_tools)
 
     async def create_intelligent_plan(
@@ -119,7 +125,7 @@ class LLMPlannerTool:
         available_tools: Optional[str] = None,
         user_context: Optional[str] = None,
         planning_style: str = "adhd_friendly",
-        include_guidelines: bool = True
+        include_guidelines: bool = True,
     ) -> str:
         """
         Create an intelligent plan using LLM analysis with tool guidelines.
@@ -136,19 +142,26 @@ class LLMPlannerTool:
         """
 
         # Use LLM to identify relevant tools for the task
-        relevant_tools = await self._identify_relevant_tools_llm(user_request, available_tools)
+        relevant_tools = await self._identify_relevant_tools_llm(
+            user_request, available_tools
+        )
 
         # Extract relevant guidelines if requested
         tool_guidelines = ""
         if include_guidelines and relevant_tools:
             guidelines = self._load_tool_guidelines()
-            tool_guidelines = extract_relevant_guidelines(
-                relevant_tools, guidelines)
+            tool_guidelines = extract_relevant_guidelines(relevant_tools, guidelines)
 
         # Build the planning prompt
         style_instructions = get_style_instructions(planning_style)
         planning_prompt = build_planning_prompt(
-            user_request, available_tools, user_context, planning_style, tool_guidelines, relevant_tools, style_instructions
+            user_request,
+            available_tools,
+            user_context,
+            planning_style,
+            tool_guidelines,
+            relevant_tools,
+            style_instructions,
         )
 
         # Get LLM response
@@ -159,26 +172,26 @@ class LLMPlannerTool:
             logger.error(f"Error creating plan: {e}")
             return create_fallback_plan(user_request, available_tools)
 
-    async def _get_llm_response(self, prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> str:
+    async def _get_llm_response(
+        self, prompt: str, max_tokens: int = 2000, temperature: float = 0.7
+    ) -> str:
         """Get response from LLM for tool identification or other purposes."""
         if not self.llm_client:
             raise ValueError("LLM client not set. Use set_llm_client() first.")
 
         try:
             # Try to use the LLM client to generate the response
-            if hasattr(self.llm_client, 'generate'):
+            if hasattr(self.llm_client, "generate"):
                 response = await self.llm_client.generate(
-                    prompt=prompt,
-                    max_tokens=max_tokens,
-                    temperature=temperature
+                    prompt=prompt, max_tokens=max_tokens, temperature=temperature
                 )
                 return response.content
-            elif hasattr(self.llm_client, 'chat'):
+            elif hasattr(self.llm_client, "chat"):
                 # Alternative LLM client interface
                 response = await self.llm_client.chat(
                     messages=[{"role": "user", "content": prompt}],
                     max_tokens=max_tokens,
-                    temperature=temperature
+                    temperature=temperature,
                 )
                 return response.choices[0].message.content
             else:
@@ -200,7 +213,7 @@ class LLMPlannerTool:
         tool_registry,
         user_context: Optional[str] = None,
         planning_style: str = "adhd_friendly",
-        include_guidelines: bool = True
+        include_guidelines: bool = True,
     ) -> str:
         """
         Create a plan with detailed tool context from the tool registry and guidelines.
@@ -227,19 +240,28 @@ class LLMPlannerTool:
             if include_guidelines and relevant_tools:
                 guidelines = self._load_tool_guidelines()
                 tool_guidelines = extract_relevant_guidelines(
-                    relevant_tools, guidelines)
+                    relevant_tools, guidelines
+                )
 
             # Build enhanced prompt with tool details and guidelines
             style_instructions = get_style_instructions(planning_style)
             enhanced_prompt = build_enhanced_planning_prompt(
-                user_request, tools_text, user_context, relevant_tools, tool_guidelines, planning_style, style_instructions
+                user_request,
+                tools_text,
+                user_context,
+                relevant_tools,
+                tool_guidelines,
+                planning_style,
+                style_instructions,
             )
 
             return await self._get_llm_plan(enhanced_prompt)
 
         except Exception as e:
             logger.error(f"Error creating plan with tool context: {e}")
-            return await self.create_intelligent_plan(user_request, "", user_context, planning_style, include_guidelines)
+            return await self.create_intelligent_plan(
+                user_request, "", user_context, planning_style, include_guidelines
+            )
 
     def get_planning_summary(self, plan: str) -> str:
         """Extract a summary of the plan for quick reference."""

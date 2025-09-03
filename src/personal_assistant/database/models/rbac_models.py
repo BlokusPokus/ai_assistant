@@ -1,21 +1,32 @@
 from datetime import datetime
-from sqlalchemy import Column, DateTime, Integer, String, Boolean, ForeignKey, Text, ARRAY
+
+from sqlalchemy import (
+    ARRAY,
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import relationship
+
 from .base import Base
 
 
 class Role(Base):
     """User roles with hierarchical permissions."""
-    __tablename__ = 'roles'
+
+    __tablename__ = "roles"
 
     id = Column(Integer, primary_key=True)
     name = Column(String(50), unique=True, nullable=False)
     description = Column(Text)
-    parent_role_id = Column(Integer, ForeignKey('roles.id'), nullable=True)
+    parent_role_id = Column(Integer, ForeignKey("roles.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow,
-                        onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     permissions = relationship("Permission", secondary="role_permissions")
@@ -29,7 +40,8 @@ class Role(Base):
 
 class Permission(Base):
     """Granular permissions for resources."""
-    __tablename__ = 'permissions'
+
+    __tablename__ = "permissions"
 
     id = Column(Integer, primary_key=True)
     name = Column(String(100), unique=True, nullable=False)
@@ -47,13 +59,16 @@ class Permission(Base):
 
 class RolePermission(Base):
     """Many-to-many relationship between roles and permissions."""
-    __tablename__ = 'role_permissions'
+
+    __tablename__ = "role_permissions"
 
     id = Column(Integer, primary_key=True)
-    role_id = Column(Integer, ForeignKey(
-        'roles.id', ondelete='CASCADE'), nullable=False)
-    permission_id = Column(Integer, ForeignKey(
-        'permissions.id', ondelete='CASCADE'), nullable=False)
+    role_id = Column(
+        Integer, ForeignKey("roles.id", ondelete="CASCADE"), nullable=False
+    )
+    permission_id = Column(
+        Integer, ForeignKey("permissions.id", ondelete="CASCADE"), nullable=False
+    )
     created_at = Column(DateTime, default=datetime.utcnow)
 
     def __repr__(self):
@@ -62,21 +77,23 @@ class RolePermission(Base):
 
 class UserRole(Base):
     """User-role associations with audit trail."""
-    __tablename__ = 'user_roles'
+
+    __tablename__ = "user_roles"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey(
-        'users.id', ondelete='CASCADE'), nullable=False)
-    role_id = Column(Integer, ForeignKey(
-        'roles.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    role_id = Column(
+        Integer, ForeignKey("roles.id", ondelete="CASCADE"), nullable=False
+    )
     is_primary = Column(Boolean, default=False)
-    granted_by = Column(Integer, ForeignKey('users.id'), nullable=True)
+    granted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     granted_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime, nullable=True)
 
     # Relationships
-    user = relationship("User", foreign_keys=[
-                        user_id], back_populates="user_roles")
+    user = relationship("User", foreign_keys=[user_id], back_populates="user_roles")
     role = relationship("Role")
     # Note: granted_by relationship removed to avoid circular reference issues
 
@@ -86,10 +103,11 @@ class UserRole(Base):
 
 class AccessAuditLog(Base):
     """Audit trail for all access decisions."""
-    __tablename__ = 'access_audit_logs'
+
+    __tablename__ = "access_audit_logs"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     resource_type = Column(String(50), nullable=False)
     resource_id = Column(Integer, nullable=True)
     action = Column(String(50), nullable=False)

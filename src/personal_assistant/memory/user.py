@@ -2,9 +2,7 @@
 
 from sqlalchemy import select
 
-from ..database.models.users import (
-    User,  # adjust import path as needed
-)
+from ..database.models.users import User  # adjust import path as needed
 from ..database.session import AsyncSessionLocal
 
 

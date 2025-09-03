@@ -9,11 +9,23 @@ This migration adds new fields and tables to support enhanced LTM functionality:
 import asyncio
 import logging
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
-from sqlalchemy import text, MetaData, Table, Column, String, Integer, Float, Boolean, DateTime, JSON, ForeignKey
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    text,
+)
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 logger = logging.getLogger(__name__)
@@ -84,30 +96,32 @@ class LTMEnhancementMigration:
             ("parent_memory_id", "INTEGER REFERENCES ltm_memories(id)"),
             ("memory_metadata", "JSONB"),
             ("is_archived", "BOOLEAN DEFAULT FALSE"),
-            ("archive_reason", "TEXT")
+            ("archive_reason", "TEXT"),
         ]
 
         for column_name, column_type in new_columns:
             try:
                 # Check if column already exists
-                check_sql = text("""
+                check_sql = text(
+                    """
                     SELECT column_name 
                     FROM information_schema.columns 
                     WHERE table_name = 'ltm_memories' 
                     AND column_name = :column_name
-                """)
+                """
+                )
                 result = await session.execute(check_sql, {"column_name": column_name})
 
                 if not result.fetchone():
                     # Add the column
                     # Note: column_name and column_type are from hardcoded list above, safe from injection
                     add_sql = text(
-                        f"ALTER TABLE ltm_memories ADD COLUMN {column_name} {column_type}")
+                        f"ALTER TABLE ltm_memories ADD COLUMN {column_name} {column_type}"
+                    )
                     await session.execute(add_sql)
                     logger.info(f"Added column: {column_name}")
                 else:
-                    logger.info(
-                        f"Column {column_name} already exists, skipping...")
+                    logger.info(f"Column {column_name} already exists, skipping...")
 
             except Exception as e:
                 logger.warning(f"Could not add column {column_name}: {e}")
@@ -137,7 +151,8 @@ class LTMEnhancementMigration:
 
     async def _create_ltm_contexts_table(self, session: AsyncSession):
         """Create ltm_contexts table"""
-        create_sql = text("""
+        create_sql = text(
+            """
             CREATE TABLE IF NOT EXISTS ltm_contexts (
                 id SERIAL PRIMARY KEY,
                 memory_id INTEGER NOT NULL REFERENCES ltm_memories(id) ON DELETE CASCADE,
@@ -147,13 +162,15 @@ class LTMEnhancementMigration:
                 confidence FLOAT DEFAULT 1.0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+        """
+        )
         await session.execute(create_sql)
         logger.info("Created ltm_contexts table")
 
     async def _create_ltm_relationships_table(self, session: AsyncSession):
         """Create ltm_memory_relationships table"""
-        create_sql = text("""
+        create_sql = text(
+            """
             CREATE TABLE IF NOT EXISTS ltm_memory_relationships (
                 id SERIAL PRIMARY KEY,
                 source_memory_id INTEGER NOT NULL REFERENCES ltm_memories(id) ON DELETE CASCADE,
@@ -165,13 +182,15 @@ class LTMEnhancementMigration:
                 last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(source_memory_id, target_memory_id, relationship_type)
             )
-        """)
+        """
+        )
         await session.execute(create_sql)
         logger.info("Created ltm_memory_relationships table")
 
     async def _create_ltm_access_table(self, session: AsyncSession):
         """Create ltm_memory_access table"""
-        create_sql = text("""
+        create_sql = text(
+            """
             CREATE TABLE IF NOT EXISTS ltm_memory_access (
                 id SERIAL PRIMARY KEY,
                 memory_id INTEGER NOT NULL REFERENCES ltm_memories(id) ON DELETE CASCADE,
@@ -182,13 +201,15 @@ class LTMEnhancementMigration:
                 was_relevant BOOLEAN,
                 relevance_score FLOAT
             )
-        """)
+        """
+        )
         await session.execute(create_sql)
         logger.info("Created ltm_memory_access table")
 
     async def _create_ltm_tags_table(self, session: AsyncSession):
         """Create ltm_memory_tags table"""
-        create_sql = text("""
+        create_sql = text(
+            """
             CREATE TABLE IF NOT EXISTS ltm_memory_tags (
                 id SERIAL PRIMARY KEY,
                 memory_id INTEGER NOT NULL REFERENCES ltm_memories(id) ON DELETE CASCADE,
@@ -201,7 +222,8 @@ class LTMEnhancementMigration:
                 last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(memory_id, tag_name)
             )
-        """)
+        """
+        )
         await session.execute(create_sql)
         logger.info("Created ltm_memory_tags table")
 
@@ -210,7 +232,8 @@ class LTMEnhancementMigration:
         logger.info("Migrating existing data...")
 
         # Update existing records with default values
-        update_sql = text("""
+        update_sql = text(
+            """
             UPDATE ltm_memories 
             SET 
                 memory_type = 'insight',
@@ -222,7 +245,8 @@ class LTMEnhancementMigration:
                 access_count = 0,
                 is_archived = FALSE
             WHERE memory_type IS NULL
-        """)
+        """
+        )
         await session.execute(update_sql)
 
         # Migrate existing tags to new tag table
@@ -236,8 +260,7 @@ class LTMEnhancementMigration:
         logger.info("Migrating existing tags...")
 
         # Get all memories with tags
-        select_sql = text(
-            "SELECT id, tags FROM ltm_memories WHERE tags IS NOT NULL")
+        select_sql = text("SELECT id, tags FROM ltm_memories WHERE tags IS NOT NULL")
         result = await session.execute(select_sql)
         memories = result.fetchall()
 
@@ -249,16 +272,17 @@ class LTMEnhancementMigration:
                 for tag in tags:
                     if tag:
                         # Insert into new tag table
-                        insert_sql = text("""
+                        insert_sql = text(
+                            """
                             INSERT INTO ltm_memory_tags 
                             (memory_id, tag_name, tag_category, tag_importance, tag_confidence, usage_count, first_used, last_used)
                             VALUES (:memory_id, :tag_name, 'general', 1.0, 1.0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                             ON CONFLICT (memory_id, tag_name) DO NOTHING
-                        """)
-                        await session.execute(insert_sql, {
-                            "memory_id": memory_id,
-                            "tag_name": str(tag)
-                        })
+                        """
+                        )
+                        await session.execute(
+                            insert_sql, {"memory_id": memory_id, "tag_name": str(tag)}
+                        )
 
         logger.info(f"Migrated tags for {len(memories)} memories")
 
@@ -283,7 +307,7 @@ class LTMEnhancementMigration:
             "CREATE INDEX IF NOT EXISTS idx_ltm_access_timestamp ON ltm_memory_access(access_timestamp)",
             "CREATE INDEX IF NOT EXISTS idx_ltm_tags_memory_id ON ltm_memory_tags(memory_id)",
             "CREATE INDEX IF NOT EXISTS idx_ltm_tags_name ON ltm_memory_tags(tag_name)",
-            "CREATE INDEX IF NOT EXISTS idx_ltm_tags_category ON ltm_memory_tags(tag_category)"
+            "CREATE INDEX IF NOT EXISTS idx_ltm_tags_category ON ltm_memory_tags(tag_category)",
         ]
 
         for index_sql in indexes:
@@ -300,11 +324,13 @@ class LTMEnhancementMigration:
         logger.info("Updating existing records...")
 
         # Calculate dynamic importance for existing records
-        update_sql = text("""
+        update_sql = text(
+            """
             UPDATE ltm_memories 
             SET dynamic_importance = importance_score::FLOAT
             WHERE dynamic_importance = 1.0
-        """)
+        """
+        )
         await session.execute(update_sql)
 
         await session.commit()
@@ -323,7 +349,8 @@ if __name__ == "__main__":
 
     # Get database URL from environment or use default
     database_url = os.getenv(
-        "DATABASE_URL", "postgresql+asyncpg://user:password@localhost/dbname")
+        "DATABASE_URL", "postgresql+asyncpg://user:password@localhost/dbname"
+    )
 
     # Run migration
     asyncio.run(run_ltm_enhancement_migration(database_url))

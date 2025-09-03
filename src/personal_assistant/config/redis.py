@@ -7,10 +7,11 @@ This module provides Redis client configurations for:
 - Health checks and monitoring
 """
 
-import redis
 from typing import Optional
-from .settings import settings
 
+import redis
+
+from .settings import settings
 
 # Celery Redis (existing configuration)
 celery_redis = redis.Redis.from_url(
@@ -18,7 +19,7 @@ celery_redis = redis.Redis.from_url(
     decode_responses=True,
     socket_connect_timeout=5,
     socket_timeout=5,
-    retry_on_timeout=True
+    retry_on_timeout=True,
 )
 
 # Session Redis (new configuration)
@@ -27,7 +28,7 @@ session_redis = redis.Redis.from_url(
     decode_responses=True,
     socket_connect_timeout=5,
     socket_timeout=5,
-    retry_on_timeout=True
+    retry_on_timeout=True,
 )
 
 # Async Redis for session management (if using async operations)
@@ -39,7 +40,7 @@ try:
         decode_responses=True,
         socket_connect_timeout=5,
         socket_timeout=5,
-        retry_on_timeout=True
+        retry_on_timeout=True,
     )
 except ImportError:
     # Fallback if async redis is not available

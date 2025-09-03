@@ -13,8 +13,7 @@ from ...memory.user import get_user_id_by_phone
 from ...sms_router.services.user_identification import UserIdentificationService
 
 # Load environment variables from config file
-load_dotenv(
-    dotenv_path=f'config/{os.getenv("ENVIRONMENT", "development")}.env')
+load_dotenv(dotenv_path=f'config/{os.getenv("ENVIRONMENT", "development")}.env')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -28,10 +27,10 @@ class TwilioService:
         Args:
             agent_core (AgentCore): Pre-configured instance of AgentCore to handle messages
         """
-        self.account_sid = os.getenv('TWILIO_ACCOUNT_SID')
-        self.auth_token = os.getenv('TWILIO_AUTH_TOKEN')
-        self.from_number = os.getenv('TWILIO_FROM_NUMBER')
-        self.to_number = os.getenv('TWILIO_TO_NUMBER')
+        self.account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        self.auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+        self.from_number = os.getenv("TWILIO_FROM_NUMBER")
+        self.to_number = os.getenv("TWILIO_TO_NUMBER")
 
         try:
             self.client = Client(self.account_sid, self.auth_token)
@@ -44,7 +43,9 @@ class TwilioService:
         # Initialize user identification service for enhanced guidance
         self.user_identification = UserIdentificationService()
 
-    async def handle_sms_webhook(self, body: str, from_number: str) -> MessagingResponse:
+    async def handle_sms_webhook(
+        self, body: str, from_number: str
+    ) -> MessagingResponse:
         """Handle incoming SMS webhook and return appropriate response.
 
         Args:
@@ -64,14 +65,16 @@ class TwilioService:
 
             if message:
                 # Use enhanced user identification service for better context
-                user_info = await self.user_identification.identify_user_by_phone(from_number)
+                user_info = await self.user_identification.identify_user_by_phone(
+                    from_number
+                )
 
                 if user_info is None:
                     # Enhanced guidance for unregistered users
                     return self._create_helpful_guidance_response(from_number)
 
                 # Process message with existing logic for registered users
-                result = await self.agent.run(message, user_info['id'])
+                result = await self.agent.run(message, user_info["id"])
                 logger.info(f"Generated response: '{result}'")
                 response.message(result)
             else:
@@ -83,7 +86,8 @@ class TwilioService:
             logger.error(f"Error handling SMS webhook: {str(e)}")
             response = MessagingResponse()
             response.message(
-                "Sorry, there was an error processing your message. Please try again.")
+                "Sorry, there was an error processing your message. Please try again."
+            )
             return response
 
     def _create_helpful_guidance_response(self, phone_number: str) -> MessagingResponse:
@@ -110,8 +114,7 @@ class TwilioService:
         )
 
         response.message(guidance_message)
-        logger.info(
-            f"Sent helpful guidance to unregistered phone: {phone_number}")
+        logger.info(f"Sent helpful guidance to unregistered phone: {phone_number}")
         return response
 
     def _format_phone_number(self, phone_number: str) -> str:
@@ -124,19 +127,19 @@ class TwilioService:
             str: Formatted phone number
         """
         # Remove any non-digit characters except +
-        cleaned = ''.join(c for c in phone_number if c.isdigit() or c == '+')
+        cleaned = "".join(c for c in phone_number if c.isdigit() or c == "+")
 
         # Add + if not present and format as +1 (XXX) XXX-XXXX for US numbers
-        if not cleaned.startswith('+'):
+        if not cleaned.startswith("+"):
             if len(cleaned) == 10:
                 return f"+1 ({cleaned[:3]}) {cleaned[3:6]}-{cleaned[6:]}"
-            elif len(cleaned) == 11 and cleaned.startswith('1'):
+            elif len(cleaned) == 11 and cleaned.startswith("1"):
                 return f"+1 ({cleaned[1:4]}) {cleaned[4:7]}-{cleaned[7:]}"
             else:
                 return f"+{cleaned}"
         else:
             # Already has +, format if it's a US number
-            if len(cleaned) == 12 and cleaned.startswith('+1'):
+            if len(cleaned) == 12 and cleaned.startswith("+1"):
                 digits = cleaned[2:]
                 return f"+1 ({digits[:3]}) {digits[3:6]}-{digits[6:]}"
             else:
@@ -158,9 +161,7 @@ class TwilioService:
         """
         try:
             message = self.client.messages.create(
-                body=message,
-                from_=self.from_number,
-                to=to
+                body=message, from_=self.from_number, to=to
             )
 
             logger.info(f"Message sent successfully. SID: {message.sid}")
@@ -196,18 +197,14 @@ class TwilioService:
             )
 
             message = self.client.messages.create(
-                body=message_text,
-                from_=self.from_number,
-                to=to
+                body=message_text, from_=self.from_number, to=to
             )
 
-            logger.info(
-                f"Verification SMS sent successfully. SID: {message.sid}")
+            logger.info(f"Verification SMS sent successfully. SID: {message.sid}")
             return message.sid
 
         except TwilioRestException as e:
-            logger.error(
-                f"Twilio error sending verification SMS: {e.code} - {e.msg}")
+            logger.error(f"Twilio error sending verification SMS: {e.code} - {e.msg}")
             raise
         except Exception as e:
             logger.error(f"Error sending verification SMS: {str(e)}")

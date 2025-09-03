@@ -5,14 +5,12 @@ LangGraph state definitions and related types.
 Defines the LangGraph agent state, including memory, tool calls, loop counters, etc.
 """
 
-from dataclasses import dataclass, field
-from typing import List, Tuple, Any, Optional
 import json
+from dataclasses import dataclass, field
 from datetime import datetime
-
+from typing import Any, List, Optional, Tuple
 
 from ..config.logging_config import get_logger
-
 from .messages import ToolCall
 
 logger = get_logger("types")
@@ -20,10 +18,10 @@ logger = get_logger("types")
 # Import constants from settings
 try:
     from ..config.settings import (
-        DEFAULT_MAX_MEMORY_CONTEXT_SIZE,
+        DEFAULT_CONTEXT_WINDOW_SIZE,
         DEFAULT_MAX_CONVERSATION_HISTORY_SIZE,
         DEFAULT_MAX_HISTORY_SIZE,
-        DEFAULT_CONTEXT_WINDOW_SIZE
+        DEFAULT_MAX_MEMORY_CONTEXT_SIZE,
     )
 except ImportError:
     # Fallback constants if settings import fails
@@ -36,6 +34,7 @@ except ImportError:
 @dataclass
 class StateConfig:
     """Configuration for state management limits"""
+
     max_memory_context_size: int = DEFAULT_MAX_MEMORY_CONTEXT_SIZE
     max_conversation_history_size: int = DEFAULT_MAX_CONVERSATION_HISTORY_SIZE
     max_history_size: int = DEFAULT_MAX_HISTORY_SIZE
@@ -67,15 +66,25 @@ class AgentState:
 
     def _apply_size_limits(self):
         """Apply size limits to all arrays only when needed (lazy evaluation)"""
-        if self._memory_context_needs_pruning and len(self.memory_context) > self.config.max_memory_context_size:
+        if (
+            self._memory_context_needs_pruning
+            and len(self.memory_context) > self.config.max_memory_context_size
+        ):
             self._prune_memory_context()
             self._memory_context_needs_pruning = False
 
-        if self._conversation_history_needs_pruning and len(self.conversation_history) > self.config.max_conversation_history_size:
+        if (
+            self._conversation_history_needs_pruning
+            and len(self.conversation_history)
+            > self.config.max_conversation_history_size
+        ):
             self._prune_conversation_history()
             self._conversation_history_needs_pruning = False
 
-        if self._history_needs_pruning and len(self.history) > self.config.max_history_size:
+        if (
+            self._history_needs_pruning
+            and len(self.history) > self.config.max_history_size
+        ):
             self._prune_history()
             self._history_needs_pruning = False
 
@@ -102,10 +111,13 @@ class AgentState:
         scored_items = self._score_memory_context_items()
 
         # Keep top items by score
-        self.memory_context = [item for _, item in sorted(scored_items, reverse=True)[
-            :self.config.max_memory_context_size]]
-        logger.debug(
-            f"Smart pruned memory_context to {len(self.memory_context)} items")
+        self.memory_context = [
+            item
+            for _, item in sorted(scored_items, reverse=True)[
+                : self.config.max_memory_context_size
+            ]
+        ]
+        logger.debug(f"Smart pruned memory_context to {len(self.memory_context)} items")
 
     def _score_memory_context_items(self) -> List[Tuple[float, dict]]:
         """Score memory context items by relevance and recency"""
@@ -158,8 +170,9 @@ class AgentState:
 
     def _simple_prune_conversation_history(self):
         """Simple FIFO pruning of conversation_history"""
-        excess = len(self.conversation_history) - \
-            self.config.max_conversation_history_size
+        excess = (
+            len(self.conversation_history) - self.config.max_conversation_history_size
+        )
         if excess > 0:
             self.conversation_history = self.conversation_history[excess:]
             logger.debug(f"Pruned {excess} items from conversation_history")
@@ -180,13 +193,9 @@ class AgentState:
         new_items = [
             {
                 "role": "assistant",
-                "content": f"I'll help you with that using the {tool_call.name} tool."
+                "content": f"I'll help you with that using the {tool_call.name} tool.",
             },
-            {
-                "role": "tool",
-                "name": tool_call.name,
-                "content": result
-            }
+            {"role": "tool", "name": tool_call.name, "content": result},
         ]
 
         self.conversation_history.extend(new_items)
@@ -211,7 +220,7 @@ class AgentState:
             "memory_context": self._get_optimized_memory_context(),
             "conversation_history": self._get_optimized_conversation_history(),
             "focus": self.focus,
-            "step_count": self.step_count
+            "step_count": self.step_count,
         }
 
     def _get_optimized_memory_context(self) -> List[dict]:
@@ -222,7 +231,12 @@ class AgentState:
 
         # Score and prioritize context items
         scored_items = self._score_memory_context_items()
-        return [item for _, item in sorted(scored_items, reverse=True)[:self.config.max_memory_context_size]]
+        return [
+            item
+            for _, item in sorted(scored_items, reverse=True)[
+                : self.config.max_memory_context_size
+            ]
+        ]
 
     def _get_optimized_conversation_history(self) -> List[dict]:
         """Get optimized conversation history for injection"""
@@ -233,7 +247,7 @@ class AgentState:
         # Return fixed window size
         if len(self.conversation_history) <= self.config.context_window_size:
             return self.conversation_history
-        return self.conversation_history[-self.config.context_window_size:]
+        return self.conversation_history[-self.config.context_window_size :]
 
     # Override list methods to set pruning flags instead of immediate pruning
     def _extend_memory_context(self, items: List[dict]):
@@ -281,15 +295,17 @@ class AgentState:
         # Input validation
         if not user_input or not isinstance(user_input, str):
             logger.error(
-                f"reset_for_new_message called with invalid user_input: {type(user_input)} - {user_input}")
+                f"reset_for_new_message called with invalid user_input: {type(user_input)} - {user_input}"
+            )
             raise ValueError(
-                f"user_input must be a non-empty string, got: {type(user_input)}")
+                f"user_input must be a non-empty string, got: {type(user_input)}"
+            )
 
         if user_input.strip() == "":
             logger.error(
-                "reset_for_new_message called with empty or whitespace-only user_input")
-            raise ValueError(
-                "user_input cannot be empty or contain only whitespace")
+                "reset_for_new_message called with empty or whitespace-only user_input"
+            )
+            raise ValueError("user_input cannot be empty or contain only whitespace")
 
         try:
             # Store original values for potential rollback
@@ -304,26 +320,29 @@ class AgentState:
             self.last_tool_result = None
 
             logger.debug(
-                f"Reset state attributes for new message: step_count={self.step_count}, last_tool_result={self.last_tool_result}")
+                f"Reset state attributes for new message: step_count={self.step_count}, last_tool_result={self.last_tool_result}"
+            )
 
             # Update focus areas based on new user input
             try:
                 self._update_focus_areas(user_input)
                 logger.debug(f"Successfully updated focus areas: {self.focus}")
             except Exception as e:
-                logger.warning(
-                    f"Failed to update focus areas for '{user_input}': {e}")
+                logger.warning(f"Failed to update focus areas for '{user_input}': {e}")
                 # Rollback focus areas to original state
                 self.focus = original_focus
                 logger.info(
-                    "Rolled back focus areas to previous state due to update failure")
+                    "Rolled back focus areas to previous state due to update failure"
+                )
 
             logger.info(
-                f"Successfully reset state for new user message: '{user_input[:50]}{'...' if len(user_input) > 50 else ''}'")
+                f"Successfully reset state for new user message: '{user_input[:50]}{'...' if len(user_input) > 50 else ''}'"
+            )
 
         except Exception as e:
             logger.error(
-                f"Unexpected error during state reset for message '{user_input[:50]}...': {e}")
+                f"Unexpected error during state reset for message '{user_input[:50]}...': {e}"
+            )
             # Attempt to rollback to previous state
             try:
                 self.user_input = original_user_input
@@ -331,17 +350,18 @@ class AgentState:
                 self.last_tool_result = original_last_tool_result
                 self.focus = original_focus
                 logger.info(
-                    "Successfully rolled back state to previous values due to reset failure")
+                    "Successfully rolled back state to previous values due to reset failure"
+                )
             except Exception as rollback_error:
                 logger.error(
-                    f"Failed to rollback state after reset error: {rollback_error}")
+                    f"Failed to rollback state after reset error: {rollback_error}"
+                )
                 # Set to safe defaults if rollback fails
                 self.user_input = user_input
                 self.step_count = 0
                 self.last_tool_result = None
                 self.focus = ["general"]
-                logger.warning(
-                    "Set state to safe defaults after rollback failure")
+                logger.warning("Set state to safe defaults after rollback failure")
 
             # Re-raise the original error for caller to handle
             raise
@@ -357,9 +377,9 @@ class AgentState:
             # Try to import tag suggestions
             try:
                 from ..constants.tags import get_tag_suggestions
+
                 suggested_tags = get_tag_suggestions(user_input)
-                logger.debug(
-                    f"Tag suggestions for '{user_input}': {suggested_tags}")
+                logger.debug(f"Tag suggestions for '{user_input}': {suggested_tags}")
 
                 # Update focus areas with relevant tags
                 if suggested_tags:
@@ -369,12 +389,10 @@ class AgentState:
                 else:
                     # Fallback to general focus if no specific tags found
                     self.focus = ["general"]
-                    logger.debug(
-                        "No tag suggestions found, using general focus")
+                    logger.debug("No tag suggestions found, using general focus")
 
             except ImportError:
-                logger.debug(
-                    "Tag system not available, using basic keyword extraction")
+                logger.debug("Tag system not available, using basic keyword extraction")
                 self._extract_basic_focus(user_input)
 
         except Exception as e:
@@ -477,15 +495,15 @@ class AgentState:
         # Input validation
         if not summary or not isinstance(summary, str):
             logger.error(
-                f"from_summary called with invalid summary: {type(summary)} - {summary}")
+                f"from_summary called with invalid summary: {type(summary)} - {summary}"
+            )
             raise ValueError(
-                f"summary must be a non-empty string, got: {type(summary)}")
+                f"summary must be a non-empty string, got: {type(summary)}"
+            )
 
         if summary.strip() == "":
-            logger.error(
-                "from_summary called with empty or whitespace-only summary")
-            raise ValueError(
-                "summary cannot be empty or contain only whitespace")
+            logger.error("from_summary called with empty or whitespace-only summary")
+            raise ValueError("summary cannot be empty or contain only whitespace")
 
         try:
             # Try to parse as comprehensive summary JSON
@@ -493,14 +511,14 @@ class AgentState:
 
             if not isinstance(summary_data, dict):
                 logger.warning(
-                    f"from_summary: JSON summary is not a dict, treating as basic summary. Type: {type(summary_data)}")
+                    f"from_summary: JSON summary is not a dict, treating as basic summary. Type: {type(summary_data)}"
+                )
                 # Fallback to basic summary
                 return cls._create_basic_summary_state(summary)
 
             if "user_input" in summary_data:
                 # This is a comprehensive summary
-                logger.debug(
-                    "from_summary: Parsing comprehensive JSON summary")
+                logger.debug("from_summary: Parsing comprehensive JSON summary")
 
                 # Handle backward compatibility for old state format
 
@@ -510,17 +528,18 @@ class AgentState:
             else:
                 # Fallback to basic summary
                 logger.debug(
-                    "from_summary: JSON summary missing user_input, treating as basic summary")
+                    "from_summary: JSON summary missing user_input, treating as basic summary"
+                )
                 return cls._create_basic_summary_state(summary)
 
         except json.JSONDecodeError as e:
             # This is a basic summary string
             logger.debug(
-                f"from_summary: Summary is not valid JSON, treating as basic string: {e}")
+                f"from_summary: Summary is not valid JSON, treating as basic string: {e}"
+            )
             return cls._create_basic_summary_state(summary)
         except Exception as e:
-            logger.error(
-                f"from_summary: Unexpected error parsing summary: {e}")
+            logger.error(f"from_summary: Unexpected error parsing summary: {e}")
             # Return a safe default state
             return cls._create_basic_summary_state(summary)
 
@@ -535,15 +554,14 @@ class AgentState:
         Returns:
             AgentState: Basic state with summary in memory context
         """
-        logger.debug(
-            f"Creating basic summary state with content: {summary[:100]}...")
+        logger.debug(f"Creating basic summary state with content: {summary[:100]}...")
         return cls(
             user_input="",  # will be overwritten by the new input
             memory_context=[{"role": "system", "content": summary}],
             history=[],
             step_count=0,
             focus=[],
-            conversation_history=[]
+            conversation_history=[],
         )
 
     @classmethod
@@ -563,9 +581,12 @@ class AgentState:
         validated_data = data.copy()
 
         # Validate and set default for user_input
-        if "user_input" not in validated_data or not isinstance(validated_data["user_input"], str):
+        if "user_input" not in validated_data or not isinstance(
+            validated_data["user_input"], str
+        ):
             logger.warning(
-                "Summary data missing or invalid user_input, setting to empty string")
+                "Summary data missing or invalid user_input, setting to empty string"
+            )
             validated_data["user_input"] = ""
 
         # Validate and set defaults for list fields
@@ -573,17 +594,21 @@ class AgentState:
             ("memory_context", []),
             ("history", []),
             ("focus", []),
-            ("conversation_history", [])
+            ("conversation_history", []),
         ]:
-            if field_name not in validated_data or not isinstance(validated_data[field_name], list):
+            if field_name not in validated_data or not isinstance(
+                validated_data[field_name], list
+            ):
                 logger.warning(
-                    f"Summary data missing or invalid {field_name}, setting to default")
+                    f"Summary data missing or invalid {field_name}, setting to default"
+                )
                 validated_data[field_name] = default_value
 
         # Validate and set defaults for scalar fields
-        if "step_count" not in validated_data or not isinstance(validated_data["step_count"], int):
-            logger.warning(
-                "Summary data missing or invalid step_count, setting to 0")
+        if "step_count" not in validated_data or not isinstance(
+            validated_data["step_count"], int
+        ):
+            logger.warning("Summary data missing or invalid step_count, setting to 0")
             validated_data["step_count"] = 0
 
         if "last_tool_result" not in validated_data:
@@ -615,29 +640,31 @@ class AgentState:
         """
         # Input validation
         if not isinstance(data, dict):
-            logger.error(
-                f"from_dict called with invalid data type: {type(data)}")
+            logger.error(f"from_dict called with invalid data type: {type(data)}")
             raise ValueError(f"data must be a dictionary, got: {type(data)}")
 
         try:
             # Extract and validate config
             config_data = data.get("config", {})
             if not isinstance(config_data, dict):
-                logger.warning(
-                    "from_dict: Invalid config data type, using defaults")
+                logger.warning("from_dict: Invalid config data type, using defaults")
                 config_data = {}
 
             config = StateConfig(
                 max_memory_context_size=config_data.get(
-                    "max_memory_context_size", DEFAULT_MAX_MEMORY_CONTEXT_SIZE),
+                    "max_memory_context_size", DEFAULT_MAX_MEMORY_CONTEXT_SIZE
+                ),
                 max_conversation_history_size=config_data.get(
-                    "max_conversation_history_size", DEFAULT_MAX_CONVERSATION_HISTORY_SIZE),
+                    "max_conversation_history_size",
+                    DEFAULT_MAX_CONVERSATION_HISTORY_SIZE,
+                ),
                 max_history_size=config_data.get(
-                    "max_history_size", DEFAULT_MAX_HISTORY_SIZE),
+                    "max_history_size", DEFAULT_MAX_HISTORY_SIZE
+                ),
                 context_window_size=config_data.get(
-                    "context_window_size", DEFAULT_CONTEXT_WINDOW_SIZE),
-                enable_smart_pruning=config_data.get(
-                    "enable_smart_pruning", True)
+                    "context_window_size", DEFAULT_CONTEXT_WINDOW_SIZE
+                ),
+                enable_smart_pruning=config_data.get("enable_smart_pruning", True),
             )
 
             # Remove config from data to avoid conflicts
@@ -645,41 +672,54 @@ class AgentState:
             state_data["config"] = config
 
             # Ensure required fields are present with proper types
-            if "user_input" not in state_data or not isinstance(state_data["user_input"], str):
+            if "user_input" not in state_data or not isinstance(
+                state_data["user_input"], str
+            ):
                 logger.warning(
-                    "from_dict: Missing or invalid user_input, setting to empty string")
+                    "from_dict: Missing or invalid user_input, setting to empty string"
+                )
                 state_data["user_input"] = ""
 
-            if "memory_context" not in state_data or not isinstance(state_data["memory_context"], list):
+            if "memory_context" not in state_data or not isinstance(
+                state_data["memory_context"], list
+            ):
                 logger.warning(
-                    "from_dict: Missing or invalid memory_context, setting to empty list")
+                    "from_dict: Missing or invalid memory_context, setting to empty list"
+                )
                 state_data["memory_context"] = []
 
-            if "history" not in state_data or not isinstance(state_data["history"], list):
+            if "history" not in state_data or not isinstance(
+                state_data["history"], list
+            ):
                 logger.warning(
-                    "from_dict: Missing or invalid history, setting to empty list")
+                    "from_dict: Missing or invalid history, setting to empty list"
+                )
                 state_data["history"] = []
 
-            if "step_count" not in state_data or not isinstance(state_data["step_count"], int):
-                logger.warning(
-                    "from_dict: Missing or invalid step_count, setting to 0")
+            if "step_count" not in state_data or not isinstance(
+                state_data["step_count"], int
+            ):
+                logger.warning("from_dict: Missing or invalid step_count, setting to 0")
                 state_data["step_count"] = 0
 
             if "focus" not in state_data or not isinstance(state_data["focus"], list):
                 logger.warning(
-                    "from_dict: Missing or invalid focus, setting to empty list")
+                    "from_dict: Missing or invalid focus, setting to empty list"
+                )
                 state_data["focus"] = []
 
-            if "conversation_history" not in state_data or not isinstance(state_data["conversation_history"], list):
+            if "conversation_history" not in state_data or not isinstance(
+                state_data["conversation_history"], list
+            ):
                 logger.warning(
-                    "from_dict: Missing or invalid conversation_history, setting to empty list")
+                    "from_dict: Missing or invalid conversation_history, setting to empty list"
+                )
                 state_data["conversation_history"] = []
 
             if "last_tool_result" not in state_data:
                 state_data["last_tool_result"] = None
 
-            logger.debug(
-                "from_dict: Successfully validated all required fields")
+            logger.debug("from_dict: Successfully validated all required fields")
             return cls(**state_data)
 
         except (TypeError, ValueError) as e:
@@ -687,8 +727,7 @@ class AgentState:
             # Return a default AgentState if creation fails due to data issues
             return cls(user_input="")
         except Exception as e:
-            logger.error(
-                f"from_dict: Unexpected error creating AgentState: {e}")
+            logger.error(f"from_dict: Unexpected error creating AgentState: {e}")
             # Return a default AgentState if creation fails
             return cls(user_input="")
 
@@ -719,6 +758,5 @@ class AgentState:
             "step_count": self.step_count,
             "focus": self.focus,
             "conversation_history": self.conversation_history,
-            "timestamp": datetime.now().isoformat()                    # Add timestamp
-
+            "timestamp": datetime.now().isoformat(),  # Add timestamp
         }

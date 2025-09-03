@@ -6,7 +6,9 @@ from typing import List, Optional
 from .base import Tool
 
 
-def add_grocery_item(item: str, quantity: Optional[int] = 1, notes: Optional[str] = None) -> str:
+def add_grocery_item(
+    item: str, quantity: Optional[int] = 1, notes: Optional[str] = None
+) -> str:
     """Add item to grocery list"""
     # TODO: Implement grocery list storage
     return f"Added {quantity}x {item} to grocery list"
@@ -23,21 +25,18 @@ GroceryAddTool = Tool(
     func=add_grocery_item,
     description="Add item to grocery list",
     parameters={
-        "item": {
-            "type": "string",
-            "description": "Item name"
-        },
+        "item": {"type": "string", "description": "Item name"},
         "quantity": {
             "type": "integer",
             "description": "Optional quantity",
-            "optional": True
+            "optional": True,
         },
         "notes": {
             "type": "string",
             "description": "Optional notes about the item",
-            "optional": True
-        }
-    }
+            "optional": True,
+        },
+    },
 )
 
 GroceryDealsTool = Tool(
@@ -48,7 +47,7 @@ GroceryDealsTool = Tool(
         "store": {
             "type": "string",
             "description": "Optional store name to filter deals",
-            "optional": True
+            "optional": True,
         }
-    }
+    },
 )

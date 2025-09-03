@@ -5,7 +5,8 @@ This script shows how the enhanced prompt builder integrates with the current fl
 """
 
 import asyncio
-from typing import Dict, Any
+from typing import Any, Dict
+
 from ..config.logging_config import get_logger
 
 logger = get_logger("prompt_integration_test")
@@ -24,8 +25,8 @@ class MockToolRegistry:
                 "parameters": {
                     "to_recipients": "Comma-separated list of email addresses",
                     "subject": "Subject line of the email",
-                    "body": "Body content of the email"
-                }
+                    "body": "Body content of the email",
+                },
             },
             "calendar_tool": {
                 "name": "calendar_tool",
@@ -34,9 +35,9 @@ class MockToolRegistry:
                 "parameters": {
                     "title": "Event title",
                     "start_time": "Event start time",
-                    "end_time": "Event end time"
-                }
-            }
+                    "end_time": "Event end time",
+                },
+            },
         }
 
 
@@ -86,7 +87,7 @@ async def test_enhanced_prompt_builder():
             print("❌ Email tool metadata integration missing")
 
         # Check prompt length (should be reasonable, not massive)
-        prompt_lines = len(enhanced_prompt.split('\n'))
+        prompt_lines = len(enhanced_prompt.split("\n"))
         if 100 <= prompt_lines <= 300:
             print(f"✅ Prompt length is reasonable: {prompt_lines} lines")
         else:
@@ -100,7 +101,7 @@ async def test_enhanced_prompt_builder():
             "REQUEST INTENT",
             "AVAILABLE TOOLS (Basic)",
             "ENHANCED TOOL GUIDANCE",
-            "ACTION GUIDANCE"
+            "ACTION GUIDANCE",
         ]
 
         for section in sections:
@@ -131,8 +132,10 @@ async def test_context_aware_metadata():
             ("Send an email to John", ["email_tool"]),
             ("Schedule a meeting for Friday", ["calendar_tool"]),
             ("Hello, how are you?", []),  # No tools needed
-            ("Research AI trends and send email to team",
-             ["internet_tool", "email_tool"])
+            (
+                "Research AI trends and send email to team",
+                ["internet_tool", "email_tool"],
+            ),
         ]
 
         print("\n🧠 Context-Aware Metadata Test")

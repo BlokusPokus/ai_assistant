@@ -2,18 +2,19 @@
 SMS Cost Calculator for Twilio pricing integration and cost analysis.
 """
 
+import asyncio
+import json
 import logging
 import os
-import asyncio
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, desc
-import aiohttp
-import json
+from typing import Any, Dict, List, Optional
 
-from ..models.sms_models import SMSUsageLog
+import aiohttp
+from sqlalchemy import and_, desc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from ...database.models.users import User
+from ..models.sms_models import SMSUsageLog
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +25,8 @@ class SMSCostCalculator:
     def __init__(self, db_session: AsyncSession):
         """Initialize the cost calculator with a database session."""
         self.db = db_session
-        self.twilio_account_sid = os.getenv('TWILIO_ACCOUNT_SID')
-        self.twilio_auth_token = os.getenv('TWILIO_AUTH_TOKEN')
+        self.twilio_account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        self.twilio_auth_token = os.getenv("TWILIO_AUTH_TOKEN")
 
         # Default Twilio pricing (US rates as fallback)
         self.default_pricing = {
@@ -44,9 +45,7 @@ class SMSCostCalculator:
         self._last_cache_update = 0
 
     async def calculate_user_costs(
-        self,
-        user_id: int,
-        time_range: str = "30d"
+        self, user_id: int, time_range: str = "30d"
     ) -> Dict[str, float]:
         """
         Calculate SMS costs for a specific user.
@@ -68,7 +67,7 @@ class SMSCostCalculator:
                 and_(
                     SMSUsageLog.user_id == user_id,
                     SMSUsageLog.created_at >= start_date,
-                    SMSUsageLog.created_at <= end_date
+                    SMSUsageLog.created_at <= end_date,
                 )
             )
 
@@ -118,17 +117,18 @@ class SMSCostCalculator:
                 "mms_cost_usd": round(mms_cost, 4),
                 "monthly_number_cost_usd": monthly_number_cost,
                 "total_with_monthly_fees": round(total_cost + monthly_number_cost, 4),
-                "cost_per_message": round(total_cost / len(usage_logs), 4) if usage_logs else 0,
+                "cost_per_message": round(total_cost / len(usage_logs), 4)
+                if usage_logs
+                else 0,
                 "message_count": len(usage_logs),
                 "period": {
                     "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat()
-                }
+                    "end_date": end_date.isoformat(),
+                },
             }
 
         except Exception as e:
-            logger.error(
-                f"Error calculating user costs for user {user_id}: {e}")
+            logger.error(f"Error calculating user costs for user {user_id}: {e}")
             raise
 
     async def get_twilio_pricing(self) -> Dict[str, float]:
@@ -141,7 +141,9 @@ class SMSCostCalculator:
         try:
             # Check if cache is still valid
             current_time = datetime.utcnow().timestamp()
-            if (current_time - self._last_cache_update) < self._cache_ttl and self._pricing_cache:
+            if (
+                current_time - self._last_cache_update
+            ) < self._cache_ttl and self._pricing_cache:
                 logger.debug("Using cached Twilio pricing data")
                 return self._pricing_cache
 
@@ -155,8 +157,7 @@ class SMSCostCalculator:
                 return pricing
             else:
                 # Use default pricing if API call fails
-                logger.warning(
-                    "Using default Twilio pricing due to API failure")
+                logger.warning("Using default Twilio pricing due to API failure")
                 return self.default_pricing
 
         except Exception as e:
@@ -185,8 +186,7 @@ class SMSCostCalculator:
 
             # Calculate trend
             current_avg = current_month_cost["cost_per_message"]
-            previous_avg = previous_month_cost.get(
-                "cost_per_message", current_avg)
+            previous_avg = previous_month_cost.get("cost_per_message", current_avg)
 
             # Estimate based on trend (simplified)
             if previous_avg > 0:
@@ -197,11 +197,11 @@ class SMSCostCalculator:
             # Project to full month
             days_in_month = 30
             current_days = min(
-                30, (datetime.utcnow() - (datetime.utcnow() - timedelta(days=30))).days)
+                30, (datetime.utcnow() - (datetime.utcnow() - timedelta(days=30))).days
+            )
 
             if current_days > 0:
-                daily_cost = current_month_cost["total_cost_usd"] / \
-                    current_days
+                daily_cost = current_month_cost["total_cost_usd"] / current_days
                 estimated_monthly = daily_cost * days_in_month * trend_factor
             else:
                 estimated_monthly = current_month_cost["total_cost_usd"] * trend_factor
@@ -213,8 +213,7 @@ class SMSCostCalculator:
             return round(estimated_monthly + monthly_fees, 4)
 
         except Exception as e:
-            logger.error(
-                f"Error estimating monthly costs for user {user_id}: {e}")
+            logger.error(f"Error estimating monthly costs for user {user_id}: {e}")
             return 0.0
 
     async def get_cost_breakdown(self, user_id: int) -> Dict[str, Any]:
@@ -237,11 +236,12 @@ class SMSCostCalculator:
             usage_trends = await self._get_usage_trends_for_cost_analysis(user_id)
 
             # Calculate cost trends
-            cost_trends = self._calculate_cost_trends(
-                [costs_7d, costs_30d, costs_90d])
+            cost_trends = self._calculate_cost_trends([costs_7d, costs_30d, costs_90d])
 
             # Get optimization recommendations
-            optimization_tips = await self._get_cost_optimization_tips(user_id, costs_30d)
+            optimization_tips = await self._get_cost_optimization_tips(
+                user_id, costs_30d
+            )
 
             return {
                 "user_id": user_id,
@@ -249,18 +249,17 @@ class SMSCostCalculator:
                 "historical_costs": {
                     "7_days": costs_7d,
                     "30_days": costs_30d,
-                    "90_days": costs_90d
+                    "90_days": costs_90d,
                 },
                 "cost_trends": cost_trends,
                 "usage_trends": usage_trends,
                 "optimization_tips": optimization_tips,
                 "estimated_monthly_cost": await self.estimate_monthly_costs(user_id),
-                "last_updated": datetime.utcnow().isoformat()
+                "last_updated": datetime.utcnow().isoformat(),
             }
 
         except Exception as e:
-            logger.error(
-                f"Error getting cost breakdown for user {user_id}: {e}")
+            logger.error(f"Error getting cost breakdown for user {user_id}: {e}")
             raise
 
     async def get_cost_trends(self, user_id: int) -> Dict[str, Any]:
@@ -292,7 +291,7 @@ class SMSCostCalculator:
                     and_(
                         SMSUsageLog.user_id == user_id,
                         SMSUsageLog.created_at >= day_start,
-                        SMSUsageLog.created_at < day_end
+                        SMSUsageLog.created_at < day_end,
                     )
                 )
 
@@ -301,17 +300,21 @@ class SMSCostCalculator:
 
                 if day_logs:
                     day_cost = await self._calculate_day_cost(day_logs)
-                    daily_costs.append({
-                        "date": current_date.isoformat(),
-                        "cost_usd": day_cost,
-                        "message_count": len(day_logs)
-                    })
+                    daily_costs.append(
+                        {
+                            "date": current_date.isoformat(),
+                            "cost_usd": day_cost,
+                            "message_count": len(day_logs),
+                        }
+                    )
                 else:
-                    daily_costs.append({
-                        "date": current_date.isoformat(),
-                        "cost_usd": 0.0,
-                        "message_count": 0
-                    })
+                    daily_costs.append(
+                        {
+                            "date": current_date.isoformat(),
+                            "cost_usd": 0.0,
+                            "message_count": 0,
+                        }
+                    )
 
                 current_date = next_date
 
@@ -324,8 +327,8 @@ class SMSCostCalculator:
                 "trend_analysis": trend_analysis,
                 "period": {
                     "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat()
-                }
+                    "end_date": end_date.isoformat(),
+                },
             }
 
         except Exception as e:
@@ -352,61 +355,73 @@ class SMSCostCalculator:
             # Analyze usage patterns and provide tips
             if usage_summary.get("total_messages", 0) == 0:
                 tips.append(
-                    "No SMS usage detected. Consider testing the service to ensure it's working properly.")
+                    "No SMS usage detected. Consider testing the service to ensure it's working properly."
+                )
                 return tips
 
             # Check for high outbound usage
             outbound_ratio = usage_summary.get(
-                "outbound_messages", 0) / usage_summary.get("total_messages", 1)
+                "outbound_messages", 0
+            ) / usage_summary.get("total_messages", 1)
             if outbound_ratio > 0.8:
                 tips.append(
-                    "High outbound message ratio detected. Consider implementing inbound-only features to reduce costs.")
+                    "High outbound message ratio detected. Consider implementing inbound-only features to reduce costs."
+                )
 
             # Check for long messages
             avg_length = usage_summary.get(
-                "total_message_length", 0) / usage_summary.get("total_messages", 1)
+                "total_message_length", 0
+            ) / usage_summary.get("total_messages", 1)
             if avg_length > 160:
                 tips.append(
-                    "Long messages detected. Consider breaking messages into shorter segments to optimize delivery.")
+                    "Long messages detected. Consider breaking messages into shorter segments to optimize delivery."
+                )
 
             # Check for international messages
             international_count = await self._count_international_messages(user_id)
             if international_count > 0:
                 tips.append(
-                    f"{international_count} international messages detected. International SMS costs are significantly higher.")
+                    f"{international_count} international messages detected. International SMS costs are significantly higher."
+                )
 
             # Check for MMS usage
             mms_count = await self._count_mms_messages(user_id)
             if mms_count > 0:
                 tips.append(
-                    f"{mms_count} MMS messages detected. Consider using text-only messages when possible to reduce costs.")
+                    f"{mms_count} MMS messages detected. Consider using text-only messages when possible to reduce costs."
+                )
 
             # Check for error rates
             success_rate = usage_summary.get("success_rate", 100)
             if success_rate < 95:
                 tips.append(
-                    f"Low success rate ({success_rate}%). Investigate failed messages to avoid unnecessary costs.")
+                    f"Low success rate ({success_rate}%). Investigate failed messages to avoid unnecessary costs."
+                )
 
             # Check for usage patterns
             usage_patterns = usage_summary.get("usage_patterns", {})
             peak_hour = usage_patterns.get("peak_hour")
             if peak_hour is not None:
                 tips.append(
-                    f"Peak usage detected at {peak_hour}:00. Consider implementing rate limiting during peak hours.")
+                    f"Peak usage detected at {peak_hour}:00. Consider implementing rate limiting during peak hours."
+                )
 
             # Add general optimization tips
-            tips.extend([
-                "Monitor your usage regularly to identify cost drivers.",
-                "Consider implementing message queuing for non-urgent communications.",
-                "Use webhooks to track delivery status and avoid duplicate messages.",
-                "Implement message templates to reduce message length and improve delivery rates."
-            ])
+            tips.extend(
+                [
+                    "Monitor your usage regularly to identify cost drivers.",
+                    "Consider implementing message queuing for non-urgent communications.",
+                    "Use webhooks to track delivery status and avoid duplicate messages.",
+                    "Implement message templates to reduce message length and improve delivery rates.",
+                ]
+            )
 
             return tips
 
         except Exception as e:
             logger.error(
-                f"Error getting cost optimization tips for user {user_id}: {e}")
+                f"Error getting cost optimization tips for user {user_id}: {e}"
+            )
             return ["Unable to generate optimization tips at this time."]
 
     async def get_system_cost_summary(self, time_range: str = "30d") -> Dict[str, Any]:
@@ -428,7 +443,7 @@ class SMSCostCalculator:
             query = select(SMSUsageLog).where(
                 and_(
                     SMSUsageLog.created_at >= start_date,
-                    SMSUsageLog.created_at <= end_date
+                    SMSUsageLog.created_at <= end_date,
                 )
             )
 
@@ -481,7 +496,8 @@ class SMSCostCalculator:
 
             # Get top cost users
             top_cost_users = sorted(
-                user_costs.items(), key=lambda x: x[1], reverse=True)[:5]
+                user_costs.items(), key=lambda x: x[1], reverse=True
+            )[:5]
 
             return {
                 "time_range": time_range,
@@ -499,8 +515,8 @@ class SMSCostCalculator:
                 ],
                 "period": {
                     "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat()
-                }
+                    "end_date": end_date.isoformat(),
+                },
             }
 
         except Exception as e:
@@ -526,15 +542,15 @@ class SMSCostCalculator:
         try:
             if not self.twilio_account_sid or not self.twilio_auth_token:
                 logger.warning(
-                    "Twilio credentials not configured, using default pricing")
+                    "Twilio credentials not configured, using default pricing"
+                )
                 return None
 
             # Note: Twilio doesn't have a public pricing API, so we'll use default rates
             # In a production environment, you might want to implement a pricing service
             # that periodically updates rates based on your Twilio account information
 
-            logger.info(
-                "Using default Twilio pricing (no public API available)")
+            logger.info("Using default Twilio pricing (no public API available)")
             return self.default_pricing
 
         except Exception as e:
@@ -547,10 +563,10 @@ class SMSCostCalculator:
             return False
 
         # Remove all non-digit characters
-        clean_number = ''.join(filter(str.isdigit, phone_number))
+        clean_number = "".join(filter(str.isdigit, phone_number))
 
         # Check if it starts with country code (simplified logic)
-        if clean_number.startswith('1') and len(clean_number) == 11:  # US/Canada
+        if clean_number.startswith("1") and len(clean_number) == 11:  # US/Canada
             return False
         elif len(clean_number) > 10:  # Likely international
             return True
@@ -590,7 +606,7 @@ class SMSCostCalculator:
             periods = {
                 "7d": end_date - timedelta(days=7),
                 "30d": end_date - timedelta(days=30),
-                "90d": end_date - timedelta(days=90)
+                "90d": end_date - timedelta(days=90),
             }
 
             trends = {}
@@ -599,7 +615,7 @@ class SMSCostCalculator:
                     and_(
                         SMSUsageLog.user_id == user_id,
                         SMSUsageLog.created_at >= start_date,
-                        SMSUsageLog.created_at <= end_date
+                        SMSUsageLog.created_at <= end_date,
                     )
                 )
 
@@ -620,14 +636,16 @@ class SMSCostCalculator:
 
         # Calculate trend based on cost per message
         current_cpm = cost_data[0].get("cost_per_message", 0)
-        previous_cpm = cost_data[1].get("cost_per_message", 0) if len(
-            cost_data) > 1 else current_cpm
+        previous_cpm = (
+            cost_data[1].get("cost_per_message", 0)
+            if len(cost_data) > 1
+            else current_cpm
+        )
 
         if previous_cpm == 0:
             change_percentage = 100 if current_cpm > 0 else 0
         else:
-            change_percentage = (
-                (current_cpm - previous_cpm) / previous_cpm) * 100
+            change_percentage = ((current_cpm - previous_cpm) / previous_cpm) * 100
 
         if change_percentage > 10:
             trend = "increasing"
@@ -640,7 +658,7 @@ class SMSCostCalculator:
             "trend": trend,
             "change_percentage": round(change_percentage, 2),
             "current_cost_per_message": current_cpm,
-            "previous_cost_per_message": previous_cpm
+            "previous_cost_per_message": previous_cpm,
         }
 
     def _analyze_cost_trends(self, daily_costs: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -649,13 +667,19 @@ class SMSCostCalculator:
             return {"trend": "insufficient_data", "change_percentage": 0}
 
         # Calculate trend
-        first_half = daily_costs[:len(daily_costs)//2]
-        second_half = daily_costs[len(daily_costs)//2:]
+        first_half = daily_costs[: len(daily_costs) // 2]
+        second_half = daily_costs[len(daily_costs) // 2 :]
 
-        first_avg = sum(day["cost_usd"] for day in first_half) / \
-            len(first_half) if first_half else 0
-        second_avg = sum(day["cost_usd"] for day in second_half) / \
-            len(second_half) if second_half else 0
+        first_avg = (
+            sum(day["cost_usd"] for day in first_half) / len(first_half)
+            if first_half
+            else 0
+        )
+        second_avg = (
+            sum(day["cost_usd"] for day in second_half) / len(second_half)
+            if second_half
+            else 0
+        )
 
         if first_avg == 0:
             change_percentage = 100 if second_avg > 0 else 0
@@ -673,10 +697,12 @@ class SMSCostCalculator:
             "trend": trend,
             "change_percentage": round(change_percentage, 2),
             "first_half_average": round(first_avg, 4),
-            "second_half_average": round(second_avg, 4)
+            "second_half_average": round(second_avg, 4),
         }
 
-    async def _get_cost_optimization_tips(self, user_id: int, cost_data: Dict[str, Any]) -> List[str]:
+    async def _get_cost_optimization_tips(
+        self, user_id: int, cost_data: Dict[str, Any]
+    ) -> List[str]:
         """Get cost optimization tips based on cost data."""
         tips = []
 
@@ -684,19 +710,22 @@ class SMSCostCalculator:
         total_cost = cost_data.get("total_cost_usd", 0)
         if total_cost > 10:  # High cost threshold
             tips.append(
-                "High SMS costs detected. Consider implementing usage limits and monitoring.")
+                "High SMS costs detected. Consider implementing usage limits and monitoring."
+            )
 
         # Check for high outbound costs
         outbound_cost = cost_data.get("outbound_cost_usd", 0)
         if outbound_cost > total_cost * 0.8:
             tips.append(
-                "High outbound message costs. Consider implementing inbound-only features.")
+                "High outbound message costs. Consider implementing inbound-only features."
+            )
 
         # Check for MMS costs
         mms_cost = cost_data.get("mms_cost_usd", 0)
         if mms_cost > 0:
             tips.append(
-                "MMS messages detected. Consider using text-only messages when possible.")
+                "MMS messages detected. Consider using text-only messages when possible."
+            )
 
         return tips
 
@@ -711,7 +740,7 @@ class SMSCostCalculator:
                 and_(
                     SMSUsageLog.user_id == user_id,
                     SMSUsageLog.created_at >= start_date,
-                    SMSUsageLog.created_at <= end_date
+                    SMSUsageLog.created_at <= end_date,
                 )
             )
 
@@ -723,34 +752,38 @@ class SMSCostCalculator:
 
             total_messages = len(usage_logs)
             inbound_messages = len(
-                [log for log in usage_logs if log.message_direction == "inbound"])
+                [log for log in usage_logs if log.message_direction == "inbound"]
+            )
             outbound_messages = len(
-                [log for log in usage_logs if log.message_direction == "outbound"])
-            successful_messages = len(
-                [log for log in usage_logs if log.success])
+                [log for log in usage_logs if log.message_direction == "outbound"]
+            )
+            successful_messages = len([log for log in usage_logs if log.success])
             total_length = sum(log.message_length for log in usage_logs)
 
             # Calculate usage patterns
             hourly_counts = {}
             for log in usage_logs:
-                if log.created_at and hasattr(log.created_at, 'hour'):
+                if log.created_at and hasattr(log.created_at, "hour"):
                     hour = log.created_at.hour
                 else:
                     hour = 0
                 hourly_counts[hour] = hourly_counts.get(hour, 0) + 1
 
-            peak_hour = max(hourly_counts.items(), key=lambda x: x[1])[
-                0] if hourly_counts else None
+            peak_hour = (
+                max(hourly_counts.items(), key=lambda x: x[1])[0]
+                if hourly_counts
+                else None
+            )
 
             return {
                 "total_messages": total_messages,
                 "inbound_messages": inbound_messages,
                 "outbound_messages": outbound_messages,
-                "success_rate": (successful_messages / total_messages * 100) if total_messages > 0 else 0,
+                "success_rate": (successful_messages / total_messages * 100)
+                if total_messages > 0
+                else 0,
                 "total_message_length": total_length,
-                "usage_patterns": {
-                    "peak_hour": peak_hour
-                }
+                "usage_patterns": {"peak_hour": peak_hour},
             }
 
         except Exception as e:
@@ -768,7 +801,7 @@ class SMSCostCalculator:
                     SMSUsageLog.user_id == user_id,
                     SMSUsageLog.created_at >= start_date,
                     SMSUsageLog.created_at <= end_date,
-                    SMSUsageLog.message_direction == "outbound"
+                    SMSUsageLog.message_direction == "outbound",
                 )
             )
 
@@ -797,7 +830,7 @@ class SMSCostCalculator:
                     SMSUsageLog.user_id == user_id,
                     SMSUsageLog.created_at >= start_date,
                     SMSUsageLog.created_at <= end_date,
-                    SMSUsageLog.message_length > 160
+                    SMSUsageLog.message_length > 160,
                 )
             )
 
@@ -824,8 +857,8 @@ class SMSCostCalculator:
             "message_count": 0,
             "period": {
                 "start_date": (datetime.utcnow() - timedelta(days=30)).isoformat(),
-                "end_date": datetime.utcnow().isoformat()
-            }
+                "end_date": datetime.utcnow().isoformat(),
+            },
         }
 
     def _create_empty_system_cost_summary(self, time_range: str) -> Dict[str, Any]:
@@ -842,7 +875,9 @@ class SMSCostCalculator:
             "average_cost_per_user": 0.0,
             "top_cost_users": [],
             "period": {
-                "start_date": self._calculate_start_date(datetime.utcnow(), time_range).isoformat(),
-                "end_date": datetime.utcnow().isoformat()
-            }
+                "start_date": self._calculate_start_date(
+                    datetime.utcnow(), time_range
+                ).isoformat(),
+                "end_date": datetime.utcnow().isoformat(),
+            },
         }

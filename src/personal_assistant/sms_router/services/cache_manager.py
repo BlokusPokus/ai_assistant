@@ -2,10 +2,10 @@
 Cache manager for SMS Router Service.
 """
 
-import logging
 import json
-from typing import Any, Optional
+import logging
 from datetime import datetime, timedelta
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -127,30 +127,23 @@ class CacheManager:
             Dictionary with cache statistics
         """
         now = datetime.now()
-        expired_keys = [
-            key for key, expiry in self.timestamps.items()
-            if now > expiry
-        ]
+        expired_keys = [key for key, expiry in self.timestamps.items() if now > expiry]
 
         return {
-            'total_keys': len(self.cache),
-            'expired_keys': len(expired_keys),
-            'active_keys': len(self.cache) - len(expired_keys),
-            'default_ttl': self.default_ttl
+            "total_keys": len(self.cache),
+            "expired_keys": len(expired_keys),
+            "active_keys": len(self.cache) - len(expired_keys),
+            "default_ttl": self.default_ttl,
         }
 
     def _cleanup_expired(self):
         """Remove expired entries from cache."""
         now = datetime.now()
-        expired_keys = [
-            key for key, expiry in self.timestamps.items()
-            if now > expiry
-        ]
+        expired_keys = [key for key, expiry in self.timestamps.items() if now > expiry]
 
         for key in expired_keys:
             del self.cache[key]
             del self.timestamps[key]
 
         if expired_keys:
-            logger.debug(
-                f"Cleaned up {len(expired_keys)} expired cache entries")
+            logger.debug(f"Cleaned up {len(expired_keys)} expired cache entries")

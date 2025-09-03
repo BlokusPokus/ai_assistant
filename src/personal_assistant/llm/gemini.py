@@ -4,9 +4,8 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 
 from ..config.logging_config import get_logger
-from ..utils.text_cleaner import clean_text_for_logging
-
 from ..types.messages import FinalAnswer, ToolCall
+from ..utils.text_cleaner import clean_text_for_logging
 from .llm_client import LLMClient
 
 # Configure module logger
@@ -50,7 +49,7 @@ class GeminiLLM(LLMClient):
                             Each function should have 'name', 'description', and 'parameters'
 
         Returns:
-            dict: Either {'content': str} for text responses or 
+            dict: Either {'content': str} for text responses or
                  {'function_call': {'name': str, 'arguments': dict}} for function calls
 
         Raises:
@@ -59,10 +58,10 @@ class GeminiLLM(LLMClient):
         try:
             # Clean text before logging
             clean_prompt = clean_text_for_logging(prompt)
+            logger.debug(f"GeminiLLM.complete called with prompt length: {len(prompt)}")
             logger.debug(
-                f"GeminiLLM.complete called with prompt length: {len(prompt)}")
-            logger.debug(
-                f"Functions provided: {list(functions.keys()) if functions else 'None'}")
+                f"Functions provided: {list(functions.keys()) if functions else 'None'}"
+            )
 
             # Convert functions to Gemini's function calling format
             tools = None
@@ -75,25 +74,26 @@ class GeminiLLM(LLMClient):
                         "description": func_def.get("description", ""),
                         "parameters": {
                             "type": "OBJECT",
-                            "properties": func_def.get("parameters", {}).get("properties", {}),
-                            "required": func_def.get("parameters", {}).get("required", [])
-                        }
+                            "properties": func_def.get("parameters", {}).get(
+                                "properties", {}
+                            ),
+                            "required": func_def.get("parameters", {}).get(
+                                "required", []
+                            ),
+                        },
                     }
                     tools.append(tool)
-                print(
-                    f"Converted {len(tools)} functions to Gemini tool format")
+                print(f"Converted {len(tools)} functions to Gemini tool format")
 
             # Make the API call with tools as a direct parameter
             logger.debug("Calling Gemini API...")
             response = self.model.generate_content(
-                prompt,
-                tools=[{"function_declarations": tools}] if tools else None
+                prompt, tools=[{"function_declarations": tools}] if tools else None
             )
 
             # Clean response before logging
             clean_response = clean_text_for_logging(str(response))
-            logger.debug(
-                f"Received response from Gemini API: {clean_response}")
+            logger.debug(f"Received response from Gemini API: {clean_response}")
 
             # Get the first candidate's content
             candidate = response.candidates[0]
@@ -104,15 +104,15 @@ class GeminiLLM(LLMClient):
             # Check all parts for function calls
             function_call_found = False
             for part in content.parts:
-                if hasattr(part, 'function_call') and part.function_call is not None:
+                if hasattr(part, "function_call") and part.function_call is not None:
                     if not function_call_found:
                         logger.debug("Function call detected in response")
                         function_call_found = True
 
                     function_call = part.function_call
-                    name = getattr(function_call, 'name', None)
+                    name = getattr(function_call, "name", None)
 
-                    if not name and hasattr(function_call, 'function_name'):
+                    if not name and hasattr(function_call, "function_name"):
                         name = function_call.function_name
 
                     if name:  # If we found a valid name
@@ -120,25 +120,21 @@ class GeminiLLM(LLMClient):
 
                         # Extract arguments
                         args = {}
-                        if hasattr(function_call, 'args'):
+                        if hasattr(function_call, "args"):
                             if isinstance(function_call.args, dict):
                                 args = function_call.args
-                            elif hasattr(function_call.args, 'to_dict'):
+                            elif hasattr(function_call.args, "to_dict"):
                                 args = function_call.args.to_dict()
                             else:
                                 try:
                                     args = dict(function_call.args)
                                 except TypeError:
                                     logger.error(
-                                        f"Could not convert args to dict: {function_call.args}")
+                                        f"Could not convert args to dict: {function_call.args}"
+                                    )
                                     args = {}
 
-                        return {
-                            "function_call": {
-                                "name": name,
-                                "arguments": args
-                            }
-                        }
+                        return {"function_call": {"name": name, "arguments": args}}
 
             # If no function call found in any part, return text content
             return {"content": content.parts[0].text if content.parts else ""}
@@ -146,8 +142,9 @@ class GeminiLLM(LLMClient):
         except Exception as e:
             logger.error(f"Error in Gemini completion: {str(e)}")
             import traceback
+
             logger.error(f"Traceback: {traceback.format_exc()}")
-            if 'response' in locals() and response is not None:
+            if "response" in locals() and response is not None:
                 clean_response = clean_text_for_logging(str(response))
                 # Debug print
                 logger.debug(f"Response structure: {clean_response}")
@@ -167,7 +164,7 @@ class GeminiLLM(LLMClient):
                            text content or function call details
 
         Returns:
-            Union[ToolCall, FinalAnswer]: 
+            Union[ToolCall, FinalAnswer]:
                 - ToolCall if the response contains a function call
                 - FinalAnswer if the response contains text content
         """
@@ -180,7 +177,7 @@ class GeminiLLM(LLMClient):
         if "function_call" in response:
             return ToolCall(
                 name=response["function_call"]["name"],
-                args=response["function_call"]["arguments"]
+                args=response["function_call"]["arguments"],
             )
         return FinalAnswer(output=response.get("content", ""))
 
@@ -206,8 +203,7 @@ class GeminiLLM(LLMClient):
 
             # Use the module-level embed_content function
             result = genai.embed_content(
-                model='models/gemini-embedding-001',
-                content=text
+                model="models/gemini-embedding-001", content=text
             )
 
             # Debug: print the result structure
@@ -215,8 +211,8 @@ class GeminiLLM(LLMClient):
             print(f"API Response dir: {dir(result)}")
 
             # The API returns a dictionary with 'embedding' key
-            if isinstance(result, dict) and 'embedding' in result:
-                embedding = result['embedding']
+            if isinstance(result, dict) and "embedding" in result:
+                embedding = result["embedding"]
                 print(f"Embedding created with length: {len(embedding)}")
                 return embedding
             else:

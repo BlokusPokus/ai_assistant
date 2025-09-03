@@ -16,16 +16,18 @@ Description:
     and provides default values for various settings.
 """
 import os
-from pydantic_settings import BaseSettings
 from typing import Optional
+
 from dotenv import load_dotenv
+from pydantic_settings import BaseSettings
 
 # Load environment-specific config file
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
 # Get the project root directory (3 levels up from this file: src/personal_assistant/config/ -> project_root/)
-PROJECT_ROOT = os.path.dirname(os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+PROJECT_ROOT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 config_file = os.path.join(PROJECT_ROOT, "config", f"{ENVIRONMENT}.env")
 
 # Load the appropriate config file
@@ -141,22 +143,22 @@ class Settings(BaseSettings):
 
     # MFA Configuration
     MFA_TOTP_ISSUER: str = "Personal Assistant TDAH"
-    MFA_TOTP_WINDOW: int = 1                    # 30-second window tolerance
-    MFA_SMS_RATE_LIMIT: int = 3                 # Max SMS attempts per window
-    MFA_SMS_RATE_WINDOW_MINUTES: int = 10       # Rate limiting window
-    MFA_BACKUP_CODES_COUNT: int = 10            # Number of backup codes
-    MFA_TRUSTED_DEVICE_DAYS: int = 30           # Remember trusted devices
+    MFA_TOTP_WINDOW: int = 1  # 30-second window tolerance
+    MFA_SMS_RATE_LIMIT: int = 3  # Max SMS attempts per window
+    MFA_SMS_RATE_WINDOW_MINUTES: int = 10  # Rate limiting window
+    MFA_BACKUP_CODES_COUNT: int = 10  # Number of backup codes
+    MFA_TRUSTED_DEVICE_DAYS: int = 30  # Remember trusted devices
 
     # Session Management
-    SESSION_EXPIRY_HOURS: int = 24              # Session lifetime
-    SESSION_MAX_CONCURRENT: int = 5              # Max sessions per user
-    SESSION_REDIS_DB: int = 1                    # Redis database for sessions
-    SESSION_CLEANUP_INTERVAL: int = 3600         # Cleanup interval in seconds
+    SESSION_EXPIRY_HOURS: int = 24  # Session lifetime
+    SESSION_MAX_CONCURRENT: int = 5  # Max sessions per user
+    SESSION_REDIS_DB: int = 1  # Redis database for sessions
+    SESSION_CLEANUP_INTERVAL: int = 3600  # Cleanup interval in seconds
 
     # Security Settings
-    SECURITY_AUDIT_ENABLED: bool = True          # Enable security event logging
-    SECURITY_IP_WHITELIST: str = ""              # IP addresses to trust
-    SECURITY_DEVICE_TRACKING: bool = True        # Track device information
+    SECURITY_AUDIT_ENABLED: bool = True  # Enable security event logging
+    SECURITY_IP_WHITELIST: str = ""  # IP addresses to trust
+    SECURITY_DEVICE_TRACKING: bool = True  # Track device information
 
     # Rate limiting settings
     RATE_LIMIT_LOGIN_ATTEMPTS: int = 5

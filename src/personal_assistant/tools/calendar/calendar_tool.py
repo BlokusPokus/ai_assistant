@@ -6,35 +6,35 @@ from dotenv import load_dotenv
 
 from ..base import Tool
 from ..emails.ms_graph import get_access_token
-from .calendar_internal import (
-    validate_calendar_parameters,
-    validate_event_id,
-    validate_subject,
-    validate_start_time,
-    validate_duration,
-    validate_location,
-    is_token_valid,
-    build_calendar_headers,
-    build_calendar_view_params,
-    build_event_data,
-    parse_calendar_event,
-    parse_event_details,
-    format_success_response,
-    format_error_response,
-    handle_http_response,
-    handle_event_not_found,
-    validate_environment_variables,
-    get_environment_error_message,
-    get_datetime_range,
-    parse_start_time_with_duration,
-    format_calendar_events_response,
-    format_create_event_response,
-    format_delete_event_response,
-    format_event_details_response
-)
 
 # Import calendar-specific error handling
 from .calendar_error_handler import CalendarErrorHandler
+from .calendar_internal import (
+    build_calendar_headers,
+    build_calendar_view_params,
+    build_event_data,
+    format_calendar_events_response,
+    format_create_event_response,
+    format_delete_event_response,
+    format_error_response,
+    format_event_details_response,
+    format_success_response,
+    get_datetime_range,
+    get_environment_error_message,
+    handle_event_not_found,
+    handle_http_response,
+    is_token_valid,
+    parse_calendar_event,
+    parse_event_details,
+    parse_start_time_with_duration,
+    validate_calendar_parameters,
+    validate_duration,
+    validate_environment_variables,
+    validate_event_id,
+    validate_location,
+    validate_start_time,
+    validate_subject,
+)
 
 
 class CalendarTool:
@@ -53,13 +53,13 @@ class CalendarTool:
             parameters={
                 "count": {
                     "type": "integer",
-                    "description": "Number of events to fetch"
+                    "description": "Number of events to fetch",
                 },
                 "days": {
                     "type": "integer",
-                    "description": "Number of days to look ahead"
-                }
-            }
+                    "description": "Number of days to look ahead",
+                },
+            },
         )
 
         self.create_calendar_event_tool = Tool(
@@ -67,27 +67,18 @@ class CalendarTool:
             func=self.create_calendar_event,
             description="Create a new calendar event or reminder",
             parameters={
-                "subject": {
-                    "type": "string",
-                    "description": "Title of the event"
-                },
+                "subject": {"type": "string", "description": "Title of the event"},
                 "start_time": {
                     "type": "string",
-                    "description": "Start time in YYYY-MM-DD HH:MM format (e.g., 2024-01-15 14:30)"
+                    "description": "Start time in YYYY-MM-DD HH:MM format (e.g., 2024-01-15 14:30)",
                 },
-                "duration": {
-                    "type": "integer",
-                    "description": "Duration in minutes"
-                },
-                "location": {
-                    "type": "string",
-                    "description": "Location of the event"
-                },
+                "duration": {"type": "integer", "description": "Duration in minutes"},
+                "location": {"type": "string", "description": "Location of the event"},
                 "attendees": {
                     "type": "string",
-                    "description": "Comma-separated list of attendee email addresses (e.g., 'user@example.com,user2@example.com')"
-                }
-            }
+                    "description": "Comma-separated list of attendee email addresses (e.g., 'user@example.com,user2@example.com')",
+                },
+            },
         )
 
         self.delete_calendar_event_tool = Tool(
@@ -97,14 +88,20 @@ class CalendarTool:
             parameters={
                 "event_id": {
                     "type": "string",
-                    "description": "The ID of the event to delete"
+                    "description": "The ID of the event to delete",
                 }
-            }
+            },
         )
 
     def __iter__(self):
         """Makes the class iterable to return all tools"""
-        return iter([self.view_calendar_events_tool, self.create_calendar_event_tool, self.delete_calendar_event_tool])
+        return iter(
+            [
+                self.view_calendar_events_tool,
+                self.create_calendar_event_tool,
+                self.delete_calendar_event_tool,
+            ]
+        )
 
     def _initialize_token(self):
         """Initialize the access token using environment variables"""
@@ -114,9 +111,7 @@ class CalendarTool:
             raise ValueError(get_environment_error_message())
 
         self._access_token = get_access_token(
-            application_id,
-            client_secret,
-            self.scopes
+            application_id, client_secret, self.scopes
         )
 
     async def get_events(self, count: int = 5, days: int = 7) -> List[Dict[str, Any]]:
@@ -134,42 +129,53 @@ class CalendarTool:
             start_datetime, end_datetime = get_datetime_range(days)
 
             # Build query parameters using internal function
-            params = build_calendar_view_params(
-                start_datetime, end_datetime, count)
+            params = build_calendar_view_params(start_datetime, end_datetime, count)
 
             async with httpx.AsyncClient() as client:
                 response = await client.get(
                     f"{self.ms_graph_url}/me/calendarView",
                     headers=headers,
-                    params=params
+                    params=params,
                 )
 
                 if response.status_code != 200:
                     # Use calendar-specific error handling for HTTP errors
-                    return [CalendarErrorHandler.handle_calendar_error(
-                        Exception(
-                            f"HTTP {response.status_code}: {response.text}"),
-                        "view_calendar_events",
-                        {"count": count, "days": days}
-                    )]
+                    return [
+                        CalendarErrorHandler.handle_calendar_error(
+                            Exception(f"HTTP {response.status_code}: {response.text}"),
+                            "view_calendar_events",
+                            {"count": count, "days": days},
+                        )
+                    ]
 
                 data = response.json()
-                events = data.get('value', [])
+                events = data.get("value", [])
 
                 if not events:
                     return [{"message": f"No events found in the next {days} days."}]
 
                 # Parse events using internal function
-                parsed_events = [parse_calendar_event(
-                    event) for event in events[:count]]
+                parsed_events = [
+                    parse_calendar_event(event) for event in events[:count]
+                ]
                 return parsed_events
 
         except Exception as e:
             # Use calendar-specific error handling for all exceptions
-            return [CalendarErrorHandler.handle_calendar_error(e, "view_calendar_events", {"count": count, "days": days})]
+            return [
+                CalendarErrorHandler.handle_calendar_error(
+                    e, "view_calendar_events", {"count": count, "days": days}
+                )
+            ]
 
-    async def create_calendar_event(self, subject: str, start_time: str,
-                                    duration: int = 60, location: str = "", attendees: str = "") -> Dict[str, Any]:
+    async def create_calendar_event(
+        self,
+        subject: str,
+        start_time: str,
+        duration: int = 60,
+        location: str = "",
+        attendees: str = "",
+    ) -> Dict[str, Any]:
         """Create a new calendar event"""
         if not self._access_token:
             self._initialize_token()
@@ -181,8 +187,13 @@ class CalendarTool:
                 return CalendarErrorHandler.handle_calendar_error(
                     ValueError(error_msg),
                     "create_calendar_event",
-                    {"subject": subject, "start_time": start_time,
-                        "duration": duration, "location": location, "attendees": attendees}
+                    {
+                        "subject": subject,
+                        "start_time": start_time,
+                        "duration": duration,
+                        "location": location,
+                        "attendees": attendees,
+                    },
                 )
 
             is_valid, error_msg = validate_start_time(start_time)
@@ -190,8 +201,13 @@ class CalendarTool:
                 return CalendarErrorHandler.handle_calendar_error(
                     ValueError(error_msg),
                     "create_calendar_event",
-                    {"subject": subject, "start_time": start_time,
-                        "duration": duration, "location": location, "attendees": attendees}
+                    {
+                        "subject": subject,
+                        "start_time": start_time,
+                        "duration": duration,
+                        "location": location,
+                        "attendees": attendees,
+                    },
                 )
 
             is_valid, error_msg = validate_duration(duration)
@@ -199,8 +215,13 @@ class CalendarTool:
                 return CalendarErrorHandler.handle_calendar_error(
                     ValueError(error_msg),
                     "create_calendar_event",
-                    {"subject": subject, "start_time": start_time,
-                        "duration": duration, "location": location, "attendees": attendees}
+                    {
+                        "subject": subject,
+                        "start_time": start_time,
+                        "duration": duration,
+                        "location": location,
+                        "attendees": attendees,
+                    },
                 )
 
             is_valid, error_msg = validate_location(location)
@@ -208,52 +229,66 @@ class CalendarTool:
                 return CalendarErrorHandler.handle_calendar_error(
                     ValueError(error_msg),
                     "create_calendar_event",
-                    {"subject": subject, "start_time": start_time,
-                        "duration": duration, "location": location, "attendees": attendees}
+                    {
+                        "subject": subject,
+                        "start_time": start_time,
+                        "duration": duration,
+                        "location": location,
+                        "attendees": attendees,
+                    },
                 )
 
-            headers = build_calendar_headers(
-                self._access_token, "application/json")
+            headers = build_calendar_headers(self._access_token, "application/json")
 
             # Parse start time and calculate end time using internal function
-            start_dt, end_dt = parse_start_time_with_duration(
-                start_time, duration)
+            start_dt, end_dt = parse_start_time_with_duration(start_time, duration)
 
             # Build event data using internal function
             event_data = build_event_data(subject, start_dt, end_dt, location)
-            
+
             # Add attendees if provided
             if attendees:
-                attendee_emails = [email.strip() for email in attendees.split(',') if email.strip()]
+                attendee_emails = [
+                    email.strip() for email in attendees.split(",") if email.strip()
+                ]
                 if attendee_emails:
-                    event_data['attendees'] = [{'emailAddress': {'address': email}} for email in attendee_emails]
+                    event_data["attendees"] = [
+                        {"emailAddress": {"address": email}}
+                        for email in attendee_emails
+                    ]
 
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{self.ms_graph_url}/me/events",
-                    headers=headers,
-                    json=event_data
+                    f"{self.ms_graph_url}/me/events", headers=headers, json=event_data
                 )
 
                 if response.status_code in [200, 201]:
                     attendee_info = ""
                     if attendees:
-                        attendee_emails = [email.strip() for email in attendees.split(',') if email.strip()]
+                        attendee_emails = [
+                            email.strip()
+                            for email in attendees.split(",")
+                            if email.strip()
+                        ]
                         if attendee_emails:
                             attendee_info = f" with {len(attendee_emails)} attendee(s): {', '.join(attendee_emails)}"
-                    
+
                     return format_success_response(
                         f"Successfully created event '{subject}' at {start_time}{attendee_info}",
-                        response.json()
+                        response.json(),
                     )
                 else:
                     # Use calendar-specific error handling for HTTP errors
                     return CalendarErrorHandler.handle_calendar_error(
-                        Exception(
-                            f"HTTP {response.status_code}: {response.text}"),
+                        Exception(f"HTTP {response.status_code}: {response.text}"),
                         "create_calendar_event",
-                        {"subject": subject, "start_time": start_time,
-                            "duration": duration, "location": location, "attendees": attendees}
+                        {
+                            "subject": subject,
+                            "start_time": start_time,
+                            "duration": duration,
+                            "location": location,
+                            "attendees": attendees,
+                        },
                     )
 
         except ValueError as e:
@@ -261,16 +296,26 @@ class CalendarTool:
             return CalendarErrorHandler.handle_calendar_error(
                 e,
                 "create_calendar_event",
-                {"subject": subject, "start_time": start_time,
-                    "duration": duration, "location": location, "attendees": attendees}
+                {
+                    "subject": subject,
+                    "start_time": start_time,
+                    "duration": duration,
+                    "location": location,
+                    "attendees": attendees,
+                },
             )
         except Exception as e:
             # Use calendar-specific error handling for all other exceptions
             return CalendarErrorHandler.handle_calendar_error(
                 e,
                 "create_calendar_event",
-                {"subject": subject, "start_time": start_time,
-                    "duration": duration, "location": location, "attendees": attendees}
+                {
+                    "subject": subject,
+                    "start_time": start_time,
+                    "duration": duration,
+                    "location": location,
+                    "attendees": attendees,
+                },
             )
 
     async def get_event_details(self, event_id: str) -> str:
@@ -291,9 +336,7 @@ class CalendarTool:
             is_valid, error_msg = validate_event_id(event_id)
             if not is_valid:
                 error_response = CalendarErrorHandler.handle_calendar_error(
-                    ValueError(error_msg),
-                    "get_event_details",
-                    {"event_id": event_id}
+                    ValueError(error_msg), "get_event_details", {"event_id": event_id}
                 )
                 return error_response["llm_instructions"]
 
@@ -301,16 +344,14 @@ class CalendarTool:
 
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    f"{self.ms_graph_url}/me/events/{event_id}",
-                    headers=headers
+                    f"{self.ms_graph_url}/me/events/{event_id}", headers=headers
                 )
 
                 if response.status_code != 200:
                     error_response = CalendarErrorHandler.handle_calendar_error(
-                        Exception(
-                            f"HTTP {response.status_code}: {response.text}"),
+                        Exception(f"HTTP {response.status_code}: {response.text}"),
                         "get_event_details",
-                        {"event_id": event_id}
+                        {"event_id": event_id},
                     )
                     return error_response["llm_instructions"]
 
@@ -322,9 +363,7 @@ class CalendarTool:
 
         except Exception as e:
             error_response = CalendarErrorHandler.handle_calendar_error(
-                e,
-                "get_event_details",
-                {"event_id": event_id}
+                e, "get_event_details", {"event_id": event_id}
             )
             return error_response["llm_instructions"]
 
@@ -340,28 +379,30 @@ class CalendarTool:
                 return CalendarErrorHandler.handle_calendar_error(
                     ValueError(error_msg),
                     "delete_calendar_event",
-                    {"event_id": event_id}
+                    {"event_id": event_id},
                 )
 
             headers = build_calendar_headers(self._access_token)
 
             async with httpx.AsyncClient() as client:
                 response = await client.delete(
-                    f"{self.ms_graph_url}/me/events/{event_id}",
-                    headers=headers
+                    f"{self.ms_graph_url}/me/events/{event_id}", headers=headers
                 )
 
                 if response.status_code == 204:  # No content on successful deletion
-                    return format_success_response(f"Successfully deleted event with ID: {event_id}")
+                    return format_success_response(
+                        f"Successfully deleted event with ID: {event_id}"
+                    )
                 elif response.status_code == 404:
                     return handle_event_not_found(event_id)
                 else:
                     return CalendarErrorHandler.handle_calendar_error(
-                        Exception(
-                            f"HTTP {response.status_code}: {response.text}"),
+                        Exception(f"HTTP {response.status_code}: {response.text}"),
                         "delete_calendar_event",
-                        {"event_id": event_id}
+                        {"event_id": event_id},
                     )
 
         except Exception as e:
-            return CalendarErrorHandler.handle_calendar_error(e, "delete_calendar_event", {"event_id": event_id})
+            return CalendarErrorHandler.handle_calendar_error(
+                e, "delete_calendar_event", {"event_id": event_id}
+            )

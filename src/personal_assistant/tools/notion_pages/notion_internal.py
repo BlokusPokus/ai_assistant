@@ -36,12 +36,17 @@ async def ensure_main_page_exists(client: Client, main_page_id: str = None) -> s
     try:
         # Search for existing main page
         response = client.search(
-            query="Table of Contents",
-            filter={"property": "object", "value": "page"}
+            query="Table of Contents", filter={"property": "object", "value": "page"}
         )
 
         for page in response.get("results", []):
-            if page.get("properties", {}).get("title", {}).get("title", [{}])[0].get("plain_text", "") == "Table of Contents":
+            if (
+                page.get("properties", {})
+                .get("title", {})
+                .get("title", [{}])[0]
+                .get("plain_text", "")
+                == "Table of Contents"
+            ):
                 found_main_page_id = page["id"]
                 logger.info(f"Found existing main page: {found_main_page_id}")
                 return found_main_page_id
@@ -57,10 +62,17 @@ async def ensure_main_page_exists(client: Client, main_page_id: str = None) -> s
                     "object": "block",
                     "type": "paragraph",
                     "paragraph": {
-                        "rich_text": [{"type": "text", "text": {"content": "Welcome to your notes! This page serves as the table of contents for all your note pages."}}]
-                    }
+                        "rich_text": [
+                            {
+                                "type": "text",
+                                "text": {
+                                    "content": "Welcome to your notes! This page serves as the table of contents for all your note pages."
+                                },
+                            }
+                        ]
+                    },
                 }
-            ]
+            ],
         )
 
         created_main_page_id = main_page["id"]
@@ -82,10 +94,18 @@ async def update_table_of_contents(client: Client, main_page_id: str) -> None:
             if block["type"] == "child_page":
                 page_id = block["id"]
                 page = client.pages.retrieve(page_id)
-                title = page.get("properties", {}).get("title", {}).get(
-                    "title", [{}])[0].get("plain_text", "")
-                category = page.get("properties", {}).get(
-                    "Category", {}).get("select", {}).get("name", "")
+                title = (
+                    page.get("properties", {})
+                    .get("title", {})
+                    .get("title", [{}])[0]
+                    .get("plain_text", "")
+                )
+                category = (
+                    page.get("properties", {})
+                    .get("Category", {})
+                    .get("select", {})
+                    .get("name", "")
+                )
 
                 note_pages.append((title, category))
 
@@ -119,31 +139,48 @@ async def update_table_of_contents(client: Client, main_page_id: str) -> None:
         if categories:
             for category, titles in categories.items():
                 # Category heading
-                toc_blocks.append({
-                    "object": "block",
-                    "type": "heading_2",
-                    "heading_2": {
-                        "rich_text": [{"type": "text", "text": {"content": category}}]
+                toc_blocks.append(
+                    {
+                        "object": "block",
+                        "type": "heading_2",
+                        "heading_2": {
+                            "rich_text": [
+                                {"type": "text", "text": {"content": category}}
+                            ]
+                        },
                     }
-                })
+                )
 
                 # Page titles
                 for title in sorted(titles):
-                    toc_blocks.append({
-                        "object": "block",
-                        "type": "bulleted_list_item",
-                        "bulleted_list_item": {
-                            "rich_text": [{"type": "text", "text": {"content": title}}]
+                    toc_blocks.append(
+                        {
+                            "object": "block",
+                            "type": "bulleted_list_item",
+                            "bulleted_list_item": {
+                                "rich_text": [
+                                    {"type": "text", "text": {"content": title}}
+                                ]
+                            },
                         }
-                    })
+                    )
         else:
-            toc_blocks.append({
-                "object": "block",
-                "type": "paragraph",
-                "paragraph": {
-                    "rich_text": [{"type": "text", "text": {"content": "No note pages yet. Create your first note!"}}]
+            toc_blocks.append(
+                {
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [
+                            {
+                                "type": "text",
+                                "text": {
+                                    "content": "No note pages yet. Create your first note!"
+                                },
+                            }
+                        ]
+                    },
                 }
-            })
+            )
 
         # Add TOC blocks to main page
         if toc_blocks:
@@ -158,16 +195,23 @@ async def update_table_of_contents(client: Client, main_page_id: str) -> None:
 
 def extract_page_properties(page: dict) -> Tuple[str, str, List[str]]:
     """Extract common page properties (title, category, tags)"""
-    title = page.get("properties", {}).get("title", {}).get(
-        "title", [{}])[0].get("plain_text", "")
-    category = page.get("properties", {}).get(
-        "Category", {}).get("select", {}).get("name", "")
+    title = (
+        page.get("properties", {})
+        .get("title", {})
+        .get("title", [{}])[0]
+        .get("plain_text", "")
+    )
+    category = (
+        page.get("properties", {}).get("Category", {}).get("select", {}).get("name", "")
+    )
     tags = page.get("properties", {}).get("Tags", {}).get("multi_select", [])
 
     return title, category, tags
 
 
-def create_properties_dict(title: str = None, tags: str = None, category: str = None) -> dict:
+def create_properties_dict(
+    title: str = None, tags: str = None, category: str = None
+) -> dict:
     """Create a properties dictionary for Notion pages"""
     properties = {}
 
@@ -177,13 +221,10 @@ def create_properties_dict(title: str = None, tags: str = None, category: str = 
     if tags:
         properties["Tags"] = {
             "type": "multi_select",
-            "multi_select": [{"name": tag.strip()} for tag in tags.split(",")]
+            "multi_select": [{"name": tag.strip()} for tag in tags.split(",")],
         }
 
     if category:
-        properties["Category"] = {
-            "type": "select",
-            "select": {"name": category}
-        }
+        properties["Category"] = {"type": "select", "select": {"name": category}}
 
     return properties

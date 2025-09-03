@@ -34,11 +34,11 @@ def sync_calendar_events(self) -> Dict[str, Any]:
         # TODO: Implement calendar synchronization logic
 
         result = {
-            'task_id': task_id,
-            'status': 'success',
-            'events_synced': 0,
-            'conflicts_resolved': 0,
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "success",
+            "events_synced": 0,
+            "conflicts_resolved": 0,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         logger.info(f"Calendar sync completed: {result}")
@@ -67,11 +67,11 @@ def sync_notion_pages(self) -> Dict[str, Any]:
         # TODO: Implement Notion synchronization logic
 
         result = {
-            'task_id': task_id,
-            'status': 'success',
-            'pages_synced': 0,
-            'conflicts_resolved': 0,
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "success",
+            "pages_synced": 0,
+            "conflicts_resolved": 0,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         logger.info(f"Notion sync completed: {result}")
@@ -100,11 +100,11 @@ def sync_email_services(self) -> Dict[str, Any]:
         # TODO: Implement email service synchronization logic
 
         result = {
-            'task_id': task_id,
-            'status': 'success',
-            'emails_synced': 0,
-            'new_notifications': 0,
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "success",
+            "emails_synced": 0,
+            "new_notifications": 0,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         logger.info(f"Email service sync completed: {result}")
@@ -133,11 +133,11 @@ def sync_user_preferences(self) -> Dict[str, Any]:
         # TODO: Implement user preferences synchronization logic
 
         result = {
-            'task_id': task_id,
-            'status': 'success',
-            'users_synced': 0,
-            'preferences_updated': 0,
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "success",
+            "users_synced": 0,
+            "preferences_updated": 0,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         logger.info(f"User preferences sync completed: {result}")

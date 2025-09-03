@@ -7,8 +7,8 @@ This module provides centralized error handling for the background task system.
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Dict, Optional, Callable
 from functools import wraps
+from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -29,16 +29,22 @@ class TaskErrorHandler:
         self.error_callbacks[error_type] = callback
         logger.info(f"Registered error callback for {error_type}")
 
-    def handle_task_error(self, task_name: str, task_id: str, error: Exception, context: Dict[str, Any] = None):
+    def handle_task_error(
+        self,
+        task_name: str,
+        task_id: str,
+        error: Exception,
+        context: Dict[str, Any] = None,
+    ):
         """Handle a task error with centralized logic."""
         error_record = {
-            'task_name': task_name,
-            'task_id': task_id,
-            'error_type': type(error).__name__,
-            'error_message': str(error),
-            'traceback': traceback.format_exc(),
-            'context': context or {},
-            'timestamp': datetime.utcnow()
+            "task_name": task_name,
+            "task_id": task_id,
+            "error_type": type(error).__name__,
+            "error_message": str(error),
+            "traceback": traceback.format_exc(),
+            "context": context or {},
+            "timestamp": datetime.utcnow(),
         }
 
         self.error_history.append(error_record)
@@ -61,28 +67,24 @@ class TaskErrorHandler:
     def get_error_summary(self, hours: int = 24) -> Dict[str, Any]:
         """Get a summary of recent errors."""
         cutoff_time = datetime.utcnow() - datetime.timedelta(hours=hours)
-        recent_errors = [
-            e for e in self.error_history
-            if e['timestamp'] > cutoff_time
-        ]
+        recent_errors = [e for e in self.error_history if e["timestamp"] > cutoff_time]
 
         error_types = {}
         for error in recent_errors:
-            error_type = error['error_type']
+            error_type = error["error_type"]
             error_types[error_type] = error_types.get(error_type, 0) + 1
 
         return {
-            'total_errors': len(recent_errors),
-            'error_types': error_types,
-            'time_window_hours': hours
+            "total_errors": len(recent_errors),
+            "error_types": error_types,
+            "time_window_hours": hours,
         }
 
     def clear_old_errors(self, days: int = 7):
         """Clear errors older than specified days."""
         cutoff_time = datetime.utcnow() - datetime.timedelta(days=days)
         self.error_history = [
-            e for e in self.error_history
-            if e['timestamp'] > cutoff_time
+            e for e in self.error_history if e["timestamp"] > cutoff_time
         ]
         logger.info(f"Cleared errors older than {days} days")
 
@@ -93,6 +95,7 @@ def handle_task_errors(task_name: str = None):
 
     This is a simplified version that will be enhanced in Task 037.2.
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -103,21 +106,25 @@ def handle_task_errors(task_name: str = None):
                 return func(*args, **kwargs)
             except Exception as e:
                 # Get task_id from self if it's a bound method
-                task_id = getattr(args[0], 'request', {}).get(
-                    'id', 'unknown') if args else 'unknown'
+                task_id = (
+                    getattr(args[0], "request", {}).get("id", "unknown")
+                    if args
+                    else "unknown"
+                )
 
                 # Handle the error
                 error_handler.handle_task_error(
                     task_name=actual_task_name,
                     task_id=task_id,
                     error=e,
-                    context={'args': args, 'kwargs': kwargs}
+                    context={"args": args, "kwargs": kwargs},
                 )
 
                 # Re-raise the exception for Celery to handle
                 raise
 
         return wrapper
+
     return decorator
 
 
@@ -127,6 +134,7 @@ def retry_on_error(max_retries: int = 3, delay: int = 60):
 
     This is a simplified version that will be enhanced in Task 037.2.
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -139,16 +147,20 @@ def retry_on_error(max_retries: int = 3, delay: int = 60):
                     last_exception = e
                     if attempt < max_retries:
                         logger.warning(
-                            f"Task {func.__name__} failed (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                            f"Task {func.__name__} failed (attempt {attempt + 1}/{max_retries + 1}): {e}"
+                        )
                         # In a real implementation, this would use Celery's retry mechanism
                         import time
+
                         time.sleep(delay)
                     else:
                         logger.error(
-                            f"Task {func.__name__} failed after {max_retries + 1} attempts: {e}")
+                            f"Task {func.__name__} failed after {max_retries + 1} attempts: {e}"
+                        )
                         raise last_exception
 
         return wrapper
+
     return decorator
 
 

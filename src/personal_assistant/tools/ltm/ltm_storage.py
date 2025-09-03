@@ -21,8 +21,12 @@ from ...utils.tag_utils import normalize_tags, validate_tags
 # Enhanced imports for new functionality
 try:
     from ...memory.ltm_optimization.context_structures import (
-        EnhancedContext, MemoryType, SourceType, create_default_context
+        EnhancedContext,
+        MemoryType,
+        SourceType,
+        create_default_context,
     )
+
     ENHANCED_FEATURES_AVAILABLE = True
 except ImportError:
     ENHANCED_FEATURES_AVAILABLE = False
@@ -51,7 +55,7 @@ async def add_ltm_memory(
     created_by: str = "system",
     metadata: Optional[Dict[str, Any]] = None,
     related_memory_ids: Optional[List[int]] = None,
-    parent_memory_id: Optional[int] = None
+    parent_memory_id: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Add a new LTM memory entry with enhanced features when available.
@@ -98,7 +102,7 @@ async def add_ltm_memory(
                 created_by=created_by,
                 metadata=metadata,
                 related_memory_ids=related_memory_ids,
-                parent_memory_id=parent_memory_id
+                parent_memory_id=parent_memory_id,
             )
         else:
             # Fall back to legacy storage
@@ -107,7 +111,7 @@ async def add_ltm_memory(
                 content=content,
                 tags=tags,
                 importance_score=importance_score,
-                context=context
+                context=context,
             )
 
     except Exception as e:
@@ -130,7 +134,7 @@ async def _add_enhanced_ltm_memory(
     created_by: str = "system",
     metadata: Optional[Dict[str, Any]] = None,
     related_memory_ids: Optional[List[int]] = None,
-    parent_memory_id: Optional[int] = None
+    parent_memory_id: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Enhanced LTM memory creation with full context support"""
     try:
@@ -157,7 +161,8 @@ async def _add_enhanced_ltm_memory(
         if not 0.0 <= confidence_score <= 1.0:
             confidence_score = 1.0  # Default to high confidence if invalid
             logger.warning(
-                f"Invalid confidence score {confidence_score}, defaulting to 1.0")
+                f"Invalid confidence score {confidence_score}, defaulting to 1.0"
+            )
 
         # Convert dict to EnhancedContext if needed
         if isinstance(enhanced_context, dict):
@@ -177,18 +182,19 @@ async def _add_enhanced_ltm_memory(
             # Normalize and validate tags
             normalized_tags = normalize_tags(tags)
             valid_tags, invalid_tags = validate_tags(
-                normalized_tags, enable_smart_fallback=True)
+                normalized_tags, enable_smart_fallback=True
+            )
 
             if invalid_tags:
                 logger.warning(
-                    f"Invalid tags provided: {invalid_tags}. Using only valid tags: {valid_tags}")
+                    f"Invalid tags provided: {invalid_tags}. Using only valid tags: {valid_tags}"
+                )
 
             # Use only valid tags, or default to ['general'] if none valid
-            final_tags = valid_tags if valid_tags else ['general']
+            final_tags = valid_tags if valid_tags else ["general"]
 
             # Ensure all tags are lowercase strings (database requirement)
-            final_tags = [str(tag).lower().strip()
-                          for tag in final_tags if tag]
+            final_tags = [str(tag).lower().strip() for tag in final_tags if tag]
 
             # Create LTM memory entry
             memory_data = {
@@ -211,7 +217,7 @@ async def _add_enhanced_ltm_memory(
                 "last_accessed": datetime.utcnow(),
                 "last_modified": datetime.utcnow(),
                 "access_count": 0,
-                "is_archived": False
+                "is_archived": False,
             }
 
             # Create the memory
@@ -223,7 +229,8 @@ async def _add_enhanced_ltm_memory(
             await session.commit()
 
             logger.info(
-                f"Created enhanced LTM memory {memory.id} for user {user_id} with type: {memory_type}, category: {category}")
+                f"Created enhanced LTM memory {memory.id} for user {user_id} with type: {memory_type}, category: {category}"
+            )
 
             return memory.as_dict()
 
@@ -237,7 +244,7 @@ async def _add_legacy_ltm_memory(
     content: str,
     tags: List[str],
     importance_score: int = 1,
-    context: Optional[str] = None
+    context: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Legacy LTM memory creation for backward compatibility"""
     try:
@@ -247,18 +254,19 @@ async def _add_legacy_ltm_memory(
             # Normalize and validate tags
             normalized_tags = normalize_tags(tags)
             valid_tags, invalid_tags = validate_tags(
-                normalized_tags, enable_smart_fallback=True)
+                normalized_tags, enable_smart_fallback=True
+            )
 
             if invalid_tags:
                 logger.warning(
-                    f"Invalid tags provided: {invalid_tags}. Using only valid tags: {valid_tags}")
+                    f"Invalid tags provided: {invalid_tags}. Using only valid tags: {valid_tags}"
+                )
 
             # Use only valid tags, or default to ['general'] if none valid
-            final_tags = valid_tags if valid_tags else ['general']
+            final_tags = valid_tags if valid_tags else ["general"]
 
             # Ensure all tags are lowercase strings (database requirement)
-            final_tags = [str(tag).lower().strip()
-                          for tag in final_tags if tag]
+            final_tags = [str(tag).lower().strip() for tag in final_tags if tag]
 
             # Create LTM memory entry with legacy structure
             memory_data = {
@@ -268,13 +276,12 @@ async def _add_legacy_ltm_memory(
                 "importance_score": importance_score,
                 "context": context,
                 "created_at": datetime.utcnow(),
-                "last_accessed": datetime.utcnow()
+                "last_accessed": datetime.utcnow(),
             }
 
             memory = await add_record(session, LTMMemory, memory_data)
 
-            logger.info(
-                f"Created legacy LTM memory {memory.id} for user {user_id}")
+            logger.info(f"Created legacy LTM memory {memory.id} for user {user_id}")
 
             return {
                 "id": memory.id,
@@ -283,7 +290,7 @@ async def _add_legacy_ltm_memory(
                 "importance_score": memory.importance_score,
                 "context": memory.context,
                 "created_at": memory.created_at.isoformat(),
-                "last_accessed": memory.last_accessed.isoformat()
+                "last_accessed": memory.last_accessed.isoformat(),
             }
 
     except Exception as e:
@@ -292,10 +299,7 @@ async def _add_legacy_ltm_memory(
 
 
 async def search_ltm_memories(
-    user_id: int,
-    query: str,
-    limit: int = 5,
-    min_importance: int = 1
+    user_id: int, query: str, limit: int = 5, min_importance: int = 1
 ) -> List[Dict[str, Any]]:
     """
     Search LTM memories by content similarity.
@@ -320,10 +324,12 @@ async def search_ltm_memories(
                     and_(
                         LTMMemory.user_id == user_id_int,
                         LTMMemory.importance_score >= min_importance,
-                        LTMMemory.content.ilike(f"%{query}%")
+                        LTMMemory.content.ilike(f"%{query}%"),
                     )
                 )
-                .order_by(desc(LTMMemory.importance_score), desc(LTMMemory.last_accessed))
+                .order_by(
+                    desc(LTMMemory.importance_score), desc(LTMMemory.last_accessed)
+                )
                 .limit(limit)
             )
 
@@ -344,7 +350,7 @@ async def search_ltm_memories(
                     "importance_score": memory.importance_score,
                     "context": memory.context,
                     "created_at": memory.created_at.isoformat(),
-                    "last_accessed": memory.last_accessed.isoformat()
+                    "last_accessed": memory.last_accessed.isoformat(),
                 }
                 for memory in memories
             ]
@@ -355,9 +361,7 @@ async def search_ltm_memories(
 
 
 async def get_relevant_ltm_memories(
-    user_id: int,
-    context: str,
-    limit: int = 3
+    user_id: int, context: str, limit: int = 3
 ) -> List[Dict[str, Any]]:
     """
     Get LTM memories relevant to the current context.
@@ -374,7 +378,8 @@ async def get_relevant_ltm_memories(
         async with AsyncSessionLocal() as session:
             user_id_int = int(user_id)
             logger.info(
-                f"Querying LTM memories for user {user_id_int} with context: {context[:100]}...")
+                f"Querying LTM memories for user {user_id_int} with context: {context[:100]}..."
+            )
 
             # Get memories with tags that match context keywords
             # This is a simple implementation - can be enhanced with better matching
@@ -387,10 +392,12 @@ async def get_relevant_ltm_memories(
                 .where(
                     and_(
                         LTMMemory.user_id == user_id_int,
-                        LTMMemory.importance_score >= 3  # Only important memories
+                        LTMMemory.importance_score >= 3,  # Only important memories
                     )
                 )
-                .order_by(desc(LTMMemory.importance_score), desc(LTMMemory.last_accessed))
+                .order_by(
+                    desc(LTMMemory.importance_score), desc(LTMMemory.last_accessed)
+                )
                 .limit(limit)
             )
 
@@ -398,8 +405,7 @@ async def get_relevant_ltm_memories(
             result = await session.execute(stmt)
             memories = result.scalars().all()
 
-            logger.info(
-                f"Found {len(memories)} total memories for user {user_id_int}")
+            logger.info(f"Found {len(memories)} total memories for user {user_id_int}")
 
             # Filter by relevance (simple tag matching for now)
             relevant_memories = []
@@ -408,10 +414,12 @@ async def get_relevant_ltm_memories(
                 if isinstance(memory.tags, str):
                     try:
                         import json
+
                         memory_tags = json.loads(memory.tags)
                     except json.JSONDecodeError:
                         logger.warning(
-                            f"Failed to parse tags for memory {memory.id}: {memory.tags}")
+                            f"Failed to parse tags for memory {memory.id}: {memory.tags}"
+                        )
                         memory_tags = []
                 else:
                     memory_tags = memory.tags or []
@@ -424,11 +432,11 @@ async def get_relevant_ltm_memories(
                     logger.info(f"Memory {memory.id} matches context keywords")
                     relevant_memories.append(memory)
                 else:
-                    logger.debug(
-                        f"Memory {memory.id} does not match context keywords")
+                    logger.debug(f"Memory {memory.id} does not match context keywords")
 
             logger.info(
-                f"Found {len(relevant_memories)} relevant memories after filtering")
+                f"Found {len(relevant_memories)} relevant memories after filtering"
+            )
 
             # Update last_accessed for retrieved memories
             for memory in relevant_memories:
@@ -443,26 +451,33 @@ async def get_relevant_ltm_memories(
                 if isinstance(memory.tags, str):
                     try:
                         import json
+
                         parsed_tags = json.loads(memory.tags)
                     except json.JSONDecodeError:
                         logger.warning(
-                            f"Failed to parse tags for memory {memory.id}: {memory.tags}")
+                            f"Failed to parse tags for memory {memory.id}: {memory.tags}"
+                        )
                         parsed_tags = []
                 else:
                     parsed_tags = memory.tags or []
 
-                formatted_memories.append({
-                    "id": memory.id,
-                    "content": memory.content,
-                    "tags": parsed_tags,
-                    "importance_score": memory.importance_score,
-                    "context": memory.context,
-                    "created_at": memory.created_at.isoformat() if memory.created_at else None,
-                    "last_accessed": memory.last_accessed.isoformat() if memory.last_accessed else None
-                })
+                formatted_memories.append(
+                    {
+                        "id": memory.id,
+                        "content": memory.content,
+                        "tags": parsed_tags,
+                        "importance_score": memory.importance_score,
+                        "context": memory.context,
+                        "created_at": memory.created_at.isoformat()
+                        if memory.created_at
+                        else None,
+                        "last_accessed": memory.last_accessed.isoformat()
+                        if memory.last_accessed
+                        else None,
+                    }
+                )
 
-            logger.info(
-                f"Returning {len(formatted_memories)} formatted memories")
+            logger.info(f"Returning {len(formatted_memories)} formatted memories")
             return formatted_memories
 
     except Exception as e:
@@ -487,10 +502,7 @@ async def delete_ltm_memory(user_id: int, memory_id: int) -> bool:
 
             # Find and delete the memory
             stmt = select(LTMMemory).where(
-                and_(
-                    LTMMemory.id == memory_id,
-                    LTMMemory.user_id == user_id_int
-                )
+                and_(LTMMemory.id == memory_id, LTMMemory.user_id == user_id_int)
             )
 
             result = await session.execute(stmt)
@@ -499,12 +511,10 @@ async def delete_ltm_memory(user_id: int, memory_id: int) -> bool:
             if memory:
                 await session.delete(memory)
                 await session.commit()
-                logger.info(
-                    f"Deleted LTM memory {memory_id} for user {user_id}")
+                logger.info(f"Deleted LTM memory {memory_id} for user {user_id}")
                 return True
             else:
-                logger.warning(
-                    f"LTM memory {memory_id} not found for user {user_id}")
+                logger.warning(f"LTM memory {memory_id} not found for user {user_id}")
                 return False
 
     except Exception as e:
@@ -527,23 +537,25 @@ async def get_ltm_memory_stats(user_id: int) -> Dict[str, Any]:
             user_id_int = int(user_id)
 
             # Get total count
-            total_stmt = select(LTMMemory).where(
-                LTMMemory.user_id == user_id_int)
+            total_stmt = select(LTMMemory).where(LTMMemory.user_id == user_id_int)
             total_result = await session.execute(total_stmt)
             total_memories = len(total_result.scalars().all())
 
             # Get average importance score
             avg_stmt = select(LTMMemory.importance_score).where(
-                LTMMemory.user_id == user_id_int)
+                LTMMemory.user_id == user_id_int
+            )
             avg_result = await session.execute(avg_stmt)
             importance_scores = [row[0] for row in avg_result.fetchall()]
-            avg_importance = sum(importance_scores) / \
-                len(importance_scores) if importance_scores else 0
+            avg_importance = (
+                sum(importance_scores) / len(importance_scores)
+                if importance_scores
+                else 0
+            )
 
             # Get most common tags
             all_tags = []
-            tags_stmt = select(LTMMemory.tags).where(
-                LTMMemory.user_id == user_id_int)
+            tags_stmt = select(LTMMemory.tags).where(LTMMemory.user_id == user_id_int)
             tags_result = await session.execute(tags_stmt)
             for row in tags_result.fetchall():
                 all_tags.extend(row[0])
@@ -554,14 +566,13 @@ async def get_ltm_memory_stats(user_id: int) -> Dict[str, Any]:
                 tag_counts[tag] = tag_counts.get(tag, 0) + 1
 
             # Get top 5 tags
-            top_tags = sorted(tag_counts.items(),
-                              key=lambda x: x[1], reverse=True)[:5]
+            top_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)[:5]
 
             return {
                 "total_memories": total_memories,
                 "average_importance": round(avg_importance, 2),
                 "top_tags": top_tags,
-                "user_id": user_id
+                "user_id": user_id,
             }
 
     except Exception as e:
@@ -570,5 +581,5 @@ async def get_ltm_memory_stats(user_id: int) -> Dict[str, Any]:
             "total_memories": 0,
             "average_importance": 0,
             "top_tags": [],
-            "user_id": user_id
+            "user_id": user_id,
         }

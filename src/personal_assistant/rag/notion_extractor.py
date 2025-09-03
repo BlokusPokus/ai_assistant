@@ -4,8 +4,8 @@ Extracts and normalizes content from Notion notes for vector embedding.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from ..tools.notion_pages.notion_pages_tool import NotionPagesTool
 
@@ -22,7 +22,9 @@ class NotionContentExtractor:
         self.notion_tool = NotionPagesTool()
         logger.info("NotionContentExtractor initialized")
 
-    async def extract_note_content(self, note_id: str, user_id: int) -> Optional[Dict[str, Any]]:
+    async def extract_note_content(
+        self, note_id: str, user_id: int
+    ) -> Optional[Dict[str, Any]]:
         """
         Extract full note content with metadata.
 
@@ -34,8 +36,7 @@ class NotionContentExtractor:
             Dictionary containing structured note data or None if extraction fails
         """
         try:
-            logger.debug(
-                f"Extracting content for note {note_id} (user: {user_id})")
+            logger.debug(f"Extracting content for note {note_id} (user: {user_id})")
 
             # Get note using existing NotionNotesTool
             note_content = await self.notion_tool.get_note(note_id)
@@ -52,12 +53,14 @@ class NotionContentExtractor:
                 return None
 
             # Add metadata
-            structured_content.update({
-                "id": note_id,
-                "user_id": user_id,
-                "source": "notion",
-                "extracted_at": datetime.utcnow().isoformat()
-            })
+            structured_content.update(
+                {
+                    "id": note_id,
+                    "user_id": user_id,
+                    "source": "notion",
+                    "extracted_at": datetime.utcnow().isoformat(),
+                }
+            )
 
             logger.info(f"Successfully extracted content for note {note_id}")
             return structured_content
@@ -81,8 +84,7 @@ class NotionContentExtractor:
                 return None
 
             # Split content into lines for analysis
-            lines = [line.strip()
-                     for line in note_content.split('\n') if line.strip()]
+            lines = [line.strip() for line in note_content.split("\n") if line.strip()]
 
             if not lines:
                 return None
@@ -104,7 +106,7 @@ class NotionContentExtractor:
                 "importance": "",
                 "status": "",
                 "created_at": None,
-                "updated_at": None
+                "updated_at": None,
             }
 
             # Try to extract metadata from content structure
@@ -120,7 +122,9 @@ class NotionContentExtractor:
             logger.error(f"Error parsing note content: {e}")
             return None
 
-    def _extract_metadata_from_content(self, lines: List[str], structured: Dict[str, Any]):
+    def _extract_metadata_from_content(
+        self, lines: List[str], structured: Dict[str, Any]
+    ):
         """
         Extract metadata from content structure.
 
@@ -133,40 +137,48 @@ class NotionContentExtractor:
                 line_lower = line.lower()
 
                 # Extract tags (lines starting with #)
-                if line.startswith('#'):
-                    tag = line.strip('#').strip()
+                if line.startswith("#"):
+                    tag = line.strip("#").strip()
                     if tag and tag not in structured["tags"]:
                         structured["tags"].append(tag)
 
                 # Extract importance indicators
-                if any(word in line_lower for word in ['important', 'urgent', 'critical']):
-                    if 'critical' in line_lower or 'urgent' in line_lower:
+                if any(
+                    word in line_lower for word in ["important", "urgent", "critical"]
+                ):
+                    if "critical" in line_lower or "urgent" in line_lower:
                         structured["importance"] = "High"
-                    elif 'important' in line_lower:
+                    elif "important" in line_lower:
                         structured["importance"] = "Medium"
 
                 # Extract status indicators
-                if any(word in line_lower for word in ['draft', 'in progress', 'complete', 'done', 'archived']):
-                    if 'draft' in line_lower:
+                if any(
+                    word in line_lower
+                    for word in ["draft", "in progress", "complete", "done", "archived"]
+                ):
+                    if "draft" in line_lower:
                         structured["status"] = "Draft"
-                    elif 'in progress' in line_lower or 'working' in line_lower:
+                    elif "in progress" in line_lower or "working" in line_lower:
                         structured["status"] = "In Progress"
-                    elif 'complete' in line_lower or 'done' in line_lower:
+                    elif "complete" in line_lower or "done" in line_lower:
                         structured["status"] = "Complete"
-                    elif 'archived' in line_lower:
+                    elif "archived" in line_lower:
                         structured["status"] = "Archived"
 
                 # Extract category indicators
-                if any(word in line_lower for word in ['work', 'personal', 'learning', 'planning', 'research']):
-                    if 'work' in line_lower:
+                if any(
+                    word in line_lower
+                    for word in ["work", "personal", "learning", "planning", "research"]
+                ):
+                    if "work" in line_lower:
                         structured["category"] = "Work"
-                    elif 'personal' in line_lower:
+                    elif "personal" in line_lower:
                         structured["category"] = "Personal"
-                    elif 'learning' in line_lower or 'study' in line_lower:
+                    elif "learning" in line_lower or "study" in line_lower:
                         structured["category"] = "Learning"
-                    elif 'planning' in line_lower or 'plan' in line_lower:
+                    elif "planning" in line_lower or "plan" in line_lower:
                         structured["category"] = "Planning"
-                    elif 'research' in line_lower:
+                    elif "research" in line_lower:
                         structured["category"] = "Research"
 
                 # Extract dates (simple pattern matching)
@@ -195,7 +207,7 @@ class NotionContentExtractor:
                 return ""
 
             # Simple summary: take first few sentences
-            sentences = content.split('.')
+            sentences = content.split(".")
             summary = ""
 
             for sentence in sentences:
@@ -207,7 +219,7 @@ class NotionContentExtractor:
             # Clean up summary
             summary = summary.strip()
             if len(summary) > max_length:
-                summary = summary[:max_length-3] + "..."
+                summary = summary[: max_length - 3] + "..."
 
             return summary
 
@@ -227,20 +239,31 @@ class NotionContentExtractor:
         """
         # Simple date pattern matching
         date_patterns = [
-            r'\d{4}-\d{2}-\d{2}',  # YYYY-MM-DD
-            r'\d{2}/\d{2}/\d{4}',  # MM/DD/YYYY
-            r'\d{1,2}/\d{1,2}/\d{2,4}',  # M/D/YY or M/D/YYYY
+            r"\d{4}-\d{2}-\d{2}",  # YYYY-MM-DD
+            r"\d{2}/\d{2}/\d{4}",  # MM/DD/YYYY
+            r"\d{1,2}/\d{1,2}/\d{2,4}",  # M/D/YY or M/D/YYYY
         ]
 
         import re
+
         for pattern in date_patterns:
             if re.search(pattern, text):
                 return True
 
         # Check for month names
         months = [
-            'january', 'february', 'march', 'april', 'may', 'june',
-            'july', 'august', 'september', 'october', 'november', 'december'
+            "january",
+            "february",
+            "march",
+            "april",
+            "may",
+            "june",
+            "july",
+            "august",
+            "september",
+            "october",
+            "november",
+            "december",
         ]
 
         text_lower = text.lower()
@@ -249,7 +272,9 @@ class NotionContentExtractor:
 
         return False
 
-    async def extract_multiple_notes(self, note_ids: List[str], user_id: int) -> Dict[str, Dict[str, Any]]:
+    async def extract_multiple_notes(
+        self, note_ids: List[str], user_id: int
+    ) -> Dict[str, Dict[str, Any]]:
         """
         Extract content from multiple notes.
 
@@ -268,7 +293,8 @@ class NotionContentExtractor:
                 results[note_id] = content
 
         logger.info(
-            f"Extracted content from {len(results)} out of {len(note_ids)} notes")
+            f"Extracted content from {len(results)} out of {len(note_ids)} notes"
+        )
         return results
 
     def get_extraction_stats(self) -> Dict[str, Any]:
@@ -280,5 +306,5 @@ class NotionContentExtractor:
         """
         return {
             "extractor_type": "NotionContentExtractor",
-            "notion_tool_available": self.notion_tool is not None
+            "notion_tool_available": self.notion_tool is not None,
         }

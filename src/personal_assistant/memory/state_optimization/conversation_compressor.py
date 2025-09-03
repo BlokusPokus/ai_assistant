@@ -9,8 +9,8 @@ This module provides intelligent compression of conversation history by:
 """
 
 import logging
-from typing import List, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +38,12 @@ class ConversationCompressor:
             Compressed conversation history
         """
         if len(history) <= self.min_history_length:
-            logger.debug(
-                f"No compression needed for history of length {len(history)}")
+            logger.debug(f"No compression needed for history of length {len(history)}")
             return history
 
         logger.info(
-            f"Compressing conversation history from {len(history)} to optimized size")
+            f"Compressing conversation history from {len(history)} to optimized size"
+        )
 
         # Step 1: Remove duplicate tool calls
         deduplicated = self._remove_duplicate_tool_calls(history)
@@ -62,8 +62,7 @@ class ConversationCompressor:
         logger.debug(f"After cleaning: {len(cleaned)} items")
 
         compression_ratio = len(history) / max(len(cleaned), 1)
-        logger.info(
-            f"Compression complete: {compression_ratio:.2f}x reduction")
+        logger.info(f"Compression complete: {compression_ratio:.2f}x reduction")
 
         return cleaned
 
@@ -93,8 +92,10 @@ class ConversationCompressor:
                     seen_tools[tool_key] = item
                     # Replace the previous occurrence
                     for i, existing_item in enumerate(compressed):
-                        if (existing_item.get("role") == "tool" and
-                                self._create_tool_key(existing_item) == tool_key):
+                        if (
+                            existing_item.get("role") == "tool"
+                            and self._create_tool_key(existing_item) == tool_key
+                        ):
                             compressed[i] = item
                             break
             else:
@@ -170,19 +171,24 @@ class ConversationCompressor:
 
                 if "Error" in content:
                     # Only keep errors if we don't have a successful result
-                    if (tool_name not in tool_results or
-                            "Error" in str(tool_results[tool_name].get("content", ""))):
+                    if tool_name not in tool_results or "Error" in str(
+                        tool_results[tool_name].get("content", "")
+                    ):
                         filtered.append(item)
                         tool_results[tool_name] = item
                 else:
                     # Successful result - replace any previous errors
                     tool_results[tool_name] = item
                     # Remove previous error for this tool
-                    filtered = [item for item in filtered if not (
-                        item.get("role") == "tool" and
-                        item.get("name") == tool_name and
-                        "Error" in str(item.get("content", ""))
-                    )]
+                    filtered = [
+                        item
+                        for item in filtered
+                        if not (
+                            item.get("role") == "tool"
+                            and item.get("name") == tool_name
+                            and "Error" in str(item.get("content", ""))
+                        )
+                    ]
                     filtered.append(item)
             else:
                 filtered.append(item)
@@ -220,8 +226,9 @@ class ConversationCompressor:
                 content = item.get("content", "")
 
                 # Skip if this is essentially the same as the last assistant message
-                if (last_assistant_content and
-                        self._is_similar_content(content, last_assistant_content)):
+                if last_assistant_content and self._is_similar_content(
+                    content, last_assistant_content
+                ):
                     continue
 
                 last_assistant_content = content
@@ -248,8 +255,16 @@ class ConversationCompressor:
             if len(content1) == len(content2):
                 # Simple check: if both lists have same length and first item has same keys
                 if content1 and content2:
-                    keys1 = set(content1[0].keys()) if isinstance(content1[0], dict) else set()
-                    keys2 = set(content2[0].keys()) if isinstance(content2[0], dict) else set()
+                    keys1 = (
+                        set(content1[0].keys())
+                        if isinstance(content1[0], dict)
+                        else set()
+                    )
+                    keys2 = (
+                        set(content2[0].keys())
+                        if isinstance(content2[0], dict)
+                        else set()
+                    )
                     if keys1 == keys2:
                         return True
             return False
@@ -304,11 +319,14 @@ class ConversationCompressor:
         """
         # Simple extraction - look for "tool_name" patterns
         import re
-        tool_pattern = r'(\w+)_tool'
+
+        tool_pattern = r"(\w+)_tool"
         matches = re.findall(tool_pattern, content)
         return list(set(matches))
 
-    def get_compression_stats(self, original_history: List[dict], compressed_history: List[dict]) -> Dict[str, Any]:
+    def get_compression_stats(
+        self, original_history: List[dict], compressed_history: List[dict]
+    ) -> Dict[str, Any]:
         """
         Get statistics about the compression operation.
 
@@ -327,17 +345,18 @@ class ConversationCompressor:
                 "original_length": 0,
                 "compressed_length": 0,
                 "compression_ratio": 1.0,
-                "reduction_percentage": 0.0
+                "reduction_percentage": 0.0,
             }
 
         compression_ratio = original_length / compressed_length
         reduction_percentage = (
-            (original_length - compressed_length) / original_length) * 100
+            (original_length - compressed_length) / original_length
+        ) * 100
 
         return {
             "original_length": original_length,
             "compressed_length": compressed_length,
             "compression_ratio": compression_ratio,
             "reduction_percentage": reduction_percentage,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }

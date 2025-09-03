@@ -9,8 +9,8 @@ This module provides intelligent optimization of memory context by:
 """
 
 import logging
-from typing import List, Dict, Any, Optional, TYPE_CHECKING
 from datetime import datetime
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     from ...types.state import AgentState
@@ -30,7 +30,9 @@ class ContextManager:
         """
         self.max_context_items = max_context_items
 
-    def optimize_memory_context(self, state: 'AgentState', user_input: str) -> List[dict]:
+    def optimize_memory_context(
+        self, state: "AgentState", user_input: str
+    ) -> List[dict]:
         """
         Optimize memory context for current user input.
 
@@ -41,14 +43,13 @@ class ContextManager:
         Returns:
             Optimized memory context list
         """
-        logger.info(
-            f"Optimizing memory context for user input: {user_input[:50]}...")
+        logger.info(f"Optimizing memory context for user input: {user_input[:50]}...")
 
         # Extract relevant information from conversation history
         relevant_context = self._extract_relevant_context(
-            state.conversation_history, user_input)
-        logger.debug(
-            f"Extracted {len(relevant_context)} relevant context items")
+            state.conversation_history, user_input
+        )
+        logger.debug(f"Extracted {len(relevant_context)} relevant context items")
 
         # Add current focus areas
         focus_context = self._create_focus_context(state.focus, user_input)
@@ -59,28 +60,26 @@ class ContextManager:
         logger.debug(f"Extracted {len(tool_context)} tool context items")
 
         # Add user preferences and patterns
-        preference_context = self._extract_user_preferences(
-            state.conversation_history)
-        logger.debug(
-            f"Extracted {len(preference_context)} preference context items")
+        preference_context = self._extract_user_preferences(state.conversation_history)
+        logger.debug(f"Extracted {len(preference_context)} preference context items")
 
         # Combine and prioritize
-        optimized_context = self._prioritize_context([
-            relevant_context,
-            focus_context,
-            tool_context,
-            preference_context
-        ])
+        optimized_context = self._prioritize_context(
+            [relevant_context, focus_context, tool_context, preference_context]
+        )
 
         # Apply size limits
-        final_context = optimized_context[:self.max_context_items]
+        final_context = optimized_context[: self.max_context_items]
 
         logger.info(
-            f"Memory context optimization complete: {len(final_context)} items (max: {self.max_context_items})")
+            f"Memory context optimization complete: {len(final_context)} items (max: {self.max_context_items})"
+        )
 
         return final_context
 
-    def _extract_relevant_context(self, conversation_history: List[dict], user_input: str) -> List[dict]:
+    def _extract_relevant_context(
+        self, conversation_history: List[dict], user_input: str
+    ) -> List[dict]:
         """
         Extract context relevant to current user input.
 
@@ -109,22 +108,24 @@ class ContextManager:
 
             # Calculate relevance score
             if item_keywords & input_keywords:  # Intersection
-                relevance_score = len(
-                    item_keywords & input_keywords) / len(input_keywords)
+                relevance_score = len(item_keywords & input_keywords) / len(
+                    input_keywords
+                )
 
                 if relevance_score > 0.3:  # Threshold for relevance
-                    relevant_items.append({
-                        "role": "context",
-                        "content": item.get("content", ""),
-                        "relevance_score": relevance_score,
-                        "source": "conversation_history",
-                        "original_role": item.get("role", "unknown"),
-                        "timestamp": datetime.now().isoformat()
-                    })
+                    relevant_items.append(
+                        {
+                            "role": "context",
+                            "content": item.get("content", ""),
+                            "relevance_score": relevance_score,
+                            "source": "conversation_history",
+                            "original_role": item.get("role", "unknown"),
+                            "timestamp": datetime.now().isoformat(),
+                        }
+                    )
 
         # Sort by relevance and return top items
-        relevant_items.sort(key=lambda x: x.get(
-            "relevance_score", 0), reverse=True)
+        relevant_items.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
         return relevant_items[:10]  # Limit to top 10 relevant items
 
     def _create_focus_context(self, focus: List[str], user_input: str) -> List[dict]:
@@ -145,14 +146,16 @@ class ContextManager:
 
         # Create context items for each focus area
         for focus_area in focus:
-            focus_context.append({
-                "role": "context",
-                "content": f"Current focus: {focus_area}",
-                "relevance_score": 0.8,  # High relevance for focus areas
-                "source": "focus_areas",
-                "focus_area": focus_area,
-                "timestamp": datetime.now().isoformat()
-            })
+            focus_context.append(
+                {
+                    "role": "context",
+                    "content": f"Current focus: {focus_area}",
+                    "relevance_score": 0.8,  # High relevance for focus areas
+                    "source": "focus_areas",
+                    "focus_area": focus_area,
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
 
         return focus_context
 
@@ -184,12 +187,11 @@ class ContextManager:
                         "source": "tool_results",
                         "tool_name": tool_name,
                         "full_result": content,
-                        "timestamp": datetime.now().isoformat()
+                        "timestamp": datetime.now().isoformat(),
                     }
 
         # Convert to list and limit to recent tools
-        tool_context = list(recent_tools.values())[
-            :5]  # Limit to 5 most recent tools
+        tool_context = list(recent_tools.values())[:5]  # Limit to 5 most recent tools
 
         return tool_context
 
@@ -207,7 +209,8 @@ class ContextManager:
 
         # Look for patterns in user messages
         user_messages = [
-            item for item in conversation_history if item.get("role") == "user"]
+            item for item in conversation_history if item.get("role") == "user"
+        ]
 
         if len(user_messages) < 2:
             return preference_context
@@ -216,19 +219,23 @@ class ContextManager:
         preferences = self._analyze_user_preferences(user_messages)
 
         for preference_type, details in preferences.items():
-            preference_context.append({
-                "role": "context",
-                "content": f"User preference: {details['description']}",
-                "relevance_score": 0.7,  # High relevance for user preferences
-                "source": "user_preferences",
-                "preference_type": preference_type,
-                "details": details,
-                "timestamp": datetime.now().isoformat()
-            })
+            preference_context.append(
+                {
+                    "role": "context",
+                    "content": f"User preference: {details['description']}",
+                    "relevance_score": 0.7,  # High relevance for user preferences
+                    "source": "user_preferences",
+                    "preference_type": preference_type,
+                    "details": details,
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
 
         return preference_context[:3]  # Limit to top 3 preferences
 
-    def _analyze_user_preferences(self, user_messages: List[dict]) -> Dict[str, Dict[str, Any]]:
+    def _analyze_user_preferences(
+        self, user_messages: List[dict]
+    ) -> Dict[str, Dict[str, Any]]:
         """
         Analyze user messages to identify preferences and patterns.
 
@@ -241,22 +248,22 @@ class ContextManager:
         preferences = {}
 
         # Analyze message length preferences
-        message_lengths = [len(str(msg.get("content", "")))
-                           for msg in user_messages]
-        avg_length = sum(message_lengths) / \
-            len(message_lengths) if message_lengths else 0
+        message_lengths = [len(str(msg.get("content", ""))) for msg in user_messages]
+        avg_length = (
+            sum(message_lengths) / len(message_lengths) if message_lengths else 0
+        )
 
         if avg_length > 100:
             preferences["message_length"] = {
                 "description": "Prefers detailed explanations",
                 "value": "detailed",
-                "confidence": 0.8
+                "confidence": 0.8,
             }
         elif avg_length < 50:
             preferences["message_length"] = {
                 "description": "Prefers concise responses",
                 "value": "concise",
-                "confidence": 0.8
+                "confidence": 0.8,
             }
 
         # Analyze tool usage preferences
@@ -266,7 +273,8 @@ class ContextManager:
             if "tool" in content:
                 # Extract tool names mentioned
                 import re
-                tool_pattern = r'(\w+)_tool'
+
+                tool_pattern = r"(\w+)_tool"
                 tools = re.findall(tool_pattern, content)
                 for tool in tools:
                     tool_mentions[tool] = tool_mentions.get(tool, 0) + 1
@@ -276,31 +284,37 @@ class ContextManager:
             preferences["tool_preference"] = {
                 "description": f"Frequently uses {most_mentioned[0]} tool",
                 "value": most_mentioned[0],
-                "confidence": min(most_mentioned[1] / len(user_messages), 1.0)
+                "confidence": min(most_mentioned[1] / len(user_messages), 1.0),
             }
 
         # Analyze communication style
         formal_indicators = ["please", "thank you", "would you", "could you"]
         casual_indicators = ["hey", "hi", "thanks", "cool", "awesome"]
 
-        formal_count = sum(1 for msg in user_messages
-                           for indicator in formal_indicators
-                           if indicator in str(msg.get("content", "")).lower())
-        casual_count = sum(1 for msg in user_messages
-                           for indicator in casual_indicators
-                           if indicator in str(msg.get("content", "")).lower())
+        formal_count = sum(
+            1
+            for msg in user_messages
+            for indicator in formal_indicators
+            if indicator in str(msg.get("content", "")).lower()
+        )
+        casual_count = sum(
+            1
+            for msg in user_messages
+            for indicator in casual_indicators
+            if indicator in str(msg.get("content", "")).lower()
+        )
 
         if formal_count > casual_count:
             preferences["communication_style"] = {
                 "description": "Prefers formal communication style",
                 "value": "formal",
-                "confidence": 0.7
+                "confidence": 0.7,
             }
         elif casual_count > formal_count:
             preferences["communication_style"] = {
                 "description": "Prefers casual communication style",
                 "value": "casual",
-                "confidence": 0.7
+                "confidence": 0.7,
             }
 
         return preferences
@@ -325,8 +339,7 @@ class ContextManager:
             return []
 
         # Sort by relevance score (highest first)
-        all_context.sort(key=lambda x: x.get(
-            "relevance_score", 0), reverse=True)
+        all_context.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
 
         # Remove duplicates based on content similarity
         unique_context = self._remove_duplicate_context(all_context)
@@ -356,7 +369,9 @@ class ContextManager:
 
         return unique_items
 
-    def get_context_stats(self, original_context: List[dict], optimized_context: List[dict]) -> Dict[str, Any]:
+    def get_context_stats(
+        self, original_context: List[dict], optimized_context: List[dict]
+    ) -> Dict[str, Any]:
         """
         Get statistics about context optimization.
 
@@ -375,21 +390,23 @@ class ContextManager:
                 "original_length": 0,
                 "optimized_length": 0,
                 "improvement_ratio": 1.0,
-                "context_quality_score": 0.0
+                "context_quality_score": 0.0,
             }
 
         # Calculate improvement metrics
-        improvement_ratio = optimized_length / \
-            original_length if original_length > 0 else 1.0
+        improvement_ratio = (
+            optimized_length / original_length if original_length > 0 else 1.0
+        )
 
         # Calculate context quality score based on relevance scores
-        avg_relevance = sum(item.get("relevance_score", 0)
-                            for item in optimized_context) / max(len(optimized_context), 1)
+        avg_relevance = sum(
+            item.get("relevance_score", 0) for item in optimized_context
+        ) / max(len(optimized_context), 1)
 
         return {
             "original_length": original_length,
             "optimized_length": optimized_length,
             "improvement_ratio": improvement_ratio,
             "context_quality_score": avg_relevance,
-            "optimization_timestamp": datetime.now().isoformat()
+            "optimization_timestamp": datetime.now().isoformat(),
         }

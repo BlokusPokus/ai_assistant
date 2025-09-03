@@ -7,7 +7,8 @@ Provides comprehensive OAuth event logging for security audit trails and complia
 
 import logging
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
+
 from fastapi import Request
 
 from .structured_formatter import get_correlation_id
@@ -39,7 +40,7 @@ class OAuthAuditLogger:
         user_id: int,
         provider: str,
         level: str = "info",
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log an OAuth event with structured metadata.
@@ -52,13 +53,13 @@ class OAuthAuditLogger:
             **kwargs: Additional event metadata
         """
         # Extract request context if available
-        request = kwargs.get('request')
+        request = kwargs.get("request")
         ip_address = None
         user_agent = None
 
         if request and isinstance(request, Request):
             ip_address = request.client.host if request.client else None
-            user_agent = request.headers.get('user-agent')
+            user_agent = request.headers.get("user-agent")
 
         # Build structured log entry
         log_data = {
@@ -71,15 +72,14 @@ class OAuthAuditLogger:
             "metadata": {
                 "ip_address": ip_address,
                 "user_agent": user_agent,
-                **{k: v for k, v in kwargs.items() if k != 'request'}
-            }
+                **{k: v for k, v in kwargs.items() if k != "request"},
+            },
         }
 
         # Log with appropriate level
         log_method = getattr(self.logger, level.lower(), self.logger.info)
         log_method(
-            f"OAuth {event_type} for user {user_id} with {provider}",
-            extra=log_data
+            f"OAuth {event_type} for user {user_id} with {provider}", extra=log_data
         )
 
     def log_authorization_request(
@@ -88,7 +88,7 @@ class OAuthAuditLogger:
         provider: str,
         scopes: List[str],
         request: Optional[Request] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log OAuth authorization request.
@@ -106,7 +106,7 @@ class OAuthAuditLogger:
             provider,
             request=request,
             scopes=scopes,
-            **kwargs
+            **kwargs,
         )
 
     def log_authorization_granted(
@@ -116,7 +116,7 @@ class OAuthAuditLogger:
         scopes: List[str],
         integration_id: Optional[str] = None,
         request: Optional[Request] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log successful OAuth authorization grant.
@@ -136,7 +136,7 @@ class OAuthAuditLogger:
             request=request,
             scopes=scopes,
             integration_id=integration_id,
-            **kwargs
+            **kwargs,
         )
 
     def log_authorization_denied(
@@ -145,7 +145,7 @@ class OAuthAuditLogger:
         provider: str,
         reason: str,
         request: Optional[Request] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log denied OAuth authorization.
@@ -164,7 +164,7 @@ class OAuthAuditLogger:
             level="warning",
             request=request,
             reason=reason,
-            **kwargs
+            **kwargs,
         )
 
     def log_token_refresh(
@@ -174,7 +174,7 @@ class OAuthAuditLogger:
         success: bool,
         integration_id: Optional[str] = None,
         error: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log OAuth token refresh attempt.
@@ -196,7 +196,7 @@ class OAuthAuditLogger:
             success=success,
             integration_id=integration_id,
             error=error,
-            **kwargs
+            **kwargs,
         )
 
     def log_token_revocation(
@@ -205,7 +205,7 @@ class OAuthAuditLogger:
         provider: str,
         integration_id: Optional[str] = None,
         request: Optional[Request] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log OAuth token revocation.
@@ -223,7 +223,7 @@ class OAuthAuditLogger:
             provider,
             request=request,
             integration_id=integration_id,
-            **kwargs
+            **kwargs,
         )
 
     def log_scope_change(
@@ -234,7 +234,7 @@ class OAuthAuditLogger:
         new_scopes: List[str],
         integration_id: Optional[str] = None,
         request: Optional[Request] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log OAuth scope changes.
@@ -256,7 +256,7 @@ class OAuthAuditLogger:
             integration_id=integration_id,
             old_scopes=old_scopes,
             new_scopes=new_scopes,
-            **kwargs
+            **kwargs,
         )
 
     def log_integration_status_change(
@@ -266,7 +266,7 @@ class OAuthAuditLogger:
         old_status: str,
         new_status: str,
         integration_id: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log OAuth integration status changes.
@@ -286,7 +286,7 @@ class OAuthAuditLogger:
             integration_id=integration_id,
             old_status=old_status,
             new_status=new_status,
-            **kwargs
+            **kwargs,
         )
 
     def log_security_event(
@@ -297,7 +297,7 @@ class OAuthAuditLogger:
         severity: str = "warning",
         description: str = "",
         request: Optional[Request] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log OAuth security events.
@@ -318,7 +318,7 @@ class OAuthAuditLogger:
             level=severity,
             request=request,
             description=description,
-            **kwargs
+            **kwargs,
         )
 
     def log_api_access(
@@ -330,7 +330,7 @@ class OAuthAuditLogger:
         success: bool,
         response_code: Optional[int] = None,
         request: Optional[Request] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log OAuth API access attempts.
@@ -356,7 +356,7 @@ class OAuthAuditLogger:
             method=method,
             success=success,
             response_code=response_code,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -370,11 +370,12 @@ def log_oauth_authorization_request(
     provider: str,
     scopes: List[str],
     request: Optional[Request] = None,
-    **kwargs
+    **kwargs,
 ) -> None:
     """Log OAuth authorization request."""
     oauth_audit_logger.log_authorization_request(
-        user_id, provider, scopes, request, **kwargs)
+        user_id, provider, scopes, request, **kwargs
+    )
 
 
 def log_oauth_authorization_granted(
@@ -383,11 +384,12 @@ def log_oauth_authorization_granted(
     scopes: List[str],
     integration_id: Optional[str] = None,
     request: Optional[Request] = None,
-    **kwargs
+    **kwargs,
 ) -> None:
     """Log successful OAuth authorization grant."""
     oauth_audit_logger.log_authorization_granted(
-        user_id, provider, scopes, integration_id, request, **kwargs)
+        user_id, provider, scopes, integration_id, request, **kwargs
+    )
 
 
 def log_oauth_authorization_denied(
@@ -395,11 +397,12 @@ def log_oauth_authorization_denied(
     provider: str,
     reason: str,
     request: Optional[Request] = None,
-    **kwargs
+    **kwargs,
 ) -> None:
     """Log denied OAuth authorization."""
     oauth_audit_logger.log_authorization_denied(
-        user_id, provider, reason, request, **kwargs)
+        user_id, provider, reason, request, **kwargs
+    )
 
 
 def log_oauth_token_refresh(
@@ -408,11 +411,12 @@ def log_oauth_token_refresh(
     success: bool,
     integration_id: Optional[str] = None,
     error: Optional[str] = None,
-    **kwargs
+    **kwargs,
 ) -> None:
     """Log OAuth token refresh attempt."""
     oauth_audit_logger.log_token_refresh(
-        user_id, provider, success, integration_id, error, **kwargs)
+        user_id, provider, success, integration_id, error, **kwargs
+    )
 
 
 def log_oauth_token_revocation(
@@ -420,11 +424,12 @@ def log_oauth_token_revocation(
     provider: str,
     integration_id: Optional[str] = None,
     request: Optional[Request] = None,
-    **kwargs
+    **kwargs,
 ) -> None:
     """Log OAuth token revocation."""
     oauth_audit_logger.log_token_revocation(
-        user_id, provider, integration_id, request, **kwargs)
+        user_id, provider, integration_id, request, **kwargs
+    )
 
 
 def log_oauth_security_event(
@@ -434,8 +439,9 @@ def log_oauth_security_event(
     severity: str = "warning",
     description: str = "",
     request: Optional[Request] = None,
-    **kwargs
+    **kwargs,
 ) -> None:
     """Log OAuth security event."""
     oauth_audit_logger.log_security_event(
-        event_type, user_id, provider, severity, description, request, **kwargs)
+        event_type, user_id, provider, severity, description, request, **kwargs
+    )

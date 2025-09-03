@@ -5,15 +5,16 @@ Provides detailed performance metrics, resource usage tracking,
 and performance optimization insights.
 """
 
-import time
-import psutil
-import threading
 import json
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
-from dataclasses import dataclass, field, asdict
-from collections import defaultdict, deque
 import logging
+import threading
+import time
+from collections import defaultdict, deque
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+import psutil
 
 from personal_assistant.monitoring import get_metrics_service
 
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TaskMetrics:
     """Comprehensive metrics for a single task execution."""
+
     task_id: str
     task_name: str
     start_time: datetime
@@ -48,6 +50,7 @@ class TaskMetrics:
 @dataclass
 class SystemMetrics:
     """System-wide performance metrics."""
+
     timestamp: datetime
     cpu_percent: float
     memory_percent: float
@@ -62,6 +65,7 @@ class SystemMetrics:
 @dataclass
 class PerformanceSummary:
     """Performance summary for a specific metric."""
+
     count: int
     total: float
     average: float
@@ -80,7 +84,8 @@ class MetricsCollector:
     def __init__(self, max_history_size: int = 10000):
         self.metrics: Dict[str, TaskMetrics] = {}
         self.aggregate_stats: Dict[str, deque] = defaultdict(
-            lambda: deque(maxlen=max_history_size))
+            lambda: deque(maxlen=max_history_size)
+        )
         # Keep last 1000 system snapshots
         self.system_metrics: deque = deque(maxlen=1000)
         self.lock = threading.Lock()
@@ -111,19 +116,20 @@ class MetricsCollector:
                     start_time=datetime.utcnow(),
                     memory_usage_start=memory_info.percent,
                     cpu_usage_start=cpu_percent,
-                    **kwargs
+                    **kwargs,
                 )
 
                 self.metrics[task_id] = metrics
-                self.logger.debug(
-                    f"Started metrics collection for task: {task_id}")
+                self.logger.debug(f"Started metrics collection for task: {task_id}")
                 return task_id
 
         except Exception as e:
             self.logger.error(f"Error starting task metrics: {e}")
             return task_id
 
-    def end_task(self, task_id: str, status: str = "completed", error: Optional[str] = None):
+    def end_task(
+        self, task_id: str, status: str = "completed", error: Optional[str] = None
+    ):
         """End tracking a task execution."""
         if not self.enabled:
             return
@@ -134,7 +140,8 @@ class MetricsCollector:
                     metrics = self.metrics[task_id]
                     metrics.end_time = datetime.utcnow()
                     metrics.execution_time = (
-                        metrics.end_time - metrics.start_time).total_seconds()
+                        metrics.end_time - metrics.start_time
+                    ).total_seconds()
                     metrics.status = status
                     metrics.error = error
 
@@ -147,14 +154,17 @@ class MetricsCollector:
 
                     # Calculate peak usage (simplified - in production you'd track this continuously)
                     metrics.memory_usage_peak = max(
-                        metrics.memory_usage_start or 0, metrics.memory_usage_end or 0)
+                        metrics.memory_usage_start or 0, metrics.memory_usage_end or 0
+                    )
                     metrics.cpu_usage_peak = max(
-                        metrics.cpu_usage_start or 0, metrics.cpu_usage_end or 0)
+                        metrics.cpu_usage_start or 0, metrics.cpu_usage_end or 0
+                    )
 
                     # Record aggregate statistics
                     if metrics.execution_time is not None:
                         self.aggregate_stats[metrics.task_name].append(
-                            metrics.execution_time)
+                            metrics.execution_time
+                        )
 
                     # Update Prometheus metrics
                     try:
@@ -162,11 +172,12 @@ class MetricsCollector:
                         metrics_service.record_task_execution(
                             task_type=metrics.task_name,
                             duration=metrics.execution_time,
-                            success=(status == "completed")
+                            success=(status == "completed"),
                         )
                     except Exception as metrics_error:
                         self.logger.warning(
-                            f"Failed to update Prometheus task metrics: {metrics_error}")
+                            f"Failed to update Prometheus task metrics: {metrics_error}"
+                        )
 
                     # Archive metrics but keep in memory for a short time
                     self._archive_metrics(metrics)
@@ -176,7 +187,8 @@ class MetricsCollector:
                     # del self.metrics[task_id]
 
                     self.logger.debug(
-                        f"Completed metrics collection for task: {task_id} - {status}")
+                        f"Completed metrics collection for task: {task_id} - {status}"
+                    )
 
         except Exception as e:
             self.logger.error(f"Error ending task metrics: {e}")
@@ -197,7 +209,9 @@ class MetricsCollector:
         except Exception as e:
             self.logger.error(f"Error updating task metrics: {e}")
 
-    def get_performance_summary(self, task_name: Optional[str] = None) -> Dict[str, Any]:
+    def get_performance_summary(
+        self, task_name: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Get performance summary for tasks."""
         try:
             with self.lock:
@@ -206,8 +220,7 @@ class MetricsCollector:
 
                 summary = {}
                 for task_name, times in self.aggregate_stats.items():
-                    summary[task_name] = self._calculate_summary_for_task(
-                        task_name)
+                    summary[task_name] = self._calculate_summary_for_task(task_name)
 
                 return summary
 
@@ -222,7 +235,8 @@ class MetricsCollector:
 
             with self.lock:
                 return [
-                    metrics for metrics in self.system_metrics
+                    metrics
+                    for metrics in self.system_metrics
                     if metrics.timestamp > cutoff_time
                 ]
 
@@ -234,33 +248,34 @@ class MetricsCollector:
         """Get current system status."""
         try:
             memory_info = psutil.virtual_memory()
-            disk_info = psutil.disk_usage('/')
+            disk_info = psutil.disk_usage("/")
             network_info = psutil.net_io_counters()
 
             # Count active workers (simplified - in production you'd get this from Celery)
             active_workers = len(
-                [m for m in self.metrics.values() if m.status == "running"])
+                [m for m in self.metrics.values() if m.status == "running"]
+            )
 
             # Get queue lengths (simplified - in production you'd get this from Redis)
             queue_lengths = {
-                'ai_tasks': 0,
-                'email_tasks': 0,
-                'file_tasks': 0,
-                'sync_tasks': 0,
-                'maintenance_tasks': 0
+                "ai_tasks": 0,
+                "email_tasks": 0,
+                "file_tasks": 0,
+                "sync_tasks": 0,
+                "maintenance_tasks": 0,
             }
 
             system_status = {
-                'timestamp': datetime.utcnow().isoformat(),
-                'cpu_percent': psutil.cpu_percent(interval=0.1),
-                'memory_percent': memory_info.percent,
-                'memory_available_gb': memory_info.available / (1024**3),
-                'disk_usage_percent': disk_info.percent,
-                'network_io_bytes_sent': network_info.bytes_sent,
-                'network_io_bytes_recv': network_info.bytes_recv,
-                'active_workers': active_workers,
-                'queue_lengths': queue_lengths,
-                'total_tasks_tracked': len(self.metrics)
+                "timestamp": datetime.utcnow().isoformat(),
+                "cpu_percent": psutil.cpu_percent(interval=0.1),
+                "memory_percent": memory_info.percent,
+                "memory_available_gb": memory_info.available / (1024**3),
+                "disk_usage_percent": disk_info.percent,
+                "network_io_bytes_sent": network_info.bytes_sent,
+                "network_io_bytes_recv": network_info.bytes_recv,
+                "active_workers": active_workers,
+                "queue_lengths": queue_lengths,
+                "total_tasks_tracked": len(self.metrics),
             }
 
             # Update Prometheus metrics
@@ -269,7 +284,8 @@ class MetricsCollector:
                 metrics_service.update_task_metrics(queue_lengths)
             except Exception as metrics_error:
                 self.logger.warning(
-                    f"Failed to update Prometheus task metrics: {metrics_error}")
+                    f"Failed to update Prometheus task metrics: {metrics_error}"
+                )
 
             return system_status
 
@@ -283,10 +299,10 @@ class MetricsCollector:
             with self.lock:
                 if format.lower() == "json":
                     data = {
-                        'export_timestamp': datetime.utcnow().isoformat(),
-                        'current_tasks': [asdict(m) for m in self.metrics.values()],
-                        'performance_summary': self.get_performance_summary(),
-                        'system_status': self.get_current_system_status()
+                        "export_timestamp": datetime.utcnow().isoformat(),
+                        "current_tasks": [asdict(m) for m in self.metrics.values()],
+                        "performance_summary": self.get_performance_summary(),
+                        "system_status": self.get_current_system_status(),
                     }
                     return json.dumps(data, indent=2, default=str)
 
@@ -311,13 +327,12 @@ class MetricsCollector:
                 original_count = len(self.system_metrics)
                 self.system_metrics = deque(
                     [m for m in self.system_metrics if m.timestamp > cutoff_time],
-                    maxlen=self.system_metrics.maxlen
+                    maxlen=self.system_metrics.maxlen,
                 )
 
                 cleaned_count = original_count - len(self.system_metrics)
                 if cleaned_count > 0:
-                    self.logger.info(
-                        f"Cleaned up {cleaned_count} old system metrics")
+                    self.logger.info(f"Cleaned up {cleaned_count} old system metrics")
 
         except Exception as e:
             self.logger.error(f"Error cleaning up old metrics: {e}")
@@ -340,16 +355,16 @@ class MetricsCollector:
             times = self.aggregate_stats.get(task_name, [])
             if not times:
                 return {
-                    'count': 0,
-                    'total': 0,
-                    'average': 0,
-                    'minimum': 0,
-                    'maximum': 0,
-                    'p50': 0,
-                    'p90': 0,
-                    'p95': 0,
-                    'p99': 0,
-                    'standard_deviation': 0
+                    "count": 0,
+                    "total": 0,
+                    "average": 0,
+                    "minimum": 0,
+                    "maximum": 0,
+                    "p50": 0,
+                    "p90": 0,
+                    "p95": 0,
+                    "p99": 0,
+                    "standard_deviation": 0,
                 }
 
             times_list = list(times)
@@ -369,24 +384,23 @@ class MetricsCollector:
 
             # Calculate standard deviation
             variance = sum((x - average) ** 2 for x in times_list) / count
-            standard_deviation = variance ** 0.5
+            standard_deviation = variance**0.5
 
             return {
-                'count': count,
-                'total': total,
-                'average': average,
-                'minimum': minimum,
-                'maximum': maximum,
-                'p50': p50,
-                'p90': p90,
-                'p95': p95,
-                'p99': p99,
-                'standard_deviation': standard_deviation
+                "count": count,
+                "total": total,
+                "average": average,
+                "minimum": minimum,
+                "maximum": maximum,
+                "p50": p50,
+                "p90": p90,
+                "p95": p95,
+                "p99": p99,
+                "standard_deviation": standard_deviation,
             }
 
         except Exception as e:
-            self.logger.error(
-                f"Error calculating summary for task {task_name}: {e}")
+            self.logger.error(f"Error calculating summary for task {task_name}: {e}")
             return {}
 
     def _archive_metrics(self, metrics: TaskMetrics):
@@ -402,6 +416,7 @@ class MetricsCollector:
     def _start_system_monitoring(self):
         """Start background system monitoring."""
         try:
+
             def monitor_system():
                 while self.enabled:
                     try:
@@ -412,8 +427,7 @@ class MetricsCollector:
                         time.sleep(self.collection_interval)
 
             # Start monitoring in a separate thread
-            monitor_thread = threading.Thread(
-                target=monitor_system, daemon=True)
+            monitor_thread = threading.Thread(target=monitor_system, daemon=True)
             monitor_thread.start()
             self.logger.info("System monitoring started")
 
@@ -424,7 +438,7 @@ class MetricsCollector:
         """Collect current system metrics."""
         try:
             memory_info = psutil.virtual_memory()
-            disk_info = psutil.disk_usage('/')
+            disk_info = psutil.disk_usage("/")
             network_info = psutil.net_io_counters()
 
             # Get active connections (simplified)
@@ -436,7 +450,8 @@ class MetricsCollector:
             # Count active workers
             with self.lock:
                 active_workers = len(
-                    [m for m in self.metrics.values() if m.status == "running"])
+                    [m for m in self.metrics.values() if m.status == "running"]
+                )
 
             metrics = SystemMetrics(
                 timestamp=datetime.utcnow(),
@@ -445,20 +460,20 @@ class MetricsCollector:
                 memory_available=memory_info.available / (1024**3),  # GB
                 disk_usage_percent=disk_info.percent,
                 network_io={
-                    'bytes_sent': network_info.bytes_sent,
-                    'bytes_recv': network_info.bytes_recv,
-                    'packets_sent': network_info.packets_sent,
-                    'packets_recv': network_info.packets_recv
+                    "bytes_sent": network_info.bytes_sent,
+                    "bytes_recv": network_info.bytes_recv,
+                    "packets_sent": network_info.packets_sent,
+                    "packets_recv": network_info.packets_recv,
                 },
                 active_connections=connections,
                 worker_count=active_workers,
                 queue_lengths={
-                    'ai_tasks': 0,
-                    'email_tasks': 0,
-                    'file_tasks': 0,
-                    'sync_tasks': 0,
-                    'maintenance_tasks': 0
-                }
+                    "ai_tasks": 0,
+                    "email_tasks": 0,
+                    "file_tasks": 0,
+                    "sync_tasks": 0,
+                    "maintenance_tasks": 0,
+                },
             )
 
             with self.lock:
@@ -500,7 +515,9 @@ def start_task_metrics(task_id: str, task_name: str, **kwargs) -> str:
     return get_metrics_collector().start_task(task_id, task_name, **kwargs)
 
 
-def end_task_metrics(task_id: str, status: str = "completed", error: Optional[str] = None):
+def end_task_metrics(
+    task_id: str, status: str = "completed", error: Optional[str] = None
+):
     """End metrics collection for a task."""
     get_metrics_collector().end_task(task_id, status, error)
 

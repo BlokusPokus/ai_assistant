@@ -40,29 +40,32 @@ class HealthMonitor:
 
         # Perform all health checks
         health_status = {
-            'database': await self._check_database_health(),
-            'celery': await self._check_celery_health(),
-            'twilio': await self._check_twilio_health(),
-            'overall': 'healthy',
-            'check_time': datetime.utcnow().isoformat(),
-            'response_time': 0
+            "database": await self._check_database_health(),
+            "celery": await self._check_celery_health(),
+            "twilio": await self._check_twilio_health(),
+            "overall": "healthy",
+            "check_time": datetime.utcnow().isoformat(),
+            "response_time": 0,
         }
 
         # Calculate response time
-        health_status['response_time'] = time.time() - start_time
+        health_status["response_time"] = time.time() - start_time
 
         # Determine overall health
         unhealthy_components = []
         for component, status in health_status.items():
-            if component in ['database', 'celery', 'twilio'] and isinstance(status, dict):
-                if status.get('status') != 'healthy':
+            if component in ["database", "celery", "twilio"] and isinstance(
+                status, dict
+            ):
+                if status.get("status") != "healthy":
                     unhealthy_components.append(component)
 
         if unhealthy_components:
-            health_status['overall'] = 'unhealthy'
-            health_status['unhealthy_components'] = unhealthy_components
+            health_status["overall"] = "unhealthy"
+            health_status["unhealthy_components"] = unhealthy_components
             self.logger.warning(
-                f"System health check found unhealthy components: {unhealthy_components}")
+                f"System health check found unhealthy components: {unhealthy_components}"
+            )
         else:
             self.logger.info("All system components are healthy")
 
@@ -95,33 +98,33 @@ class HealthMonitor:
             # Check response time
             if response_time > 5:  # More than 5 seconds
                 return {
-                    'status': 'degraded',
-                    'response_time': response_time,
-                    'message': 'Database connection slow',
-                    'timestamp': datetime.utcnow().isoformat()
+                    "status": "degraded",
+                    "response_time": response_time,
+                    "message": "Database connection slow",
+                    "timestamp": datetime.utcnow().isoformat(),
                 }
             elif response_time > 1:  # More than 1 second
                 return {
-                    'status': 'warning',
-                    'response_time': response_time,
-                    'message': 'Database connection slower than expected',
-                    'timestamp': datetime.utcnow().isoformat()
+                    "status": "warning",
+                    "response_time": response_time,
+                    "message": "Database connection slower than expected",
+                    "timestamp": datetime.utcnow().isoformat(),
                 }
             else:
                 return {
-                    'status': 'healthy',
-                    'response_time': response_time,
-                    'message': 'Database connection healthy',
-                    'timestamp': datetime.utcnow().isoformat()
+                    "status": "healthy",
+                    "response_time": response_time,
+                    "message": "Database connection healthy",
+                    "timestamp": datetime.utcnow().isoformat(),
                 }
 
         except Exception as e:
             self.logger.error(f"Database health check failed: {e}")
             return {
-                'status': 'unhealthy',
-                'error': str(e),
-                'message': 'Database connection failed',
-                'timestamp': datetime.utcnow().isoformat()
+                "status": "unhealthy",
+                "error": str(e),
+                "message": "Database connection failed",
+                "timestamp": datetime.utcnow().isoformat(),
             }
 
     async def _check_celery_health(self) -> Dict[str, Any]:
@@ -140,10 +143,10 @@ class HealthMonitor:
             # Check if Celery app is accessible
             if not app:
                 return {
-                    'status': 'unhealthy',
-                    'error': 'Celery app not accessible',
-                    'message': 'Celery application not found',
-                    'timestamp': datetime.utcnow().isoformat()
+                    "status": "unhealthy",
+                    "error": "Celery app not accessible",
+                    "message": "Celery application not found",
+                    "timestamp": datetime.utcnow().isoformat(),
                 }
 
             # Check broker connection
@@ -153,37 +156,37 @@ class HealthMonitor:
                 broker_url = app.conf.broker_url
                 if not broker_url:
                     return {
-                        'status': 'unhealthy',
-                        'error': 'No broker URL configured',
-                        'message': 'Celery broker not configured',
-                        'timestamp': datetime.utcnow().isoformat()
+                        "status": "unhealthy",
+                        "error": "No broker URL configured",
+                        "message": "Celery broker not configured",
+                        "timestamp": datetime.utcnow().isoformat(),
                     }
 
                 response_time = time.time() - start_time
 
                 return {
-                    'status': 'healthy',
-                    'response_time': response_time,
-                    'broker_url': broker_url,
-                    'message': 'Celery broker accessible',
-                    'timestamp': datetime.utcnow().isoformat()
+                    "status": "healthy",
+                    "response_time": response_time,
+                    "broker_url": broker_url,
+                    "message": "Celery broker accessible",
+                    "timestamp": datetime.utcnow().isoformat(),
                 }
 
             except Exception as e:
                 return {
-                    'status': 'unhealthy',
-                    'error': str(e),
-                    'message': 'Celery broker connection failed',
-                    'timestamp': datetime.utcnow().isoformat()
+                    "status": "unhealthy",
+                    "error": str(e),
+                    "message": "Celery broker connection failed",
+                    "timestamp": datetime.utcnow().isoformat(),
                 }
 
         except Exception as e:
             self.logger.error(f"Celery health check failed: {e}")
             return {
-                'status': 'unhealthy',
-                'error': str(e),
-                'message': 'Celery health check failed',
-                'timestamp': datetime.utcnow().isoformat()
+                "status": "unhealthy",
+                "error": str(e),
+                "message": "Celery health check failed",
+                "timestamp": datetime.utcnow().isoformat(),
             }
 
     async def _check_twilio_health(self) -> Dict[str, Any]:
@@ -215,19 +218,19 @@ class HealthMonitor:
             response_time = time.time() - start_time
 
             return {
-                'status': 'healthy',
-                'response_time': response_time,
-                'message': 'Twilio service accessible (placeholder)',
-                'timestamp': datetime.utcnow().isoformat()
+                "status": "healthy",
+                "response_time": response_time,
+                "message": "Twilio service accessible (placeholder)",
+                "timestamp": datetime.utcnow().isoformat(),
             }
 
         except Exception as e:
             self.logger.error(f"Twilio health check failed: {e}")
             return {
-                'status': 'unhealthy',
-                'error': str(e),
-                'message': 'Twilio health check failed',
-                'timestamp': datetime.utcnow().isoformat()
+                "status": "unhealthy",
+                "error": str(e),
+                "message": "Twilio health check failed",
+                "timestamp": datetime.utcnow().isoformat(),
             }
 
     def get_health_summary(self) -> Dict[str, Any]:
@@ -239,15 +242,15 @@ class HealthMonitor:
         """
         if not self.last_check_time:
             return {
-                'status': 'unknown',
-                'message': 'No health checks performed yet',
-                'timestamp': None
+                "status": "unknown",
+                "message": "No health checks performed yet",
+                "timestamp": None,
             }
 
         return {
-            'last_check': self.last_check_time.isoformat(),
-            'status': 'available',
-            'message': 'Health check data available'
+            "last_check": self.last_check_time.isoformat(),
+            "status": "available",
+            "message": "Health check data available",
         }
 
     def is_system_healthy(self) -> bool:
@@ -269,10 +272,12 @@ class HealthMonitor:
             Dictionary with health metrics
         """
         return {
-            'last_check_time': self.last_check_time.isoformat() if self.last_check_time else None,
-            'total_health_checks': len(self.health_checks),
-            'system_healthy': self.is_system_healthy(),
-            'timestamp': datetime.utcnow().isoformat()
+            "last_check_time": self.last_check_time.isoformat()
+            if self.last_check_time
+            else None,
+            "total_health_checks": len(self.health_checks),
+            "system_healthy": self.is_system_healthy(),
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
 
@@ -301,6 +306,7 @@ def get_health_summary() -> Dict[str, Any]:
 def run_health_checks() -> Dict[str, Any]:
     """Synchronous wrapper for check_system_health for test compatibility."""
     import asyncio
+
     try:
         loop = asyncio.get_event_loop()
     except RuntimeError:
@@ -315,13 +321,13 @@ def get_system_health_sync() -> Dict[str, Any]:
     result = run_health_checks()
     # Transform the result to match test expectations
     return {
-        'status': result.get('overall', 'unknown'),
-        'components': {
-            'database': result.get('database', {}),
-            'celery': result.get('celery', {}),
-            'twilio': result.get('twilio', {})
+        "status": result.get("overall", "unknown"),
+        "components": {
+            "database": result.get("database", {}),
+            "celery": result.get("celery", {}),
+            "twilio": result.get("twilio", {}),
         },
-        'response_time': result.get('response_time', 0),
-        'check_time': result.get('check_time', ''),
-        'overall': result.get('overall', 'unknown')
+        "response_time": result.get("response_time", 0),
+        "check_time": result.get("check_time", ""),
+        "overall": result.get("overall", "unknown"),
     }
