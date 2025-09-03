@@ -8,9 +8,9 @@ This module tests performance requirements:
 - Middleware overhead: < 5ms per request
 """
 
-from personal_assistant.config.settings import settings
-from personal_assistant.auth.password_service import password_service
 from personal_assistant.auth.jwt_service import jwt_service
+from personal_assistant.auth.password_service import password_service
+from personal_assistant.config.settings import settings
 import time
 import sys
 import os
@@ -256,6 +256,38 @@ class PerformanceTester:
         print("   ✅ Token creation: < 5ms")
         print("   ✅ Login endpoint: < 100ms (not measured)")
         print("   ✅ Middleware overhead: < 5ms (not measured)")
+
+
+def test_token_validation_performance(benchmark):
+    """Test token validation performance using pytest-benchmark."""
+    def token_validation_benchmark():
+        user_data = {"sub": "test@example.com", "user_id": 123}
+        token = jwt_service.create_access_token(data=user_data)
+        return jwt_service.verify_access_token(token)
+
+    result = benchmark(token_validation_benchmark)
+    assert result is not None
+
+
+def test_password_verification_performance(benchmark):
+    """Test password verification performance using pytest-benchmark."""
+    def password_verification_benchmark():
+        password = "TestPassword123!"
+        hashed = password_service.hash_password(password)
+        return password_service.verify_password(password, hashed)
+
+    result = benchmark(password_verification_benchmark)
+    assert result is True
+
+
+def test_token_creation_performance(benchmark):
+    """Test token creation performance using pytest-benchmark."""
+    def token_creation_benchmark():
+        user_data = {"sub": "test@example.com", "user_id": 123}
+        return jwt_service.create_access_token(data=user_data)
+
+    result = benchmark(token_creation_benchmark)
+    assert result is not None
 
 
 def main():
