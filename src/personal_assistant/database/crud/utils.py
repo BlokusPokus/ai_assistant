@@ -8,7 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 T = TypeVar("T")  # Generic model type
 
 
-async def add_record_no_commit(session: AsyncSession, model_class: Type[T], data: dict) -> T:
+async def add_record_no_commit(
+    session: AsyncSession, model_class: Type[T], data: dict
+) -> T:
     """Add a new record to the database without committing (for use inside transactions)."""
     record = model_class(**data)
     session.add(record)
@@ -24,44 +26,41 @@ async def add_record(session: AsyncSession, model_class: Type[T], data: dict) ->
     return record
 
 
-async def get_by_id(session: AsyncSession, model_class: Type[T], record_id: int) -> Optional[T]:
+async def get_by_id(
+    session: AsyncSession, model_class: Type[T], record_id: int
+) -> Optional[T]:
     """Get a record by its ID."""
     return await session.get(model_class, record_id)
 
 
-async def get_by_field(session: AsyncSession, model_class: Type[T], field: str, value: Any) -> Optional[T]:
+async def get_by_field(
+    session: AsyncSession, model_class: Type[T], field: str, value: Any
+) -> Optional[T]:
     """Get a record by a specific field value, including JSON fields."""
-    if '>>' in field:  # Handle JSON field queries
+    if ">>" in field:  # Handle JSON field queries
         stmt = select(model_class).where(text(f"{field} = :value"))
     else:
         stmt = select(model_class).where(getattr(model_class, field) == value)
 
-    result = await session.execute(stmt, {'value': value})
+    result = await session.execute(stmt, {"value": value})
     return result.scalar_one_or_none()
 
 
 async def filter_by(
-    session: AsyncSession,
-    model_class: Type[T],
-    order_by=None,
-    limit=None,
-    **filters
+    session: AsyncSession, model_class: Type[T], order_by=None, limit=None, **filters
 ) -> List[T]:
     """Filter records by multiple criteria."""
     query = select(model_class)
 
     for key, value in filters.items():
-        if '__' in key:  # Handle metadata filters like additional_data__type
-            field, subfield = key.split('__', 1)
-            if field == 'additional_data':
+        if "__" in key:  # Handle metadata filters like additional_data__type
+            field, subfield = key.split("__", 1)
+            if field == "additional_data":
                 # Handle metadata queries using JSON field operators
-                query = query.where(
-                    text(f"{field}->'{subfield}' = :value_{key}")
-                )
+                query = query.where(text(f"{field}->'{subfield}' = :value_{key}"))
             else:
                 # Handle other JSON field queries
-                query = query.where(
-                    text(f"{field}->'{subfield}' = :value_{key}"))
+                query = query.where(text(f"{field}->'{subfield}' = :value_{key}"))
         else:
             query = query.where(getattr(model_class, key) == value)
 
@@ -70,11 +69,15 @@ async def filter_by(
     if limit:
         query = query.limit(limit)
 
-    result = await session.execute(query, {f'value_{k}': v for k, v in filters.items() if '__' not in k})
+    result = await session.execute(
+        query, {f"value_{k}": v for k, v in filters.items() if "__" not in k}
+    )
     return result.scalars().all()
 
 
-async def update_record(session: AsyncSession, model_class: Type[T], record_id: int, updates: dict) -> Optional[T]:
+async def update_record(
+    session: AsyncSession, model_class: Type[T], record_id: int, updates: dict
+) -> Optional[T]:
     record = await session.get(model_class, record_id)
     if not record:
         return None
@@ -85,7 +88,9 @@ async def update_record(session: AsyncSession, model_class: Type[T], record_id: 
     return record
 
 
-async def delete_record(session: AsyncSession, model_class: Type[T], record_id: int) -> bool:
+async def delete_record(
+    session: AsyncSession, model_class: Type[T], record_id: int
+) -> bool:
     """Delete a record by ID."""
     record = await session.get(model_class, record_id)
     if not record:

@@ -7,12 +7,27 @@ linking, and backlinks.
 """
 
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock, patch, AsyncMock, MagicMock
 from typing import Optional
 
 from personal_assistant.tools.notion_pages.notion_pages_tool import NotionPagesTool
 from tests.utils.test_helpers import TestHelper
 from tests.utils.test_data_generators import ToolDataGenerator
+
+
+@pytest.fixture(autouse=True)
+def mock_notion_client():
+    """Mock Notion client to avoid API key validation in tests."""
+    with patch('personal_assistant.tools.notion_pages.notion_internal.get_notion_client') as mock_get_client, \
+         patch('personal_assistant.tools.notion_pages.notion_pages_tool.get_notion_client') as mock_get_client_2, \
+         patch('personal_assistant.config.settings.settings.NOTION_API_KEY', 'test-api-key'):
+        
+        # Create a mock client
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        mock_get_client_2.return_value = mock_client
+        
+        yield mock_client
 
 
 class TestNotionPagesTool:
