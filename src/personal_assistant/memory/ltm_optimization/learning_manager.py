@@ -29,7 +29,9 @@ class LTMLearningManager:
         self.llm_memory_creator = LLMMemoryCreator(self.config, llm) if llm else None
 
         # Add lifecycle manager for comprehensive optimization
-        self.lifecycle_manager = EnhancedMemoryLifecycleManager(config if isinstance(config, EnhancedLTMConfig) else None)
+        self.lifecycle_manager = EnhancedMemoryLifecycleManager(
+            config if isinstance(config, EnhancedLTMConfig) else None
+        )
 
         # Add pattern recognition engine for state integration
         self.pattern_engine: Optional[PatternRecognitionEngine] = None

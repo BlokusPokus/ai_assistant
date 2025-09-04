@@ -342,7 +342,9 @@ class NotionPagesTool:
         try:
             # Update page properties if provided
             if title or tags or category:
-                properties = create_properties_dict(title or "", tags or "", category or "")
+                properties = create_properties_dict(
+                    title or "", tags or "", category or ""
+                )
                 self.client.pages.update(page_id, properties=properties)
 
             # Update content if provided
@@ -440,9 +442,7 @@ class NotionPagesTool:
                     # Check tags filter
                     if tags:
                         tag_list = [tag.strip() for tag in tags.split(",")]
-                        if not any(
-                            tag in page_tags for tag in tag_list
-                        ):
+                        if not any(tag in page_tags for tag in tag_list):
                             continue
 
                     # Check if query matches title or content
@@ -490,9 +490,7 @@ class NotionPagesTool:
                     if category:
                         toc_item += f" [Category: {category}]"
                     if tags:
-                        toc_item += (
-                            f" [Tags: {', '.join(tags)}]"
-                        )
+                        toc_item += f" [Tags: {', '.join(tags)}]"
 
                     toc_items.append(toc_item)
 
@@ -507,7 +505,9 @@ class NotionPagesTool:
                 e, "get_table_of_contents", {}
             )
 
-    async def create_link(self, source_page_id: str, target_page_title: str) -> Union[str, dict]:
+    async def create_link(
+        self, source_page_id: str, target_page_title: str
+    ) -> Union[str, dict]:
         """Create a link between two pages using Obsidian-style syntax"""
         try:
             # Find target page

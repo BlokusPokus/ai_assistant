@@ -249,14 +249,23 @@ class PatternRecognitionEngine:
                 for item in state_data.history:
                     if isinstance(item, tuple):
                         # Convert tuple to dict format
-                        history_data.append({"interaction": item[0], "timestamp": item[1]})
+                        history_data.append(
+                            {"interaction": item[0], "timestamp": item[1]}
+                        )
                     elif isinstance(item, dict):
                         history_data.append(item)
                     else:
                         # Fallback for other types
-                        history_data.append({"data": str(item), "timestamp": datetime.utcnow().isoformat()})
-                
-                behavior_patterns = await self.recognize_user_behavior_patterns(history_data)
+                        history_data.append(
+                            {
+                                "data": str(item),
+                                "timestamp": datetime.utcnow().isoformat(),
+                            }
+                        )
+
+                behavior_patterns = await self.recognize_user_behavior_patterns(
+                    history_data
+                )
                 for pattern in behavior_patterns:
                     memory = self._convert_pattern_to_memory(
                         user_id, pattern, "user_behavior"
@@ -349,7 +358,10 @@ class PatternRecognitionEngine:
                 user_input = exchange.get("user_input", "").lower()
 
                 if self.config.topic_preference_keywords:
-                    for topic, keywords in self.config.topic_preference_keywords.items():
+                    for (
+                        topic,
+                        keywords,
+                    ) in self.config.topic_preference_keywords.items():
                         for keyword in keywords:
                             if keyword.lower() in user_input:
                                 topic_counts[topic] += 1
@@ -1062,4 +1074,3 @@ class PatternRecognitionEngine:
             self.logger.error(f"Error analyzing state patterns: {e}")
 
         return patterns
-

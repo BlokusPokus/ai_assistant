@@ -36,7 +36,9 @@ class LTMAnalytics:
 
         # Analytics data storage
         self.memory_creation_data: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
-        self.retrieval_performance_data: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
+        self.retrieval_performance_data: Dict[int, List[Dict[str, Any]]] = defaultdict(
+            list
+        )
         self.quality_metrics_data: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
         self.usage_patterns_data: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
         self.state_integration_data: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
@@ -47,7 +49,9 @@ class LTMAnalytics:
             self.config, "performance_metrics_enabled", True
         )
 
-    async def get_memory_creation_metrics(self, user_id: Optional[int] = None) -> Dict[str, Any]:
+    async def get_memory_creation_metrics(
+        self, user_id: Optional[int] = None
+    ) -> Dict[str, Any]:
         """
         Get memory creation performance metrics.
 
@@ -200,7 +204,9 @@ class LTMAnalytics:
             self.logger.error(f"Error getting quality assessment metrics: {e}")
             return {}
 
-    async def get_usage_pattern_insights(self, user_id: Optional[int] = None) -> Dict[str, Any]:
+    async def get_usage_pattern_insights(
+        self, user_id: Optional[int] = None
+    ) -> Dict[str, Any]:
         """
         Get usage pattern insights and analysis.
 
@@ -302,7 +308,10 @@ class LTMAnalytics:
             return {}
 
     async def record_memory_creation_event(
-        self, user_id: int, memory_data: Dict[str, Any], creation_time: Optional[float] = None
+        self,
+        user_id: int,
+        memory_data: Dict[str, Any],
+        creation_time: Optional[float] = None,
     ):
         """Record a memory creation event for analytics"""
 
@@ -929,7 +938,9 @@ class LTMAnalytics:
                 metrics["success_rate"] = len(successful_events) / len(all_events)
 
             # Efficiency by type
-            type_efficiency: Dict[str, Dict[str, int]] = defaultdict(lambda: {"total": 0, "successful": 0})
+            type_efficiency: Dict[str, Dict[str, int]] = defaultdict(
+                lambda: {"total": 0, "successful": 0}
+            )
             for event in all_events:
                 event_type = event["integration_type"]
                 type_efficiency[event_type]["total"] += 1
@@ -988,7 +999,9 @@ class LTMAnalytics:
                 ) / len(coordination_events)
 
                 # Coordination by type
-                type_coordination: Dict[str, Dict[str, int]] = defaultdict(lambda: {"total": 0, "successful": 0})
+                type_coordination: Dict[str, Dict[str, int]] = defaultdict(
+                    lambda: {"total": 0, "successful": 0}
+                )
                 for event in coordination_events:
                     event_type = event["integration_type"]
                     type_coordination[event_type]["total"] += 1
@@ -1333,7 +1346,10 @@ class LTMAnalytics:
         """Extract common patterns from pattern data"""
 
         try:
-            common_patterns: Dict[str, Any] = {"pattern_summary": {}, "frequency_analysis": {}}
+            common_patterns: Dict[str, Any] = {
+                "pattern_summary": {},
+                "frequency_analysis": {},
+            }
 
             # This would implement actual pattern extraction
             # For now, return basic structure

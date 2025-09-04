@@ -263,7 +263,10 @@ class UserPreferenceLearner:
 
         detected_formats = []
         if self.config.response_format_indicators:
-            for format_type, indicators in self.config.response_format_indicators.items():
+            for (
+                format_type,
+                indicators,
+            ) in self.config.response_format_indicators.items():
                 if any(indicator in user_input.lower() for indicator in indicators):
                     detected_formats.append(format_type)
 

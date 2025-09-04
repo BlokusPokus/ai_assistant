@@ -7,7 +7,8 @@ user input, planner decisions, and tool executions. Handles state transitions
 and enforces loop limits.
 """
 
-from typing import List, Optional
+import json
+from typing import Dict, List, Optional, Union
 
 from ..config.logging_config import get_logger
 from ..config.settings import settings
@@ -58,16 +59,16 @@ class AgentRunner:
 
         self.planner = planner
         self.max_steps = settings.LOOP_LIMIT
-        self.current_state = None  # Store the current state
+        self.current_state: Optional[AgentState] = None  # Store the current state
         self.context_injection_limit = 1000  # Maximum characters for context injection
 
         # Initialize context quality validator (will be configured when set_context is called)
-        self.quality_validator = None
+        self.quality_validator: Optional[ContextQualityValidator] = None
 
         # Initialize enhanced context manager
         try:
             self.ltm_config = EnhancedLTMConfig()
-            self.dynamic_context_manager = DynamicContextManager(config=self.ltm_config)
+            self.dynamic_context_manager: Optional[DynamicContextManager] = DynamicContextManager(config=self.ltm_config)
             logger.info("Enhanced dynamic context manager initialized successfully")
         except Exception as e:
             logger.warning(f"Failed to initialize dynamic context manager: {e}")
@@ -128,7 +129,7 @@ class AgentRunner:
         try:
             # Store the current state for use in run()
             self.current_state = agent_state
-            memory_blocks = []
+            memory_blocks: List[Dict[str, Union[str, Dict[str, str]]]] = []
 
             # Add LTM context if provided
             if ltm_context and ltm_context.strip():
@@ -219,7 +220,7 @@ class AgentRunner:
                                 "content": content,
                                 "type": "document",
                                 "metadata": {
-                                    k: v
+                                    k: json.dumps(v) if isinstance(v, (dict, list)) else str(v)
                                     for k, v in doc.items()
                                     if k != "content" and k != "document"
                                 },
@@ -243,7 +244,7 @@ class AgentRunner:
                 logger.debug("Context quality validator initialized")
 
             # Apply quality validation to memory blocks
-            if memory_blocks:
+            if memory_blocks and self.quality_validator:
                 original_count = len(memory_blocks)
 
                 # Validate context quality before injection
@@ -258,9 +259,12 @@ class AgentRunner:
                     )
 
                 # Get quality metrics for logging
-                quality_metrics = self.quality_validator.get_quality_metrics(
-                    validated_blocks, agent_state.user_input
-                )
+                if self.quality_validator:
+                    quality_metrics = self.quality_validator.get_quality_metrics(
+                        validated_blocks, agent_state.user_input
+                    )
+                else:
+                    quality_metrics = {}
 
                 # Safely access quality distribution with fallback
                 quality_dist = quality_metrics.get("quality_distribution", {})
@@ -325,6 +329,9 @@ class AgentRunner:
         """
         # Use the state that was set up by AgentCore (which includes conversation history)
         state = self.current_state
+        if state is None:
+            raise ValueError("No current state available. Call set_context() first.")
+        
         logger.debug(f"Starting run with input: {user_input}")
 
         # Add the current user input to conversation history if not already there

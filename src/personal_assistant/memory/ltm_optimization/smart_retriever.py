@@ -165,7 +165,10 @@ class SmartLTMRetriever:
         return max(min_limit, min(dynamic_limit, max_limit))
 
     async def _get_candidate_memories(
-        self, user_id: int, state_context: Optional[AgentState] = None, context: str = ""
+        self,
+        user_id: int,
+        state_context: Optional[AgentState] = None,
+        context: str = "",
     ) -> List[dict]:
         """Get candidate memories with state context consideration"""
 
@@ -410,7 +413,11 @@ class SmartLTMRetriever:
         return type_boosts.get(memory_type, 0.0)
 
     def _generate_cache_key(
-        self, user_id: int, context: str, limit: int, state_context: Optional[AgentState] = None
+        self,
+        user_id: int,
+        context: str,
+        limit: int,
+        state_context: Optional[AgentState] = None,
     ) -> str:
         """Generate cache key for the query"""
 

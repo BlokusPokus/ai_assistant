@@ -93,7 +93,9 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
 
                 # Mark task as processing
                 await task_manager.update_task_status(
-                    task_id=int(task.id), status="processing", last_run_at=datetime.utcnow()
+                    task_id=int(task.id),
+                    status="processing",
+                    last_run_at=datetime.utcnow(),
                 )
 
                 # Execute the task

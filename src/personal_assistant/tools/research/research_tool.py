@@ -289,7 +289,9 @@ class ResearchTool:
                             search_results[platform] = results
                     elif platform == "youtube":
                         youtube_tool = YouTubeTool()
-                        youtube_results: Union[str, dict, list] = await youtube_tool.search_videos(
+                        youtube_results: Union[
+                            str, dict, list
+                        ] = await youtube_tool.search_videos(
                             query, max_results=max_results_per_platform
                         )
                         # Handle Union[str, dict] return type
@@ -641,7 +643,9 @@ class ResearchTool:
         except Exception as e:
             return f"Failed to analyze text content: {str(e)}"
 
-    def _extract_key_insights(self, sources_analyzed: List[Dict[str, Any]]) -> List[str]:
+    def _extract_key_insights(
+        self, sources_analyzed: List[Dict[str, Any]]
+    ) -> List[str]:
         """Extract key insights from analyzed sources"""
         try:
             insights = []
@@ -649,24 +653,30 @@ class ResearchTool:
                 if source.get("type") == "web":
                     insights.append(f"Web source: {source.get('source', 'Unknown')}")
                 elif source.get("type") == "youtube":
-                    insights.append(f"YouTube source: {source.get('source', 'Unknown')}")
+                    insights.append(
+                        f"YouTube source: {source.get('source', 'Unknown')}"
+                    )
                 elif source.get("type") == "text":
-                    insights.append(f"Text content analyzed: {len(source.get('source', ''))} characters")
+                    insights.append(
+                        f"Text content analyzed: {len(source.get('source', ''))} characters"
+                    )
             return insights
         except Exception as e:
             logger.warning(f"Failed to extract key insights: {e}")
             return ["Key insights extraction failed"]
 
-    async def _collect_research_data(self, topic: str, sources_list: List[str]) -> Dict[str, Any]:
+    async def _collect_research_data(
+        self, topic: str, sources_list: List[str]
+    ) -> Dict[str, Any]:
         """Collect research data from multiple sources"""
         try:
             research_data: Dict[str, Any] = {
                 "topic": topic,
                 "sources": {},
                 "summary": "",
-                "timestamp": "2024-01-01T00:00:00Z"  # Placeholder
+                "timestamp": "2024-01-01T00:00:00Z",  # Placeholder
             }
-            
+
             for source in sources_list:
                 if source == "web":
                     internet_tool = InternetTool()
@@ -678,7 +688,9 @@ class ResearchTool:
                         research_data["sources"]["web"] = result
                 elif source == "youtube":
                     youtube_tool = YouTubeTool()
-                    youtube_result: Union[str, dict, list] = await youtube_tool.search_videos(topic, max_results=3)
+                    youtube_result: Union[
+                        str, dict, list
+                    ] = await youtube_tool.search_videos(topic, max_results=3)
                     # Handle Union[str, dict] return type
                     if isinstance(youtube_result, str):
                         research_data["sources"]["youtube"] = [youtube_result]
@@ -687,14 +699,23 @@ class ResearchTool:
                     else:
                         research_data["sources"]["youtube"] = [str(youtube_result)]
                 else:
-                    research_data["sources"][source] = f"Data collection not implemented for {source}"
-            
+                    research_data["sources"][
+                        source
+                    ] = f"Data collection not implemented for {source}"
+
             return research_data
         except Exception as e:
             logger.warning(f"Failed to collect research data: {e}")
-            return {"topic": topic, "sources": {}, "summary": "Data collection failed", "timestamp": "2024-01-01T00:00:00Z"}
+            return {
+                "topic": topic,
+                "sources": {},
+                "summary": "Data collection failed",
+                "timestamp": "2024-01-01T00:00:00Z",
+            }
 
-    async def _find_related_web_content(self, seed_content: str, max_items: int, threshold: str) -> List[str]:
+    async def _find_related_web_content(
+        self, seed_content: str, max_items: int, threshold: str
+    ) -> List[str]:
         """Find related web content"""
         try:
             internet_tool = InternetTool()
@@ -708,11 +729,15 @@ class ResearchTool:
         except Exception as e:
             return [f"Related web content search failed: {str(e)}"]
 
-    async def _find_related_youtube_content(self, seed_content: str, max_items: int, threshold: str) -> List[str]:
+    async def _find_related_youtube_content(
+        self, seed_content: str, max_items: int, threshold: str
+    ) -> List[str]:
         """Find related YouTube content"""
         try:
             youtube_tool = YouTubeTool()
-            result = await youtube_tool.search_videos(seed_content, max_results=max_items)
+            result = await youtube_tool.search_videos(
+                seed_content, max_results=max_items
+            )
             if isinstance(result, str):
                 return [result]
             elif isinstance(result, list):
@@ -722,7 +747,9 @@ class ResearchTool:
         except Exception as e:
             return [f"Related YouTube content search failed: {str(e)}"]
 
-    async def _find_related_news_content(self, seed_content: str, max_items: int, threshold: str) -> List[str]:
+    async def _find_related_news_content(
+        self, seed_content: str, max_items: int, threshold: str
+    ) -> List[str]:
         """Find related news content"""
         try:
             # Placeholder for news search
@@ -730,13 +757,17 @@ class ResearchTool:
         except Exception as e:
             return [f"Related news content search failed: {str(e)}"]
 
-    def _analyze_content_relevance(self, seed_content: str, related_content: Dict[str, Any], threshold: str) -> List[str]:
+    def _analyze_content_relevance(
+        self, seed_content: str, related_content: Dict[str, Any], threshold: str
+    ) -> List[str]:
         """Analyze content relevance"""
         try:
             insights = []
             for platform, content in related_content.items():
                 if isinstance(content, list) and content:
-                    insights.append(f"{platform.title()}: Found {len(content)} related items")
+                    insights.append(
+                        f"{platform.title()}: Found {len(content)} related items"
+                    )
                 elif isinstance(content, str):
                     insights.append(f"{platform.title()}: {content}")
             return insights

@@ -158,7 +158,9 @@ class PerformanceOptimizer:
             optimization_results["memory_optimization"] = memory_optimization
 
             # Analyze performance improvements
-            performance_improvements = await self._measure_query_performance_improvements()
+            performance_improvements = (
+                await self._measure_query_performance_improvements()
+            )
             optimization_results["performance_improvements"] = performance_improvements
 
             self.logger.info(
