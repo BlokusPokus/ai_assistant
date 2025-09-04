@@ -77,12 +77,10 @@ async def get_current_user(
     request: Request, db: AsyncSession = Depends(get_db)
 ) -> User:
     """Get current authenticated user."""
-    # This would be implemented with your existing JWT authentication
-    # For now, we'll use a placeholder
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="JWT authentication not yet integrated with session management",
-    )
+    # Import the existing get_current_user from auth module
+    from apps.fastapi_app.routes.auth import get_current_user as auth_get_current_user
+
+    return await auth_get_current_user(request, db)
 
 
 async def get_session_service() -> SessionService:
@@ -216,7 +214,8 @@ async def invalidate_session(
 
 @router.post("/invalidate-all")
 async def invalidate_all_sessions(
-    request: InvalidateAllSessionsRequest,
+    request_data: InvalidateAllSessionsRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
     session_service: SessionService = Depends(get_session_service),
     db: AsyncSession = Depends(get_db),
@@ -227,7 +226,7 @@ async def invalidate_all_sessions(
         # For now, we'll invalidate all sessions
         current_session_id = None  # TODO: Extract from JWT or request context
 
-        if request.exclude_current and current_session_id:
+        if request_data.exclude_current and current_session_id:
             invalidated_count = await session_service.invalidate_user_sessions(
                 str(current_user.id), exclude_session_id=current_session_id
             )
@@ -242,7 +241,7 @@ async def invalidate_all_sessions(
             event_type="all_sessions_invalidated",
             event_data={
                 "invalidated_count": invalidated_count,
-                "exclude_current": request.exclude_current,
+                "exclude_current": request_data.exclude_current,
             },
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),

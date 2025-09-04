@@ -89,6 +89,13 @@ class E2ETestEnvironment:
         self.test_memories = []
         self.mocked_services = {}
         self.cleanup_tasks = []
+        self.performance_monitor = {
+            'start_time': datetime.now(),
+            'test_count': 0,
+            'pass_count': 0,
+            'fail_count': 0,
+            'execution_times': []
+        }
         
     async def setup(self):
         """Set up the E2E test environment."""
@@ -156,9 +163,23 @@ class E2ETestEnvironment:
         SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.database_engine)
         self.database_session = SessionLocal()
         
-        # Create tables
-        from src.personal_assistant.database.database import Base
-        Base.metadata.create_all(bind=self.database_engine)
+        # Create only the essential tables for E2E testing
+        # Skip complex tables with PostgreSQL-specific features that don't work with SQLite
+        from personal_assistant.database.models.base import Base
+        from personal_assistant.database.models.users import User
+        from personal_assistant.database.models.tasks import Task
+        from personal_assistant.database.models.ltm_memory import LTMMemory
+        
+        # Create only the tables we need for E2E testing
+        User.__table__.create(bind=self.database_engine, checkfirst=True)
+        Task.__table__.create(bind=self.database_engine, checkfirst=True)
+        LTMMemory.__table__.create(bind=self.database_engine, checkfirst=True)
+        
+        # Clear existing data to avoid conflicts
+        self.database_session.query(User).delete()
+        self.database_session.query(Task).delete()
+        self.database_session.query(LTMMemory).delete()
+        self.database_session.commit()
         
         print("✅ Test database setup complete")
     
@@ -354,7 +375,7 @@ class E2ETestEnvironment:
             E2EUser(
                 username="test_user_1",
                 email="test1@example.com",
-                password="test_password_123",
+                password="TestPassword123!",
                 full_name="Test User 1",
                 is_active=True,
                 is_verified=True,
@@ -364,7 +385,7 @@ class E2ETestEnvironment:
             E2EUser(
                 username="test_user_2",
                 email="test2@example.com",
-                password="test_password_456",
+                password="TestPassword456!",
                 full_name="Test User 2",
                 is_active=True,
                 is_verified=False,
@@ -374,7 +395,7 @@ class E2ETestEnvironment:
             E2EUser(
                 username="admin_user",
                 email="admin@example.com",
-                password="admin_password_789",
+                password="AdminPassword789!",
                 full_name="Admin User",
                 is_active=True,
                 is_verified=True,
@@ -384,16 +405,18 @@ class E2ETestEnvironment:
         ]
         
         # Store users in database
+        from personal_assistant.auth.password_service import PasswordService
+        password_service = PasswordService()
+        
         for test_user in test_users:
             user = User(
-                username=test_user.username,
                 email=test_user.email,
                 full_name=test_user.full_name,
                 is_active=test_user.is_active,
                 is_verified=test_user.is_verified,
-                created_at=test_user.created_at
+                created_at=test_user.created_at,
+                hashed_password=password_service.hash_password(test_user.password)
             )
-            user.set_password(test_user.password)
             self.database_session.add(user)
         
         self.database_session.commit()
@@ -437,14 +460,11 @@ class E2ETestEnvironment:
         # Store tasks in database
         for test_task in test_tasks:
             task = Task(
-                title=test_task.title,
-                description=test_task.description,
-                task_type=test_task.task_type,
-                parameters=json.dumps(test_task.parameters),
+                task_name=test_task.title,  # Map title to task_name
                 status=test_task.status,
-                priority=test_task.priority,
                 created_at=test_task.created_at,
-                scheduled_at=test_task.scheduled_at
+                scheduled_at=test_task.scheduled_at,
+                user_id=1  # Default user ID for testing
             )
             self.database_session.add(task)
         
@@ -482,13 +502,14 @@ class E2ETestEnvironment:
         
         # Store memories in database
         for test_memory in test_memories:
-            memory = Memory(
+            memory = LTMMemory(
                 content=test_memory.content,
                 memory_type=test_memory.memory_type,
-                tags=json.dumps(test_memory.tags),
-                importance=test_memory.importance,
+                tags=test_memory.tags,  # LTMMemory expects JSON, not string
+                importance_score=test_memory.importance,
                 created_at=test_memory.created_at,
-                last_accessed=test_memory.last_accessed
+                last_accessed=test_memory.last_accessed,
+                user_id=1  # Default user ID for testing
             )
             self.database_session.add(memory)
         

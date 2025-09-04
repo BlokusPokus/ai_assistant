@@ -205,7 +205,9 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
         logger.warning(f"HTTPException during registration: {e.detail}")
         raise
     except Exception as e:
-        logger.error(f"Unexpected error during user registration: {str(e)}", exc_info=True)
+        logger.error(
+            f"Unexpected error during user registration: {str(e)}", exc_info=True
+        )
         await db.rollback()
         raise HTTPException(status_code=500, detail="Failed to register user")
 
