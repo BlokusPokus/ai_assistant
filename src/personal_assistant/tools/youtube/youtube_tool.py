@@ -2,7 +2,7 @@
 YouTube Tool for video information, transcripts, and content analysis.
 """
 import logging
-from typing import Optional, Union, Any
+from typing import Any, Optional, Union
 
 from googleapiclient.discovery import build  # type: ignore
 from googleapiclient.errors import HttpError  # type: ignore
