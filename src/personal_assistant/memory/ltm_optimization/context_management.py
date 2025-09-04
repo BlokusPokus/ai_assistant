@@ -524,7 +524,10 @@ class DynamicContextManager:
         return final_context
 
     def _calculate_dynamic_context_size(
-        self, user_input: str, query_complexity: str, state_context: Optional["AgentState"] = None
+        self,
+        user_input: str,
+        query_complexity: str,
+        state_context: Optional["AgentState"] = None,
     ) -> int:
         """Calculate dynamic context size based on input complexity and state"""
 
@@ -561,7 +564,7 @@ class DynamicContextManager:
             self.min_context_length, min(dynamic_length, self.max_context_length)
         )
 
-    async     def _prioritize_memories_with_state(
+    async def _prioritize_memories_with_state(
         self,
         memories: List[dict],
         user_input: str,
@@ -1090,6 +1093,8 @@ def _get_season(month: int) -> str:
         return "autumn"
 
 
-def get_context_manager(config: Optional[LTMConfig] = None) -> ContextOptimizationManager:
+def get_context_manager(
+    config: Optional[LTMConfig] = None,
+) -> ContextOptimizationManager:
     """Get context optimization manager with configuration"""
     return ContextOptimizationManager(config)

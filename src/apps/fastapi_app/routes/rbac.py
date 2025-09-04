@@ -188,7 +188,9 @@ async def create_role(
             id=int(new_role.id),
             name=str(new_role.name),
             description=str(new_role.description) if new_role.description else None,
-            parent_role_id=int(new_role.parent_role_id) if new_role.parent_role_id else None,
+            parent_role_id=int(new_role.parent_role_id)
+            if new_role.parent_role_id
+            else None,
             created_at=new_role.created_at,  # type: ignore
             updated_at=new_role.updated_at,  # type: ignore
         )
@@ -237,7 +239,9 @@ async def list_roles(
                 id=int(role.id),
                 name=str(role.name),
                 description=str(role.description) if role.description else None,
-                parent_role_id=int(role.parent_role_id) if role.parent_role_id else None,
+                parent_role_id=int(role.parent_role_id)
+                if role.parent_role_id
+                else None,
                 created_at=role.created_at,  # type: ignore
                 updated_at=role.updated_at,  # type: ignore
             )
@@ -283,7 +287,9 @@ async def get_role(role_id: int, db: AsyncSession = Depends(get_db)):
             id=int(role_obj.id),
             name=str(role_obj.name),
             description=str(role_obj.description) if role_obj.description else None,
-            parent_role_id=int(role_obj.parent_role_id) if role_obj.parent_role_id else None,
+            parent_role_id=int(role_obj.parent_role_id)
+            if role_obj.parent_role_id
+            else None,
             created_at=role_obj.created_at,  # type: ignore
             updated_at=role_obj.updated_at,  # type: ignore
         )
@@ -343,7 +349,9 @@ async def update_role(
             id=int(role_obj.id),
             name=str(role_obj.name),
             description=str(role_obj.description) if role_obj.description else None,
-            parent_role_id=int(role_obj.parent_role_id) if role_obj.parent_role_id else None,
+            parent_role_id=int(role_obj.parent_role_id)
+            if role_obj.parent_role_id
+            else None,
             created_at=role_obj.created_at,  # type: ignore
             updated_at=role_obj.updated_at,  # type: ignore
         )
@@ -426,7 +434,9 @@ async def grant_role(
             user_id=int(user_role_obj.user_id),
             role_name=role_data.role_name,
             is_primary=bool(user_role_obj.is_primary),
-            granted_by=int(user_role_obj.granted_by) if user_role_obj.granted_by else None,
+            granted_by=int(user_role_obj.granted_by)
+            if user_role_obj.granted_by
+            else None,
             granted_at=user_role_obj.granted_at,  # type: ignore
             expires_at=user_role_obj.expires_at,  # type: ignore
         )

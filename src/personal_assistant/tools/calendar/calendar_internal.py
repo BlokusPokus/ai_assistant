@@ -84,7 +84,9 @@ def is_token_valid(access_token: str) -> bool:
     return access_token is not None
 
 
-def build_calendar_headers(token: str, content_type: Optional[str] = None) -> Dict[str, str]:
+def build_calendar_headers(
+    token: str, content_type: Optional[str] = None
+) -> Dict[str, str]:
     """Build HTTP headers for calendar operations"""
     headers = {"Authorization": f"Bearer {token}"}
     if content_type:

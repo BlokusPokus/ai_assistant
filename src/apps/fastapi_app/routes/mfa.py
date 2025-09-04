@@ -410,7 +410,9 @@ async def verify_backup_code(
 
         # Verify backup code
         if not mfa_service.verify_backup_code(
-            int(current_user.id), request.code, list(mfa_config.backup_codes) if mfa_config.backup_codes else []
+            int(current_user.id),
+            request.code,
+            list(mfa_config.backup_codes) if mfa_config.backup_codes else [],
         ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid backup code"
@@ -470,7 +472,9 @@ async def get_mfa_status(
         return MFAStatusResponse(
             totp_enabled=bool(mfa_config.totp_enabled) or False,
             sms_enabled=bool(mfa_config.sms_enabled) or False,
-            phone_number=str(mfa_config.phone_number) if mfa_config.phone_number else None,
+            phone_number=str(mfa_config.phone_number)
+            if mfa_config.phone_number
+            else None,
             backup_codes_count=len(mfa_config.backup_codes)
             if mfa_config.backup_codes
             else 0,

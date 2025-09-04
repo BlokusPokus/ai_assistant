@@ -640,7 +640,9 @@ class SMSPerformanceMonitor:
 
             # Calculate response time metrics
             processing_times = [
-                int(log.processing_time_ms) for log in recent_logs if log.processing_time_ms
+                int(log.processing_time_ms)
+                for log in recent_logs
+                if log.processing_time_ms
             ]
             avg_response_time = (
                 sum(processing_times) / len(processing_times) if processing_times else 0
