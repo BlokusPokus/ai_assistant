@@ -8,7 +8,7 @@ that are used by the main EmailTool class.
 import logging
 import os
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -99,10 +99,10 @@ def build_email_headers(
 
 
 def build_email_params(
-    top: int, select: str = None, skip: int = 0, orderby: str = None
+    top: int, select: Optional[str] = None, skip: int = 0, orderby: Optional[str] = None
 ) -> Dict[str, Any]:
     """Build query parameters for email operations"""
-    params = {"$top": top}
+    params: Dict[str, Any] = {"$top": top}
 
     if select:
         params["$select"] = select

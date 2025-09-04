@@ -25,12 +25,12 @@ logger = get_logger("memory_lifecycle")
 class EnhancedMemoryLifecycleManager:
     """Enhanced memory lifecycle manager with state integration"""
 
-    def __init__(self, config: EnhancedLTMConfig = None):
+    def __init__(self, config: Optional[EnhancedLTMConfig] = None):
         self.config = config or EnhancedLTMConfig()
         self.logger = get_logger("enhanced_memory_lifecycle")
 
     async def manage_memory_lifecycle_with_state(
-        self, user_id: int, state_context: "AgentState" = None
+        self, user_id: int, state_context: Optional["AgentState"] = None
     ) -> Dict[str, Any]:
         """
         Manage memory lifecycle with state context integration
@@ -43,7 +43,7 @@ class EnhancedMemoryLifecycleManager:
             Dictionary with lifecycle management results
         """
 
-        lifecycle_report = {
+        lifecycle_report: Dict[str, Any] = {
             "archived": 0,
             "consolidated": 0,
             "deleted": 0,
@@ -54,25 +54,25 @@ class EnhancedMemoryLifecycleManager:
 
         try:
             # Step 1: State-aware memory aging
-            aged_memories = await self._age_memories_with_state_context(
+            aged_memories: List[Dict[str, Any]] = await self._age_memories_with_state_context(
                 user_id, state_context
             )
             lifecycle_report["updated"] += len(aged_memories)
 
             # Step 2: State-coordinated consolidation
-            consolidated_memories = await self._consolidate_memories_with_state(
+            consolidated_memories: List[Dict[str, Any]] = await self._consolidate_memories_with_state(
                 user_id, state_context
             )
             lifecycle_report["consolidated"] += len(consolidated_memories)
 
             # Step 3: Intelligent archiving based on state patterns
-            archived_memories = await self._archive_memories_intelligently(
+            archived_memories: List[Dict[str, Any]] = await self._archive_memories_intelligently(
                 user_id, state_context
             )
             lifecycle_report["archived"] += len(archived_memories)
 
             # Step 4: Storage optimization with state coordination
-            storage_optimization = await self._optimize_storage_with_state(
+            storage_optimization: Dict[str, Any] = await self._optimize_storage_with_state(
                 user_id, state_context
             )
             lifecycle_report["performance_metrics"][
@@ -80,7 +80,7 @@ class EnhancedMemoryLifecycleManager:
             ] = storage_optimization
 
             # Step 5: State-LTM lifecycle coordination
-            state_coordination = await self._coordinate_state_ltm_lifecycle(
+            state_coordination: int = await self._coordinate_state_ltm_lifecycle(
                 user_id, state_context
             )
             lifecycle_report["state_integrated"] += state_coordination
@@ -97,8 +97,8 @@ class EnhancedMemoryLifecycleManager:
             return lifecycle_report
 
     async def _age_memories_with_state_context(
-        self, user_id: int, state_context: "AgentState" = None
-    ) -> List[dict]:
+        self, user_id: int, state_context: Optional["AgentState"] = None
+    ) -> List[Dict[str, Any]]:
         """Age memories with state context awareness"""
 
         try:
@@ -129,8 +129,8 @@ class EnhancedMemoryLifecycleManager:
             return []
 
     async def _consolidate_memories_with_state(
-        self, user_id: int, state_context: "AgentState" = None
-    ) -> List[dict]:
+        self, user_id: int, state_context: Optional["AgentState"] = None
+    ) -> List[Dict[str, Any]]:
         """Consolidate memories with state context coordination"""
 
         try:
@@ -174,8 +174,8 @@ class EnhancedMemoryLifecycleManager:
             return []
 
     async def _archive_memories_intelligently(
-        self, user_id: int, state_context: "AgentState" = None
-    ) -> List[dict]:
+        self, user_id: int, state_context: Optional["AgentState"] = None
+    ) -> List[Dict[str, Any]]:
         """Intelligently archive memories based on state patterns"""
 
         try:
@@ -207,7 +207,7 @@ class EnhancedMemoryLifecycleManager:
             return []
 
     async def _optimize_storage_with_state(
-        self, user_id: int, state_context: "AgentState" = None
+        self, user_id: int, state_context: Optional["AgentState"] = None
     ) -> Dict[str, Any]:
         """Optimize storage with state context coordination"""
 
@@ -250,7 +250,7 @@ class EnhancedMemoryLifecycleManager:
             return {}
 
     async def _coordinate_state_ltm_lifecycle(
-        self, user_id: int, state_context: "AgentState" = None
+        self, user_id: int, state_context: Optional["AgentState"] = None
     ) -> int:
         """Coordinate LTM lifecycle with state management"""
 
@@ -301,7 +301,7 @@ class EnhancedMemoryLifecycleManager:
             return 0
 
     def _calculate_state_aware_aging_factor(
-        self, memory: dict, state_context: "AgentState" = None
+        self, memory: Dict[str, Any], state_context: Optional["AgentState"] = None
     ) -> float:
         """Calculate aging factor based on state context"""
 
@@ -354,7 +354,7 @@ class EnhancedMemoryLifecycleManager:
         return new_importance
 
     def _group_memories_by_state_aware_similarity(
-        self, memories: List[dict], state_context: "AgentState" = None
+        self, memories: List[Dict[str, Any]], state_context: Optional["AgentState"] = None
     ) -> List[List[dict]]:
         """Group memories by state-aware similarity"""
 
@@ -410,7 +410,7 @@ class EnhancedMemoryLifecycleManager:
         return False
 
     def _are_memories_similar_with_state(
-        self, memory1: dict, memory2: dict, state_context: "AgentState" = None
+        self, memory1: Dict[str, Any], memory2: Dict[str, Any], state_context: Optional["AgentState"] = None
     ) -> bool:
         """Check if memories are similar with state context consideration"""
 
@@ -483,7 +483,7 @@ class EnhancedMemoryLifecycleManager:
         return min(1.0, similarity_score)
 
     def _calculate_state_aware_archiving_score(
-        self, memory: dict, state_context: "AgentState" = None
+        self, memory: Dict[str, Any], state_context: Optional["AgentState"] = None
     ) -> float:
         """Calculate archiving score based on state context"""
 
@@ -559,8 +559,8 @@ class EnhancedMemoryLifecycleManager:
             return 0
 
     async def _consolidate_group_with_state(
-        self, user_id: int, memory_group: List[dict], state_context: "AgentState" = None
-    ) -> Optional[dict]:
+        self, user_id: int, memory_group: List[Dict[str, Any]], state_context: Optional["AgentState"] = None
+    ) -> Optional[Dict[str, Any]]:
         """Consolidate a group of memories with state context"""
 
         try:
@@ -618,7 +618,20 @@ class EnhancedMemoryLifecycleManager:
             }
 
             # Save consolidated memory
-            memory_id = await add_ltm_memory(consolidated_data)
+            memory_id = await add_ltm_memory(
+                user_id=user_id,
+                content=consolidated_data["content"],
+                tags=consolidated_data["tags"],
+                importance_score=consolidated_data.get("importance_score", 1),
+                context=consolidated_data.get("context"),
+                memory_type=consolidated_data.get("memory_type"),
+                category=consolidated_data.get("category"),
+                confidence_score=consolidated_data.get("confidence_score", 1.0),
+                source_type=consolidated_data.get("source_type"),
+                source_id=consolidated_data.get("source_id"),
+                created_by=consolidated_data.get("created_by", "system"),
+                metadata=consolidated_data.get("metadata")
+            )
             if memory_id:
                 self.logger.info(
                     f"Created state-aware consolidated memory {memory_id} from {len(memory_group)} memories"
@@ -631,7 +644,7 @@ class EnhancedMemoryLifecycleManager:
         return None
 
     def _calculate_state_relevance_score(
-        self, memory: dict, state_context: "AgentState" = None
+        self, memory: Dict[str, Any], state_context: Optional["AgentState"] = None
     ) -> float:
         """Calculate state relevance score for a memory"""
 
@@ -671,7 +684,7 @@ class EnhancedMemoryLifecycleManager:
         return min(1.0, score)
 
     def _combine_memory_content_with_state(
-        self, memory_group: List[dict], state_context: "AgentState" = None
+        self, memory_group: List[Dict[str, Any]], state_context: Optional["AgentState"] = None
     ) -> str:
         """Combine memory content with state context consideration"""
 
@@ -708,7 +721,7 @@ class EnhancedMemoryLifecycleManager:
         return "\n\n".join(content_parts)
 
     def _combine_memory_tags_with_state(
-        self, memory_group: List[dict], state_context: "AgentState" = None
+        self, memory_group: List[Dict[str, Any]], state_context: Optional["AgentState"] = None
     ) -> List[str]:
         """Combine memory tags with state context consideration"""
 
@@ -867,8 +880,8 @@ class EnhancedMemoryLifecycleManager:
 
     # Placeholder methods for database operations
     async def _get_memories_for_aging(
-        self, user_id: int, state_context: "AgentState" = None
-    ) -> List[dict]:
+        self, user_id: int, state_context: Optional["AgentState"] = None
+    ) -> List[Dict[str, Any]]:
         """Get memories that need aging"""
         # This would need to be implemented with actual database queries
         self.logger.warning(
@@ -877,8 +890,8 @@ class EnhancedMemoryLifecycleManager:
         return []
 
     async def _get_memories_for_consolidation(
-        self, user_id: int, state_context: "AgentState" = None
-    ) -> List[dict]:
+        self, user_id: int, state_context: Optional["AgentState"] = None
+    ) -> List[Dict[str, Any]]:
         """Get memories for consolidation"""
         # This would need to be implemented with actual database queries
         self.logger.warning(
@@ -887,8 +900,8 @@ class EnhancedMemoryLifecycleManager:
         return []
 
     async def _get_memories_for_archiving(
-        self, user_id: int, state_context: "AgentState" = None
-    ) -> List[dict]:
+        self, user_id: int, state_context: Optional["AgentState"] = None
+    ) -> List[Dict[str, Any]]:
         """Get memories for archiving"""
         # This would need to be implemented with actual database queries
         self.logger.warning(
@@ -897,7 +910,7 @@ class EnhancedMemoryLifecycleManager:
         return []
 
     async def _apply_storage_compression(
-        self, user_id: int, state_context: "AgentState" = None
+        self, user_id: int, state_context: Optional["AgentState"] = None
     ) -> Dict[str, Any]:
         """Apply storage compression"""
         # This would need to be implemented with actual compression logic
@@ -922,7 +935,7 @@ class EnhancedMemoryLifecycleManager:
 
     async def _get_memories_by_focus_areas(
         self, user_id: int, focus_areas: List[str]
-    ) -> List[dict]:
+    ) -> List[Dict[str, Any]]:
         """Get memories by focus areas"""
         # This would need to be implemented with actual database queries
         self.logger.warning(
@@ -930,7 +943,7 @@ class EnhancedMemoryLifecycleManager:
         )
         return []
 
-    async def _get_tool_related_memories(self, user_id: int) -> List[dict]:
+    async def _get_tool_related_memories(self, user_id: int) -> List[Dict[str, Any]]:
         """Get tool-related memories"""
         # This would need to be implemented with actual database queries
         self.logger.warning(
@@ -938,7 +951,7 @@ class EnhancedMemoryLifecycleManager:
         )
         return []
 
-    async def _get_memories_by_topic(self, user_id: int, topic: str) -> List[dict]:
+    async def _get_memories_by_topic(self, user_id: int, topic: str) -> List[Dict[str, Any]]:
         """Get memories by topic"""
         # This would need to be implemented with actual database queries
         self.logger.warning(
@@ -947,7 +960,7 @@ class EnhancedMemoryLifecycleManager:
         return []
 
     async def _archive_memory_with_state_context(
-        self, memory_id: str, state_context: "AgentState" = None
+        self, memory_id: str, state_context: Optional["AgentState"] = None
     ) -> bool:
         """Archive memory with state context"""
         # This would need to be implemented with actual database updates
@@ -1015,7 +1028,7 @@ class EnhancedMemoryLifecycleManager:
 class MemoryLifecycleManager:
     """Legacy memory lifecycle manager (maintained for backward compatibility)"""
 
-    def __init__(self, config: LTMConfig = None):
+    def __init__(self, config: Optional[LTMConfig] = None):
         self.config = config or LTMConfig()
         self.enhanced_manager = EnhancedMemoryLifecycleManager(EnhancedLTMConfig())
 
@@ -1029,11 +1042,11 @@ class MemoryLifecycleManager:
 class MemoryConsolidator:
     """Legacy memory consolidator (maintained for backward compatibility)"""
 
-    def __init__(self, config: LTMConfig = None):
+    def __init__(self, config: Optional[LTMConfig] = None):
         self.config = config or LTMConfig()
         self.enhanced_manager = EnhancedMemoryLifecycleManager(EnhancedLTMConfig())
 
-    async def consolidate_user_memories(self, user_id: int) -> List[dict]:
+    async def consolidate_user_memories(self, user_id: int) -> List[Dict[str, Any]]:
         """Legacy method - delegates to enhanced manager"""
         return await self.enhanced_manager._consolidate_memories_with_state(
             user_id, None
@@ -1071,24 +1084,24 @@ class MemoryConsolidator:
 
 
 def get_enhanced_lifecycle_manager(
-    config: EnhancedLTMConfig = None,
+    config: Optional[EnhancedLTMConfig] = None,
 ) -> EnhancedMemoryLifecycleManager:
     """Get enhanced memory lifecycle manager with configuration"""
     return EnhancedMemoryLifecycleManager(config)
 
 
-def get_lifecycle_manager(config: LTMConfig = None) -> MemoryLifecycleManager:
+def get_lifecycle_manager(config: Optional[LTMConfig] = None) -> MemoryLifecycleManager:
     """Get legacy memory lifecycle manager with configuration"""
     return MemoryLifecycleManager(config)
 
 
-def get_consolidator(config: LTMConfig = None) -> MemoryConsolidator:
+def get_consolidator(config: Optional[LTMConfig] = None) -> MemoryConsolidator:
     """Get legacy memory consolidator with configuration"""
     return MemoryConsolidator(config)
 
 
 def get_lifecycle_components(
-    config: LTMConfig = None,
+    config: Optional[LTMConfig] = None, 
 ) -> tuple[MemoryLifecycleManager, MemoryConsolidator]:
     """Get both legacy lifecycle manager and consolidator with shared configuration"""
     shared_config = config or LTMConfig()

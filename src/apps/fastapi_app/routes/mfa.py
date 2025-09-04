@@ -8,7 +8,7 @@ This module provides endpoints for:
 - MFA status and configuration
 """
 
-from typing import List, Optional
+from typing import AsyncGenerator, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
@@ -108,7 +108,7 @@ class DisableMFARequest(BaseModel):
 # Dependencies
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session."""
     async with AsyncSessionLocal() as session:
         yield session
@@ -141,10 +141,10 @@ async def setup_totp(
     """Setup TOTP-based MFA for the current user."""
     try:
         # Check if MFA is already configured
-        existing_config = await db.execute(
+        existing_config_result = await db.execute(
             select(MFAConfiguration).where(MFAConfiguration.user_id == current_user.id)
         )
-        existing_config = existing_config.scalar_one_or_none()
+        existing_config = existing_config_result.scalar_one_or_none()
 
         if existing_config and existing_config.totp_enabled:
             raise HTTPException(
@@ -153,15 +153,15 @@ async def setup_totp(
             )
 
         # Generate TOTP secret
-        totp_secret = mfa_service.generate_totp_secret(str(current_user.id))
+        totp_secret = mfa_service.generate_totp_secret(int(current_user.id))
 
         # Generate QR code
-        qr_code = mfa_service.generate_qr_code(totp_secret, current_user.email)
+        qr_code = mfa_service.generate_qr_code(totp_secret, str(current_user.email))
 
         # Store or update configuration
         if existing_config:
-            existing_config.totp_secret = totp_secret
-            existing_config.totp_enabled = False  # Will be enabled after verification
+            existing_config.totp_secret = totp_secret  # type: ignore
+            existing_config.totp_enabled = False  # type: ignore  # Will be enabled after verification
         else:
             existing_config = MFAConfiguration(
                 user_id=current_user.id, totp_secret=totp_secret, totp_enabled=False
@@ -201,16 +201,17 @@ async def setup_totp(
 @router.post("/verify/totp", response_model=TOTPVerifyResponse)
 async def verify_totp(
     request: TOTPVerifyRequest,
+    http_request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Verify TOTP token and enable MFA."""
     try:
         # Get MFA configuration
-        mfa_config = await db.execute(
+        mfa_config_result = await db.execute(
             select(MFAConfiguration).where(MFAConfiguration.user_id == current_user.id)
         )
-        mfa_config = mfa_config.scalar_one_or_none()
+        mfa_config = mfa_config_result.scalar_one_or_none()
 
         if not mfa_config or not mfa_config.totp_secret:
             raise HTTPException(
@@ -219,17 +220,17 @@ async def verify_totp(
             )
 
         # Verify token
-        if not mfa_service.verify_totp(mfa_config.totp_secret, request.token):
+        if not mfa_service.verify_totp(str(mfa_config.totp_secret), request.token):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid TOTP token"
             )
 
         # Enable MFA
-        mfa_config.totp_enabled = True
+        mfa_config.totp_enabled = True  # type: ignore
 
         # Generate backup codes
         backup_codes = mfa_service.generate_backup_codes()
-        mfa_config.backup_codes = backup_codes
+        mfa_config.backup_codes = backup_codes  # type: ignore
 
         await db.commit()
 
@@ -238,8 +239,8 @@ async def verify_totp(
             user_id=current_user.id,
             event_type="mfa_totp_enabled",
             event_data={"method": "totp"},
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
+            ip_address=http_request.client.host if http_request.client else None,
+            user_agent=http_request.headers.get("user-agent"),
             severity="info",
         )
         db.add(security_event)
@@ -262,16 +263,17 @@ async def verify_totp(
 @router.post("/setup/sms", response_model=SMSMFASetupResponse)
 async def setup_sms_mfa(
     request: SMSMFASetupRequest,
+    http_request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Setup SMS-based MFA for the current user."""
     try:
         # Check if MFA is already configured
-        existing_config = await db.execute(
+        existing_config_result = await db.execute(
             select(MFAConfiguration).where(MFAConfiguration.user_id == current_user.id)
         )
-        existing_config = existing_config.scalar_one_or_none()
+        existing_config = existing_config_result.scalar_one_or_none()
 
         if existing_config and existing_config.sms_enabled:
             raise HTTPException(
@@ -289,8 +291,8 @@ async def setup_sms_mfa(
 
         # Store or update configuration
         if existing_config:
-            existing_config.phone_number = request.phone_number
-            existing_config.sms_enabled = False  # Will be enabled after verification
+            existing_config.phone_number = request.phone_number  # type: ignore
+            existing_config.sms_enabled = False  # type: ignore  # Will be enabled after verification
         else:
             existing_config = MFAConfiguration(
                 user_id=current_user.id,
@@ -306,8 +308,8 @@ async def setup_sms_mfa(
             user_id=current_user.id,
             event_type="mfa_sms_setup_initiated",
             event_data={"method": "sms", "phone_number": request.phone_number},
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
+            ip_address=http_request.client.host if http_request.client else None,
+            user_agent=http_request.headers.get("user-agent"),
             severity="info",
         )
         db.add(security_event)
@@ -331,16 +333,17 @@ async def setup_sms_mfa(
 @router.post("/verify/sms", response_model=SMSMFAVerifyResponse)
 async def verify_sms_mfa(
     request: SMSMFAVerifyRequest,
+    http_request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Verify SMS code and enable MFA."""
     try:
         # Get MFA configuration
-        mfa_config = await db.execute(
+        mfa_config_result = await db.execute(
             select(MFAConfiguration).where(MFAConfiguration.user_id == current_user.id)
         )
-        mfa_config = mfa_config.scalar_one_or_none()
+        mfa_config = mfa_config_result.scalar_one_or_none()
 
         if not mfa_config or not mfa_config.phone_number:
             raise HTTPException(
@@ -356,7 +359,7 @@ async def verify_sms_mfa(
             )
 
         # Enable MFA
-        mfa_config.sms_enabled = True
+        mfa_config.sms_enabled = True  # type: ignore
 
         await db.commit()
 
@@ -365,8 +368,8 @@ async def verify_sms_mfa(
             user_id=current_user.id,
             event_type="mfa_sms_enabled",
             event_data={"method": "sms"},
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
+            ip_address=http_request.client.host if http_request.client else None,
+            user_agent=http_request.headers.get("user-agent"),
             severity="info",
         )
         db.add(security_event)
@@ -387,16 +390,17 @@ async def verify_sms_mfa(
 @router.post("/verify/backup")
 async def verify_backup_code(
     request: BackupCodeVerifyRequest,
+    http_request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Verify backup code for account recovery."""
     try:
         # Get MFA configuration
-        mfa_config = await db.execute(
+        mfa_config_result = await db.execute(
             select(MFAConfiguration).where(MFAConfiguration.user_id == current_user.id)
         )
-        mfa_config = mfa_config.scalar_one_or_none()
+        mfa_config = mfa_config_result.scalar_one_or_none()
 
         if not mfa_config or not mfa_config.backup_codes:
             raise HTTPException(
@@ -406,7 +410,7 @@ async def verify_backup_code(
 
         # Verify backup code
         if not mfa_service.verify_backup_code(
-            str(current_user.id), request.code, mfa_config.backup_codes
+            int(current_user.id), request.code, list(mfa_config.backup_codes) if mfa_config.backup_codes else []
         ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid backup code"
@@ -420,8 +424,8 @@ async def verify_backup_code(
             user_id=current_user.id,
             event_type="mfa_backup_code_used",
             event_data={"method": "backup_code"},
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
+            ip_address=http_request.client.host if http_request.client else None,
+            user_agent=http_request.headers.get("user-agent"),
             severity="warning",
         )
         db.add(security_event)
@@ -449,10 +453,10 @@ async def get_mfa_status(
     """Get MFA status for the current user."""
     try:
         # Get MFA configuration
-        mfa_config = await db.execute(
+        mfa_config_result = await db.execute(
             select(MFAConfiguration).where(MFAConfiguration.user_id == current_user.id)
         )
-        mfa_config = mfa_config.scalar_one_or_none()
+        mfa_config = mfa_config_result.scalar_one_or_none()
 
         if not mfa_config:
             return MFAStatusResponse(
@@ -464,9 +468,9 @@ async def get_mfa_status(
             )
 
         return MFAStatusResponse(
-            totp_enabled=mfa_config.totp_enabled or False,
-            sms_enabled=mfa_config.sms_enabled or False,
-            phone_number=mfa_config.phone_number,
+            totp_enabled=bool(mfa_config.totp_enabled) or False,
+            sms_enabled=bool(mfa_config.sms_enabled) or False,
+            phone_number=str(mfa_config.phone_number) if mfa_config.phone_number else None,
             backup_codes_count=len(mfa_config.backup_codes)
             if mfa_config.backup_codes
             else 0,
@@ -485,8 +489,8 @@ async def get_mfa_status(
 @router.post("/disable")
 @require_permission("user", "update")
 async def disable_mfa(
-    request_obj: Request,
     request: DisableMFARequest,
+    http_request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -496,10 +500,10 @@ async def disable_mfa(
         # For now, we'll skip password verification
 
         # Get MFA configuration
-        mfa_config = await db.execute(
+        mfa_config_result = await db.execute(
             select(MFAConfiguration).where(MFAConfiguration.user_id == current_user.id)
         )
-        mfa_config = mfa_config.scalar_one_or_none()
+        mfa_config = mfa_config_result.scalar_one_or_none()
 
         if not mfa_config:
             raise HTTPException(
@@ -508,12 +512,12 @@ async def disable_mfa(
 
         # Disable specified method
         if request.method.lower() == "totp":
-            mfa_config.totp_enabled = False
-            mfa_config.totp_secret = None
-            mfa_config.backup_codes = None
+            mfa_config.totp_enabled = False  # type: ignore
+            mfa_config.totp_secret = None  # type: ignore
+            mfa_config.backup_codes = None  # type: ignore
         elif request.method.lower() == "sms":
-            mfa_config.sms_enabled = False
-            mfa_config.phone_number = None
+            mfa_config.sms_enabled = False  # type: ignore
+            mfa_config.phone_number = None  # type: ignore
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -527,8 +531,8 @@ async def disable_mfa(
             user_id=current_user.id,
             event_type="mfa_disabled",
             event_data={"method": request.method.lower()},
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
+            ip_address=http_request.client.host if http_request.client else None,
+            user_agent=http_request.headers.get("user-agent"),
             severity="warning",
         )
         db.add(security_event)
@@ -555,10 +559,10 @@ async def regenerate_backup_codes(
     """Regenerate backup codes for the current user."""
     try:
         # Get MFA configuration
-        mfa_config = await db.execute(
+        mfa_config_result = await db.execute(
             select(MFAConfiguration).where(MFAConfiguration.user_id == current_user.id)
         )
-        mfa_config = mfa_config.scalar_one_or_none()
+        mfa_config = mfa_config_result.scalar_one_or_none()
 
         if not mfa_config or not mfa_config.totp_enabled:
             raise HTTPException(
@@ -568,7 +572,7 @@ async def regenerate_backup_codes(
 
         # Generate new backup codes
         new_backup_codes = mfa_service.generate_backup_codes()
-        mfa_config.backup_codes = new_backup_codes
+        mfa_config.backup_codes = new_backup_codes  # type: ignore
 
         await db.commit()
 

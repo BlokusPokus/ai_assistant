@@ -7,7 +7,7 @@ that are used by the main InternetTool class.
 
 import logging
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +115,7 @@ def format_image_search_results(
 
 
 def format_news_articles_response(
-    category: str = None, topic: str = None, max_articles: int = 5
+    category: Optional[str] = None, topic: Optional[str] = None, max_articles: int = 5
 ) -> str:
     """Format news articles response"""
     if category and topic:
@@ -177,7 +177,7 @@ def process_duckduckgo_text_results(
     ddgs_client, query: str, max_results: int, use_ddgs: bool
 ) -> List[Dict[str, str]]:
     """Process DuckDuckGo text search results"""
-    search_results = []
+    search_results: List[Dict[str, str]] = []
 
     try:
         # Ensure max_results is an integer
@@ -233,7 +233,7 @@ def process_duckduckgo_image_results(
     ddgs_client, query: str, max_results: int, use_ddgs: bool
 ) -> List[Dict[str, str]]:
     """Process DuckDuckGo image search results"""
-    image_results = []
+    image_results: List[Dict[str, str]] = []
 
     try:
         logger.info(f"🔍 Starting DuckDuckGo image search for query: '{query}'")

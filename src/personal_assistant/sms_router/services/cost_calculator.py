@@ -36,13 +36,13 @@ class SMSCostCalculator:
         }
 
         # Cache for pricing data
-        self._pricing_cache = {}
+        self._pricing_cache: Dict[str, float] = {}
         self._cache_ttl = 24 * 60 * 60  # 24 hours in seconds
-        self._last_cache_update = 0
+        self._last_cache_update = 0.0
 
     async def calculate_user_costs(
         self, user_id: int, time_range: str = "30d"
-    ) -> Dict[str, float]:
+    ) -> Dict[str, Any]:
         """
         Calculate SMS costs for a specific user.
 
@@ -90,7 +90,7 @@ class SMSCostCalculator:
                     inbound_cost += message_cost
                 elif log.message_direction == "outbound":
                     # Check if it's international
-                    if self._is_international_number(log.phone_number):
+                    if self._is_international_number(str(log.phone_number)):
                         message_cost = pricing["international_outbound"]
                     else:
                         message_cost = pricing["outbound"]
@@ -295,7 +295,7 @@ class SMSCostCalculator:
                 day_logs = result.scalars().all()
 
                 if day_logs:
-                    day_cost = await self._calculate_day_cost(day_logs)
+                    day_cost = await self._calculate_day_cost(list(day_logs))
                     daily_costs.append(
                         {
                             "date": current_date.isoformat(),
@@ -468,7 +468,7 @@ class SMSCostCalculator:
                     message_cost = pricing["inbound"]
                     inbound_cost += message_cost
                 elif log.message_direction == "outbound":
-                    if self._is_international_number(log.phone_number):
+                    if self._is_international_number(str(log.phone_number)):
                         message_cost = pricing["international_outbound"]
                         international_cost += message_cost
                     else:
@@ -579,7 +579,7 @@ class SMSCostCalculator:
                 if log.message_direction == "inbound":
                     total_cost += pricing["inbound"]
                 elif log.message_direction == "outbound":
-                    if self._is_international_number(log.phone_number):
+                    if self._is_international_number(str(log.phone_number)):
                         total_cost += pricing["international_outbound"]
                     else:
                         total_cost += pricing["outbound"]
@@ -639,7 +639,7 @@ class SMSCostCalculator:
         )
 
         if previous_cpm == 0:
-            change_percentage = 100 if current_cpm > 0 else 0
+            change_percentage = 100.0 if current_cpm > 0 else 0.0
         else:
             change_percentage = ((current_cpm - previous_cpm) / previous_cpm) * 100
 
@@ -678,7 +678,7 @@ class SMSCostCalculator:
         )
 
         if first_avg == 0:
-            change_percentage = 100 if second_avg > 0 else 0
+            change_percentage = 100.0 if second_avg > 0 else 0.0
         else:
             change_percentage = ((second_avg - first_avg) / first_avg) * 100
 
@@ -757,7 +757,7 @@ class SMSCostCalculator:
             total_length = sum(log.message_length for log in usage_logs)
 
             # Calculate usage patterns
-            hourly_counts = {}
+            hourly_counts: Dict[int, int] = {}
             for log in usage_logs:
                 if log.created_at and hasattr(log.created_at, "hour"):
                     hour = log.created_at.hour
@@ -806,7 +806,7 @@ class SMSCostCalculator:
 
             international_count = 0
             for log in outbound_logs:
-                if self._is_international_number(log.phone_number):
+                if self._is_international_number(str(log.phone_number)):
                     international_count += 1
 
             return international_count
@@ -840,7 +840,7 @@ class SMSCostCalculator:
             return 0
 
     # Empty response creators
-    def _create_empty_cost_breakdown(self) -> Dict[str, float]:
+    def _create_empty_cost_breakdown(self) -> Dict[str, Any]:
         """Create empty cost breakdown response."""
         return {
             "total_cost_usd": 0.0,

@@ -41,9 +41,9 @@ class SMSPerformanceMonitor:
         }
 
         # Performance history cache
-        self._performance_cache = {}
+        self._performance_cache: Dict[str, Any] = {}
         self._cache_ttl = 300  # 5 minutes in seconds
-        self._last_cache_update = 0
+        self._last_cache_update = 0.0
 
     async def get_real_time_metrics(self) -> Dict[str, Any]:
         """
@@ -79,7 +79,7 @@ class SMSPerformanceMonitor:
             if not recent_logs:
                 metrics = self._create_empty_real_time_metrics()
             else:
-                metrics = await self._calculate_real_time_metrics(recent_logs)
+                metrics = await self._calculate_real_time_metrics(list(recent_logs))
 
             # Update cache
             self._performance_cache = metrics
@@ -598,7 +598,7 @@ class SMSPerformanceMonitor:
             # Sort by priority
             priority_order = {"high": 3, "medium": 2, "low": 1}
             recommendations.sort(
-                key=lambda x: priority_order.get(x.get("priority", "low"), 0),
+                key=lambda x: priority_order.get(str(x.get("priority", "low")), 0),
                 reverse=True,
             )
 
@@ -640,7 +640,7 @@ class SMSPerformanceMonitor:
 
             # Calculate response time metrics
             processing_times = [
-                log.processing_time_ms for log in recent_logs if log.processing_time_ms
+                int(log.processing_time_ms) for log in recent_logs if log.processing_time_ms
             ]
             avg_response_time = (
                 sum(processing_times) / len(processing_times) if processing_times else 0
@@ -652,7 +652,7 @@ class SMSPerformanceMonitor:
             unique_users = len(set(log.user_id for log in recent_logs))
 
             # Calculate hourly activity
-            hourly_counts = {}
+            hourly_counts: Dict[int, int] = {}
             for log in recent_logs:
                 if log.created_at and hasattr(log.created_at, "hour"):
                     hour = log.created_at.hour
@@ -676,7 +676,7 @@ class SMSPerformanceMonitor:
                 for log in recent_logs
                 if log.created_at and log.created_at >= today_start
             ]
-            today_hourly_counts = {}
+            today_hourly_counts: Dict[int, int] = {}
             for log in today_logs:
                 if log.created_at and hasattr(log.created_at, "hour"):
                     hour = log.created_at.hour
@@ -799,7 +799,7 @@ class SMSPerformanceMonitor:
         )
 
         if first_success_avg == 0:
-            success_change = 100 if second_success_avg > 0 else 0
+            success_change = 100.0 if second_success_avg > 0 else 0.0
         else:
             success_change = (
                 (second_success_avg - first_success_avg) / first_success_avg
@@ -819,7 +819,7 @@ class SMSPerformanceMonitor:
         )
 
         if first_time_avg == 0:
-            time_change = 100 if second_time_avg > 0 else 0
+            time_change = 100.0 if second_time_avg > 0 else 0.0
         else:
             time_change = ((second_time_avg - first_time_avg) / first_time_avg) * 100
 
@@ -854,7 +854,7 @@ class SMSPerformanceMonitor:
         worst_day = min(daily_performance, key=lambda x: x.get("success_rate", 0))
 
         # Calculate weekly patterns (simplified)
-        weekly_averages = {}
+        weekly_averages: Dict[int, Dict[str, List[float]]] = {}
         for day in daily_performance:
             date_obj = datetime.fromisoformat(day["date"]).date()
             weekday = date_obj.weekday()

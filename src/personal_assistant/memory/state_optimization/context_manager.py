@@ -139,7 +139,7 @@ class ContextManager:
         Returns:
             List of focus context items
         """
-        focus_context = []
+        focus_context: List[dict] = []
 
         if not focus:
             return focus_context
@@ -205,7 +205,7 @@ class ContextManager:
         Returns:
             List of preference context items
         """
-        preference_context = []
+        preference_context: List[dict] = []
 
         # Look for patterns in user messages
         user_messages = [
@@ -267,7 +267,7 @@ class ContextManager:
             }
 
         # Analyze tool usage preferences
-        tool_mentions = {}
+        tool_mentions: Dict[str, int] = {}
         for msg in user_messages:
             content = str(msg.get("content", "")).lower()
             if "tool" in content:

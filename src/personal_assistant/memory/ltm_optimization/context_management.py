@@ -259,11 +259,11 @@ class MemoryContext:
 class ContextOptimizationManager:
     """Optimizes LTM context for injection into agent"""
 
-    def __init__(self, config: LTMConfig = None):
+    def __init__(self, config: Optional[LTMConfig] = None):
         self.config = config or LTMConfig()
 
     async def optimize_ltm_context(
-        self, memories: List[dict], user_input: str, max_length: int = None
+        self, memories: List[dict], user_input: str, max_length: Optional[int] = None
     ) -> str:
         """Optimize LTM context for injection"""
 
@@ -312,7 +312,7 @@ class ContextOptimizationManager:
         relevance_boost = self._calculate_relevance_boost(memory, user_input)
 
         # Recency boost
-        recency_boost = self._calculate_recency_boost(memory.get("last_accessed"))
+        recency_boost = self._calculate_recency_boost(memory.get("last_accessed") or "")
 
         # Type-specific boost
         type_boost = self._calculate_type_boost(memory.get("type", "general"))
@@ -443,7 +443,7 @@ class DynamicContextManager:
     state context integration, and focus area coordination.
     """
 
-    def __init__(self, config: LTMConfig = None):
+    def __init__(self, config: Optional[LTMConfig] = None):
         self.config = config or LTMConfig()
         self.logger = get_logger("dynamic_context_manager")
 
@@ -470,8 +470,8 @@ class DynamicContextManager:
         self,
         memories: List[dict],
         user_input: str,
-        state_context: "AgentState" = None,
-        focus_areas: List[str] = None,
+        state_context: Optional["AgentState"] = None,
+        focus_areas: Optional[List[str]] = None,
         query_complexity: str = "medium",
     ) -> str:
         """
@@ -524,7 +524,7 @@ class DynamicContextManager:
         return final_context
 
     def _calculate_dynamic_context_size(
-        self, user_input: str, query_complexity: str, state_context: "AgentState" = None
+        self, user_input: str, query_complexity: str, state_context: Optional["AgentState"] = None
     ) -> int:
         """Calculate dynamic context size based on input complexity and state"""
 
@@ -561,12 +561,12 @@ class DynamicContextManager:
             self.min_context_length, min(dynamic_length, self.max_context_length)
         )
 
-    async def _prioritize_memories_with_state(
+    async     def _prioritize_memories_with_state(
         self,
         memories: List[dict],
         user_input: str,
-        state_context: "AgentState" = None,
-        focus_areas: List[str] = None,
+        state_context: Optional["AgentState"] = None,
+        focus_areas: Optional[List[str]] = None,
     ) -> List[dict]:
         """Prioritize memories with state context consideration"""
 
@@ -587,8 +587,8 @@ class DynamicContextManager:
         self,
         memory: dict,
         user_input: str,
-        state_context: "AgentState" = None,
-        focus_areas: List[str] = None,
+        state_context: Optional["AgentState"] = None,
+        focus_areas: Optional[List[str]] = None,
     ) -> float:
         """Calculate comprehensive memory score with state context"""
 
@@ -600,7 +600,7 @@ class DynamicContextManager:
 
         # Recency boost
         recency_boost = self._calculate_enhanced_recency_boost(
-            memory.get("last_accessed"), memory.get("created_at")
+            memory.get("last_accessed") or "", memory.get("created_at")
         )
 
         # Type-specific boost
@@ -612,7 +612,7 @@ class DynamicContextManager:
         state_boost = self._calculate_state_context_boost(memory, state_context)
 
         # Focus area boost
-        focus_boost = self._calculate_focus_area_boost(memory, focus_areas)
+        focus_boost = self._calculate_focus_area_boost(memory, focus_areas or [])
 
         # Confidence boost
         confidence_boost = memory.get("confidence_score", 0.5) * 0.1
@@ -658,7 +658,7 @@ class DynamicContextManager:
         return (tag_score * 0.4 + word_overlap * 0.4 + phrase_overlap * 0.2) * 0.3
 
     def _calculate_enhanced_recency_boost(
-        self, last_accessed: str, created_at: str = None
+        self, last_accessed: str, created_at: Optional[str] = None
     ) -> float:
         """Calculate enhanced recency boost"""
 
@@ -709,7 +709,7 @@ class DynamicContextManager:
         return type_boosts.get(memory_type, 0.0)
 
     def _calculate_state_context_boost(
-        self, memory: dict, state_context: "AgentState" = None
+        self, memory: dict, state_context: Optional["AgentState"] = None
     ) -> float:
         """Calculate boost based on state context relevance"""
 
@@ -752,7 +752,7 @@ class DynamicContextManager:
         return min(0.4, boost) * self.state_context_weight
 
     def _calculate_focus_area_boost(
-        self, memory: dict, focus_areas: List[str] = None
+        self, memory: dict, focus_areas: Optional[List[str]] = None
     ) -> float:
         """Calculate boost based on focus areas"""
 
@@ -840,7 +840,7 @@ class DynamicContextManager:
             base_length + tags_length + type_prefix_length + 20
         )  # Buffer for formatting
 
-    def _create_shortened_memory(self, memory: dict, max_length: int) -> dict:
+    def _create_shortened_memory(self, memory: dict, max_length: int) -> Optional[dict]:
         """Create a shortened version of a memory"""
 
         if max_length < 50:  # Too short to be useful
@@ -899,7 +899,7 @@ class DynamicContextManager:
     def _group_memories_by_type(self, memories: List[dict]) -> Dict[str, List[dict]]:
         """Group memories by type for better organization"""
 
-        grouped = {}
+        grouped: Dict[str, List[dict]] = {}
         for memory in memories:
             memory_type = memory.get("memory_type", "general")
             if memory_type not in grouped:
@@ -1061,7 +1061,7 @@ class DynamicContextManager:
 # ============================================================================
 
 
-def create_temporal_context(timestamp: datetime = None) -> TemporalContext:
+def create_temporal_context(timestamp: Optional[datetime] = None) -> TemporalContext:
     """Create temporal context from current time or specified timestamp"""
     if timestamp is None:
         timestamp = datetime.now()
@@ -1090,6 +1090,6 @@ def _get_season(month: int) -> str:
         return "autumn"
 
 
-def get_context_manager(config: LTMConfig = None) -> ContextOptimizationManager:
+def get_context_manager(config: Optional[LTMConfig] = None) -> ContextOptimizationManager:
     """Get context optimization manager with configuration"""
     return ContextOptimizationManager(config)
