@@ -235,7 +235,7 @@ jobs:
           export PROD_DATABASE_URL="${{ secrets.PROD_DATABASE_URL }}"
 
           # Run critical path tests
-          pytest tests/test_auth/ tests/test_user_*.py -v --timeout=600
+          pytest tests/test_auth/ tests/unit/test_database/test_user_model.py tests/unit/test_api/test_user_endpoints.py -v --timeout=600
 
           echo "✅ Critical path tests passed"
 

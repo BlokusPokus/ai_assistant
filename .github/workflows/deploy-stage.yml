@@ -194,7 +194,7 @@ jobs:
           export STAGING_DATABASE_URL="${{ secrets.STAGE_DATABASE_URL }}"
 
           # Run integration tests
-          pytest tests/integration/ -v --timeout=600
+          pytest tests/unit/test_integration/ -v --timeout=600
 
           echo "✅ Integration tests passed"
 
