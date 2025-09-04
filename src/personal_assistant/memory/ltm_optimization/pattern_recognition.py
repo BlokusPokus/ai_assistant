@@ -29,7 +29,7 @@ class PatternRecognitionEngine:
     - State-to-memory conversion
     """
 
-    def __init__(self, config: EnhancedLTMConfig = None):
+    def __init__(self, config: Optional[EnhancedLTMConfig] = None):
         """Initialize the pattern recognition engine"""
         self.config = config or EnhancedLTMConfig()
         self.logger = get_logger("pattern_recognition")
@@ -49,7 +49,7 @@ class PatternRecognitionEngine:
         if not conversation_history or len(conversation_history) < 2:
             return []
 
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # Analyze communication style patterns
@@ -92,7 +92,7 @@ class PatternRecognitionEngine:
         if not tool_calls:
             return []
 
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # Analyze tool preference patterns
@@ -133,7 +133,7 @@ class PatternRecognitionEngine:
         if not interactions:
             return []
 
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # Analyze interaction timing patterns
@@ -171,7 +171,7 @@ class PatternRecognitionEngine:
         Returns:
             List of temporal patterns ready for memory creation
         """
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # Analyze time-of-day patterns
@@ -244,9 +244,19 @@ class PatternRecognitionEngine:
 
             # Analyze user behavior patterns
             if state_data.history:
-                behavior_patterns = await self.recognize_user_behavior_patterns(
-                    state_data.history
-                )
+                # Convert tuple list to dict list if needed
+                history_data = []
+                for item in state_data.history:
+                    if isinstance(item, tuple):
+                        # Convert tuple to dict format
+                        history_data.append({"interaction": item[0], "timestamp": item[1]})
+                    elif isinstance(item, dict):
+                        history_data.append(item)
+                    else:
+                        # Fallback for other types
+                        history_data.append({"data": str(item), "timestamp": datetime.utcnow().isoformat()})
+                
+                behavior_patterns = await self.recognize_user_behavior_patterns(history_data)
                 for pattern in behavior_patterns:
                     memory = self._convert_pattern_to_memory(
                         user_id, pattern, "user_behavior"
@@ -282,24 +292,25 @@ class PatternRecognitionEngine:
         self, conversation_history: List[dict]
     ) -> List[Dict[str, Any]]:
         """Analyze communication style patterns"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # Count communication style indicators
-            style_counts = defaultdict(int)
+            style_counts: Dict[str, int] = defaultdict(int)
             total_messages = len(conversation_history)
 
             for exchange in conversation_history:
                 user_input = exchange.get("user_input", "").lower()
 
-                for (
-                    style,
-                    indicators,
-                ) in self.config.communication_style_indicators.items():
-                    for indicator in indicators:
-                        if indicator.lower() in user_input:
-                            style_counts[style] += 1
-                            break
+                if self.config.communication_style_indicators:
+                    for (
+                        style,
+                        indicators,
+                    ) in self.config.communication_style_indicators.items():
+                        for indicator in indicators:
+                            if indicator.lower() in user_input:
+                                style_counts[style] += 1
+                                break
 
             # Create patterns for dominant styles
             for style, count in style_counts.items():
@@ -327,21 +338,22 @@ class PatternRecognitionEngine:
         self, conversation_history: List[dict]
     ) -> List[Dict[str, Any]]:
         """Analyze topic preference patterns"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # Count topic keywords
-            topic_counts = defaultdict(int)
+            topic_counts: Dict[str, int] = defaultdict(int)
             total_messages = len(conversation_history)
 
             for exchange in conversation_history:
                 user_input = exchange.get("user_input", "").lower()
 
-                for topic, keywords in self.config.topic_preference_keywords.items():
-                    for keyword in keywords:
-                        if keyword.lower() in user_input:
-                            topic_counts[topic] += 1
-                            break
+                if self.config.topic_preference_keywords:
+                    for topic, keywords in self.config.topic_preference_keywords.items():
+                        for keyword in keywords:
+                            if keyword.lower() in user_input:
+                                topic_counts[topic] += 1
+                                break
 
             # Create patterns for frequent topics
             for topic, count in topic_counts.items():
@@ -369,24 +381,25 @@ class PatternRecognitionEngine:
         self, conversation_history: List[dict]
     ) -> List[Dict[str, Any]]:
         """Analyze response format preference patterns"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # Count response format indicators
-            format_counts = defaultdict(int)
+            format_counts: Dict[str, int] = defaultdict(int)
             total_messages = len(conversation_history)
 
             for exchange in conversation_history:
                 user_input = exchange.get("user_input", "").lower()
 
-                for (
-                    format_type,
-                    indicators,
-                ) in self.config.response_format_indicators.items():
-                    for indicator in indicators:
-                        if indicator.lower() in user_input:
-                            format_counts[format_type] += 1
-                            break
+                if self.config.response_format_indicators:
+                    for (
+                        format_type,
+                        indicators,
+                    ) in self.config.response_format_indicators.items():
+                        for indicator in indicators:
+                            if indicator.lower() in user_input:
+                                format_counts[format_type] += 1
+                                break
 
             # Create patterns for preferred formats
             for format_type, count in format_counts.items():
@@ -414,7 +427,7 @@ class PatternRecognitionEngine:
         self, conversation_history: List[dict]
     ) -> List[Dict[str, Any]]:
         """Analyze conversation length patterns"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             if len(conversation_history) < 3:
@@ -456,11 +469,11 @@ class PatternRecognitionEngine:
 
     def _analyze_tool_preferences(self, tool_calls: List[dict]) -> List[Dict[str, Any]]:
         """Analyze tool preference patterns"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # Count tool usage
-            tool_counts = Counter()
+            tool_counts: Counter[str] = Counter()
             total_tools = len(tool_calls)
 
             for tool_call in tool_calls:
@@ -493,7 +506,7 @@ class PatternRecognitionEngine:
         self, tool_calls: List[dict]
     ) -> List[Dict[str, Any]]:
         """Analyze tool success/failure patterns"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             success_count = 0
@@ -540,7 +553,7 @@ class PatternRecognitionEngine:
 
     def _analyze_tool_frequency(self, tool_calls: List[dict]) -> List[Dict[str, Any]]:
         """Analyze tool usage frequency patterns"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             if len(tool_calls) < 3:
@@ -581,7 +594,7 @@ class PatternRecognitionEngine:
         self, tool_calls: List[dict]
     ) -> List[Dict[str, Any]]:
         """Analyze tool combination patterns"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             if len(tool_calls) < 2:
@@ -621,7 +634,7 @@ class PatternRecognitionEngine:
         self, interactions: List[dict]
     ) -> List[Dict[str, Any]]:
         """Analyze interaction timing patterns"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             if len(interactions) < 3:
@@ -662,7 +675,7 @@ class PatternRecognitionEngine:
         self, interactions: List[dict]
     ) -> List[Dict[str, Any]]:
         """Analyze user preference patterns"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # Look for preference indicators in interactions
@@ -708,7 +721,7 @@ class PatternRecognitionEngine:
 
     def _analyze_user_habits(self, interactions: List[dict]) -> List[Dict[str, Any]]:
         """Analyze user habit patterns"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # Look for habit indicators
@@ -758,7 +771,7 @@ class PatternRecognitionEngine:
 
     def _analyze_user_learning(self, interactions: List[dict]) -> List[Dict[str, Any]]:
         """Analyze user learning patterns"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # Look for learning indicators
@@ -806,7 +819,7 @@ class PatternRecognitionEngine:
         self, state_data: AgentState
     ) -> List[Dict[str, Any]]:
         """Analyze time-of-day patterns from state data"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # This would require actual timestamps in the state data
@@ -824,7 +837,7 @@ class PatternRecognitionEngine:
         self, state_data: AgentState
     ) -> List[Dict[str, Any]]:
         """Analyze day-of-week patterns from state data"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # This would require actual timestamps in the state data
@@ -842,7 +855,7 @@ class PatternRecognitionEngine:
         self, state_data: AgentState
     ) -> List[Dict[str, Any]]:
         """Analyze session duration patterns from state data"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # This would require actual timestamps in the state data
@@ -860,7 +873,7 @@ class PatternRecognitionEngine:
         self, state_data: AgentState
     ) -> List[Dict[str, Any]]:
         """Analyze interaction frequency patterns from state data"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # This would require actual timestamps in the state data
@@ -878,7 +891,7 @@ class PatternRecognitionEngine:
         self, focus_areas: List[str]
     ) -> List[Dict[str, Any]]:
         """Analyze focus area patterns"""
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             if not focus_areas:
@@ -988,7 +1001,7 @@ class PatternRecognitionEngine:
         Returns:
             List of identified patterns ready for memory creation
         """
-        patterns = []
+        patterns: List[Dict[str, Any]] = []
 
         try:
             # Analyze conversation patterns
@@ -1050,48 +1063,3 @@ class PatternRecognitionEngine:
 
         return patterns
 
-    async def analyze_temporal_patterns(
-        self, state: AgentState
-    ) -> List[Dict[str, Any]]:
-        """
-        Analyze temporal patterns from state data.
-
-        Args:
-            state: Agent state object
-
-        Returns:
-            List of temporal patterns
-        """
-        patterns = []
-
-        try:
-            # Analyze conversation timing patterns
-            if hasattr(state, "conversation_history") and state.conversation_history:
-                # Simple temporal analysis based on conversation length
-                conversation_count = len(state.conversation_history)
-
-                if conversation_count > 10:
-                    pattern_type = "extended_conversation"
-                    description = "User engages in extended conversations"
-                elif conversation_count > 5:
-                    pattern_type = "moderate_conversation"
-                    description = "User engages in moderate conversations"
-                else:
-                    pattern_type = "brief_conversation"
-                    description = "User prefers brief conversations"
-
-                patterns.append(
-                    {
-                        "type": "temporal",
-                        "subtype": pattern_type,
-                        "confidence": 0.7,
-                        "conversation_count": conversation_count,
-                        "description": description,
-                        "tags": ["temporal", "conversation", pattern_type, "pattern"],
-                    }
-                )
-
-        except Exception as e:
-            self.logger.error(f"Error analyzing temporal patterns: {e}")
-
-        return patterns

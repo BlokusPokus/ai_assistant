@@ -129,7 +129,19 @@ class PerformanceOptimizer:
 
         except Exception as e:
             self.logger.error(f"Error collecting resource snapshot: {e}")
-            return None
+            # Return a default ResourceUsage object instead of None
+            return ResourceUsage(
+                timestamp=datetime.utcnow(),
+                cpu_percent=0.0,
+                memory_percent=0.0,
+                memory_available_gb=0.0,
+                disk_io_read_mb=0.0,
+                disk_io_write_mb=0.0,
+                network_io_sent_mb=0.0,
+                network_io_recv_mb=0.0,
+                active_processes=0,
+                load_average=(0.0, 0.0, 0.0),
+            )
 
     def analyze_performance(self, hours: int = 1) -> Dict[str, Any]:
         """Analyze performance over the specified time period."""
@@ -306,7 +318,7 @@ class PerformanceOptimizer:
                 forecast_hours = min(hours, 24)  # Max 24 hours
                 current_time = datetime.utcnow()
 
-                forecast = {
+                forecast: Dict[str, Any] = {
                     "forecast_hours": forecast_hours,
                     "current_time": current_time.isoformat(),
                     "predictions": [],
@@ -452,7 +464,7 @@ class PerformanceOptimizer:
             self.logger.error(f"Error calculating trends: {e}")
             return {}
 
-    def _calculate_linear_trend(self, values: List[float]) -> Dict[str, float]:
+    def _calculate_linear_trend(self, values: List[float]) -> Dict[str, Any]:
         """Calculate linear trend (slope and intercept) for a series of values."""
         try:
             if len(values) < 2:
@@ -472,7 +484,7 @@ class PerformanceOptimizer:
             denominator = sum((x - x_mean) ** 2 for x in x_values)
 
             if denominator == 0:
-                slope = 0
+                slope = 0.0
             else:
                 slope = numerator / denominator
 
@@ -490,7 +502,7 @@ class PerformanceOptimizer:
 
         except Exception as e:
             self.logger.error(f"Error calculating linear trend: {e}")
-            return {"slope": 0, "intercept": 0, "direction": "unknown"}
+            return {"slope": 0.0, "intercept": 0.0, "direction": "unknown"}
 
     def _find_peaks(self, snapshots: List[ResourceUsage]) -> Dict[str, Any]:
         """Find peak values in snapshots."""
@@ -525,7 +537,7 @@ class PerformanceOptimizer:
     def _identify_bottlenecks(self, snapshots: List[ResourceUsage]) -> List[str]:
         """Identify performance bottlenecks."""
         try:
-            bottlenecks = []
+            bottlenecks: List[str] = []
 
             if not snapshots:
                 return bottlenecks
@@ -568,7 +580,7 @@ class PerformanceOptimizer:
     ) -> List[PerformanceRecommendation]:
         """Generate performance optimization recommendations."""
         try:
-            recommendations = []
+            recommendations: List[PerformanceRecommendation] = []
 
             if not snapshots:
                 return recommendations

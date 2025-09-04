@@ -32,8 +32,8 @@ class LLMMemoryCreator:
         user_id: int,
         user_input: str,
         agent_response: str,
-        tool_result: str = None,
-        conversation_context: str = None,
+        tool_result: Optional[str] = None,
+        conversation_context: Optional[str] = None,
     ) -> List[dict]:
         """Use LLM to intelligently create memories from interaction"""
 
@@ -78,8 +78,8 @@ class LLMMemoryCreator:
         user_input: str,
         agent_response: str,
         state_data: AgentState,
-        tool_result: str = None,
-        conversation_context: str = None,
+        tool_result: Optional[str] = None,
+        conversation_context: Optional[str] = None,
     ) -> List[dict]:
         """
         Use LLM to intelligently create memories from interaction with state data integration.
@@ -157,8 +157,8 @@ class LLMMemoryCreator:
         self,
         user_input: str,
         agent_response: str,
-        tool_result: str = None,
-        conversation_context: str = None,
+        tool_result: Optional[str] = None,
+        conversation_context: Optional[str] = None,
     ) -> str:
         """Create an enhanced prompt for LLM memory creation"""
 
@@ -246,8 +246,8 @@ Analyze the interaction and create high-quality memories:"""
         user_input: str,
         agent_response: str,
         state_data: AgentState,
-        tool_result: str = None,
-        conversation_context: str = None,
+        tool_result: Optional[str] = None,
+        conversation_context: Optional[str] = None,
     ) -> str:
         """
         Create an enhanced prompt for LLM memory creation with state data integration.
@@ -908,7 +908,7 @@ Analyze the interaction with state context and create high-quality memories:"""
         return "\n".join(result)
 
     def _analyze_interaction_context(
-        self, user_input: str, agent_response: str, tool_result: str = None
+        self, user_input: str, agent_response: str, tool_result: Optional[str] = None
     ) -> str:
         """Analyze the interaction for context clues"""
 
@@ -971,10 +971,10 @@ Analyze the interaction with state context and create high-quality memories:"""
         # Use the enhanced tag suggester
         suggested_tags, confidence = self.tag_suggester.suggest_tags_for_content(
             content=combined_content,
-            memory_type=None,  # We don't know the memory type yet
-            category=None,  # We don't know the category yet
-            existing_tags=None,
-            user_context=None,
+            memory_type="general",  # Default to general type
+            category="general",  # Default to general category
+            existing_tags=[],  # Empty list instead of None
+            user_context="",  # Empty string instead of None
         )
 
         logger.info(
@@ -984,7 +984,7 @@ Analyze the interaction with state context and create high-quality memories:"""
         return suggested_tags
 
     def _identify_potential_memory_types(
-        self, user_input: str, agent_response: str, tool_result: str = None
+        self, user_input: str, agent_response: str, tool_result: Optional[str] = None
     ) -> str:
         """Identify potential memory types based on interaction content"""
 

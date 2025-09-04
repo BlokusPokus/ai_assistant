@@ -19,7 +19,7 @@ logger = get_logger("learning")
 class ConversationPatternLearner:
     """Learns patterns from conversation history"""
 
-    def __init__(self, config: LTMConfig = None):
+    def __init__(self, config: Optional[LTMConfig] = None):
         self.config = config or LTMConfig()
 
     async def learn_patterns(
@@ -64,13 +64,14 @@ class ConversationPatternLearner:
         """Analyze user's communication style preferences"""
 
         detected_styles = []
-        for style, indicators in self.config.communication_style_indicators.items():
-            if any(indicator in user_input.lower() for indicator in indicators):
-                detected_styles.append(style)
+        if self.config.communication_style_indicators:
+            for style, indicators in self.config.communication_style_indicators.items():
+                if any(indicator in user_input.lower() for indicator in indicators):
+                    detected_styles.append(style)
 
         if detected_styles:
             confidence = len(detected_styles) / len(
-                self.config.communication_style_indicators
+                self.config.communication_style_indicators or {}
             )
             if confidence >= self.config.memory_creation_confidence_threshold:
                 return {
@@ -86,13 +87,14 @@ class ConversationPatternLearner:
         """Analyze user's topic preferences"""
 
         detected_topics = []
-        for topic, keywords in self.config.topic_preference_keywords.items():
-            if any(keyword in user_input.lower() for keyword in keywords):
-                detected_topics.append(topic)
+        if self.config.topic_preference_keywords:
+            for topic, keywords in self.config.topic_preference_keywords.items():
+                if any(keyword in user_input.lower() for keyword in keywords):
+                    detected_topics.append(topic)
 
         if detected_topics:
             confidence = len(detected_topics) / len(
-                self.config.topic_preference_keywords
+                self.config.topic_preference_keywords or {}
             )
             if confidence >= self.config.memory_creation_confidence_threshold:
                 return {
@@ -147,7 +149,18 @@ class ConversationPatternLearner:
                 },
             }
 
-            memory_id = await add_ltm_memory(memory_data)
+            memory_id = await add_ltm_memory(
+                user_id=memory_data["user_id"],
+                content=memory_data["content"],
+                tags=memory_data["tags"],
+                importance_score=5,
+                context="",
+                memory_type=memory_data["metadata"]["type"],
+                category="learning",
+                confidence_score=memory_data["metadata"]["confidence"],
+                source_type="pattern_learning",
+                created_by="pattern_learner",
+            )
             if memory_id:
                 logger.info(f"Created pattern memory: {pattern['type']}")
                 return {"id": memory_id, **pattern}
@@ -161,7 +174,7 @@ class ConversationPatternLearner:
 class UserPreferenceLearner:
     """Learns user preferences from interactions"""
 
-    def __init__(self, config: LTMConfig = None):
+    def __init__(self, config: Optional[LTMConfig] = None):
         self.config = config or LTMConfig()
 
     async def learn_preferences(
@@ -169,7 +182,7 @@ class UserPreferenceLearner:
         user_id: int,
         user_input: str,
         agent_response: str,
-        tool_result: str = None,
+        tool_result: Optional[str] = None,
     ) -> List[dict]:
         """Learn user preferences and create memories"""
 
@@ -249,13 +262,14 @@ class UserPreferenceLearner:
         """Analyze user's preferred response format"""
 
         detected_formats = []
-        for format_type, indicators in self.config.response_format_indicators.items():
-            if any(indicator in user_input.lower() for indicator in indicators):
-                detected_formats.append(format_type)
+        if self.config.response_format_indicators:
+            for format_type, indicators in self.config.response_format_indicators.items():
+                if any(indicator in user_input.lower() for indicator in indicators):
+                    detected_formats.append(format_type)
 
         if detected_formats:
             confidence = len(detected_formats) / len(
-                self.config.response_format_indicators
+                self.config.response_format_indicators or {}
             )
             if confidence >= self.config.memory_creation_confidence_threshold:
                 return {
@@ -325,7 +339,18 @@ class UserPreferenceLearner:
                 },
             }
 
-            memory_id = await add_ltm_memory(memory_data)
+            memory_id = await add_ltm_memory(
+                user_id=memory_data["user_id"],
+                content=memory_data["content"],
+                tags=memory_data["tags"],
+                importance_score=5,
+                context="",
+                memory_type=memory_data["metadata"]["type"],
+                category="learning",
+                confidence_score=memory_data["metadata"]["confidence"],
+                source_type="preference_learning",
+                created_by="preference_learner",
+            )
             if memory_id:
                 logger.info(f"Created preference memory: {preference['type']}")
                 return {"id": memory_id, **preference}
@@ -338,7 +363,7 @@ class UserPreferenceLearner:
 
 # Convenience function to get both learners
 def get_learners(
-    config: LTMConfig = None,
+    config: Optional[LTMConfig] = None,
 ) -> tuple[ConversationPatternLearner, UserPreferenceLearner]:
     """Get both pattern and preference learners with shared configuration"""
     shared_config = config or LTMConfig()

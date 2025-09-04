@@ -23,27 +23,26 @@ logger = get_logger("learning_manager")
 class LTMLearningManager:
     """Manages active learning and memory creation"""
 
-    def __init__(self, config: LTMConfig = None, llm=None):
+    def __init__(self, config: Optional[LTMConfig] = None, llm=None):
         self.config = config or LTMConfig()
         self.llm = llm
-        self.llm_memory_creator = LLMMemoryCreator(config, llm) if llm else None
+        self.llm_memory_creator = LLMMemoryCreator(self.config, llm) if llm else None
 
         # Add lifecycle manager for comprehensive optimization
-        self.lifecycle_manager = EnhancedMemoryLifecycleManager(config)
+        self.lifecycle_manager = EnhancedMemoryLifecycleManager(config if isinstance(config, EnhancedLTMConfig) else None)
 
         # Add pattern recognition engine for state integration
+        self.pattern_engine: Optional[PatternRecognitionEngine] = None
         if isinstance(config, EnhancedLTMConfig) and config.enable_state_integration:
             self.pattern_engine = PatternRecognitionEngine(config)
-        else:
-            self.pattern_engine = None
 
     async def learn_from_interaction(
         self,
         user_id: int,
         user_input: str,
         agent_response: str,
-        tool_result: str = None,
-        conversation_context: str = None,
+        tool_result: Optional[str] = None,
+        conversation_context: Optional[str] = None,
     ) -> List[dict]:
         """Learn from user interaction and create relevant memories using LLM"""
 
@@ -142,7 +141,7 @@ class LTMLearningManager:
                         enhanced_context=memory_data.get("enhanced_context"),
                         memory_type=memory_data.get("memory_type"),
                         category=memory_data.get("category"),
-                        confidence_score=memory_data.get("confidence_score"),
+                        confidence_score=memory_data.get("confidence_score") or 0.5,
                         source_type=memory_data.get("source_type"),
                         created_by=memory_data.get("created_by", "state_integration"),
                     )
@@ -172,8 +171,8 @@ class LTMLearningManager:
         user_input: str,
         agent_response: str,
         state_data: AgentState,
-        tool_result: str = None,
-        conversation_context: str = None,
+        tool_result: Optional[str] = None,
+        conversation_context: Optional[str] = None,
     ) -> List[dict]:
         """
         Learn from user interaction AND state data for comprehensive memory creation.
@@ -243,7 +242,7 @@ class LTMLearningManager:
         user_id: int,
         user_input: str,
         agent_response: str,
-        tool_result: str = None,
+        tool_result: Optional[str] = None,
     ) -> List[dict]:
         """Fallback rule-based memory creation"""
 
@@ -268,7 +267,7 @@ class LTMLearningManager:
         return created_memories
 
     async def should_create_memory(
-        self, user_input: str, response: str, tool_result: str = None
+        self, user_input: str, response: str, tool_result: Optional[str] = None
     ) -> bool:
         """Determine if interaction warrants memory creation"""
 
@@ -424,7 +423,7 @@ class LTMLearningManager:
         try:
             # This would analyze user patterns and adjust thresholds
             # For now, return basic structure
-            optimization = {
+            optimization: Dict[str, Any] = {
                 "adjusted_thresholds": {},
                 "recommended_changes": [],
                 "user_patterns": {},

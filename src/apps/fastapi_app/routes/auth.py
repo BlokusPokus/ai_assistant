@@ -8,7 +8,7 @@ logout, and token refresh operations.
 import logging
 import secrets
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import AsyncGenerator, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, EmailStr, validator
@@ -103,7 +103,7 @@ class EmailVerification(BaseModel):
 # Dependency to get database session
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session."""
     async with AsyncSessionLocal() as session:
         yield session
@@ -195,9 +195,9 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
         logger.info(f"Successfully registered user with ID: {new_user.id}")
 
         return UserResponse(
-            id=new_user.id,
-            email=new_user.email,
-            full_name=new_user.full_name,
+            id=int(new_user.id),
+            email=str(new_user.email),
+            full_name=str(new_user.full_name),
             created_at=new_user.created_at.isoformat(),
         )
 
@@ -239,15 +239,15 @@ async def login(
 
         # Verify password
         if not password_service.verify_password(
-            user_data.password, user.hashed_password
+            user_data.password, str(user.hashed_password)
         ):
             # Increment failed login attempts
-            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
-            user.updated_at = datetime.utcnow()
+            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1  # type: ignore
+            user.updated_at = datetime.utcnow()  # type: ignore
 
             # Lock account after 5 failed attempts
             if user.failed_login_attempts >= 5:
-                user.locked_until = datetime.utcnow() + timedelta(minutes=30)
+                user.locked_until = datetime.utcnow() + timedelta(minutes=30)  # type: ignore
                 await db.commit()
                 raise HTTPException(
                     status_code=401,
@@ -258,10 +258,10 @@ async def login(
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
         # Reset failed login attempts on successful login
-        user.failed_login_attempts = 0
-        user.locked_until = None
-        user.last_login = datetime.utcnow()
-        user.updated_at = datetime.utcnow()
+        user.failed_login_attempts = 0  # type: ignore
+        user.locked_until = None  # type: ignore
+        user.last_login = datetime.utcnow()  # type: ignore
+        user.updated_at = datetime.utcnow()  # type: ignore
 
         # Generate tokens
         access_token = jwt_service.create_access_token(
@@ -319,9 +319,9 @@ async def login(
             token_type="bearer",  # OAuth 2.0 standard token type  # nosec B106
             expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             user=UserResponse(
-                id=user.id,
-                email=user.email,
-                full_name=user.full_name,
+                id=int(user.id),
+                email=str(user.email),
+                full_name=str(user.full_name),
                 created_at=user.created_at.isoformat(),
             ),
             mfa_required=False,
@@ -365,13 +365,13 @@ async def refresh_token(
             )
 
         # Check if refresh token exists in database
-        stored_token = await db.execute(
+        stored_token_result = await db.execute(
             select(AuthToken).where(
                 AuthToken.user_id == user_id,
                 AuthToken.token == token_data.refresh_token,
             )
         )
-        stored_token = stored_token.scalar_one_or_none()
+        stored_token = stored_token_result.scalar_one_or_none()
 
         if not stored_token:
             raise HTTPException(
@@ -387,7 +387,7 @@ async def refresh_token(
 
         # Create new access token
         user_context = AuthUtils.create_user_context(
-            user_id=user.id, email=user.email, full_name=user.full_name
+            user_id=int(user.id), email=str(user.email), full_name=str(user.full_name)
         )
 
         new_access_token = jwt_service.create_access_token(user_context)
@@ -461,9 +461,9 @@ async def get_current_user_info(
         Current user information
     """
     return UserResponse(
-        id=current_user.id,
-        email=current_user.email,
-        full_name=current_user.full_name,
+        id=int(current_user.id),
+        email=str(current_user.email),
+        full_name=str(current_user.full_name),
         created_at=current_user.created_at.isoformat(),
     )
 
@@ -489,9 +489,9 @@ async def forgot_password(
         reset_expires = datetime.utcnow() + timedelta(hours=24)
 
         # Update user with reset token
-        user.password_reset_token = reset_token
-        user.password_reset_expires = reset_expires
-        user.updated_at = datetime.utcnow()
+        user.password_reset_token = reset_token  # type: ignore
+        user.password_reset_expires = reset_expires  # type: ignore
+        user.updated_at = datetime.utcnow()  # type: ignore
 
         await db.commit()
 
@@ -532,10 +532,10 @@ async def reset_password(request: PasswordReset, db: AsyncSession = Depends(get_
         password_service._validate_password(request.new_password)
 
         # Hash new password and clear reset token
-        user.hashed_password = password_service.hash_password(request.new_password)
-        user.password_reset_token = None
-        user.password_reset_expires = None
-        user.updated_at = datetime.utcnow()
+        user.hashed_password = password_service.hash_password(request.new_password)  # type: ignore
+        user.password_reset_token = None  # type: ignore
+        user.password_reset_expires = None  # type: ignore
+        user.updated_at = datetime.utcnow()  # type: ignore
 
         await db.commit()
 
@@ -565,9 +565,9 @@ async def verify_email(request: EmailVerification, db: AsyncSession = Depends(ge
             return {"message": "Email already verified"}
 
         # Mark email as verified and clear token
-        user.is_verified = True
-        user.verification_token = None
-        user.updated_at = datetime.utcnow()
+        user.is_verified = True  # type: ignore
+        user.verification_token = None  # type: ignore
+        user.updated_at = datetime.utcnow()  # type: ignore
 
         await db.commit()
 
@@ -600,8 +600,8 @@ async def resend_verification(
 
         # Generate new verification token
         verification_token = secrets.token_urlsafe(32)
-        user.verification_token = verification_token
-        user.updated_at = datetime.utcnow()
+        user.verification_token = verification_token  # type: ignore
+        user.updated_at = datetime.utcnow()  # type: ignore
 
         await db.commit()
 

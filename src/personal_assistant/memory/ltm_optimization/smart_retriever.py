@@ -22,14 +22,14 @@ logger = get_logger("smart_retriever")
 class SmartLTMRetriever:
     """Provides intelligent LTM memory retrieval with state coordination"""
 
-    def __init__(self, config: LTMConfig = None):
+    def __init__(self, config: Optional[LTMConfig] = None):
         self.config = config or LTMConfig()
 
         # Initialize caching system
-        self._cache = {}
-        self._cache_timestamps = {}
-        self._cache_hits = defaultdict(int)
-        self._cache_misses = defaultdict(int)
+        self._cache: Dict[str, List[dict]] = {}
+        self._cache_timestamps: Dict[str, datetime] = {}
+        self._cache_hits: Dict[str, int] = defaultdict(int)
+        self._cache_misses: Dict[str, int] = defaultdict(int)
 
         # Cache configuration
         self.cache_ttl = getattr(
@@ -47,8 +47,8 @@ class SmartLTMRetriever:
         self,
         user_id: int,
         context: str,
-        limit: int = None,
-        state_context: AgentState = None,
+        limit: Optional[int] = None,
+        state_context: Optional[AgentState] = None,
         query_complexity: str = "medium",
     ) -> List[dict]:
         """
@@ -165,7 +165,7 @@ class SmartLTMRetriever:
         return max(min_limit, min(dynamic_limit, max_limit))
 
     async def _get_candidate_memories(
-        self, user_id: int, state_context: AgentState = None, context: str = ""
+        self, user_id: int, state_context: Optional[AgentState] = None, context: str = ""
     ) -> List[dict]:
         """Get candidate memories with state context consideration"""
 
@@ -235,7 +235,7 @@ class SmartLTMRetriever:
         return focused_memories + other_memories
 
     def _calculate_enhanced_relevance_score(
-        self, memory: dict, context: str, state_context: AgentState = None
+        self, memory: dict, context: str, state_context: Optional[AgentState] = None
     ) -> float:
         """Calculate enhanced multi-dimensional relevance score"""
 
@@ -246,7 +246,7 @@ class SmartLTMRetriever:
         context_words = set(context.lower().split())
 
         # Check tag overlap with exact and partial matches
-        tag_matches = 0
+        tag_matches = 0.0
         for tag in memory_tags:
             tag_lower = tag.lower()
             if tag_lower in context_words:
@@ -284,7 +284,7 @@ class SmartLTMRetriever:
 
         # Recency boost (enhanced)
         recency_boost = self._calculate_enhanced_recency_boost(
-            memory.get("last_accessed"), memory.get("created_at")
+            memory.get("last_accessed") or "", memory.get("created_at") or ""
         )
         score += recency_boost * self.config.recency_scoring_weight
 
@@ -324,7 +324,7 @@ class SmartLTMRetriever:
         return phrases
 
     def _calculate_enhanced_recency_boost(
-        self, last_accessed: str, created_at: str = None
+        self, last_accessed: str, created_at: Optional[str] = None
     ) -> float:
         """Calculate enhanced recency boost considering both access and creation time"""
 
@@ -410,7 +410,7 @@ class SmartLTMRetriever:
         return type_boosts.get(memory_type, 0.0)
 
     def _generate_cache_key(
-        self, user_id: int, context: str, limit: int, state_context: AgentState = None
+        self, user_id: int, context: str, limit: int, state_context: Optional[AgentState] = None
     ) -> str:
         """Generate cache key for the query"""
 

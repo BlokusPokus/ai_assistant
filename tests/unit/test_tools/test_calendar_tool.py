@@ -6,14 +6,10 @@ event viewing, creation, deletion, and detailed retrieval
 via Microsoft Graph API.
 """
 
-import os
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
-from typing import Dict, Any, List
 
 from personal_assistant.tools.calendar.calendar_tool import CalendarTool
-from tests.utils.test_helpers import TestHelper
-from tests.utils.test_data_generators import ToolDataGenerator
 
 
 class TestCalendarTool:

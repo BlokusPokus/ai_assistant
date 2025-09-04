@@ -2,10 +2,10 @@
 YouTube Tool for video information, transcripts, and content analysis.
 """
 import logging
-from typing import Optional
+from typing import Optional, Union, Any
 
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
+from googleapiclient.discovery import build  # type: ignore
+from googleapiclient.errors import HttpError  # type: ignore
 
 from ...config.settings import settings
 from ..base import Tool
@@ -193,7 +193,7 @@ class YouTubeTool:
         video_id: str,
         include_transcript: bool = False,
         include_statistics: bool = True,
-    ) -> str:
+    ) -> Union[str, dict]:
         """Get detailed information about a YouTube video"""
         try:
             # Validate parameters
@@ -291,7 +291,7 @@ class YouTubeTool:
                 if include_transcript:
                     if YOUTUBE_TRANSCRIPT_AVAILABLE:
                         try:
-                            transcript = YouTubeTranscriptApi.get_transcript(video_id)
+                            transcript = YouTubeTranscriptApi.get_transcript(video_id)  # type: ignore
                             if transcript:
                                 # Get first few lines of transcript
                                 first_lines = transcript[:3]
@@ -364,7 +364,7 @@ class YouTubeTool:
 
     async def get_video_transcript(
         self, video_id: str, language: str = "auto", format: str = "text"
-    ) -> str:
+    ) -> Union[str, dict]:
         """Extract and process YouTube video transcript"""
         try:
             # Validate parameters
@@ -413,9 +413,9 @@ class YouTubeTool:
                     # Fallback to older method if available
                     try:
                         if language == "auto":
-                            transcript = YouTubeTranscriptApi.get_transcript(video_id)
+                            transcript = YouTubeTranscriptApi.get_transcript(video_id)  # type: ignore
                         else:
-                            transcript = YouTubeTranscriptApi.get_transcript(
+                            transcript = YouTubeTranscriptApi.get_transcript(  # type: ignore
                                 video_id, languages=[language]
                             )
                     except Exception:
@@ -440,12 +440,12 @@ class YouTubeTool:
                         f"📜 **Transcript (JSON format)** for {video_id}:\n{transcript}"
                     )
                 elif format == "srt":
-                    formatter = SRTFormatter()
-                    srt_transcript = formatter.format_transcript(transcript)
+                    srt_formatter: Any = SRTFormatter()
+                    srt_transcript = srt_formatter.format_transcript(transcript)
                     return f"📜 **Transcript (SRT format)** for {video_id}:\n{srt_transcript}"
                 else:  # text format
-                    formatter = TextFormatter()
-                    text_transcript = formatter.format_transcript(transcript)
+                    text_formatter: Any = TextFormatter()
+                    text_transcript = text_formatter.format_transcript(transcript)
 
                     # Truncate if too long
                     if len(text_transcript) > 2000:
@@ -480,7 +480,7 @@ class YouTubeTool:
         max_results: int = 10,
         video_duration: Optional[str] = None,
         upload_date: Optional[str] = None,
-    ) -> str:
+    ) -> Union[str, dict]:
         """Search for YouTube videos by query"""
         try:
             # Validate parameters
@@ -619,7 +619,7 @@ class YouTubeTool:
         channel_id: str,
         include_statistics: bool = True,
         include_recent_videos: bool = False,
-    ) -> str:
+    ) -> Union[str, dict]:
         """Get information about a YouTube channel"""
         try:
             # Validate parameters
@@ -800,7 +800,7 @@ class YouTubeTool:
         playlist_id: str,
         max_videos: int = 20,
         include_video_details: bool = False,
-    ) -> str:
+    ) -> Union[str, dict]:
         """Get information about a YouTube playlist"""
         try:
             # Validate parameters

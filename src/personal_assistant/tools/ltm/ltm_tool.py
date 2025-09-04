@@ -6,6 +6,7 @@ which store insights, patterns, and preferences separate from calendar events
 and notes.
 """
 import logging
+from typing import Any, Dict, Optional
 
 from ...constants.tags import LTM_TAGS, get_tag_suggestions, validate_tags
 from ..base import Tool
@@ -228,14 +229,14 @@ class LTMTool:
         content: str,
         tags: str,
         importance_score: int = 5,
-        context: str = None,
-        memory_type: str = None,
-        category: str = None,
+        context: Optional[str] = None,
+        memory_type: Optional[str] = None,
+        category: Optional[str] = None,
         confidence_score: float = 1.0,
-        source_type: str = None,
-        source_id: str = None,
+        source_type: Optional[str] = None,
+        source_id: Optional[str] = None,
         created_by: str = "system",
-        metadata: dict = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,  # Accept additional kwargs to handle unexpected parameters gracefully
     ) -> str:
         """
@@ -303,7 +304,7 @@ class LTMTool:
                 return f"Error: Confidence score must be between 0.0 and 1.0, got {confidence_score}"
 
             # Get user ID from context or use default
-            user_id = "126"  # Default user ID - should be dynamic
+            user_id = 126  # Default user ID - should be dynamic
             logger.warning(
                 f"Using hardcoded user_id: {user_id}. This should be passed from agent context."
             )
@@ -381,7 +382,7 @@ class LTMTool:
         """
         try:
             # For now, use a default user_id
-            user_id = "126"  # Default user ID
+            user_id = 126  # Default user ID
 
             memories = await search_ltm_memories(
                 user_id=user_id, query=query, limit=limit, min_importance=min_importance
@@ -418,7 +419,7 @@ class LTMTool:
         """
         try:
             # For now, use a default user_id
-            user_id = "126"  # Default user ID
+            user_id = 126  # Default user ID
             logger.info(
                 f"Getting relevant memories for user {user_id} with context: {context[:100]}..."
             )
@@ -466,7 +467,7 @@ class LTMTool:
         """
         try:
             # For now, use a default user_id
-            user_id = "126"  # Default user ID
+            user_id = 126  # Default user ID
 
             success = await delete_ltm_memory(user_id=user_id, memory_id=memory_id)
 
@@ -488,7 +489,7 @@ class LTMTool:
         """
         try:
             # For now, use a default user_id
-            user_id = "126"  # Default user ID
+            user_id = 126  # Default user ID
 
             stats = await get_ltm_memory_stats(user_id=user_id)
 
@@ -511,9 +512,9 @@ class LTMTool:
 
     async def get_enhanced_memories(
         self,
-        query: str = None,
-        memory_type: str = None,
-        category: str = None,
+        query: Optional[str] = None,
+        memory_type: Optional[str] = None,
+        category: Optional[str] = None,
         min_importance: int = 1,
         limit: int = 5,
         include_context: bool = True,
@@ -523,7 +524,7 @@ class LTMTool:
         """
         try:
             # TODO: Get user_id from agent context - for now use a default
-            user_id = "126"  # Default user ID - should be dynamic
+            user_id = 126  # Default user ID - should be dynamic
             logger.warning(
                 f"Using hardcoded user_id: {user_id}. This should be passed from agent context."
             )
@@ -590,7 +591,7 @@ class LTMTool:
         """
         try:
             # TODO: Get user_id from agent context - for now use a default
-            user_id = "126"  # Default user ID - should be dynamic
+            user_id = 126  # Default user ID - should be dynamic
             logger.warning(
                 f"Using hardcoded user_id: {user_id}. This should be passed from agent context."
             )
@@ -642,7 +643,7 @@ class LTMTool:
         """
         try:
             # TODO: Get user_id from agent context - for now use a default
-            user_id = "126"  # Default user ID - should be dynamic
+            user_id = 126  # Default user ID - should be dynamic
             logger.warning(
                 f"Using hardcoded user_id: {user_id}. This should be passed from agent context."
             )

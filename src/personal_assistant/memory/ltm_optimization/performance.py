@@ -30,21 +30,21 @@ class PerformanceOptimizer:
     - State-LTM performance coordination
     """
 
-    def __init__(self, config: EnhancedLTMConfig = None):
+    def __init__(self, config: Optional[EnhancedLTMConfig] = None):
         """Initialize the performance optimizer"""
         self.config = config or EnhancedLTMConfig()
         self.logger = get_logger("performance")
 
         # Performance tracking
-        self.query_times = defaultdict(deque)
-        self.memory_usage = defaultdict(deque)
-        self.cache_hits = defaultdict(int)
-        self.cache_misses = defaultdict(int)
+        self.query_times: Dict[str, deque] = defaultdict(deque)
+        self.memory_usage: Dict[str, deque] = defaultdict(deque)
+        self.cache_hits: Dict[str, int] = defaultdict(int)
+        self.cache_misses: Dict[str, int] = defaultdict(int)
 
         # Cache storage
-        self.memory_cache = {}
-        self.query_cache = {}
-        self.cache_timestamps = {}
+        self.memory_cache: Dict[str, Any] = {}
+        self.query_cache: Dict[str, Any] = {}
+        self.cache_timestamps: Dict[str, datetime] = {}
 
         # Performance thresholds
         self.slow_query_threshold = 1.0  # seconds
@@ -69,13 +69,17 @@ class PerformanceOptimizer:
         """
 
         try:
-            metrics = {
+            metrics: Dict[str, Any] = {
                 "timestamp": datetime.now().isoformat(),
                 "query_performance": {},
                 "cache_performance": {},
                 "memory_usage": {},
                 "optimization_recommendations": [],
             }
+            # Ensure nested dictionaries are properly typed
+            metrics["query_performance"] = {}
+            metrics["cache_performance"] = {}
+            metrics["memory_usage"] = {}
 
             # Query performance metrics
             for query_type, times in self.query_times.items():
@@ -85,7 +89,7 @@ class PerformanceOptimizer:
                         "avg_time": statistics.mean(times),
                         "min_time": min(times),
                         "max_time": max(times),
-                        "p95_time": self._calculate_percentile(times, 95),
+                        "p95_time": self._calculate_percentile(list(times), 95),
                         "slow_queries": len(
                             [t for t in times if t > self.slow_query_threshold]
                         ),
@@ -112,7 +116,7 @@ class PerformanceOptimizer:
                     metrics["memory_usage"][usage_type] = {
                         "current": usage_data[-1] if usage_data else 0,
                         "avg": statistics.mean(usage_data),
-                        "trend": self._calculate_trend(usage_data),
+                        "trend": self._calculate_trend(list(usage_data)),
                     }
 
             # Generate optimization recommendations
@@ -138,7 +142,7 @@ class PerformanceOptimizer:
         """
 
         try:
-            optimization_results = {
+            optimization_results: Dict[str, Any] = {
                 "timestamp": datetime.now().isoformat(),
                 "cache_cleanup": {},
                 "memory_optimization": {},
@@ -154,7 +158,7 @@ class PerformanceOptimizer:
             optimization_results["memory_optimization"] = memory_optimization
 
             # Analyze performance improvements
-            performance_improvements = await self._analyze_performance_improvements()
+            performance_improvements = await self._measure_query_performance_improvements()
             optimization_results["performance_improvements"] = performance_improvements
 
             self.logger.info(
@@ -179,12 +183,14 @@ class PerformanceOptimizer:
             if not self.enable_caching:
                 return {"status": "caching_disabled"}
 
-            caching_results = {
+            caching_results: Dict[str, Any] = {
                 "timestamp": datetime.now().isoformat(),
                 "cache_strategies": {},
                 "cache_optimization": {},
                 "performance_impact": {},
             }
+            # Ensure nested dictionaries are properly typed
+            caching_results["cache_strategies"] = {}
 
             # Implement adaptive cache sizing
             adaptive_sizing = await self._implement_adaptive_cache_sizing()
@@ -230,7 +236,7 @@ class PerformanceOptimizer:
             if not self.enable_query_optimization:
                 return {"status": "query_optimization_disabled"}
 
-            optimization_results = {
+            optimization_results: Dict[str, Any] = {
                 "timestamp": datetime.now().isoformat(),
                 "query_analysis": {},
                 "optimization_applied": {},
@@ -448,7 +454,7 @@ class PerformanceOptimizer:
         """Optimize memory allocation patterns"""
 
         try:
-            optimization_results = {
+            optimization_results: Dict[str, Any] = {
                 "cache_size_optimization": {},
                 "memory_usage_optimization": {},
                 "performance_optimization": {},
@@ -520,7 +526,7 @@ class PerformanceOptimizer:
         """Implement adaptive cache sizing based on usage patterns"""
 
         try:
-            adaptive_results = {
+            adaptive_results: Dict[str, Any] = {
                 "current_cache_size": len(self.memory_cache),
                 "hit_rate_analysis": {},
                 "size_adjustments": {},
@@ -593,7 +599,7 @@ class PerformanceOptimizer:
         """Optimize cache performance"""
 
         try:
-            optimization_results = {
+            optimization_results: Dict[str, Any] = {
                 "cache_compression": {},
                 "access_patterns": {},
                 "performance_metrics": {},
@@ -612,7 +618,7 @@ class PerformanceOptimizer:
         """Measure the performance impact of caching strategies"""
 
         try:
-            impact_results = {
+            impact_results: Dict[str, Any] = {
                 "response_time_improvement": {},
                 "memory_usage_impact": {},
                 "overall_performance": {},
@@ -631,7 +637,7 @@ class PerformanceOptimizer:
         """Analyze slow queries for optimization opportunities"""
 
         try:
-            analysis_results = {
+            analysis_results: Dict[str, Any] = {
                 "slow_query_types": {},
                 "optimization_opportunities": {},
                 "recommendations": [],
@@ -663,7 +669,7 @@ class PerformanceOptimizer:
         """Apply query optimizations"""
 
         try:
-            optimization_results = {
+            optimization_results: Dict[str, Any] = {
                 "applied_optimizations": {},
                 "performance_improvements": {},
                 "optimization_status": {},
@@ -682,7 +688,7 @@ class PerformanceOptimizer:
         """Measure query performance improvements"""
 
         try:
-            improvement_results = {
+            improvement_results: Dict[str, Any] = {
                 "before_optimization": {},
                 "after_optimization": {},
                 "improvement_percentage": {},
@@ -703,7 +709,7 @@ class PerformanceOptimizer:
         """Analyze interaction patterns between state management and LTM"""
 
         try:
-            interaction_analysis = {
+            interaction_analysis: Dict[str, Any] = {
                 "state_access_patterns": {},
                 "ltm_usage_patterns": {},
                 "coordination_efficiency": {},
@@ -740,7 +746,7 @@ class PerformanceOptimizer:
         """Optimize LTM operations for better state coordination"""
 
         try:
-            optimization_results = {
+            optimization_results: Dict[str, Any] = {
                 "coordination_optimizations": {},
                 "performance_improvements": {},
                 "optimization_status": {},
@@ -761,7 +767,7 @@ class PerformanceOptimizer:
         """Measure coordination performance between state and LTM"""
 
         try:
-            performance_metrics = {
+            performance_metrics: Dict[str, Any] = {
                 "coordination_efficiency": {},
                 "response_time_impact": {},
                 "memory_usage_impact": {},

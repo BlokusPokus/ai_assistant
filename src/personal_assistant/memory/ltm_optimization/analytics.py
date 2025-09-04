@@ -9,7 +9,7 @@ and state-LTM integration metrics.
 import statistics
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from ...config.logging_config import get_logger
 from .config import EnhancedLTMConfig
@@ -29,17 +29,17 @@ class LTMAnalytics:
     - State-LTM integration metrics
     """
 
-    def __init__(self, config: EnhancedLTMConfig = None):
+    def __init__(self, config: Optional[EnhancedLTMConfig] = None):
         """Initialize the LTM analytics system"""
         self.config = config or EnhancedLTMConfig()
         self.logger = get_logger("analytics")
 
         # Analytics data storage
-        self.memory_creation_data = defaultdict(list)
-        self.retrieval_performance_data = defaultdict(list)
-        self.quality_metrics_data = defaultdict(list)
-        self.usage_patterns_data = defaultdict(list)
-        self.state_integration_data = defaultdict(list)
+        self.memory_creation_data: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
+        self.retrieval_performance_data: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
+        self.quality_metrics_data: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
+        self.usage_patterns_data: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
+        self.state_integration_data: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
 
         # Sampling settings
         self.sampling_rate = getattr(self.config, "analytics_sampling_rate", 0.1)
@@ -47,7 +47,7 @@ class LTMAnalytics:
             self.config, "performance_metrics_enabled", True
         )
 
-    async def get_memory_creation_metrics(self, user_id: int = None) -> Dict[str, Any]:
+    async def get_memory_creation_metrics(self, user_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Get memory creation performance metrics.
 
@@ -97,7 +97,7 @@ class LTMAnalytics:
             return {}
 
     async def get_retrieval_performance_stats(
-        self, user_id: int = None
+        self, user_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Get retrieval performance statistics.
@@ -150,7 +150,7 @@ class LTMAnalytics:
             return {}
 
     async def get_quality_assessment_metrics(
-        self, user_id: int = None
+        self, user_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Get memory quality assessment metrics.
@@ -200,7 +200,7 @@ class LTMAnalytics:
             self.logger.error(f"Error getting quality assessment metrics: {e}")
             return {}
 
-    async def get_usage_pattern_insights(self, user_id: int = None) -> Dict[str, Any]:
+    async def get_usage_pattern_insights(self, user_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Get usage pattern insights and analysis.
 
@@ -248,7 +248,7 @@ class LTMAnalytics:
             return {}
 
     async def get_state_ltm_integration_metrics(
-        self, user_id: int = None
+        self, user_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Get state-LTM integration metrics and coordination insights.
@@ -302,7 +302,7 @@ class LTMAnalytics:
             return {}
 
     async def record_memory_creation_event(
-        self, user_id: int, memory_data: Dict[str, Any], creation_time: float = None
+        self, user_id: int, memory_data: Dict[str, Any], creation_time: Optional[float] = None
     ):
         """Record a memory creation event for analytics"""
 
@@ -339,7 +339,7 @@ class LTMAnalytics:
         query_type: str,
         retrieval_time: float,
         result_count: int,
-        quality_score: float = None,
+        quality_score: Optional[float] = None,
     ):
         """Record a retrieval event for analytics"""
 
@@ -427,7 +427,7 @@ class LTMAnalytics:
         user_id: int,
         integration_type: str,
         success: bool,
-        performance_metrics: Dict[str, Any] = None,
+        performance_metrics: Optional[Dict[str, Any]] = None,
     ):
         """Record a state integration event for analytics"""
 
@@ -664,7 +664,7 @@ class LTMAnalytics:
             if not user_assessments:
                 return {"error": "No data available for user"}
 
-            metrics = {
+            metrics: Dict[str, Any] = {
                 "user_id": user_id,
                 "total_assessments": len(user_assessments),
                 "average_quality_score": 0.0,
@@ -688,7 +688,7 @@ class LTMAnalytics:
                 }
 
             # Quality by assessment type
-            type_quality = defaultdict(list)
+            type_quality: Dict[str, List[float]] = defaultdict(list)
             for assessment in user_assessments:
                 type_quality[assessment["assessment_type"]].append(
                     assessment["quality_score"]
@@ -715,7 +715,7 @@ class LTMAnalytics:
             if not user_patterns:
                 return {"error": "No data available for user"}
 
-            patterns = {
+            patterns: Dict[str, Any] = {
                 "user_id": user_id,
                 "pattern_categories": {},
                 "common_patterns": {},
@@ -729,7 +729,7 @@ class LTMAnalytics:
             patterns["pattern_categories"] = dict(pattern_types)
 
             # Common patterns
-            pattern_data = defaultdict(list)
+            pattern_data: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
             for pattern in user_patterns:
                 pattern_data[pattern["pattern_type"]].append(pattern["pattern_data"])
 
@@ -811,7 +811,7 @@ class LTMAnalytics:
         """Calculate overall quality assessment metrics"""
 
         try:
-            metrics = {
+            metrics: Dict[str, Any] = {
                 "total_assessments": 0,
                 "average_quality_score": 0.0,
                 "quality_by_type": {},
@@ -867,7 +867,7 @@ class LTMAnalytics:
         """Analyze overall usage patterns"""
 
         try:
-            patterns = {
+            patterns: Dict[str, Any] = {
                 "pattern_categories": {},
                 "common_patterns": {},
                 "pattern_frequency": {},
@@ -887,7 +887,7 @@ class LTMAnalytics:
             patterns["pattern_categories"] = dict(pattern_types)
 
             # Common patterns
-            pattern_data = defaultdict(list)
+            pattern_data: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
             for pattern in all_patterns:
                 pattern_data[pattern["pattern_type"]].append(pattern["pattern_data"])
 
@@ -906,7 +906,7 @@ class LTMAnalytics:
         """Calculate state-LTM integration efficiency metrics"""
 
         try:
-            metrics = {
+            metrics: Dict[str, Any] = {
                 "total_integration_events": 0,
                 "success_rate": 0.0,
                 "efficiency_by_type": {},
@@ -929,7 +929,7 @@ class LTMAnalytics:
                 metrics["success_rate"] = len(successful_events) / len(all_events)
 
             # Efficiency by type
-            type_efficiency = defaultdict(lambda: {"total": 0, "successful": 0})
+            type_efficiency: Dict[str, Dict[str, int]] = defaultdict(lambda: {"total": 0, "successful": 0})
             for event in all_events:
                 event_type = event["integration_type"]
                 type_efficiency[event_type]["total"] += 1
@@ -955,7 +955,7 @@ class LTMAnalytics:
         """Calculate state-LTM coordination metrics"""
 
         try:
-            metrics = {
+            metrics: Dict[str, Any] = {
                 "coordination_events": 0,
                 "coordination_success_rate": 0.0,
                 "coordination_by_type": {},
@@ -988,7 +988,7 @@ class LTMAnalytics:
                 ) / len(coordination_events)
 
                 # Coordination by type
-                type_coordination = defaultdict(lambda: {"total": 0, "successful": 0})
+                type_coordination: Dict[str, Dict[str, int]] = defaultdict(lambda: {"total": 0, "successful": 0})
                 for event in coordination_events:
                     event_type = event["integration_type"]
                     type_coordination[event_type]["total"] += 1
@@ -1014,7 +1014,7 @@ class LTMAnalytics:
         """Analyze memory creation trends over time"""
 
         try:
-            trends = {
+            trends: Dict[str, Any] = {
                 "hourly_trends": {},
                 "daily_trends": {},
                 "weekly_trends": {},
@@ -1034,7 +1034,7 @@ class LTMAnalytics:
         """Analyze retrieval performance trends over time"""
 
         try:
-            trends = {
+            trends: Dict[str, Any] = {
                 "performance_trends": {},
                 "quality_trends": {},
                 "trend_analysis": {},
@@ -1053,7 +1053,7 @@ class LTMAnalytics:
         """Analyze quality trends over time"""
 
         try:
-            trends = {
+            trends: Dict[str, Any] = {
                 "quality_trends": {},
                 "improvement_trends": {},
                 "trend_analysis": {},
@@ -1074,7 +1074,7 @@ class LTMAnalytics:
         """Perform detailed pattern analysis"""
 
         try:
-            analysis = {
+            analysis: Dict[str, Any] = {
                 "pattern_correlation": {},
                 "behavioral_clusters": {},
                 "anomaly_detection": {},
@@ -1093,7 +1093,7 @@ class LTMAnalytics:
         """Analyze state-LTM synergy and coordination effectiveness"""
 
         try:
-            synergy = {
+            synergy: Dict[str, Any] = {
                 "coordination_effectiveness": {},
                 "synergy_metrics": {},
                 "optimization_opportunities": {},
@@ -1333,7 +1333,7 @@ class LTMAnalytics:
         """Extract common patterns from pattern data"""
 
         try:
-            common_patterns = {"pattern_summary": {}, "frequency_analysis": {}}
+            common_patterns: Dict[str, Any] = {"pattern_summary": {}, "frequency_analysis": {}}
 
             # This would implement actual pattern extraction
             # For now, return basic structure

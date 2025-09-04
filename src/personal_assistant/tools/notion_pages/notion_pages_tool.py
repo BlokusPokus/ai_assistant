@@ -11,7 +11,7 @@ This tool creates a page-based note structure in Notion with:
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Union
 
 from personal_assistant.tools.base import Tool
 
@@ -187,7 +187,7 @@ class NotionPagesTool:
         content: str,
         tags: Optional[str] = None,
         category: Optional[str] = None,
-    ) -> str:
+    ) -> Union[str, dict]:
         """Create a new note page under the main table of contents page"""
         try:
             # Validate required parameters
@@ -219,7 +219,7 @@ class NotionPagesTool:
             main_page_id = await ensure_main_page_exists(self.client)
 
             # Create properties dictionary
-            properties = create_properties_dict(title, tags, category)
+            properties = create_properties_dict(title, tags or "", category or "")
 
             # Create the note page
             note_page = self.client.pages.create(
@@ -259,7 +259,7 @@ class NotionPagesTool:
                 },
             )
 
-    async def read_note_page(self, page_identifier: str) -> str:
+    async def read_note_page(self, page_identifier: str) -> Union[str, dict]:
         """Read note content and properties by page ID or title"""
         try:
             page_id = None
@@ -319,7 +319,7 @@ class NotionPagesTool:
             if category:
                 result += f"Category: {category}\n"
             if tags:
-                result += f"Tags: {', '.join([tag['name'] for tag in tags])}\n"
+                result += f"Tags: {', '.join(tags)}\n"
             result += f"Page ID: {page_id}\n\nContent:\n" + "\n".join(content)
 
             return result
@@ -337,12 +337,12 @@ class NotionPagesTool:
         title: Optional[str] = None,
         tags: Optional[str] = None,
         category: Optional[str] = None,
-    ) -> str:
+    ) -> Union[str, dict]:
         """Update note content and properties by page ID"""
         try:
             # Update page properties if provided
             if title or tags or category:
-                properties = create_properties_dict(title, tags, category)
+                properties = create_properties_dict(title or "", tags or "", category or "")
                 self.client.pages.update(page_id, properties=properties)
 
             # Update content if provided
@@ -385,7 +385,7 @@ class NotionPagesTool:
                 },
             )
 
-    async def delete_note_page(self, page_id: str) -> str:
+    async def delete_note_page(self, page_id: str) -> Union[str, dict]:
         """Delete a note page by page ID"""
         try:
             # Get page title for logging
@@ -414,7 +414,7 @@ class NotionPagesTool:
 
     async def search_notes(
         self, query: str, category: Optional[str] = None, tags: Optional[str] = None
-    ) -> str:
+    ) -> Union[str, dict]:
         """Search across all note pages"""
         try:
             # Build search filter
@@ -441,7 +441,7 @@ class NotionPagesTool:
                     if tags:
                         tag_list = [tag.strip() for tag in tags.split(",")]
                         if not any(
-                            tag in [t["name"] for t in page_tags] for tag in tag_list
+                            tag in page_tags for tag in tag_list
                         ):
                             continue
 
@@ -473,7 +473,7 @@ class NotionPagesTool:
                 e, "search_notes", {"query": query, "category": category, "tags": tags}
             )
 
-    async def get_table_of_contents(self) -> str:
+    async def get_table_of_contents(self) -> Union[str, dict]:
         """Get the current table of contents from the main page"""
         try:
             main_page_id = await ensure_main_page_exists(self.client)
@@ -491,7 +491,7 @@ class NotionPagesTool:
                         toc_item += f" [Category: {category}]"
                     if tags:
                         toc_item += (
-                            f" [Tags: {', '.join([tag['name'] for tag in tags])}]"
+                            f" [Tags: {', '.join(tags)}]"
                         )
 
                     toc_items.append(toc_item)
@@ -507,7 +507,7 @@ class NotionPagesTool:
                 e, "get_table_of_contents", {}
             )
 
-    async def create_link(self, source_page_id: str, target_page_title: str) -> str:
+    async def create_link(self, source_page_id: str, target_page_title: str) -> Union[str, dict]:
         """Create a link between two pages using Obsidian-style syntax"""
         try:
             # Find target page
@@ -571,7 +571,7 @@ class NotionPagesTool:
                 },
             )
 
-    async def get_backlinks(self, page_id: str) -> str:
+    async def get_backlinks(self, page_id: str) -> Union[str, dict]:
         """Get all pages that link to the specified page"""
         try:
             # Get the page title

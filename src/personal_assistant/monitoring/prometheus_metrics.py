@@ -17,7 +17,7 @@ Key Features:
 
 import logging
 import time
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import psutil
 from prometheus_client import (
@@ -297,7 +297,7 @@ class PrometheusMetricsService:
         ).observe(duration)
 
     def record_sms_message(
-        self, status: str, provider: str, duration: float = None, cost: float = None
+        self, status: str, provider: str, duration: Optional[float] = None, cost: Optional[float] = None
     ):
         """Record SMS message metrics."""
         self.sms_messages_total.labels(status=status, provider=provider).inc()
@@ -346,7 +346,7 @@ class PrometheusMetricsService:
             self.oauth_integrations_active.labels(provider=provider).set(count)
 
     def update_database_health(
-        self, healthy: bool, connections: int = None, pool_utilization: float = None
+        self, healthy: bool, connections: Optional[int] = None, pool_utilization: Optional[float] = None
     ):
         """Update database health metrics."""
         self.database_health_status.set(1 if healthy else 0)
@@ -357,7 +357,7 @@ class PrometheusMetricsService:
         if pool_utilization is not None:
             self.database_connection_pool_utilization.set(pool_utilization)
 
-    def update_application_health(self, healthy: bool, active_sessions: int = None):
+    def update_application_health(self, healthy: bool, active_sessions: Optional[int] = None):
         """Update application health metrics."""
         self.application_health_status.set(1 if healthy else 0)
 
@@ -379,7 +379,7 @@ class PrometheusMetricsService:
         if "sms_usage_per_user" in metrics:
             self.sms_usage_per_user.set(metrics["sms_usage_per_user"])
 
-    def update_sms_metrics(self, queue_length: int = None, success_rate: float = None):
+    def update_sms_metrics(self, queue_length: Optional[int] = None, success_rate: Optional[float] = None):
         """Update SMS metrics."""
         if queue_length is not None:
             self.sms_queue_length.set(queue_length)
@@ -389,8 +389,8 @@ class PrometheusMetricsService:
 
     def update_task_metrics(
         self,
-        queue_lengths: Dict[str, int] = None,
-        success_rates: Dict[str, float] = None,
+        queue_lengths: Optional[Dict[str, int]] = None,
+        success_rates: Optional[Dict[str, float]] = None,
     ):
         """Update task metrics."""
         if queue_lengths:
@@ -406,7 +406,7 @@ class PrometheusMetricsService:
         # Update system metrics before generating
         self.update_system_metrics()
 
-        return generate_latest(self.registry)
+        return generate_latest(self.registry).decode('utf-8')
 
     def get_metrics_content_type(self) -> str:
         """Get the content type for metrics response."""

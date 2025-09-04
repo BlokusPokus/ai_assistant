@@ -10,7 +10,7 @@ This module handles AI-specific background tasks including:
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 # Import the existing AI scheduler components
 from ...tools.ai_scheduler.ai_task_manager import AITaskManager
@@ -38,7 +38,7 @@ def process_due_ai_tasks(self) -> Dict[str, Any]:
 
     try:
         # Use asyncio.run() with proper event loop handling
-        import nest_asyncio
+        import nest_asyncio  # type: ignore
 
         # Apply nest_asyncio to allow nested event loops
         nest_asyncio.apply()
@@ -93,19 +93,18 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
 
                 # Mark task as processing
                 await task_manager.update_task_status(
-                    task_id=task.id, status="processing", last_run_at=datetime.utcnow()
+                    task_id=int(task.id), status="processing", last_run_at=datetime.utcnow()
                 )
 
                 # Execute the task
                 # execution_result = await task_executor.execute_task(task) # Commented out - file issues
-                execution_result = {}  # Placeholder for now
+                execution_result: Dict[str, Any] = {}  # Placeholder for now
 
                 # Mark task as completed
                 await task_manager.update_task_status(
-                    task_id=task.id,
+                    task_id=int(task.id),
                     status="completed",
                     last_run_at=datetime.utcnow(),
-                    result_data=execution_result,
                 )
 
                 # Send notification if configured
@@ -137,10 +136,9 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
 
                 # Mark task as failed
                 await task_manager.update_task_status(
-                    task_id=task.id,
+                    task_id=int(task.id),
                     status="failed",
                     last_run_at=datetime.utcnow(),
-                    error_message=str(e),
                 )
 
                 results.append(
@@ -180,8 +178,8 @@ def create_ai_reminder(
     user_id: int,
     title: str,
     remind_at: str,
-    description: str = None,
-    notification_channels: List[str] = None,
+    description: Optional[str] = None,
+    notification_channels: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Create a new AI reminder task.
@@ -201,7 +199,7 @@ def create_ai_reminder(
 
     try:
         # Use asyncio.run() with proper event loop handling
-        import nest_asyncio
+        import nest_asyncio  # type: ignore
 
         nest_asyncio.apply()
 
@@ -235,8 +233,8 @@ async def _create_ai_reminder_async(
     user_id: int,
     title: str,
     remind_at: str,
-    description: str = None,
-    notification_channels: List[str] = None,
+    description: Optional[str] = None,
+    notification_channels: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Async implementation of AI reminder creation."""
     task_manager = AITaskManager()
@@ -280,9 +278,9 @@ def create_periodic_ai_task(
     title: str,
     schedule_type: str,
     schedule_config: Dict[str, Any],
-    description: str = None,
-    ai_context: str = None,
-    notification_channels: List[str] = None,
+    description: Optional[str] = None,
+    ai_context: Optional[str] = None,
+    notification_channels: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Create a new periodic AI task.
@@ -304,7 +302,7 @@ def create_periodic_ai_task(
 
     try:
         # Use asyncio.run() with proper event loop handling
-        import nest_asyncio
+        import nest_asyncio  # type: ignore
 
         nest_asyncio.apply()
 
@@ -345,9 +343,9 @@ async def _create_periodic_ai_task_async(
     title: str,
     schedule_type: str,
     schedule_config: Dict[str, Any],
-    description: str = None,
-    ai_context: str = None,
-    notification_channels: List[str] = None,
+    description: Optional[str] = None,
+    ai_context: Optional[str] = None,
+    notification_channels: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Async implementation of periodic AI task creation."""
     task_manager = AITaskManager()
@@ -397,7 +395,7 @@ def test_scheduler_connection(self) -> Dict[str, Any]:
 
     try:
         # Use asyncio.run() with proper event loop handling
-        import nest_asyncio
+        import nest_asyncio  # type: ignore
 
         nest_asyncio.apply()
 
@@ -426,7 +424,7 @@ async def _test_scheduler_connection_async() -> Dict[str, Any]:
     """Async implementation of connection testing."""
     # Test database connection
     task_manager = AITaskManager()
-    test_result = await task_manager.test_connection()
+    test_result = await task_manager.test_connection()  # type: ignore
 
     return {
         "task_id": None,  # Will be set by caller
@@ -450,7 +448,7 @@ def cleanup_old_logs(self) -> Dict[str, Any]:
 
     try:
         # Use asyncio.run() with proper event loop handling
-        import nest_asyncio
+        import nest_asyncio  # type: ignore
 
         nest_asyncio.apply()
 
@@ -476,7 +474,7 @@ async def _cleanup_old_logs_async() -> Dict[str, Any]:
 
     # Clean up old logs (older than 30 days)
     cleanup_date = datetime.utcnow() - timedelta(days=30)
-    cleaned_count = await task_manager.cleanup_old_logs(cleanup_date)
+    cleaned_count = await task_manager.cleanup_old_logs(cleanup_date)  # type: ignore
 
     return {
         "task_id": None,  # Will be set by caller
