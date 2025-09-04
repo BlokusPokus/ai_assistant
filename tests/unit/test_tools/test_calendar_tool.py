@@ -6,6 +6,7 @@ event viewing, creation, deletion, and detailed retrieval
 via Microsoft Graph API.
 """
 
+import os
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
 from typing import Dict, Any, List
@@ -20,7 +21,12 @@ class TestCalendarTool:
 
     def setup_method(self):
         """Set up test fixtures before each test method."""
-        self.calendar_tool = CalendarTool()
+        # Mock environment variables and access token for Microsoft OAuth
+        with patch.dict('os.environ', {
+            'MICROSOFT_APPLICATION_ID': 'test-app-id',
+            'MICROSOFT_CLIENT_SECRET': 'test-client-secret'
+        }), patch('personal_assistant.tools.calendar.calendar_tool.get_access_token', return_value='mock-access-token'):
+            self.calendar_tool = CalendarTool()
         self.test_event_id = "test-event-id-123"
         self.test_subject = "Test Meeting"
         self.test_start_time = "2024-01-15 14:30"
