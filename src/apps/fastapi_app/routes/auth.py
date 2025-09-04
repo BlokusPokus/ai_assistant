@@ -5,6 +5,7 @@ This module provides endpoints for user registration, login,
 logout, and token refresh operations.
 """
 
+import logging
 import secrets
 from datetime import datetime, timedelta
 from typing import Optional
@@ -26,6 +27,9 @@ from personal_assistant.database.session import AsyncSessionLocal
 
 # Create router
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Pydantic models for request/response
 
@@ -143,24 +147,31 @@ async def get_current_user(
 @router.post("/register", response_model=UserResponse)
 async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     """Register a new user."""
+    logger.info(f"Starting user registration for email: {user_data.email}")
     try:
         # Check if user already exists
+        logger.debug("Checking if user already exists")
         result = await db.execute(select(User).where(User.email == user_data.email))
         existing_user = result.scalar_one_or_none()
 
         if existing_user:
+            logger.warning(f"User with email {user_data.email} already exists")
             raise HTTPException(status_code=400, detail="Email already registered")
 
         # Validate password strength (this will raise HTTPException if invalid)
+        logger.debug("Validating password strength")
         password_service._validate_password(user_data.password)
 
         # Hash password
+        logger.debug("Hashing password")
         hashed_password = password_service.hash_password(user_data.password)
 
         # Generate verification token
+        logger.debug("Generating verification token")
         verification_token = secrets.token_urlsafe(32)
 
         # Create new user
+        logger.debug("Creating new user object")
         new_user = User(
             email=user_data.email,
             full_name=user_data.full_name,
@@ -172,12 +183,16 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
             failed_login_attempts=0,
         )
 
+        logger.debug("Adding user to database session")
         db.add(new_user)
+        logger.debug("Committing user to database")
         await db.commit()
+        logger.debug("Refreshing user from database")
         await db.refresh(new_user)
 
         # TODO: Send verification email
         # For now, return the verification token (in production, send via email)
+        logger.info(f"Successfully registered user with ID: {new_user.id}")
 
         return UserResponse(
             id=new_user.id,
@@ -186,9 +201,11 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
             created_at=new_user.created_at.isoformat(),
         )
 
-    except HTTPException:
+    except HTTPException as e:
+        logger.warning(f"HTTPException during registration: {e.detail}")
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(f"Unexpected error during user registration: {str(e)}", exc_info=True)
         await db.rollback()
         raise HTTPException(status_code=500, detail="Failed to register user")
 
@@ -311,7 +328,8 @@ async def login(
 
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(f"Unexpected error during login: {str(e)}", exc_info=True)
         await db.rollback()
         raise HTTPException(status_code=500, detail="Login failed")
 
