@@ -279,3 +279,38 @@ class EmailErrorHandler:
 
         # Return formatted error response
         return format_tool_error_response(error_context)
+
+    @classmethod
+    def handle_email_error_str(
+        cls, error: Exception, method_name: str, args: dict
+    ) -> str:
+        """
+        One-line error handling for email methods that return strings.
+
+        Args:
+            error: The exception that occurred
+            method_name: Name of the email method that failed
+            args: Arguments that were passed to the method
+
+        Returns:
+            Formatted error response as string
+        """
+        # Create email-specific error context
+        error_context = cls.create_email_error_context(error, method_name, args)
+
+        # Override recovery hints with email-specific ones
+        error_context["recovery_hints"] = cls.get_email_recovery_hints(
+            error_context["error_type"], method_name, args
+        )
+
+        # Format as string for methods that return strings
+        error_type = error_context["error_type"]
+        error_message = error_context["error_message"]
+        recovery_hints = error_context["recovery_hints"]
+
+        response = f"❌ {error_type}: {error_message}\n"
+        if recovery_hints:
+            response += f"💡 Suggestions: {', '.join(recovery_hints[:3])}\n"
+        response += "⏱️ Response Time: <3 seconds (target)"
+
+        return response

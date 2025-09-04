@@ -22,11 +22,13 @@ from ..types.messages import FinalAnswer, ToolCall
 from ..types.state import AgentState
 from ..utils.metrics import MetricsLogger
 
-# Configure module logger
+# Configure module
+# logger
 logger = get_logger("core")
 
 
 class AgentRunner:
+
     """
     Agent runner logic for managing the conversation workflow.
 
@@ -68,7 +70,9 @@ class AgentRunner:
         # Initialize enhanced context manager
         try:
             self.ltm_config = EnhancedLTMConfig()
-            self.dynamic_context_manager: Optional[DynamicContextManager] = DynamicContextManager(config=self.ltm_config)
+            self.dynamic_context_manager: Optional[
+                DynamicContextManager
+            ] = DynamicContextManager(config=self.ltm_config)
             logger.info("Enhanced dynamic context manager initialized successfully")
         except Exception as e:
             logger.warning(f"Failed to initialize dynamic context manager: {e}")
@@ -220,7 +224,9 @@ class AgentRunner:
                                 "content": content,
                                 "type": "document",
                                 "metadata": {
-                                    k: json.dumps(v) if isinstance(v, (dict, list)) else str(v)
+                                    k: json.dumps(v)
+                                    if isinstance(v, (dict, list))
+                                    else str(v)
                                     for k, v in doc.items()
                                     if k != "content" and k != "document"
                                 },
@@ -331,7 +337,7 @@ class AgentRunner:
         state = self.current_state
         if state is None:
             raise ValueError("No current state available. Call set_context() first.")
-        
+
         logger.debug(f"Starting run with input: {user_input}")
 
         # Add the current user input to conversation history if not already there

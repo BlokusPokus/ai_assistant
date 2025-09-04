@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional, Union
 
 import httpx
 from dotenv import load_dotenv
@@ -17,8 +17,10 @@ from .email_internal import (
     format_delete_email_response,
     format_email_content_response,
     format_email_list_response,
+    format_error_response,
     format_move_email_response,
     format_send_email_response,
+    format_success_response,
     get_environment_error_message,
     get_token_expiration,
     handle_email_not_found,
@@ -198,7 +200,7 @@ class EmailTool:
         self._initialize_token()
         return self._access_token
 
-    async def get_emails(self, count: int, batch_size: int = 10) -> str:
+    async def get_emails(self, count: int, batch_size: int = 10) -> Union[str, dict]:
         """
         Read recent emails with improved error handling and token management
         """
@@ -248,7 +250,7 @@ class EmailTool:
             return format_email_list_response(emails[:count], count)
 
         except Exception as e:
-            return EmailErrorHandler.handle_email_error(
+            return EmailErrorHandler.handle_email_error_str(
                 e, "get_emails", {"count": count, "batch_size": batch_size}
             )
 
@@ -312,10 +314,9 @@ class EmailTool:
                 )
 
                 if response.status_code == 202:  # Accepted
-                    return format_send_email_response(
-                        True,
+                    return format_success_response(
                         f"Email sent successfully to {to_recipients}",
-                        to_recipients,
+                        {"recipients": to_recipients},
                     )
                 else:
                     return EmailErrorHandler.handle_email_error(
@@ -360,10 +361,9 @@ class EmailTool:
                 )
 
                 if response.status_code == 204:  # No content on successful deletion
-                    return format_delete_email_response(
-                        True,
+                    return format_success_response(
                         f"Successfully deleted email with ID: {message_id}",
-                        message_id,
+                        {"message_id": message_id},
                     )
                 elif response.status_code == 404:
                     return handle_email_not_found(message_id)
@@ -410,8 +410,9 @@ class EmailTool:
                     clean_body = self._clean_html_content(raw_body)
 
                     # Use formatting function for clean user output
-                    return format_email_content_response(
-                        parse_email_content_response(mail, clean_body)
+                    email_data = parse_email_content_response(mail, clean_body)
+                    return format_success_response(
+                        "Email content retrieved successfully", email_data
                     )
                 elif response.status_code == 404:
                     return handle_email_not_found(message_id)
@@ -460,7 +461,7 @@ class EmailTool:
                     )
 
                     if response.status_code != 200:
-                        return EmailErrorHandler.handle_email_error(
+                        return EmailErrorHandler.handle_email_error_str(
                             Exception(f"HTTP {response.status_code}: {response.text}"),
                             "get_sent_emails",
                             {"count": count, "batch_size": batch_size},
@@ -492,7 +493,7 @@ class EmailTool:
             return format_email_list_response(sent_emails[:count], count)
 
         except Exception as e:
-            return EmailErrorHandler.handle_email_error(
+            return EmailErrorHandler.handle_email_error_str(
                 e, "get_sent_emails", {"count": count, "batch_size": batch_size}
             )
 
@@ -500,8 +501,8 @@ class EmailTool:
         self,
         query: str,
         count: int = 20,
-        date_from: str = None,
-        date_to: str = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
         folder: str = "inbox",
     ) -> str:
         """
@@ -518,7 +519,7 @@ class EmailTool:
         try:
             # Validate parameters
             if not query or not query.strip():
-                return EmailErrorHandler.handle_email_error(
+                return EmailErrorHandler.handle_email_error_str(
                     ValueError("Search query cannot be empty"),
                     "search_emails",
                     {"query": query, "count": count},
@@ -535,7 +536,7 @@ class EmailTool:
             search_results = []
 
             # Build search filter
-            search_filter = []
+            search_filter: List[str] = []
 
             # Use $search parameter for comprehensive email search (includes body content)
             # Microsoft Graph API supports $search in from, subject, and body automatically
@@ -558,7 +559,7 @@ class EmailTool:
             filter_string = " and ".join(search_filter) if search_filter else None
 
             # Build final parameters
-            final_params = {
+            final_params: Dict[str, Union[str, int]] = {
                 "$top": count,
                 "$select": "id,subject,bodyPreview,receivedDateTime,from,toRecipients,isDraft,importance",
             }
@@ -583,7 +584,7 @@ class EmailTool:
                 )
 
                 if response.status_code != 200:
-                    return EmailErrorHandler.handle_email_error(
+                    return EmailErrorHandler.handle_email_error_str(
                         Exception(f"HTTP {response.status_code}: {response.text}"),
                         "search_emails",
                         {"query": query, "count": count, "folder": folder},
@@ -647,7 +648,7 @@ class EmailTool:
             return format_email_list_response(search_results[:count], count)
 
         except Exception as e:
-            return EmailErrorHandler.handle_email_error(
+            return EmailErrorHandler.handle_email_error_str(
                 e, "search_emails", {"query": query, "count": count, "folder": folder}
             )
 
@@ -666,7 +667,7 @@ class EmailTool:
         try:
             # Validate parameters
             if not message_id or not message_id.strip():
-                return EmailErrorHandler.handle_email_error(
+                return EmailErrorHandler.handle_email_error_str(
                     ValueError("Message ID cannot be empty"),
                     "move_email",
                     {
@@ -676,7 +677,7 @@ class EmailTool:
                 )
 
             if not destination_folder or not destination_folder.strip():
-                return EmailErrorHandler.handle_email_error(
+                return EmailErrorHandler.handle_email_error_str(
                     ValueError("Destination folder cannot be empty"),
                     "move_email",
                     {
@@ -789,9 +790,10 @@ class EmailTool:
                     )
 
         except Exception as e:
-            error_message = f"Move operation failed: {str(e)}"
-            return format_move_email_response(
-                False, error_message, message_id, destination_folder, "unknown"
+            return EmailErrorHandler.handle_email_error_str(
+                e,
+                "move_email",
+                {"message_id": message_id, "destination_folder": destination_folder},
             )
 
     def __iter__(self):
