@@ -400,7 +400,7 @@ class DatabaseOptimizer:
             # Ensure monitoring is started
             await self._ensure_monitoring_started()
 
-            recommendations = {
+            recommendations: dict[str, Any] = {
                 "tables": [],
                 "indexes": [],
                 "queries": [],
@@ -475,9 +475,9 @@ class DatabaseOptimizer:
             # Determine overall priority
             high_priority = sum(
                 1
-                for rec in recommendations["tables"]
-                + recommendations["indexes"]
-                + recommendations["queries"]
+                for rec in list(recommendations["tables"])
+                + list(recommendations["indexes"])
+                + list(recommendations["queries"])
                 if rec.get("priority") == "high"
             )
 
@@ -485,9 +485,9 @@ class DatabaseOptimizer:
                 recommendations["priority"] = "high"
             elif any(
                 rec.get("priority") == "medium"
-                for rec in recommendations["tables"]
-                + recommendations["indexes"]
-                + recommendations["queries"]
+                for rec in list(recommendations["tables"])
+                + list(recommendations["indexes"])
+                + list(recommendations["queries"])
             ):
                 recommendations["priority"] = "medium"
 

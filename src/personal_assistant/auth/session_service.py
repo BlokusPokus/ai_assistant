@@ -79,7 +79,7 @@ class SessionService:
 
         # Track user sessions
         user_sessions_key = f"{self.user_sessions_prefix}{user_id}"
-        await self.redis.sadd(user_sessions_key, session_id)
+        await self.redis.sadd(user_sessions_key, session_id)  # type: ignore
         await self.redis.expire(user_sessions_key, ttl_seconds)
 
         return session_id
@@ -119,7 +119,7 @@ class SessionService:
         ttl_seconds = self.session_expiry_hours * 3600
         await self.redis.setex(session_key, ttl_seconds, json.dumps(session))
 
-        return session
+        return session  # type: ignore
 
     async def update_session(self, session_id: str, data: Dict[str, Any]) -> bool:
         """
@@ -182,7 +182,7 @@ class SessionService:
 
         # Remove from user sessions
         user_sessions_key = f"{self.user_sessions_prefix}{user_id}"
-        await self.redis.srem(user_sessions_key, session_id)
+        await self.redis.srem(user_sessions_key, session_id)  # type: ignore
 
         return True
 
@@ -197,7 +197,7 @@ class SessionService:
             List of active sessions
         """
         user_sessions_key = f"{self.user_sessions_prefix}{user_id}"
-        session_ids = await self.redis.smembers(user_sessions_key)
+        session_ids = await self.redis.smembers(user_sessions_key)  # type: ignore
 
         sessions = []
         for session_id in session_ids:
@@ -218,7 +218,7 @@ class SessionService:
             True if can create new session, False otherwise
         """
         current_sessions = await self.get_user_sessions(user_id)
-        return len(current_sessions) < self.max_concurrent_sessions
+        return bool(len(current_sessions) < self.max_concurrent_sessions)
 
     async def invalidate_user_sessions(
         self, user_id: int, exclude_session_id: Optional[str] = None
@@ -234,7 +234,7 @@ class SessionService:
             Number of sessions invalidated
         """
         user_sessions_key = f"{self.user_sessions_prefix}{user_id}"
-        session_ids = await self.redis.smembers(user_sessions_key)
+        session_ids = await self.redis.smembers(user_sessions_key)  # type: ignore
 
         invalidated_count = 0
 

@@ -8,7 +8,7 @@ and enforces loop limits.
 """
 
 import json
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from ..config.logging_config import get_logger
 from ..config.settings import settings
@@ -84,9 +84,9 @@ class AgentRunner:
 
     async def set_context(
         self,
-        agent_state: AgentState,
-        rag_context: Optional[List[dict]] = None,
-        ltm_context: Optional[str] = None,
+        agent_state: AgentState | None,
+        rag_context: Optional[List[dict]] | Any = None,
+        ltm_context: Optional[str] | Any = None,
     ) -> None:
         """
         Inject LTM and RAG context into AgentState's memory_context with limits.
@@ -377,7 +377,7 @@ class AgentRunner:
 
                     # Execute tool
                     result = await self.tools.run_tool(action.name, **action.args)
-                    logger.debug(f"=== TOOL EXECUTION COMPLETED ===")
+                    logger.debug("=== TOOL EXECUTION COMPLETED ===")
                     logger.debug(f"Tool result: {result}")
 
                     # Update state (this already adds the tool result to conversation history)

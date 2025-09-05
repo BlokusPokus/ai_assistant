@@ -71,7 +71,7 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
 
         elif request.url.path == "/api/v1/auth/refresh":
             # For refresh, we need user ID from the request
-            user_id = self._extract_user_id_from_refresh_request(request)
+            user_id = await self._extract_user_id_from_refresh_request(request)
             if user_id and not self._check_rate_limit("token_refresh", str(user_id)):
                 return JSONResponse(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -102,7 +102,7 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
         if request.url.path == "/api/v1/auth/login" and response.status_code == 200:
             self._record_successful_attempt("login", self._get_client_ip(request))
         elif request.url.path == "/api/v1/auth/refresh" and response.status_code == 200:
-            user_id = self._extract_user_id_from_refresh_request(request)
+            user_id = await self._extract_user_id_from_refresh_request(request)
             if user_id:
                 self._record_successful_attempt("token_refresh", str(user_id))
         elif (
@@ -137,7 +137,9 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
         # Fallback to client host
         return request.client.host if request.client else "unknown"
 
-    def _extract_user_id_from_refresh_request(self, request: Request) -> Optional[int]:
+    async def _extract_user_id_from_refresh_request(
+        self, request: Request
+    ) -> Optional[int]:
         """
         Extract user ID from refresh token request.
 
@@ -149,12 +151,12 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
         """
         try:
             # Try to get user ID from request body
-            body = request.body()
+            body = await request.body()
             if body:
                 import json
 
                 data = json.loads(body)
-                return data.get("user_id")
+                return data.get("user_id")  # type: ignore
         except (json.JSONDecodeError, UnicodeDecodeError, AttributeError):
             # Ignore JSON parsing errors and missing attributes
             pass
@@ -190,7 +192,7 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
         recent_attempts = limit_config["attempts"].get(identifier, [])
         total_attempts = sum(count for _, count in recent_attempts)
 
-        return total_attempts < limit_config["max_attempts"]
+        return total_attempts < limit_config["max_attempts"]  # type: ignore
 
     def _record_successful_attempt(self, limit_type: str, identifier: str) -> None:
         """

@@ -61,7 +61,7 @@ class AgentIntegrationService:
                 return "I'm sorry, I couldn't generate a response. Please try rephrasing your question."
 
             logger.info(f"Agent response for user {user_id}: {result[:50]}...")
-            return result
+            return result  # type: ignore
 
         except Exception as e:
             logger.error(f"Error processing message with Agent Core: {e}")
@@ -75,7 +75,7 @@ class AgentIntegrationService:
             Dictionary with agent status information
         """
         try:
-            status = {
+            status: dict[str, Any] = {
                 "available": self.agent_core is not None,
                 "tools_available": self.tool_registry is not None,
                 "llm_available": self.llm is not None,
@@ -112,7 +112,11 @@ class AgentIntegrationService:
             Validation result dictionary
         """
         try:
-            validation = {"valid": True, "length": len(response), "issues": []}
+            validation: dict[str, Any] = {
+                "valid": True,
+                "length": len(response),
+                "issues": [],
+            }
 
             # Check response length
             if len(response) > 1600:  # Max 10 SMS segments

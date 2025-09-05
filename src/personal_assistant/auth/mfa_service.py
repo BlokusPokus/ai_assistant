@@ -81,7 +81,7 @@ class MFAService:
 
         # Convert to base64
         buffer = BytesIO()
-        img.save(buffer, format="PNG")
+        img.save(buffer, "PNG")
         img_str = base64.b64encode(buffer.getvalue()).decode()
 
         return f"data:image/png;base64,{img_str}"
@@ -201,7 +201,11 @@ class MFAService:
         for device in trusted_devices:
             if device.get("hash") == device_hash:
                 # Check if trust hasn't expired
-                trust_expires = datetime.fromisoformat(device.get("trusted_until"))
+                trusted_until = device.get("trusted_until")
+                if trusted_until:
+                    trust_expires = datetime.fromisoformat(trusted_until)
+                else:
+                    continue
                 if now < trust_expires:
                     return True
 
@@ -271,8 +275,10 @@ class MFAService:
         active_devices = []
 
         for device in trusted_devices:
-            trust_expires = datetime.fromisoformat(device.get("trusted_until"))
-            if now < trust_expires:
-                active_devices.append(device)
+            trusted_until = device.get("trusted_until")
+            if trusted_until:
+                trust_expires = datetime.fromisoformat(trusted_until)
+                if now < trust_expires:
+                    active_devices.append(device)
 
         return active_devices

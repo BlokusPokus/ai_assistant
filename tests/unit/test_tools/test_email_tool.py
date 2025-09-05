@@ -358,7 +358,7 @@ class TestEmailTool:
             result = await self.email_tool.delete_email(self.test_message_id)
             
             assert result["success"] is True
-            assert "Email deleted successfully" in result["message"]
+            assert "Successfully deleted email with ID:" in result["message"]
 
     @pytest.mark.asyncio
     async def test_delete_email_not_found(self):
@@ -410,7 +410,7 @@ class TestEmailTool:
             mock_validate.return_value = (True, "")
             mock_headers.return_value = {"Authorization": "Bearer token"}
             mock_params.return_value = {"$select": "id,subject,body"}
-            mock_parse.return_value = {"subject": "Test Subject", "content": "Test email content"}
+            mock_parse.return_value = {"subject": "Test Subject", "body": "Test email content"}
             mock_format.return_value = {"success": True, "content": "Test email content"}
             
             mock_client_instance = AsyncMock()
@@ -420,7 +420,7 @@ class TestEmailTool:
             result = await self.email_tool.get_email_content(self.test_message_id)
             
             assert result["success"] is True
-            assert "Test email content" in result["content"]
+            assert "Test email content" in result["data"]["body"]
 
     @pytest.mark.asyncio
     async def test_get_sent_emails_success(self):
@@ -503,7 +503,7 @@ class TestEmailTool:
         if isinstance(result, dict):
             assert result.get("error", False)
         else:
-            assert "Error" in result
+            assert "general_error" in result
 
     @pytest.mark.asyncio
     async def test_move_email_success(self):
@@ -546,7 +546,7 @@ class TestEmailTool:
         if isinstance(result, dict):
             assert result.get("error", False)
         else:
-            assert "Error" in result
+            assert "general_error" in result
 
     @pytest.mark.asyncio
     async def test_move_email_empty_destination(self):
@@ -557,7 +557,7 @@ class TestEmailTool:
         if isinstance(result, dict):
             assert result.get("error", False)
         else:
-            assert "Error" in result
+            assert "general_error" in result
 
     def test_tool_categories(self):
         """Test that tools can have categories set."""
@@ -697,7 +697,7 @@ class TestEmailTool:
             )
             
             assert result["success"] is True
-            assert "HTML email sent successfully" in result["message"]
+            assert "Email sent successfully to" in result["message"]
             # Verify that build_email_message_data was called with is_html=True
             mock_build.assert_called_once()
             call_args = mock_build.call_args[0]

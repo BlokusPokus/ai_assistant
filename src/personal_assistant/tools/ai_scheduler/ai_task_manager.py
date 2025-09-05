@@ -95,7 +95,7 @@ class AITaskManager:
         Returns:
             Serialized schedule configuration
         """
-        serialized = {}
+        serialized: Dict[str, Any] = {}
         for key, value in schedule_config.items():
             if isinstance(value, datetime):
                 serialized[key] = value.isoformat()
@@ -133,7 +133,7 @@ class AITaskManager:
                     .order_by(AITask.next_run_at.asc())
                     .limit(limit)
                 )
-                return result.scalars().all()
+                return list(result.scalars().all())
 
             except Exception as e:
                 self.logger.error(f"Error getting due tasks: {e}")
@@ -169,7 +169,7 @@ class AITaskManager:
 
                 query = query.order_by(AITask.created_at.desc()).limit(limit)
                 result = await session.execute(query)
-                return result.scalars().all()
+                return list(result.scalars().all())
 
             except Exception as e:
                 self.logger.error(f"Error getting user tasks: {e}")
@@ -501,7 +501,7 @@ class AITaskManager:
                 return {"success": True, "message": f"No {status} reminders found."}
 
             # Format the response
-            result = self._format_reminder_list_header(status, len(tasks))
+            result = self._format_reminder_list_header(status or "all", len(tasks))
             for task in tasks:
                 result += self._format_reminder_item(task)
 
@@ -613,7 +613,7 @@ class AITaskManager:
             "error_msg": None,
         }
 
-    def _parse_time_string(self, time_str: str) -> Optional[datetime]:
+    def _parse_time_string(self, time_str: str | None | Any) -> Optional[datetime]:
         """Parse various time string formats into datetime object."""
         if not time_str:
             return None
@@ -765,5 +765,5 @@ class AITaskManager:
     def _format_next_run_time(self, next_run_at) -> str:
         """Format next run time for display."""
         if next_run_at:
-            return next_run_at.strftime("%Y-%m-%d %H:%M")
+            return str(next_run_at.strftime("%Y-%m-%d %H:%M"))
         return "No schedule"

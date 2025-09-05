@@ -266,7 +266,7 @@ class StorageIntegrationManager:
                     logger.debug(
                         f"Found timestamp in normalized storage: {conversation_id}"
                     )
-                    return timestamp
+                    return timestamp if isinstance(timestamp, datetime) else None
                 else:
                     logger.debug(
                         f"No timestamp found in normalized storage: {conversation_id}"

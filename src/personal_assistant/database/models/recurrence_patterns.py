@@ -13,7 +13,7 @@ class RecurrencePattern(Base):
     frequency = Column(String, nullable=False)
     interval = Column(Integer, default=1)  # every N days/weeks/months/years
     # for weekly patterns [0=Monday, 6=Sunday]
-    weekdays = Column(ARRAY(Integer), nullable=True)
+    weekdays = Column(ARRAY(Integer), nullable=True)  # type: ignore
     end_date = Column(DateTime, nullable=True)  # when to stop recurring
     max_occurrences = Column(Integer, nullable=True)  # max number of instances
     created_at = Column(DateTime, default=datetime.utcnow)

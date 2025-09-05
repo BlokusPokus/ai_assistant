@@ -43,7 +43,7 @@ def validate_twilio_webhook(request: Request) -> bool:
             return False
 
         # Check if request has content
-        if not request.body:
+        if not request.body():
             logger.warning("Empty request body")
             return False
 

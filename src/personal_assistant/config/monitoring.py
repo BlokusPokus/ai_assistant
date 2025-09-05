@@ -37,6 +37,7 @@ class HealthMonitor:
         """Get comprehensive database health status."""
         try:
             health_data = await db_config.check_health()
+            health_data = dict(health_data) if health_data else {}
 
             # Add timestamp
             health_data["timestamp"] = datetime.now().isoformat()
@@ -120,6 +121,7 @@ class HealthMonitor:
         """Get comprehensive performance metrics."""
         try:
             performance_data = await db_config.get_performance_metrics()
+            performance_data = dict(performance_data) if performance_data else {}
 
             # Add additional metrics
             performance_data.update(

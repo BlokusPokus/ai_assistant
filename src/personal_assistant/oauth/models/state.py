@@ -24,7 +24,7 @@ class OAuthState(Base):
     user_id = Column(Integer, nullable=True)
     redirect_uri = Column(Text, nullable=True)  # Intended redirect URI
     # Fixed (matches database)    state_metadata = Column(Text, nullable=True)  # Additional state metadata
-    scopes = Column(ARRAY(Text), nullable=True)
+    scopes = Column(ARRAY(Text), nullable=True)  # type: ignore
     is_used = Column(Boolean, default=False)  # Whether state has been consumed
     expires_at = Column(DateTime, nullable=False)  # State expiration time
     created_at = Column(DateTime, default=datetime.utcnow)

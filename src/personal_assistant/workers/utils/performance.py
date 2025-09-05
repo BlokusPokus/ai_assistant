@@ -216,7 +216,7 @@ class PerformanceOptimizer:
                 return current_config
 
             # Analyze current load
-            cpu_cores = psutil.cpu_count()
+            cpu_cores = psutil.cpu_count() or 4  # Default to 4 if None
             memory_gb = psutil.virtual_memory().total / (1024**3)
 
             # Calculate optimal worker counts
@@ -558,7 +558,7 @@ class PerformanceOptimizer:
                 bottlenecks.append("High memory usage - potential bottleneck")
 
             # Check load bottleneck
-            cpu_cores = psutil.cpu_count()
+            cpu_cores = psutil.cpu_count() or 4  # Default to 4 if None
             avg_load = sum(latest.load_average) / 3
             if avg_load > cpu_cores * self.thresholds["load_critical"]:
                 bottlenecks.append("Critical load bottleneck - system overloaded")
@@ -586,7 +586,7 @@ class PerformanceOptimizer:
                 return recommendations
 
             latest = snapshots[-1]
-            cpu_cores = psutil.cpu_count()
+            cpu_cores = psutil.cpu_count() or 4  # Default to 4 if None
             psutil.virtual_memory().total / (1024**3)
 
             # CPU optimization recommendations

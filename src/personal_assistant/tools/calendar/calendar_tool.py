@@ -331,7 +331,7 @@ class CalendarTool:
                 error_response = CalendarErrorHandler.handle_calendar_error(
                     ValueError(error_msg), "get_event_details", {"event_id": event_id}
                 )
-                return error_response["llm_instructions"]
+                return error_response["llm_instructions"]  # type: ignore
 
             headers = build_calendar_headers(self._access_token)
 
@@ -346,7 +346,7 @@ class CalendarTool:
                         "get_event_details",
                         {"event_id": event_id},
                     )
-                    return error_response["llm_instructions"]
+                    return error_response["llm_instructions"]  # type: ignore
 
                 event = response.json()
 
@@ -358,7 +358,7 @@ class CalendarTool:
             error_response = CalendarErrorHandler.handle_calendar_error(
                 e, "get_event_details", {"event_id": event_id}
             )
-            return error_response["llm_instructions"]
+            return error_response["llm_instructions"]  # type: ignore
 
     async def delete_calendar_event(self, event_id: str) -> Dict[str, Any]:
         """Delete a calendar event"""

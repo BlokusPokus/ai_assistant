@@ -271,7 +271,7 @@ def build_planning_prompt(
     user_context: Optional[str],
     planning_style: str,
     tool_guidelines: str = "",
-    relevant_tools: List[str] = None,
+    relevant_tools: Optional[List[str]] = None,
     style_instructions: str = "",
 ) -> str:
     """Build the prompt for LLM planning with tool guidelines."""

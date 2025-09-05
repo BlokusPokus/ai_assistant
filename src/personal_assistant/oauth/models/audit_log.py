@@ -35,7 +35,7 @@ class OAuthAuditLog(Base):
     # google, microsoft, notion, youtube
     provider = Column(String(50), nullable=False)
     # Scopes involved in the action
-    scopes = Column(ARRAY(String), nullable=True)
+    scopes = Column(ARRAY(String), nullable=True)  # type: ignore
     # IP address of the action (PostgreSQL inet type)
     ip_address = Column(INET, nullable=True)
     user_agent = Column(Text, nullable=True)  # User agent of the action

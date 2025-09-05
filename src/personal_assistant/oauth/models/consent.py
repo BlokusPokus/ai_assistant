@@ -29,7 +29,7 @@ class OAuthConsent(Base):
     integration_id = Column(
         Integer, ForeignKey("oauth_integrations.id"), nullable=False
     )
-    scopes = Column(ARRAY(Text), nullable=False)  # Array of granted scopes
+    scopes = Column(ARRAY(Text), nullable=False)  # type: ignore  # Array of granted scopes
     # When consent was granted
     granted_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     expires_at = Column(DateTime, nullable=True)  # When consent expires

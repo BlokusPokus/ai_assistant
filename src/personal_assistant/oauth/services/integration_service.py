@@ -7,7 +7,7 @@ status management, and integration lifecycle operations.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -115,7 +115,7 @@ class OAuthIntegrationService:
             result = await db.execute(query)
             integrations = result.unique().scalars().all()
 
-            return integrations
+            return list(integrations)
 
         except Exception as e:
             raise OAuthIntegrationError(f"Failed to retrieve user integrations: {e}")
@@ -241,7 +241,12 @@ class OAuthIntegrationService:
             print(f"🔍 DEBUG: Commit successful")
 
             # Return the updated integration
-            return await self.get_integration(db, integration_id)
+            updated_integration = await self.get_integration(db, integration_id)
+            if updated_integration is None:
+                raise OAuthIntegrationError(
+                    f"Integration {integration_id} not found after update"
+                )
+            return updated_integration
 
         except Exception as e:
             print(f"🔍 ERROR: Failed to update integration: {e}")
@@ -348,8 +353,14 @@ class OAuthIntegrationService:
             )
 
             token_service = OAuthTokenService()
-            await token_service.revoke_all_tokens(db, integration_id)
+            await token_service.revoke_tokens(db, integration_id)
             print(f"🔍 DEBUG: All tokens revoked successfully")
+
+            # Get integration to find user_id
+            integration = await self.get_integration(db, integration_id)
+            if not integration:
+                print(f"🔍 DEBUG: Integration {integration_id} not found")
+                return False
 
             # Revoke all consents
             print(f"🔍 DEBUG: Revoking all consents for integration {integration_id}")
@@ -360,7 +371,7 @@ class OAuthIntegrationService:
             consent_service = OAuthConsentService()
             await consent_service.revoke_all_user_consents(
                 db,
-                user_id=None,  # Will be filtered by integration_id
+                user_id=integration.user_id,
                 integration_id=integration_id,
                 reason=reason,
             )
@@ -458,7 +469,7 @@ class OAuthIntegrationService:
                 db, user_id, active_only=False
             )
 
-            summary = {
+            summary: dict[str, Any] = {
                 "total_integrations": len(integrations),
                 "active_integrations": len(
                     [i for i in integrations if i.status == "active"]

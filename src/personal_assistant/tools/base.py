@@ -26,8 +26,10 @@ class Tool:
         self.func = func
         self.description = description
         self.parameters = parameters
-        self.category = None  # Add category for tool organization
-        self._last_user_intent = None  # Store last user intent for error context
+        self.category: str | None = None  # Add category for tool organization
+        self._last_user_intent: str | None = (
+            None  # Store last user intent for error context
+        )
 
         # Validate parameter schema
         if not isinstance(parameters, dict):

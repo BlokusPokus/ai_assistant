@@ -60,7 +60,7 @@ class StateOptimizationManager:
         optimized_state = copy.deepcopy(state)
 
         # Track optimization statistics
-        optimization_stats = {
+        optimization_stats: dict[str, Any] = {
             "original_conversation_length": len(state.conversation_history),
             "original_memory_context_length": len(state.memory_context),
             "optimization_steps": [],
@@ -256,7 +256,7 @@ class StateOptimizationManager:
         Returns:
             Dictionary of items grouped by tool
         """
-        tool_groups = {}
+        tool_groups: dict[str, list[dict[str, Any]]] = {}
 
         for item in items:
             if item.get("role") == "tool":

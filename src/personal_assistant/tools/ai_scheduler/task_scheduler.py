@@ -117,7 +117,7 @@ class TaskScheduler:
         """
         try:
             # Get basic scheduler info
-            status = {
+            status: Dict[str, Any] = {
                 "scheduler_type": "AI Task Scheduler",
                 "status": "running",
                 "timestamp": datetime.utcnow().isoformat(),
@@ -163,7 +163,7 @@ class TaskScheduler:
             )
 
             # Get task counts by type
-            task_types = {}
+            task_types: dict[str, int] = {}
             for task in active_tasks:
                 task_type = task.task_type
                 task_types[task_type] = task_types.get(task_type, 0) + 1

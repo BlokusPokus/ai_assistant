@@ -138,7 +138,7 @@ class ReminderTool:
             result = await self.task_manager.create_reminder_with_validation(
                 text=text, time=time, channel=channel, user_id=user_id
             )
-            return result.get("message", "Reminder created successfully")
+            return result.get("message", "Reminder created successfully")  # type: ignore
         except Exception as e:
             return f"Error creating reminder: {str(e)}"
 
@@ -149,7 +149,7 @@ class ReminderTool:
 
         try:
             result = await self.task_manager.list_user_reminders(status, user_id)
-            return result.get("message", "No reminders found")
+            return result.get("message", "No reminders found")  # type: ignore
         except Exception as e:
             return f"Error listing reminders: {str(e)}"
 
@@ -163,7 +163,7 @@ class ReminderTool:
 
         try:
             result = await self.task_manager.delete_user_reminder(reminder_id, user_id)
-            return result.get("message", "Reminder deleted successfully")
+            return result.get("message", "Reminder deleted successfully")  # type: ignore
         except Exception as e:
             return f"Error deleting reminder: {str(e)}"
 
@@ -195,7 +195,7 @@ class ReminderTool:
             result = await self.task_manager.update_task(
                 reminder_id, user_id, update_data
             )
-            return result.get("message", "Reminder updated successfully")
+            return result.get("message", "Reminder updated successfully")  # type: ignore
         except Exception as e:
             return f"Error updating reminder: {str(e)}"
 

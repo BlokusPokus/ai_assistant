@@ -204,9 +204,9 @@ class SMSCostCalculator:
 
             # Add monthly number fees
             pricing = await self.get_twilio_pricing()
-            monthly_fees = pricing["long_code_monthly"]
+            monthly_fees = float(pricing["long_code_monthly"])
 
-            return round(estimated_monthly + monthly_fees, 4)
+            return round(float(estimated_monthly) + monthly_fees, 4)
 
         except Exception as e:
             logger.error(f"Error estimating monthly costs for user {user_id}: {e}")

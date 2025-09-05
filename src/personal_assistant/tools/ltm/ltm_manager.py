@@ -5,6 +5,8 @@ This module contains standalone functions for managing LTM operations,
 extracted from the AgentCore class for better code organization.
 """
 
+from typing import Any
+
 from ...config.logging_config import get_logger
 from ...constants.tags import get_tag_suggestions
 from ...prompts.templates.ltm.tag_selection import get_tag_selection_prompt
@@ -30,7 +32,11 @@ logger = get_logger("ltm_manager")
 
 
 async def get_ltm_context_with_tags(
-    ltm_tool, logger, user_id: int, user_input: str, focus_areas: list = None
+    ltm_tool,
+    logger,
+    user_id: int,
+    user_input: str,
+    focus_areas: list[Any] | None = None,
 ) -> str:
     """
     Get optimized LTM context using the new smart LTM optimization system.
@@ -54,14 +60,14 @@ async def get_ltm_context_with_tags(
         # Always try to use the smart system first
         try:
             return await _get_smart_ltm_context(
-                user_id, user_input, focus_areas, logger
+                user_id, user_input, focus_areas or [], logger
             )
         except Exception as e:
             logger.warning(f"Smart LTM system failed: {e}, using fallback")
             # Only use fallback if ltm_tool is provided
             if ltm_tool:
                 return await _get_fallback_ltm_context(
-                    ltm_tool, user_id, user_input, focus_areas, logger
+                    ltm_tool, user_id, user_input, focus_areas or [], logger
                 )
             else:
                 logger.warning(
@@ -263,7 +269,7 @@ async def create_ltm_memory_if_needed(
     user_id: int,
     user_input: str,
     response: str,
-    conversation_context: str = None,
+    conversation_context: str | None = None,
 ):
     """
     Create LTM memory if the content warrants it.

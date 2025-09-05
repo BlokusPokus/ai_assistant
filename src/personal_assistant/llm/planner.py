@@ -105,7 +105,7 @@ class LLMPlanner:
 
         # Get LLM response
         logger.info("=== REQUESTING COMPLETION FROM LLM ===")
-        response = self.llm_client.complete(prompt, functions)
+        response = self.llm_client.complete(prompt, list(functions.values()))
 
         # Clean response before logging
         clean_response = clean_text_for_logging(str(response))
@@ -126,7 +126,7 @@ class LLMPlanner:
             clean_output = clean_text_for_logging(action.output)
             logger.debug(f"FinalAnswer content: {clean_output}")
 
-        return action
+        return action  # type: ignore
 
     # ------------------------
     # Fallback Handling

@@ -34,18 +34,18 @@ async def set_reminder(
     result = await task_manager.create_reminder_with_validation(
         text, time, channel, user_id
     )
-    return result["message"]
+    return result["message"]  # type: ignore
 
 
 async def list_reminders(status: str = "active", user_id: int = 126) -> str:
     """List user reminders with formatting."""
     task_manager = AITaskManager()
     result = await task_manager.list_user_reminders(status, user_id)
-    return result["message"]
+    return result["message"]  # type: ignore
 
 
 async def delete_reminder(reminder_id: int, user_id: int = 126) -> str:
     """Delete a user reminder with validation."""
     task_manager = AITaskManager()
     result = await task_manager.delete_user_reminder(reminder_id, user_id)
-    return result["message"]
+    return result["message"]  # type: ignore

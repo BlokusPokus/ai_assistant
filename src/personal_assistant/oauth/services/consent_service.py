@@ -119,7 +119,7 @@ class OAuthConsentService:
             result = await db.execute(query)
             consents = result.unique().scalars().all()
 
-            return consents
+            return list(consents)
 
         except Exception as e:
             raise OAuthConsentError(f"Failed to retrieve user consents: {e}")
@@ -156,7 +156,7 @@ class OAuthConsentService:
             result = await db.execute(query)
             consents = result.unique().scalars().all()
 
-            return consents
+            return list(consents)
 
         except Exception as e:
             raise OAuthConsentError(f"Failed to retrieve integration consents: {e}")
@@ -293,7 +293,7 @@ class OAuthConsentService:
         try:
             consents = await self.get_user_consents(db, user_id)
 
-            summary = {
+            summary: dict[str, Any] = {
                 "total_consents": len(consents),
                 "granted_consents": len(
                     [c for c in consents if c.consent_status == "granted"]

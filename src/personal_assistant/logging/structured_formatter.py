@@ -48,7 +48,7 @@ class StructuredJSONFormatter(logging.Formatter):
             JSON string representation of the log record
         """
         # Base log structure
-        log_entry = {
+        log_entry: Dict[str, Any] = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "level": record.levelname,
             "logger": record.name,
@@ -73,23 +73,31 @@ class StructuredJSONFormatter(logging.Formatter):
             log_entry["operation"] = operation
 
         # Add thread and process information
-        log_entry["thread"] = record.thread
-        log_entry["process"] = record.process
+        log_entry["thread"] = (
+            str(record.thread) if record.thread is not None else "unknown"
+        )
+        log_entry["process"] = (
+            str(record.process) if record.process is not None else "unknown"
+        )
 
         # Add exception information if present
         if record.exc_info:
             log_entry["exception"] = {
-                "type": record.exc_info[0].__name__ if record.exc_info[0] else None,
-                "message": str(record.exc_info[1]) if record.exc_info[1] else None,
+                "type": record.exc_info[0].__name__
+                if record.exc_info[0]
+                else "Unknown",
+                "message": str(record.exc_info[1]) if record.exc_info[1] else "Unknown",
                 "traceback": self.formatException(record.exc_info)
                 if record.exc_info
-                else None,
+                else "Unknown",
             }
 
         # Add custom metadata if available
         metadata = getattr(record, "metadata", {})
         if metadata:
-            log_entry["metadata"] = metadata
+            log_entry["metadata"] = (
+                str(metadata) if not isinstance(metadata, dict) else metadata
+            )
 
         # Add performance metrics if available
         duration = getattr(record, "duration", None)
@@ -184,7 +192,7 @@ class CorrelationContext:
     """
 
     def __init__(self):
-        self._context = {}
+        self._context: dict[int, str] = {}
 
     def set_correlation_id(self, correlation_id: str) -> None:
         """

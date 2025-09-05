@@ -90,7 +90,7 @@ def format_web_search_results(
         response += f"   📍 {result['link']}\n"
         response += f"   📝 {result['snippet']}\n\n"
 
-    response += f"⏱️ Response Time: <3 seconds (target)"
+    response += "⏱️ Response Time: <3 seconds (target)"
     return response
 
 
@@ -110,7 +110,7 @@ def format_image_search_results(
         response += f"   🖼️ {result['image_url']}\n"
         response += f"   📍 {result['source_url']}\n\n"
 
-    response += f"⏱️ Response Time: <3 seconds (target)"
+    response += "⏱️ Response Time: <3 seconds (target)"
     return response
 
 
@@ -174,7 +174,7 @@ def extract_image_result_info(result: Dict[str, Any]) -> Dict[str, str]:
 
 
 def process_duckduckgo_text_results(
-    ddgs_client, query: str, max_results: int, use_ddgs: bool
+    ddgs_client, query: str, max_results: int | Any, use_ddgs: bool
 ) -> List[Dict[str, str]]:
     """Process DuckDuckGo text search results"""
     search_results: List[Dict[str, str]] = []
@@ -184,20 +184,19 @@ def process_duckduckgo_text_results(
         if isinstance(max_results, float):
             max_results = int(max_results)
             logger.debug(f"Converted max_results from float to int: {max_results}")
+        # max_results should be int based on type hint, but handle edge cases
+        elif not isinstance(max_results, int):
+            logger.error(
+                f"max_results is not int: {max_results} (type: {type(max_results)})"
+            )
+            max_results = int(max_results)
+            logger.info(f"Converted max_results to int: {max_results}")
 
         if use_ddgs:
             # New ddgs API (synchronous)
             logger.debug(
                 f"Calling ddgs_client.text with query='{query}', max_results={max_results} (type: {type(max_results)})"
             )
-
-            # Final safety check - ensure max_results is int
-            if not isinstance(max_results, int):
-                logger.error(
-                    f"max_results is not int: {max_results} (type: {type(max_results)})"
-                )
-                max_results = int(max_results)
-                logger.info(f"Converted max_results to int: {max_results}")
 
             try:
                 results = ddgs_client.text(query, max_results=max_results)
@@ -230,7 +229,7 @@ def process_duckduckgo_text_results(
 
 
 def process_duckduckgo_image_results(
-    ddgs_client, query: str, max_results: int, use_ddgs: bool
+    ddgs_client, query: str, max_results: int | Any, use_ddgs: bool
 ) -> List[Dict[str, str]]:
     """Process DuckDuckGo image search results"""
     image_results: List[Dict[str, str]] = []
@@ -244,24 +243,23 @@ def process_duckduckgo_image_results(
         if isinstance(max_results, float):
             max_results = int(max_results)
             logger.debug(f"Converted max_results from float to int: {max_results}")
+        # max_results should be int based on type hint, but handle edge cases
+        elif not isinstance(max_results, int):
+            logger.error(
+                f"max_results is not int: {max_results} (type: {type(max_results)})"
+            )
+            max_results = int(max_results)
+            logger.info(f"Converted max_results to int: {max_results}")
 
         if use_ddgs:
             # New ddgs API (synchronous)
-            logger.info(f"🚀 Using ddgs API for image search")
+            logger.info("🚀 Using ddgs API for image search")
             logger.debug(
                 f"Calling ddgs_client.images with query='{query}', max_results={max_results} (type: {type(max_results)})"
             )
 
-            # Final safety check - ensure max_results is int
-            if not isinstance(max_results, int):
-                logger.error(
-                    f"max_results is not int: {max_results} (type: {type(max_results)})"
-                )
-                max_results = int(max_results)
-                logger.info(f"Converted max_results to int: {max_results}")
-
             try:
-                logger.info(f"📡 Making API call to DuckDuckGo images endpoint...")
+                logger.info("📡 Making API call to DuckDuckGo images endpoint...")
                 results = ddgs_client.images(query, max_results=max_results)
                 logger.info(f"📥 Raw API response received: {type(results)}")
 

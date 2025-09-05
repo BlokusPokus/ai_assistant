@@ -112,7 +112,7 @@ class AccessAuditLog(Base):
     resource_id = Column(Integer, nullable=True)
     action = Column(String(50), nullable=False)
     permission_granted = Column(Boolean, nullable=False)
-    roles_checked = Column(ARRAY(String))
+    roles_checked = Column(ARRAY(String))  # type: ignore
     ip_address = Column(INET)
     user_agent = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)

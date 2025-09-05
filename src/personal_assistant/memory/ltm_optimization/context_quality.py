@@ -8,7 +8,7 @@ included in the context provided to the LLM.
 
 import re
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from ...config.logging_config import get_logger
 from ...types.state import AgentState
@@ -28,13 +28,13 @@ class ContextQualityValidator:
     - State-LTM coordination is maintained
     """
 
-    def __init__(self, config: EnhancedLTMConfig = None):
+    def __init__(self, config: Optional[EnhancedLTMConfig] = None):
         """Initialize the context quality validator"""
         self.config = config or EnhancedLTMConfig()
         self.logger = get_logger("context_quality")
 
     async def validate_memory_relevance(
-        self, memory: Dict[str, Any], context: str, user_input: str = None
+        self, memory: Dict[str, Any], context: str, user_input: Optional[str] = None
     ) -> float:
         """
         Validate memory relevance for the given context.
@@ -81,7 +81,7 @@ class ContextQualityValidator:
         self,
         memories: List[Dict[str, Any]],
         user_input: str,
-        max_context_length: int = None,
+        max_context_length: Optional[int] = None,
     ) -> float:
         """
         Score overall context quality for a set of memories.
@@ -186,7 +186,7 @@ class ContextQualityValidator:
         memories: List[Dict[str, Any]],
         state_data: AgentState,
         user_input: str,
-        max_context_length: int = None,
+        max_context_length: Optional[int] = None,
     ) -> Tuple[List[Dict[str, Any]], float]:
         """
         Optimize context for state management integration.
@@ -242,7 +242,7 @@ class ContextQualityValidator:
             return memories, 0.0
 
     def _score_tag_relevance(
-        self, memory: Dict[str, Any], context: str, user_input: str = None
+        self, memory: Dict[str, Any], context: str, user_input: Optional[str] = None
     ) -> float:
         """Score memory tag relevance"""
 
@@ -279,7 +279,7 @@ class ContextQualityValidator:
             return 0.0
 
     def _score_content_relevance(
-        self, memory: Dict[str, Any], context: str, user_input: str = None
+        self, memory: Dict[str, Any], context: str, user_input: Optional[str] = None
     ) -> float:
         """Score memory content relevance"""
 
@@ -341,7 +341,9 @@ class ContextQualityValidator:
             self.logger.error(f"Error scoring state coordination relevance: {e}")
             return 0.5
 
-    def _score_context_length(self, total_length: int, max_length: int = None) -> float:
+    def _score_context_length(
+        self, total_length: int, max_length: Optional[int] = None
+    ) -> float:
         """Score context length optimization"""
 
         try:

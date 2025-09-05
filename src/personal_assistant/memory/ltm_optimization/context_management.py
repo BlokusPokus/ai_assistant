@@ -318,7 +318,7 @@ class ContextOptimizationManager:
         type_boost = self._calculate_type_boost(memory.get("type", "general"))
 
         total_score = base_score + relevance_boost + recency_boost + type_boost
-        return min(1.0, total_score)
+        return min(1.0, total_score)  # type: ignore
 
     def _calculate_relevance_boost(self, memory: dict, user_input: str) -> float:
         """Calculate relevance boost for memory"""
@@ -630,7 +630,7 @@ class DynamicContextManager:
             + confidence_boost
         )
 
-        return min(1.0, total_score)
+        return min(1.0, total_score)  # type: ignore
 
     def _calculate_enhanced_relevance_boost(
         self, memory: dict, user_input: str

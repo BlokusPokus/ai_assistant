@@ -5,7 +5,7 @@ This module provides OAuth-related API endpoints for initiating OAuth flows,
 handling callbacks, and managing OAuth integrations.
 """
 
-from typing import List, Optional
+from typing import AsyncGenerator, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPBearer
@@ -71,10 +71,15 @@ class OAuthProviderInfo(BaseModel):
 # Dependencies
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session."""
-    async with AsyncSessionLocal() as session:
+    from personal_assistant.database.session import _get_session_factory
+
+    session = _get_session_factory()()
+    try:
         yield session
+    finally:
+        await session.close()
 
 
 async def get_current_user(request: Request) -> User:
@@ -190,7 +195,7 @@ async def initiate_oauth_flow(
         # Initiate OAuth flow
         result = await oauth_manager.initiate_oauth_flow(
             db=db,
-            user_id=current_user.id,
+            user_id=int(current_user.id),
             provider_name=request.provider,
             scopes=request.scopes,
             redirect_uri=request.redirect_uri,
@@ -286,7 +291,10 @@ async def get_user_integrations(
     """
     try:
         integrations = await oauth_manager.get_user_integrations(
-            db=db, user_id=current_user.id, provider=provider, active_only=active_only
+            db=db,
+            user_id=int(current_user.id),
+            provider=provider,
+            active_only=active_only,
         )
 
         return [OAuthIntegrationResponse(**integration) for integration in integrations]
@@ -397,7 +405,7 @@ async def sync_integrations(
     """
     try:
         sync_results = await oauth_manager.sync_all_integrations(
-            db=db, user_id=current_user.id
+            db=db, user_id=int(current_user.id)
         )
 
         return {"message": "Integration sync completed", "results": sync_results}
@@ -426,7 +434,7 @@ async def get_oauth_status(
 
         integration_service = OAuthIntegrationService()
         status_summary = await integration_service.get_integration_status(
-            db=db, user_id=current_user.id
+            db=db, user_id=int(current_user.id)
         )
 
         # Get consent summary
@@ -436,7 +444,7 @@ async def get_oauth_status(
 
         consent_service = OAuthConsentService()
         consent_summary = await consent_service.get_consent_summary(
-            db=db, user_id=current_user.id
+            db=db, user_id=int(current_user.id)
         )
 
         return {"integrations": status_summary, "consents": consent_summary}

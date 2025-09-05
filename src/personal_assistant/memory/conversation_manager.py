@@ -17,7 +17,7 @@ from ..database.session import AsyncSessionLocal
 logger = logging.getLogger(__name__)
 
 
-async def get_conversation_id(user_id: int) -> Optional[str]:
+async def get_conversation_id(user_id: int | None) -> Optional[str]:
     """
     Retrieve the latest conversation_id for a user, or None if not found.
 
@@ -60,7 +60,7 @@ async def get_conversation_id(user_id: int) -> Optional[str]:
                 logger.debug(
                     f"Found conversation ID in normalized storage: {conversation_id}"
                 )
-                return conversation_id
+                return str(conversation_id) if conversation_id is not None else None
             else:
                 logger.debug(f"No conversation found in normalized storage")
                 return None
@@ -69,7 +69,7 @@ async def get_conversation_id(user_id: int) -> Optional[str]:
         return None
 
 
-async def create_new_conversation(user_id: int) -> Optional[str]:
+async def create_new_conversation(user_id: int | None) -> Optional[str]:
     """
     Create a new conversation for a user and return the conversation ID.
 

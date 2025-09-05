@@ -38,7 +38,8 @@ async def twilio_sms_webhook(
     try:
         # Validate webhook (optional security measure)
         if not validate_twilio_webhook(request):
-            logger.warning(f"Invalid webhook request from {request.client.host}")
+            client_host = request.client.host if request.client else "unknown"
+            logger.warning(f"Invalid webhook request from {client_host}")
             raise HTTPException(status_code=400, detail="Invalid webhook")
 
         logger.info(f"Processing SMS from {From}: {Body[:50]}...")

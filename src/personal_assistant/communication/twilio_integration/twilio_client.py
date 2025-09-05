@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Optional
 
 from dotenv import load_dotenv
 from twilio.base.exceptions import TwilioRestException
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class TwilioService:
-    def __init__(self, agent_core: AgentCore):
+    def __init__(self, agent_core: Optional[AgentCore] = None):
         """Initialize TwilioService with Twilio credentials and an AgentCore instance.
 
         Args:
@@ -79,6 +80,8 @@ class TwilioService:
                     return self._create_helpful_guidance_response(from_number)
 
                 # Process message with existing logic for registered users
+                if self.agent is None:
+                    return self._create_helpful_guidance_response(from_number)
                 result = await self.agent.run(message, user_info["id"])
                 logger.info(f"Generated response: '{result}'")
                 response.message(result)
@@ -167,13 +170,13 @@ class TwilioService:
             Exception: For other unexpected errors
         """
         try:
-            message = self.client.messages.create(
+            twilio_message = self.client.messages.create(
                 body=message, from_=self.from_number, to=to
             )
 
-            logger.info(f"Message sent successfully. SID: {message.sid}")
-            logger.info(f"Message status: {message.status}")
-            return message.sid
+            logger.info(f"Message sent successfully. SID: {twilio_message.sid}")
+            logger.info(f"Message status: {twilio_message.status}")
+            return twilio_message.sid  # type: ignore
 
         except TwilioRestException as e:
             logger.error(f"Twilio error: {e.code} - {e.msg}")
@@ -208,7 +211,7 @@ class TwilioService:
             )
 
             logger.info(f"Verification SMS sent successfully. SID: {message.sid}")
-            return message.sid
+            return message.sid  # type: ignore
 
         except TwilioRestException as e:
             logger.error(f"Twilio error sending verification SMS: {e.code} - {e.msg}")

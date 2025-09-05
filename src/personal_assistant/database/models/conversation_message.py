@@ -6,6 +6,8 @@ enabling efficient querying and analysis of conversation flow.
 """
 
 
+from typing import Optional
+
 from sqlalchemy import JSON, Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -71,7 +73,7 @@ class ConversationMessage(Base):
 
     @classmethod
     def from_conversation_item(
-        cls, conversation_id: str, item, message_type: str = None
+        cls, conversation_id: str, item, message_type: Optional[str] = None
     ):
         """
         Create ConversationMessage from conversation history item.

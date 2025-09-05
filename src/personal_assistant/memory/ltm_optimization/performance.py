@@ -386,7 +386,7 @@ class PerformanceOptimizer:
                     timestamp = self.cache_timestamps[cache_key]
                     if datetime.now() - timestamp < timedelta(seconds=self.cache_ttl):
                         self.record_cache_hit("memory_cache")
-                        return self.memory_cache[cache_key]
+                        return self.memory_cache[cache_key]  # type: ignore
                     else:
                         # Remove expired entry
                         del self.memory_cache[cache_key]

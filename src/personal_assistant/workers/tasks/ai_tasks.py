@@ -38,7 +38,7 @@ def process_due_ai_tasks(self) -> Dict[str, Any]:
 
     try:
         # Use asyncio.run() with proper event loop handling
-        import nest_asyncio  # type: ignore
+        import nest_asyncio
 
         # Apply nest_asyncio to allow nested event loops
         nest_asyncio.apply()
@@ -201,7 +201,7 @@ def create_ai_reminder(
 
     try:
         # Use asyncio.run() with proper event loop handling
-        import nest_asyncio  # type: ignore
+        import nest_asyncio
 
         nest_asyncio.apply()
 
@@ -304,7 +304,7 @@ def create_periodic_ai_task(
 
     try:
         # Use asyncio.run() with proper event loop handling
-        import nest_asyncio  # type: ignore
+        import nest_asyncio
 
         nest_asyncio.apply()
 
@@ -397,7 +397,7 @@ def test_scheduler_connection(self) -> Dict[str, Any]:
 
     try:
         # Use asyncio.run() with proper event loop handling
-        import nest_asyncio  # type: ignore
+        import nest_asyncio
 
         nest_asyncio.apply()
 
@@ -450,7 +450,7 @@ def cleanup_old_logs(self) -> Dict[str, Any]:
 
     try:
         # Use asyncio.run() with proper event loop handling
-        import nest_asyncio  # type: ignore
+        import nest_asyncio
 
         nest_asyncio.apply()
 

@@ -66,7 +66,7 @@ class CorrelationIDMiddleware(BaseHTTPMiddleware):
         # Add correlation ID to response headers
         response.headers[self.header_name] = correlation_id
 
-        return response
+        return response  # type: ignore
 
 
 def get_request_correlation_id(request: Request) -> str:

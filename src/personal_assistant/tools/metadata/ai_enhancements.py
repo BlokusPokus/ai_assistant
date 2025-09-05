@@ -9,7 +9,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Collection, Dict, List, Optional
 
 from ...config.logging_config import get_logger
 
@@ -191,7 +191,7 @@ class AIEnhancementManager:
 
     def get_ai_guidance_for_tool(self, tool_name: str) -> Dict[str, Any]:
         """Get comprehensive AI guidance for a specific tool."""
-        enhancements = self.get_tool_enhancements(tool_name)
+        enhancements: List[AIEnhancement] = self.get_tool_enhancements(tool_name)
 
         guidance = {
             "tool_name": tool_name,
@@ -205,22 +205,22 @@ class AIEnhancementManager:
 
         # Group enhancements by type and priority
         for enhancement in enhancements:
-            enh_type = enhancement.enhancement_type.value
-            enh_priority = enhancement.priority.value
+            enh_type: str = str(enhancement.enhancement_type.value)
+            enh_priority: str = str(enhancement.priority.value)
 
             if enh_type not in guidance["enhancements"]:
-                guidance["enhancements"][enh_type] = []
+                guidance["enhancements"][enh_type] = []  # type: ignore
 
-            guidance["enhancements"][enh_type].append(enhancement.get_ai_guidance())
+            guidance["enhancements"][enh_type].append(enhancement.get_ai_guidance())  # type: ignore
 
             # Update summary
-            if enh_type not in guidance["enhancement_summary"]["by_type"]:
-                guidance["enhancement_summary"]["by_type"][enh_type] = 0
-            guidance["enhancement_summary"]["by_type"][enh_type] += 1
+            if enh_type not in guidance["enhancement_summary"]["by_type"]:  # type: ignore
+                guidance["enhancement_summary"]["by_type"][enh_type] = 0  # type: ignore
+            guidance["enhancement_summary"]["by_type"][enh_type] += 1  # type: ignore
 
-            if enh_priority not in guidance["enhancement_summary"]["by_priority"]:
-                guidance["enhancement_summary"]["by_priority"][enh_priority] = 0
-            guidance["enhancement_summary"]["by_priority"][enh_priority] += 1
+            if enh_priority not in guidance["enhancement_summary"]["by_priority"]:  # type: ignore
+                guidance["enhancement_summary"]["by_priority"][enh_priority] = 0  # type: ignore
+            guidance["enhancement_summary"]["by_priority"][enh_priority] += 1  # type: ignore
 
         return guidance
 
@@ -471,10 +471,10 @@ class AIEnhancementManager:
     ) -> Dict[str, Any]:
         """Export enhancements for specified tools or all tools."""
         if tool_names is None:
-            tools_to_export = list(self.tool_enhancements.keys())
+            tools_to_export = [str(name) for name in self.tool_enhancements.keys()]
         else:
             tools_to_export = [
-                name for name in tool_names if name in self.tool_enhancements
+                str(name) for name in tool_names if name in self.tool_enhancements
             ]
 
         export_data = {
@@ -485,7 +485,7 @@ class AIEnhancementManager:
 
         for tool_name in tools_to_export:
             enhancements = self.get_tool_enhancements(tool_name)
-            export_data["enhancements"][tool_name] = [
+            export_data["enhancements"][tool_name] = [  # type: ignore
                 enhancement.to_dict() for enhancement in enhancements
             ]
 
@@ -533,9 +533,9 @@ class AIEnhancementManager:
             [e for e in self.enhancements.values() if e.is_active]
         )
 
-        type_counts = {}
-        priority_counts = {}
-        tool_counts = {}
+        type_counts: Dict[str, int] = {}
+        priority_counts: Dict[str, int] = {}
+        tool_counts: Dict[str, int] = {}
 
         for enhancement in self.enhancements.values():
             if not enhancement.is_active:

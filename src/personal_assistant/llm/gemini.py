@@ -39,13 +39,13 @@ class GeminiLLM(LLMClient):
     # ------------------------
     # Core LLM Operations
     # ------------------------
-    def complete(self, prompt: str, functions: dict) -> dict:
+    def complete(self, prompt: str, functions: list) -> dict:
         """
         Generate a completion response from Gemini model with optional function calling.
 
         Args:
             prompt (str): The input text prompt to send to the model
-            functions (dict): Dictionary of function definitions that can be called by the model.
+            functions (list): List of function definitions that can be called by the model.
                             Each function should have 'name', 'description', and 'parameters'
 
         Returns:
@@ -60,15 +60,15 @@ class GeminiLLM(LLMClient):
             clean_prompt = clean_text_for_logging(prompt)
             logger.debug(f"GeminiLLM.complete called with prompt length: {len(prompt)}")
             logger.debug(
-                f"Functions provided: {list(functions.keys()) if functions else 'None'}"
+                f"Functions provided: {len(functions) if functions else 0} functions"
             )
 
             # Convert functions to Gemini's function calling format
             tools = None
             if functions:
-                # Convert dictionary of functions to list of tool objects
+                # Convert list of functions to list of tool objects
                 tools = []
-                for func_def in functions.values():
+                for func_def in functions:
                     tool = {
                         "name": func_def["name"],
                         "description": func_def.get("description", ""),
@@ -215,9 +215,8 @@ class GeminiLLM(LLMClient):
                 embedding = result["embedding"]
                 print(f"Embedding created with length: {len(embedding)}")
                 return embedding
-            else:
-                print("No embedding returned from API")
-                return []
+            # This should not happen if API call succeeds
+            raise ValueError("No embedding returned from API")
 
         except Exception as e:
             print(f"Error creating embedding: {str(e)}")

@@ -39,7 +39,7 @@ def _get_state_optimization_manager() -> StateOptimizationManager:
 
 
 async def save_state_normalized(
-    conversation_id: str, state: AgentState, user_id: int = None
+    conversation_id: str, state: AgentState, user_id: Optional[int] = None
 ) -> None:
     """
     Save conversation state using the new normalized database schema.
@@ -92,7 +92,7 @@ async def save_state_normalized(
             optimized_state.memory_context
         )
 
-        logger.info(f"🔧 Optimization complete:")
+        logger.info("🔧 Optimization complete:")
         logger.info(
             f"  Conversation history: {len(state.conversation_history)} → {len(optimized_state.conversation_history)} items ({conv_reduction:+d})"
         )
@@ -105,12 +105,12 @@ async def save_state_normalized(
 
         async with AsyncSessionLocal() as session:
             # Check if conversation already exists
-            existing_state = await session.execute(
+            existing_result = await session.execute(
                 select(ConversationState).where(
                     ConversationState.conversation_id == conversation_id
                 )
             )
-            existing_state = existing_state.scalar_one_or_none()
+            existing_state = existing_result.scalar_one_or_none()
 
             if existing_state:
                 # Update existing conversation state
@@ -231,7 +231,7 @@ async def save_state_normalized(
 
 async def load_state_normalized(
     conversation_id: str,
-    user_id: int = None,
+    user_id: Optional[int] = None,
     max_messages: int = 50,
     max_context_items: int = 20,
     min_relevance_score: float = 0.3,
@@ -306,11 +306,17 @@ async def load_state_normalized(
                 if msg.tool_success:
                     history_item["tool_success"] = msg.tool_success
                 if msg.additional_data:
-                    history_item.update(
-                        json.loads(msg.additional_data)
-                        if isinstance(msg.additional_data, str)
-                        else msg.additional_data
-                    )
+                    # additional_data is already a dict from SQLAlchemy JSON column
+                    if isinstance(msg.additional_data, dict):
+                        history_item.update(msg.additional_data)
+                    else:
+                        # Fallback for string data (shouldn't happen with JSON column)
+                        try:
+                            history_item.update(json.loads(msg.additional_data))
+                        except (json.JSONDecodeError, TypeError) as e:
+                            logger.warning(
+                                f"⚠️ Failed to parse additional_data for message {msg.id}: {e}"
+                            )
 
                 conversation_history.append(history_item)
 
@@ -350,15 +356,16 @@ async def load_state_normalized(
                     context_item["preference_type"] = ctx.preference_type
                 if ctx.additional_data:
                     try:
-                        metadata = (
-                            json.loads(ctx.additional_data)
-                            if isinstance(ctx.additional_data, str)
-                            else ctx.additional_data
-                        )
+                        # additional_data is already a dict from SQLAlchemy JSON column
+                        if isinstance(ctx.additional_data, dict):
+                            metadata = ctx.additional_data
+                        else:
+                            # Fallback for string data (shouldn't happen with JSON column)
+                            metadata = json.loads(ctx.additional_data)
                         context_item.update(metadata)
-                    except json.JSONDecodeError:
+                    except (json.JSONDecodeError, TypeError) as e:
                         logger.warning(
-                            f"⚠️ Failed to parse metadata for context item {ctx.id}"
+                            f"⚠️ Failed to parse metadata for context item {ctx.id}: {e}"
                         )
 
                 memory_context.append(context_item)
@@ -386,7 +393,7 @@ async def load_state_normalized(
                 last_tool_result=conversation_state.last_tool_result,
             )
 
-            logger.info(f"✅ Successfully loaded state using normalized schema:")
+            logger.info("✅ Successfully loaded state using normalized schema:")
             logger.info(f"  Messages loaded: {len(conversation_history)}")
             logger.info(f"  Context items loaded: {len(memory_context)}")
             logger.info(f"  Focus areas: {focus_areas}")
@@ -399,7 +406,7 @@ async def load_state_normalized(
 
 
 async def update_state_partial(
-    conversation_id: str, updates: Dict[str, Any], user_id: int = None
+    conversation_id: str, updates: Dict[str, Any], user_id: Optional[int] = None
 ) -> bool:
     """
     Update specific parts of a conversation state using normalized schema.
@@ -503,7 +510,7 @@ async def update_state_partial(
 
 
 async def delete_conversation_normalized(
-    conversation_id: str, user_id: int = None
+    conversation_id: str, user_id: Optional[int] = None
 ) -> bool:
     """
     Delete a conversation and all related data using normalized schema.

@@ -4,7 +4,7 @@ Response formatter service for SMS Router.
 
 import logging
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from twilio.twiml.messaging_response import MessagingResponse
 
@@ -15,8 +15,8 @@ class ResponseFormatter:
     """Service for formatting responses for SMS delivery."""
 
     def __init__(self):
-        self.max_sms_length = 1600
-        self.max_concatenated_length = 3200
+        self.max_sms_length: int = 1600
+        self.max_concatenated_length: int = 3200
 
     def format_response(
         self, agent_response: str, user_info: Dict[str, Any]
@@ -91,7 +91,7 @@ class ResponseFormatter:
         if len(message) <= self.max_sms_length:
             return [message]
 
-        segments = []
+        segments: List[str] = []
         remaining = message
 
         while remaining and len(segments) < 10:  # Max 10 segments

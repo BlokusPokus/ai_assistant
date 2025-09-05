@@ -6,7 +6,7 @@ semantic similarity, and user behavior patterns.
 """
 
 import re
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from ...config.logging_config import get_logger
 from ...constants.tags import LTM_TAGS
@@ -18,7 +18,7 @@ logger = get_logger("enhanced_tag_suggester")
 class EnhancedTagSuggester:
     """Enhanced tag suggestion system with semantic analysis and pattern recognition"""
 
-    def __init__(self, config: LTMConfig = None):
+    def __init__(self, config: Optional[LTMConfig] = None):
         self.config = config or LTMConfig()
         self._tag_patterns = self._build_tag_patterns()
         self._semantic_mappings = self._build_semantic_mappings()
@@ -26,10 +26,10 @@ class EnhancedTagSuggester:
     def suggest_tags_for_content(
         self,
         content: str,
-        memory_type: str = None,
-        category: str = None,
-        existing_tags: List[str] = None,
-        user_context: str = None,
+        memory_type: Optional[str] = None,
+        category: Optional[str] = None,
+        existing_tags: Optional[List[str]] = None,
+        user_context: Optional[str] = None,
     ) -> Tuple[List[str], float]:
         """
         Suggest tags for content with confidence scoring.
@@ -116,7 +116,7 @@ class EnhancedTagSuggester:
 
             # Add fallback tags if confidence is too low
             if overall_confidence < self.config.tag_suggestion_confidence_threshold:
-                fallback_tags = self.config.tag_suggestion_fallback_tags[:2]
+                fallback_tags = (self.config.tag_suggestion_fallback_tags or [])[:2]
                 unique_tags.extend(fallback_tags)
                 logger.info(
                     f"Added fallback tags due to low confidence: {fallback_tags}"
@@ -130,7 +130,7 @@ class EnhancedTagSuggester:
         except Exception as e:
             logger.error(f"Error suggesting tags: {e}")
             # Return safe fallback tags
-            fallback_tags = self.config.tag_suggestion_fallback_tags[:3]
+            fallback_tags = (self.config.tag_suggestion_fallback_tags or [])[:3]
             return fallback_tags, 0.5
 
     def _suggest_tags_from_content(self, content: str) -> Tuple[List[str], float]:

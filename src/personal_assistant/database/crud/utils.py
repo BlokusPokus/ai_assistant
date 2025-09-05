@@ -72,7 +72,7 @@ async def filter_by(
     result = await session.execute(
         query, {f"value_{k}": v for k, v in filters.items() if "__" not in k}
     )
-    return result.scalars().all()
+    return list(result.scalars().all())
 
 
 async def update_record(

@@ -280,7 +280,7 @@ class ToolMetadataManager:
                 name for name in tool_names if name in self.metadata_store
             ]
 
-        export_data = {
+        export_data: dict[str, Any] = {
             "export_timestamp": datetime.now().isoformat(),
             "metadata_version": "1.0.0",
             "tools": {},
@@ -364,7 +364,7 @@ class ToolMetadataManager:
         category_counts = {
             cat.value: len(tools) for cat, tools in self.category_index.items()
         }
-        complexity_counts = {}
+        complexity_counts: dict[str, int] = {}
 
         for metadata in self.metadata_store.values():
             complexity = metadata.complexity.value

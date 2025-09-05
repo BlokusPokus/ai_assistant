@@ -34,7 +34,7 @@ class OAuthIntegration(Base):
     provider_user_id = Column(String(255), nullable=True)
     # pending, active, expired, revoked
     status = Column(String(20), default="pending")
-    scopes = Column(ARRAY(Text), nullable=True)  # Array of granted scopes
+    scopes = Column(ARRAY(Text), nullable=True)  # type: ignore  # Array of granted scopes
     # Provider-specific metadata
     provider_metadata = Column(JSON, nullable=True)
     last_sync_at = Column(DateTime, nullable=True)

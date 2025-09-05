@@ -134,12 +134,12 @@ class PhoneManagementService:
                 return None
 
             # Check if phone number already exists for this user
-            existing_primary = await self.db.execute(
+            existing_primary_result = await self.db.execute(
                 select(User.phone_number).where(User.id == user_id)
             )
-            existing_primary = existing_primary.scalar_one_or_none()
+            existing_primary = existing_primary_result.scalar_one_or_none()
 
-            existing_mapping = await self.db.execute(
+            existing_mapping_result = await self.db.execute(
                 select(UserPhoneMapping).where(
                     and_(
                         UserPhoneMapping.user_id == user_id,
@@ -147,7 +147,7 @@ class PhoneManagementService:
                     )
                 )
             )
-            existing_mapping = existing_mapping.scalar_one_or_none()
+            existing_mapping = existing_mapping_result.scalar_one_or_none()
 
             if existing_primary == normalized_phone or existing_mapping:
                 logger.warning(
@@ -156,17 +156,17 @@ class PhoneManagementService:
                 return None
 
             # Check if phone number is used by another user
-            other_user_primary = await self.db.execute(
+            other_user_primary_result = await self.db.execute(
                 select(User.id).where(User.phone_number == normalized_phone)
             )
-            other_user_primary = other_user_primary.scalar_one_or_none()
+            other_user_primary = other_user_primary_result.scalar_one_or_none()
 
-            other_user_mapping = await self.db.execute(
+            other_user_mapping_result = await self.db.execute(
                 select(UserPhoneMapping.user_id).where(
                     UserPhoneMapping.phone_number == normalized_phone
                 )
             )
-            other_user_mapping = other_user_mapping.scalar_one_or_none()
+            other_user_mapping = other_user_mapping_result.scalar_one_or_none()
 
             if other_user_primary or other_user_mapping:
                 logger.warning(
@@ -257,7 +257,18 @@ class PhoneManagementService:
 
             if not update_data:
                 logger.warning("No valid updates provided")
-                return mapping
+                return {
+                    "id": mapping.id,
+                    "user_id": mapping.user_id,
+                    "phone_number": mapping.phone_number,
+                    "is_primary": mapping.is_primary,
+                    "created_at": mapping.created_at.isoformat()
+                    if mapping.created_at
+                    else None,
+                    "updated_at": mapping.updated_at.isoformat()
+                    if mapping.updated_at
+                    else None,
+                }
 
             # Update the mapping
             await self.db.execute(

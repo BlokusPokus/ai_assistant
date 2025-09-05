@@ -25,8 +25,8 @@ class LRUCache:
         """
         self.max_size = max_size
         self.ttl_seconds = ttl_seconds
-        self.cache = OrderedDict()
-        self.timestamps = {}
+        self.cache: OrderedDict[str, Any] = OrderedDict()
+        self.timestamps: Dict[str, float] = {}
 
     def get(self, key: str) -> Optional[Any]:
         """Get item from cache."""

@@ -63,9 +63,11 @@ class TestDatabaseSessionManagement:
         """Test session factory configuration."""
         # Check that session factory is configured correctly
         # Note: sessionmaker uses different attribute names
-        assert AsyncSessionLocal.kw.get('expire_on_commit') is False
-        assert AsyncSessionLocal.kw.get('autocommit') is False
-        assert AsyncSessionLocal.kw.get('autoflush') is False
+        from personal_assistant.database.session import async_session_local
+        kwargs = async_session_local.kw
+        assert kwargs.get('expire_on_commit') is False
+        assert kwargs.get('autocommit') is False
+        assert kwargs.get('autoflush') is False
 
     def test_get_db_function(self):
         """Test get_db function."""
@@ -74,24 +76,27 @@ class TestDatabaseSessionManagement:
         # Should return a function
         assert callable(db_func)
         
-        # Should be an async function
-        assert asyncio.iscoroutinefunction(db_func)
+        # The returned function should be an async generator function
+        # FastAPI dependencies are async generators, not coroutines
+        import inspect
+        assert inspect.isasyncgenfunction(db_func)
 
     @pytest.mark.asyncio
     async def test_get_db_session_creation(self):
         """Test that get_db creates a session."""
         db_func = get_db()
         
-        # Mock the AsyncSessionLocal to avoid actual database connection
-        with patch('personal_assistant.database.session.AsyncSessionLocal') as mock_session_factory:
+        # Mock the _get_session_factory to avoid actual database connection
+        with patch('personal_assistant.database.session._get_session_factory') as mock_factory:
             mock_session = AsyncMock(spec=AsyncSession)
-            mock_session_factory.return_value = mock_session
+            mock_factory.return_value.return_value = mock_session
             
-            session = await db_func()
-            
-            # Should return a session
-            assert session == mock_session
-            mock_session_factory.assert_called_once()
+            # get_db() returns an async generator, so we need to iterate through it
+            async for session in db_func():
+                # Should return a session
+                assert session == mock_session
+                mock_factory.assert_called_once()
+                break  # Only test the first yield
 
     def test_get_engine_function(self):
         """Test _get_engine function."""
@@ -204,7 +209,8 @@ class TestDatabaseSessionManagement:
 
     def test_session_factory_kwargs(self):
         """Test session factory keyword arguments."""
-        kwargs = AsyncSessionLocal.kw
+        from personal_assistant.database.session import async_session_local
+        kwargs = async_session_local.kw
         
         # Should have expected configuration
         assert kwargs.get('expire_on_commit') is False
@@ -250,39 +256,51 @@ class TestDatabaseSessionManagement:
     def test_session_factory_expire_on_commit(self):
         """Test session factory expire_on_commit setting."""
         # Should be False to prevent lazy loading issues
-        assert AsyncSessionLocal.kw['expire_on_commit'] is False
+        from personal_assistant.database.session import async_session_local
+        kwargs = async_session_local.kw
+        assert kwargs['expire_on_commit'] is False
 
     def test_session_factory_autocommit(self):
         """Test session factory autocommit setting."""
         # Should be False for explicit transaction control
-        assert AsyncSessionLocal.kw['autocommit'] is False
+        from personal_assistant.database.session import async_session_local
+        kwargs = async_session_local.kw
+        assert kwargs['autocommit'] is False
 
     def test_session_factory_autoflush(self):
         """Test session factory autoflush setting."""
         # Should be False for explicit flush control
-        assert AsyncSessionLocal.kw['autoflush'] is False
+        from personal_assistant.database.session import async_session_local
+        kwargs = async_session_local.kw
+        assert kwargs['autoflush'] is False
 
     @pytest.mark.asyncio
     async def test_multiple_session_creation(self):
         """Test creating multiple sessions."""
         db_func = get_db()
         
-        with patch('personal_assistant.database.session.AsyncSessionLocal') as mock_session_factory:
+        with patch('personal_assistant.database.session._get_session_factory') as mock_factory:
             mock_session1 = AsyncMock(spec=AsyncSession)
             mock_session2 = AsyncMock(spec=AsyncSession)
-            mock_session_factory.side_effect = [mock_session1, mock_session2]
+            mock_factory.return_value.side_effect = [mock_session1, mock_session2]
             
-            # Create two sessions
-            session1 = await db_func()
-            session2 = await db_func()
+            # Create two sessions using async generators
+            sessions = []
+            async for session in db_func():
+                sessions.append(session)
+                break  # Only get the first yield
+            
+            async for session in db_func():
+                sessions.append(session)
+                break  # Only get the first yield
             
             # Should be different sessions
-            assert session1 == mock_session1
-            assert session2 == mock_session2
-            assert session1 != session2
+            assert sessions[0] == mock_session1
+            assert sessions[1] == mock_session2
+            assert sessions[0] != sessions[1]
             
             # Should have been called twice
-            assert mock_session_factory.call_count == 2
+            assert mock_factory.call_count == 2
 
     @pytest.mark.skip(reason="Async engine structure differs from sync engine - infrastructure testing")
     def test_engine_metadata(self):

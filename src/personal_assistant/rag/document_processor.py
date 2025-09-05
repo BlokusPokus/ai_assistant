@@ -17,7 +17,7 @@ class DocumentProcessor:
     """Handles document content extraction and processing"""
 
     @staticmethod
-    def extract_content(doc: dict) -> Optional[str]:
+    def extract_content(doc: dict | None) -> Optional[str]:
         """
         Safely extract content from a document with multiple fallback strategies.
 
@@ -116,7 +116,7 @@ class DocumentProcessor:
         return None
 
     @staticmethod
-    def validate_document(doc: dict) -> bool:
+    def validate_document(doc: dict | None) -> bool:
         """
         Validate that a document has the required structure and content.
 

@@ -154,7 +154,7 @@ class FeatureFlagManager:
         if FEATURE_FLAGS[flag_name]["type"] == "boolean":
             return bool(value)
 
-        return value
+        return value  # type: ignore
 
     def get_value(self, flag_name: str) -> Any:
         """

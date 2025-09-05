@@ -150,7 +150,7 @@ class SMSMFAService:
             ):
                 recent_attempts += 1
 
-        return recent_attempts >= self.rate_limit_attempts
+        return recent_attempts >= self.rate_limit_attempts  # type: ignore
 
     def get_remaining_attempts(self, phone_number: str) -> int:
         """
@@ -174,7 +174,7 @@ class SMSMFAService:
             )
         )
 
-        return max(0, self.rate_limit_attempts - recent_attempts)
+        return max(0, self.rate_limit_attempts - recent_attempts)  # type: ignore
 
     def get_next_attempt_time(self, phone_number: str) -> Optional[datetime]:
         """
@@ -203,7 +203,7 @@ class SMSMFAService:
                     oldest_attempt = data["created_at"]
 
         if oldest_attempt:
-            return oldest_attempt + timedelta(minutes=self.rate_limit_window_minutes)
+            return oldest_attempt + timedelta(minutes=self.rate_limit_window_minutes)  # type: ignore
 
         return None
 

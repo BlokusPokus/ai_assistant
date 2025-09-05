@@ -7,12 +7,9 @@ linking, and backlinks.
 """
 
 import pytest
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-from typing import Optional
+from unittest.mock import patch, MagicMock
 
 from personal_assistant.tools.notion_pages.notion_pages_tool import NotionPagesTool
-from tests.utils.test_helpers import TestHelper
-from tests.utils.test_data_generators import ToolDataGenerator
 
 
 @pytest.fixture(autouse=True)
@@ -232,7 +229,7 @@ class TestNotionPagesTool:
             
             mock_client.pages.retrieve.return_value = mock_page
             mock_client.blocks.children.list.return_value = mock_blocks
-            mock_extract.return_value = (self.test_title, [{"name": "test"}], self.test_category)
+            mock_extract.return_value = (self.test_title, self.test_category, ["test"])
             
             result = await self.notion_tool.read_note_page(self.test_page_id)
             
@@ -690,9 +687,9 @@ class TestNotionPagesTool:
         with patch('personal_assistant.tools.notion_pages.notion_pages_tool.ensure_main_page_exists') as mock_ensure, \
              patch('personal_assistant.tools.notion_pages.notion_pages_tool.extract_page_properties') as mock_extract, \
              patch.object(self.notion_tool, 'client') as mock_client:
-            
+
             mock_ensure.return_value = "main_page_id"
-            mock_extract.return_value = (self.test_title, [{"name": "test"}], self.test_category)
+            mock_extract.return_value = (self.test_title, ["test"], self.test_category)
             mock_client.blocks.children.list.return_value = mock_main_page_blocks
             mock_client.pages.retrieve.return_value = mock_page
             
@@ -702,7 +699,7 @@ class TestNotionPagesTool:
                 tags="test,example"
             )
             
-            assert "Search results" in result
+            assert "Search results for 'test':" in result
             # Verify that extract_page_properties was called
             mock_extract.assert_called()
 

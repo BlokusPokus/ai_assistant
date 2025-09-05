@@ -3,7 +3,7 @@ Admin routes for SMS Router Service.
 """
 
 import logging
-from typing import Optional
+from typing import AsyncGenerator, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import desc, select
@@ -22,10 +22,15 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session."""
-    async with AsyncSessionLocal() as session:
+    from personal_assistant.database.session import _get_session_factory
+
+    session = _get_session_factory()()
+    try:
         yield session
+    finally:
+        await session.close()
 
 
 @router.get("/status")

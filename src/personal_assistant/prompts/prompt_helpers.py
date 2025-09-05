@@ -59,7 +59,7 @@ class PromptHelpers:
                     if match:
                         note_id = match.group(1)
 
-        return {"note_id": note_id, "note_topic": note_topic}
+        return {"note_id": note_id or "", "note_topic": note_topic or ""}
 
     @staticmethod
     def identify_priority_tasks(
@@ -238,19 +238,24 @@ class PromptHelpers:
             return "⚠️ No tools are currently available."
 
         # Group tools by category
-        tools_by_category = {}
+        tools_by_category: dict[str, list[dict[str, Any]]] = {}
         for name, info in tool_schema.items():
             category = info.get("category", "General")
             if category not in tools_by_category:
                 tools_by_category[category] = []
             tools_by_category[category].append(
-                (name, info.get("description", "No description available"))
+                {
+                    "name": name,
+                    "description": info.get("description", "No description available"),
+                }
             )
 
         formatted = []
         for category, tools in tools_by_category.items():
             formatted.append(f"📁 {category}:")
-            for name, description in tools:
+            for tool in tools:
+                name = tool["name"]
+                description = tool["description"]
                 # Truncate long descriptions
                 if len(description) > 150:
                     description = description[:150] + "..."

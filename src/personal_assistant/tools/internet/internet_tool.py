@@ -52,15 +52,15 @@ class InternetTool:
 
         # Initialize DuckDuckGo search client
         self._ddgs = None
-        logger.info(f"🔧 Attempting to initialize DuckDuckGo client...")
+        logger.info("🔧 Attempting to initialize DuckDuckGo client...")
         if DUCKDUCKGO_AVAILABLE:
             try:
-                logger.info(f"🔧 Initializing DuckDuckGo client for text search...")
+                logger.info("🔧 Initializing DuckDuckGo client for text search...")
                 self._ddgs = DDGS()
-                logger.info(f"✅ DuckDuckGo text search client initialized successfully")
+                logger.info("✅ DuckDuckGo text search client initialized successfully")
 
                 # Image search functionality has been disabled
-                logger.info(f"ℹ️ Image search functionality disabled")
+                logger.info("ℹ️ Image search functionality disabled")
 
             except Exception as e:
                 logger.error(f"💥 Failed to initialize DuckDuckGo client: {e}")
@@ -172,7 +172,7 @@ class InternetTool:
             # Validate parameters using internal functions
             is_valid, error_msg = validate_query(query)
             if not is_valid:
-                return InternetErrorHandler.handle_internet_error(
+                error_response = InternetErrorHandler.handle_internet_error(
                     ValueError(error_msg),
                     "web_search",
                     {
@@ -181,6 +181,7 @@ class InternetTool:
                         "safe_search": safe_search,
                     },
                 )
+                return str(error_response)
 
             logger.debug(
                 f"Before validation - max_results: {max_results} (type: {type(max_results)})"
@@ -203,7 +204,7 @@ class InternetTool:
 
             # Check if DuckDuckGo is available
             if not DUCKDUCKGO_AVAILABLE or not self._ddgs:
-                return InternetErrorHandler.handle_internet_error(
+                error_response = InternetErrorHandler.handle_internet_error(
                     Exception("DuckDuckGo search is not available"),
                     "web_search",
                     {
@@ -212,6 +213,7 @@ class InternetTool:
                         "safe_search": safe_search,
                     },
                 )
+                return str(error_response)
 
             # Perform the search
             try:
@@ -228,7 +230,7 @@ class InternetTool:
 
             except Exception as search_error:
                 logger.error(f"DuckDuckGo search error: {search_error}")
-                return InternetErrorHandler.handle_internet_error(
+                error_response = InternetErrorHandler.handle_internet_error(
                     search_error,
                     "web_search",
                     {
@@ -237,10 +239,11 @@ class InternetTool:
                         "safe_search": safe_search,
                     },
                 )
+                return str(error_response)
 
         except Exception as e:
             logger.error(f"Error in web search: {e}")
-            return InternetErrorHandler.handle_internet_error(
+            error_response = InternetErrorHandler.handle_internet_error(
                 e,
                 "web_search",
                 {
@@ -249,6 +252,7 @@ class InternetTool:
                     "safe_search": safe_search,
                 },
             )
+            return str(error_response)
 
     # async def get_news_articles(self, category: Optional[str] = None, topic: Optional[str] = None, max_articles: int = 5) -> str:
     #     """Get current news articles by category or topic"""

@@ -39,7 +39,7 @@ class TaskDependency:
     """Represents a task dependency relationship."""
 
     task_id: str
-    depends_on: List[str]
+    depends_on: List[str] | None
     dependency_type: DependencyType = DependencyType.REQUIRES
     condition: Optional[str] = None
     timeout: Optional[timedelta] = None
@@ -366,11 +366,11 @@ class DependencyScheduler:
             temp_deps[dependency.task_id] = dependency
 
             # Create temporary graph
-            temp_graph = {}
+            temp_graph: Dict[str, Set[str]] = {}
             for task_id, dep in temp_deps.items():
                 if task_id not in temp_graph:
                     temp_graph[task_id] = set()
-                for dep_task_id in dep.depends_on:
+                for dep_task_id in dep.depends_on or []:
                     if dep_task_id not in temp_graph:
                         temp_graph[dep_task_id] = set()
                     temp_graph[dep_task_id].add(task_id)
@@ -428,7 +428,7 @@ class DependencyScheduler:
             elif dependency_type == DependencyType.CONDITIONAL:
                 return dep_status == TaskStatus.COMPLETED
 
-            return False
+            # All DependencyType enum values are handled above
 
         except Exception as e:
             self.logger.error(f"Error checking dependency satisfaction: {e}")

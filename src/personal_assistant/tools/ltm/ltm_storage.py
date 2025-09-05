@@ -8,7 +8,7 @@ and patterns rather than the generic memory_chunks table.
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
-from sqlalchemy import and_, desc, select
+from sqlalchemy import and_, desc, select, update
 
 from ...config.logging_config import get_logger
 from ...database.crud.utils import add_record
@@ -204,7 +204,9 @@ async def _add_enhanced_ltm_memory(
                 "importance_score": importance_score,
                 "confidence_score": confidence_score,
                 "context": context,
-                "context_data": enhanced_context.to_dict(),
+                "context_data": enhanced_context.to_dict()
+                if hasattr(enhanced_context, "to_dict")
+                else enhanced_context,
                 "source_type": source_type,
                 "source_id": source_id,
                 "created_by": created_by,
@@ -221,8 +223,14 @@ async def _add_enhanced_ltm_memory(
             # Create the memory
             memory = await add_record(session, LTMMemory, memory_data)
 
-            # Calculate dynamic importance
-            memory.dynamic_importance = memory.calculate_dynamic_importance()
+            # Calculate and set dynamic importance after creation
+            calculated_importance = memory.calculate_dynamic_importance()
+            # Use update to set the dynamic importance
+            await session.execute(
+                update(LTMMemory)
+                .where(LTMMemory.id == memory.id)
+                .values(dynamic_importance=calculated_importance)
+            )
 
             await session.commit()
 
@@ -230,7 +238,7 @@ async def _add_enhanced_ltm_memory(
                 f"Created enhanced LTM memory {memory.id} for user {user_id} with type: {memory_type}, category: {category}"
             )
 
-            return memory.as_dict()
+            return dict(memory.as_dict())
 
     except Exception as e:
         logger.error(f"Error creating enhanced LTM memory: {e}")
@@ -408,22 +416,14 @@ async def get_relevant_ltm_memories(
             # Filter by relevance (simple tag matching for now)
             relevant_memories = []
             for memory in memories:
-                # Parse tags from JSON string if needed
-                if isinstance(memory.tags, str):
-                    try:
-                        import json
-
-                        memory_tags = json.loads(memory.tags)
-                    except json.JSONDecodeError:
-                        logger.warning(
-                            f"Failed to parse tags for memory {memory.id}: {memory.tags}"
-                        )
-                        memory_tags = []
-                else:
-                    memory_tags = memory.tags or []
+                # Parse tags from memory object
+                memory_tags = memory.tags or []
 
                 # Convert to lowercase for matching
-                memory_tags = [tag.lower() for tag in memory_tags]
+                if isinstance(memory_tags, list):
+                    memory_tags = [tag.lower() for tag in memory_tags]
+                else:
+                    memory_tags = []
                 logger.debug(f"Memory {memory.id} tags: {memory_tags}")
 
                 if any(keyword in memory_tags for keyword in context_keywords):
@@ -445,19 +445,8 @@ async def get_relevant_ltm_memories(
             # Convert to dict format
             formatted_memories = []
             for memory in relevant_memories:
-                # Parse tags from JSON string if needed
-                if isinstance(memory.tags, str):
-                    try:
-                        import json
-
-                        parsed_tags = json.loads(memory.tags)
-                    except json.JSONDecodeError:
-                        logger.warning(
-                            f"Failed to parse tags for memory {memory.id}: {memory.tags}"
-                        )
-                        parsed_tags = []
-                else:
-                    parsed_tags = memory.tags or []
+                # Parse tags from memory object
+                parsed_tags = memory.tags or []
 
                 formatted_memories.append(
                     {
@@ -559,7 +548,7 @@ async def get_ltm_memory_stats(user_id: int) -> Dict[str, Any]:
                 all_tags.extend(row[0])
 
             # Count tag frequency
-            tag_counts = {}
+            tag_counts: dict[str, int] = {}
             for tag in all_tags:
                 tag_counts[tag] = tag_counts.get(tag, 0) + 1
 

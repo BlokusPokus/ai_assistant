@@ -146,7 +146,19 @@ class AgentCore:
                     agent_state = await self.storage_manager.load_state(
                         conversation_id, user_id
                     )
-                    agent_state.user_input = user_input
+                    if agent_state is None:
+                        logger.warning(
+                            "Failed to load existing conversation state, creating new conversation"
+                        )
+                        conversation_id = await create_new_conversation(user_id)
+                        if conversation_id is None:
+                            raise ConversationError(
+                                f"Failed to create new conversation for user {user_id}",
+                                user_id,
+                            )
+                        agent_state = AgentState(user_input=user_input)
+                    else:
+                        agent_state.user_input = user_input
                 else:
                     logger.info("Creating new conversation - previous one too old")
                     conversation_id = await create_new_conversation(user_id)
@@ -230,6 +242,7 @@ class AgentCore:
             await self.runner.set_context(agent_state, rag_context, ltm_context)
 
             response, updated_state = await self.runner.execute_agent_loop(user_input)
+            response = str(response)  # Ensure response is a string
 
             try:
                 await self.storage_manager.save_state(
@@ -307,4 +320,65 @@ class AgentCore:
             return response
 
         except Exception as e:
-            return await self.error_handler.handle_error(e, user_id, start_time)
+            error_response = await self.error_handler.handle_error(
+                e, user_id, start_time
+            )
+            return str(error_response)
+
+
+# Make this file runnable as a script
+if __name__ == "__main__":
+    import asyncio
+
+    async def main():
+        """Main function to run the agent interactively."""
+        print("🤖 Personal Assistant Agent - Interactive Mode")
+        print("=" * 50)
+
+        # Initialize the agent
+        print("Initializing agent...")
+        agent = AgentCore()
+        print("✅ Agent initialized successfully!")
+        print()
+
+        # Get user ID (you can change this)
+        user_id = 1
+
+        print(f"Ready to chat! (User ID: {user_id})")
+        print("Type 'quit', 'exit', or 'q' to stop")
+        print("Type 'clear' to clear conversation history")
+        print("-" * 50)
+
+        while True:
+            try:
+                # Get user input
+                user_input = input("\n👤 You: ").strip()
+
+                # Check for exit commands
+                if user_input.lower() in ["quit", "exit", "q"]:
+                    print("👋 Goodbye!")
+                    break
+
+                # Check for clear command
+                if user_input.lower() == "clear":
+                    print("🧹 Conversation cleared!")
+                    continue
+
+                # Skip empty input
+                if not user_input:
+                    continue
+
+                # Process the message
+                print("🤖 Assistant: ", end="", flush=True)
+                response = await agent.run(user_input, user_id)
+                print(response)
+
+            except KeyboardInterrupt:
+                print("\n👋 Goodbye!")
+                break
+            except Exception as e:
+                print(f"\n❌ Error: {e}")
+                print("Please try again...")
+
+    # Run the interactive agent
+    asyncio.run(main())

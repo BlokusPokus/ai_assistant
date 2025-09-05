@@ -286,12 +286,19 @@ class TestSessionEndpoints:
         # Set up FastAPI dependency overrides
         async def override_get_db():
             yield mock_session
+        
+        async def override_get_current_user(request, db):
+            return mock_user
+        
         self.app.dependency_overrides[get_db] = override_get_db
-        self.app.dependency_overrides[get_current_user] = lambda: mock_user
+        self.app.dependency_overrides[get_current_user] = override_get_current_user
         self.app.dependency_overrides[get_session_service] = lambda: mock_session_service
         
         try:
             response = self.client.post("/api/v1/sessions/extend/session_1?hours=2")
+            
+            print(f"Response status: {response.status_code}")
+            print(f"Response body: {response.text}")
             
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -318,8 +325,12 @@ class TestSessionEndpoints:
         # Set up FastAPI dependency overrides
         async def override_get_db():
             yield mock_session
+        
+        async def override_get_current_user(request, db):
+            return mock_user
+        
         self.app.dependency_overrides[get_db] = override_get_db
-        self.app.dependency_overrides[get_current_user] = lambda: mock_user
+        self.app.dependency_overrides[get_current_user] = override_get_current_user
         self.app.dependency_overrides[get_session_service] = lambda: mock_session_service
         
         try:
@@ -355,8 +366,12 @@ class TestSessionEndpoints:
         # Set up FastAPI dependency overrides
         async def override_get_db():
             yield mock_session
+        
+        async def override_get_current_user(request, db):
+            return mock_user
+        
         self.app.dependency_overrides[get_db] = override_get_db
-        self.app.dependency_overrides[get_current_user] = lambda: mock_user
+        self.app.dependency_overrides[get_current_user] = override_get_current_user
         self.app.dependency_overrides[get_session_service] = lambda: mock_session_service
         
         try:

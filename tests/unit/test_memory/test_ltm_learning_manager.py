@@ -7,7 +7,7 @@ pattern recognition, preference learning, and memory creation.
 
 import pytest
 from unittest.mock import AsyncMock, Mock, patch
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from tests.utils.test_data_generators import ToolDataGenerator, UserDataGenerator
 

@@ -40,7 +40,7 @@ class LLMPlannerTool:
         """
         self.llm_client = llm_client
         self.guidelines_path = guidelines_path
-        self.guidelines_cache = {}
+        self.guidelines_cache: dict[str, str] = {}
 
         self.planning_tool = Tool(
             name="create_intelligent_plan",
@@ -185,7 +185,7 @@ class LLMPlannerTool:
                 response = await self.llm_client.generate(
                     prompt=prompt, max_tokens=max_tokens, temperature=temperature
                 )
-                return response.content
+                return response.content  # type: ignore
             elif hasattr(self.llm_client, "chat"):
                 # Alternative LLM client interface
                 response = await self.llm_client.chat(
@@ -193,7 +193,7 @@ class LLMPlannerTool:
                     max_tokens=max_tokens,
                     temperature=temperature,
                 )
-                return response.choices[0].message.content
+                return response.choices[0].message.content  # type: ignore
             else:
                 # Fallback for unknown LLM client interface
                 logger.warning("Unknown LLM client interface, using fallback")

@@ -4,8 +4,8 @@ YouTube Tool for video information, transcripts, and content analysis.
 import logging
 from typing import Any, Optional, Union
 
-from googleapiclient.discovery import build  # type: ignore
-from googleapiclient.errors import HttpError  # type: ignore
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 from ...config.settings import settings
 from ..base import Tool
@@ -273,7 +273,7 @@ class YouTubeTool:
                 content_details = video.get("contentDetails", {})
 
                 # Build response
-                response = f"📹 **Video Information**\n\n"
+                response = "📹 **Video Information**\n\n"
                 response += f"🎬 **Title**: {snippet.get('title', 'Unknown')}\n"
                 response += f"📺 **Channel**: {snippet.get('channelTitle', 'Unknown')}\n"
                 response += (
@@ -283,7 +283,7 @@ class YouTubeTool:
                 response += f"📝 **Description**: {snippet.get('description', 'No description')[:200]}...\n\n"
 
                 if include_statistics and statistics:
-                    response += f"📊 **Statistics**\n"
+                    response += "📊 **Statistics**\n"
                     response += f"👁️ **Views**: {format_view_count(statistics.get('viewCount', '0'))}\n"
                     response += f"👍 **Likes**: {format_view_count(statistics.get('likeCount', '0'))}\n"
                     response += f"💬 **Comments**: {format_view_count(statistics.get('commentCount', '0'))}\n\n"
@@ -299,20 +299,20 @@ class YouTubeTool:
                                     [line["text"] for line in first_lines]
                                 )
                                 response += f"📜 **Transcript Preview** (first 3 lines):\n{transcript_text}\n\n"
-                                response += f"📜 **Full transcript available** - use get_video_transcript tool for complete transcript\n"
+                                response += "📜 **Full transcript available** - use get_video_transcript tool for complete transcript\n"
                             else:
                                 response += (
-                                    f"📜 **Transcript**: Not available for this video\n"
+                                    "📜 **Transcript**: Not available for this video\n"
                                 )
                         except Exception as transcript_error:
                             response += f"📜 **Transcript**: Error retrieving transcript: {str(transcript_error)}\n"
                     else:
-                        response += f"📜 **Transcript**: YouTube Transcript API not available. Install youtube-transcript-api.\n"
+                        response += "📜 **Transcript**: YouTube Transcript API not available. Install youtube-transcript-api.\n"
 
                 response += (
                     f"🔗 **Video URL**: https://www.youtube.com/watch?v={video_id}\n"
                 )
-                response += f"⏱️ **Response Time**: <3 seconds (target)"
+                response += "⏱️ **Response Time**: <3 seconds (target)"
 
                 return response
 
@@ -572,7 +572,7 @@ class YouTubeTool:
                     response += f"   📝 {snippet.get('description', 'No description')[:100]}...\n"
                     response += f"   🔗 https://www.youtube.com/watch?v={video_id}\n\n"
 
-                response += f"⏱️ **Response Time**: <3 seconds (target)"
+                response += "⏱️ **Response Time**: <3 seconds (target)"
                 return response
 
             except HttpError as e:
@@ -700,7 +700,7 @@ class YouTubeTool:
                 statistics = channel.get("statistics", {})
 
                 # Build response
-                response = f"📺 **Channel Information**\n\n"
+                response = "📺 **Channel Information**\n\n"
                 response += f"🏷️ **Name**: {snippet.get('title', 'Unknown')}\n"
                 response += f"📝 **Description**: {snippet.get('description', 'No description')[:200]}...\n"
                 response += (
@@ -709,7 +709,7 @@ class YouTubeTool:
                 response += f"🌐 **Country**: {snippet.get('country', 'Unknown')}\n\n"
 
                 if include_statistics and statistics:
-                    response += f"📊 **Statistics**\n"
+                    response += "📊 **Statistics**\n"
                     response += f"👥 **Subscribers**: {format_view_count(statistics.get('subscriberCount', '0'))}\n"
                     response += f"👁️ **Total Views**: {format_view_count(statistics.get('viewCount', '0'))}\n"
                     response += f"🎬 **Total Videos**: {format_view_count(statistics.get('videoCount', '0'))}\n\n"
@@ -730,7 +730,7 @@ class YouTubeTool:
                         )
 
                         if videos_response.get("items"):
-                            response += f"🎬 **Recent Videos**\n"
+                            response += "🎬 **Recent Videos**\n"
                             for i, video in enumerate(videos_response["items"], 1):
                                 video_snippet = video["snippet"]
                                 video_id = video["id"]["videoId"]
@@ -738,14 +738,14 @@ class YouTubeTool:
                                 response += f"   📅 {video_snippet.get('publishedAt', 'Unknown')[:10]}\n"
                                 response += f"   🔗 https://www.youtube.com/watch?v={video_id}\n\n"
                         else:
-                            response += f"🎬 **Recent Videos**: No videos found\n"
+                            response += "🎬 **Recent Videos**: No videos found\n"
                     except Exception as video_error:
                         response += f"🎬 **Recent Videos**: Error retrieving videos: {str(video_error)}\n"
 
                 response += (
                     f"🔗 **Channel URL**: https://www.youtube.com/channel/{channel_id}\n"
                 )
-                response += f"⏱️ **Response Time**: <3 seconds (target)"
+                response += "⏱️ **Response Time**: <3 seconds (target)"
 
                 return response
 
@@ -888,7 +888,7 @@ class YouTubeTool:
                 content_details = playlist["contentDetails"]
 
                 # Build response
-                response = f"📋 **Playlist Information**\n\n"
+                response = "📋 **Playlist Information**\n\n"
                 response += f"🏷️ **Title**: {snippet.get('title', 'Unknown')}\n"
                 response += f"📝 **Description**: {snippet.get('description', 'No description')[:200]}...\n"
                 response += f"📺 **Channel**: {snippet.get('channelTitle', 'Unknown')}\n"
@@ -921,12 +921,12 @@ class YouTubeTool:
                                 response += f"   📅 {video_snippet.get('publishedAt', 'Unknown')[:10]}\n"
                                 response += f"   🔗 https://www.youtube.com/watch?v={video_id}\n\n"
                         else:
-                            response += f"🎬 **Videos in Playlist**: No videos found\n"
+                            response += "🎬 **Videos in Playlist**: No videos found\n"
                     except Exception as video_error:
                         response += f"🎬 **Videos in Playlist**: Error retrieving videos: {str(video_error)}\n"
 
                 response += f"🔗 **Playlist URL**: https://www.youtube.com/playlist?list={playlist_id}\n"
-                response += f"⏱️ **Response Time**: <3 seconds (target)"
+                response += "⏱️ **Response Time**: <3 seconds (target)"
 
                 return response
 

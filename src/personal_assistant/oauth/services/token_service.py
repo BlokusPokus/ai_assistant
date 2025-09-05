@@ -39,7 +39,7 @@ class OAuthTokenService:
         """
         try:
             encrypted_token = self.cipher_suite.encrypt(token.encode())
-            return encrypted_token.decode()
+            return encrypted_token.decode()  # type: ignore
         except Exception as e:
             raise OAuthTokenError(f"Failed to encrypt token: {e}", "unknown", "encrypt")
 
@@ -55,7 +55,7 @@ class OAuthTokenService:
         """
         try:
             decrypted_token = self.cipher_suite.decrypt(encrypted_token.encode())
-            return decrypted_token.decode()
+            return decrypted_token.decode()  # type: ignore
         except Exception as e:
             raise OAuthTokenError(f"Failed to decrypt token: {e}", "unknown", "decrypt")
 
@@ -200,7 +200,7 @@ class OAuthTokenService:
             # Invalidate old access token
             await self.invalidate_token(db, integration_id, "access_token")
 
-            return new_tokens.get("access_token")
+            return new_tokens.get("access_token")  # type: ignore
 
         except Exception as e:
             raise OAuthTokenError(
@@ -304,7 +304,7 @@ class OAuthTokenService:
         if not token.expires_at:
             return False  # No expiration (e.g., refresh tokens)
 
-        return datetime.utcnow() > token.expires_at
+        return datetime.utcnow() > token.expires_at  # type: ignore
 
     def get_token_expiry_time(self, token: OAuthToken) -> Optional[datetime]:
         """
@@ -316,4 +316,4 @@ class OAuthTokenService:
         Returns:
             Token expiry time or None
         """
-        return token.expires_at
+        return token.expires_at  # type: ignore

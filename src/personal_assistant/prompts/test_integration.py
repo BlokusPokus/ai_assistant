@@ -49,8 +49,8 @@ class MockAgentState:
         self.last_tool_result = None
         self.focus = ["general"]
         self.step_count = 0
-        self.memory_context = []
-        self.conversation_history = []
+        self.memory_context: list[dict[str, Any]] = []
+        self.conversation_history: list[dict[str, Any]] = []
 
 
 async def test_enhanced_prompt_builder():

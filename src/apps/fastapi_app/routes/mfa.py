@@ -110,8 +110,13 @@ class DisableMFARequest(BaseModel):
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session."""
-    async with AsyncSessionLocal() as session:
+    from personal_assistant.database.session import _get_session_factory
+
+    session = _get_session_factory()()
+    try:
         yield session
+    finally:
+        await session.close()
 
 
 async def get_current_user(
@@ -160,8 +165,8 @@ async def setup_totp(
 
         # Store or update configuration
         if existing_config:
-            existing_config.totp_secret = totp_secret  # type: ignore
-            existing_config.totp_enabled = False  # type: ignore  # Will be enabled after verification
+            existing_config.totp_secret = totp_secret
+            existing_config.totp_enabled = False  # Will be enabled after verification
         else:
             existing_config = MFAConfiguration(
                 user_id=current_user.id, totp_secret=totp_secret, totp_enabled=False
@@ -226,11 +231,11 @@ async def verify_totp(
             )
 
         # Enable MFA
-        mfa_config.totp_enabled = True  # type: ignore
+        mfa_config.totp_enabled = True
 
         # Generate backup codes
         backup_codes = mfa_service.generate_backup_codes()
-        mfa_config.backup_codes = backup_codes  # type: ignore
+        mfa_config.backup_codes = backup_codes
 
         await db.commit()
 
@@ -291,8 +296,8 @@ async def setup_sms_mfa(
 
         # Store or update configuration
         if existing_config:
-            existing_config.phone_number = request.phone_number  # type: ignore
-            existing_config.sms_enabled = False  # type: ignore  # Will be enabled after verification
+            existing_config.phone_number = request.phone_number
+            existing_config.sms_enabled = False  # Will be enabled after verification
         else:
             existing_config = MFAConfiguration(
                 user_id=current_user.id,
@@ -359,7 +364,7 @@ async def verify_sms_mfa(
             )
 
         # Enable MFA
-        mfa_config.sms_enabled = True  # type: ignore
+        mfa_config.sms_enabled = True
 
         await db.commit()
 
@@ -516,12 +521,12 @@ async def disable_mfa(
 
         # Disable specified method
         if request.method.lower() == "totp":
-            mfa_config.totp_enabled = False  # type: ignore
-            mfa_config.totp_secret = None  # type: ignore
-            mfa_config.backup_codes = None  # type: ignore
+            mfa_config.totp_enabled = False
+            mfa_config.totp_secret = None
+            mfa_config.backup_codes = None
         elif request.method.lower() == "sms":
-            mfa_config.sms_enabled = False  # type: ignore
-            mfa_config.phone_number = None  # type: ignore
+            mfa_config.sms_enabled = False
+            mfa_config.phone_number = None
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -576,7 +581,7 @@ async def regenerate_backup_codes(
 
         # Generate new backup codes
         new_backup_codes = mfa_service.generate_backup_codes()
-        mfa_config.backup_codes = new_backup_codes  # type: ignore
+        mfa_config.backup_codes = new_backup_codes
 
         await db.commit()
 

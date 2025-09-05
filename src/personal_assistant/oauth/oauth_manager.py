@@ -90,7 +90,9 @@ class OAuthManager:
             OAuthProviderError: If provider is not supported or credentials are missing
         """
         if provider_name not in self.providers:
-            raise OAuthProviderError(f"Unsupported provider: {provider_name}")
+            raise OAuthProviderError(
+                f"Unsupported provider: {provider_name}", provider_name, "initialize"
+            )
 
         provider_class = self.providers[provider_name]
         config = self.provider_configs[provider_name]
@@ -100,7 +102,9 @@ class OAuthManager:
             raise OAuthProviderError(
                 f"OAuth credentials not configured for {provider_name}. "
                 f"Please set {provider_name.upper()}_OAUTH_CLIENT_ID and "
-                f"{provider_name.upper()}_OAUTH_CLIENT_SECRET environment variables."
+                f"{provider_name.upper()}_OAUTH_CLIENT_SECRET environment variables.",
+                provider_name,
+                "initialize",
             )
 
         return provider_class(
@@ -129,7 +133,8 @@ class OAuthManager:
             List of scope dictionaries
         """
         provider = self.get_provider(provider_name)
-        return provider.get_available_scopes()
+        scopes: List[Dict[str, Any]] = provider.get_available_scopes()
+        return scopes
 
     async def initiate_oauth_flow(
         self,
@@ -505,7 +510,7 @@ class OAuthManager:
                     details={"reason": reason},
                 )
 
-            return success
+            return success  # type: ignore
 
         except Exception as e:
             # Log security event
@@ -594,7 +599,7 @@ class OAuthManager:
                 # This would need to be implemented to get all active integrations
                 integrations = []
 
-            sync_results = {
+            sync_results: dict[str, Any] = {
                 "total_integrations": len(integrations),
                 "successful_syncs": 0,
                 "failed_syncs": 0,

@@ -63,8 +63,8 @@ class ErrorPatternAnalyzer:
             Dictionary containing error pattern analysis
         """
         error_patterns = defaultdict(list)
-        tool_error_counts = defaultdict(int)
-        error_type_counts = defaultdict(int)
+        tool_error_counts: Dict[str, int] = defaultdict(int)
+        error_type_counts: Dict[str, int] = defaultdict(int)
 
         for item in conversation_history:
             if item.get("role") == "tool":
@@ -284,17 +284,17 @@ class ErrorPatternAnalyzer:
         Returns:
             Delay in seconds before next retry
         """
-        base_delay = 1.0  # 1 second base delay
+        base_delay: float = 1.0  # 1 second base delay
 
         if error_type == "rate_limit_error":
             # Longer delays for rate limit errors
-            return base_delay * (2**retry_count) * 2
+            return base_delay * (2**retry_count) * 2  # type: ignore
         elif error_type == "connection_error":
             # Moderate delays for connection errors
-            return base_delay * (2**retry_count)
+            return base_delay * (2**retry_count)  # type: ignore
         else:
             # Standard exponential backoff
-            return base_delay * (2**retry_count)
+            return base_delay * (2**retry_count)  # type: ignore
 
     def _generate_recommendations(
         self, error_patterns: Dict[str, List[Dict]]

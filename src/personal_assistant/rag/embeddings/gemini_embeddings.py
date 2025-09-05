@@ -30,8 +30,8 @@ class GeminiEmbeddings:
         """
         self.api_key = api_key or settings.GOOGLE_API_KEY
         self.model = model
-        self._llm_client = None
-        self._embedding_cache = {}
+        self._llm_client: GeminiLLM | None = None
+        self._embedding_cache: dict[str, list[float]] = {}
         self._cache_hits = 0
         self._cache_misses = 0
 
@@ -40,7 +40,7 @@ class GeminiEmbeddings:
 
         logger.info(f"GeminiEmbeddings initialized with model: {model}")
 
-    def _get_llm_client(self) -> GeminiLLM:
+    def _get_llm_client(self) -> GeminiLLM | None:
         """Get or create GeminiLLM client."""
         if self._llm_client is None:
             if not self.api_key:
@@ -74,6 +74,8 @@ class GeminiEmbeddings:
             llm_client = self._get_llm_client()
 
             # Use the existing embed_text method from GeminiLLM
+            if llm_client is None:
+                raise ValueError("LLM client not initialized")
             embedding = llm_client.embed_text(text)
 
             if embedding:

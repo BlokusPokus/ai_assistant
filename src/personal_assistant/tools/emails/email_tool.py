@@ -172,7 +172,7 @@ class EmailTool:
     def _clean_html_content(self, html_content: str) -> str:
         """Extract clean text content from HTML, removing styling and formatting"""
         # Use the new text cleaning utility
-        return clean_html_content(html_content)
+        return str(clean_html_content(html_content))
 
     def _is_token_valid(self) -> bool:
         """Check if current token is valid and not expired"""
@@ -194,11 +194,11 @@ class EmailTool:
     def _get_valid_token(self) -> str:
         """Get a valid token, refreshing if necessary"""
         if self._is_token_valid():
-            return self._access_token
+            return self._access_token  # type: ignore
 
         # Token expired or missing, get new one
         self._initialize_token()
-        return self._access_token
+        return self._access_token  # type: ignore
 
     async def get_emails(self, count: int, batch_size: int = 10) -> Union[str, dict]:
         """

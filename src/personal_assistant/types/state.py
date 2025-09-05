@@ -17,7 +17,7 @@ logger = get_logger("types")
 
 # Import constants from settings
 try:
-    from ..config.settings import (
+    from ..config.settings import (  # type: ignore
         DEFAULT_CONTEXT_WINDOW_SIZE,
         DEFAULT_MAX_CONVERSATION_HISTORY_SIZE,
         DEFAULT_MAX_HISTORY_SIZE,
@@ -204,7 +204,7 @@ class AgentState:
         if len(self.conversation_history) > self.config.max_conversation_history_size:
             self._conversation_history_needs_pruning = True
 
-    def get_context_window(self, max_items: int = None) -> List[Tuple[Any, Any]]:
+    def get_context_window(self, max_items: int | None = None) -> List[Tuple[Any, Any]]:
         """Gets recent history for context window with size limit"""
         if max_items is None:
             max_items = self.config.context_window_size
@@ -590,6 +590,7 @@ class AgentState:
             validated_data["user_input"] = ""
 
         # Validate and set defaults for list fields
+        default_value: list[Any]
         for field_name, default_value in [
             ("memory_context", []),
             ("history", []),
@@ -618,7 +619,7 @@ class AgentState:
         return validated_data
 
     @classmethod
-    def from_dict(cls, data: dict) -> "AgentState":
+    def from_dict(cls, data: dict | None) -> "AgentState":
         """
         Create an AgentState from a dictionary with config.
 

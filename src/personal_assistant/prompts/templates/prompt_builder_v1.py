@@ -263,7 +263,7 @@ Progress: {state.step_count} steps completed
                     )
                     if match:
                         note_id = match.group(1)
-        return {"note_id": note_id, "note_topic": note_topic}
+        return {"note_id": note_id or "", "note_topic": note_topic or ""}
 
     def _identify_priority_tasks(self, state: AgentState) -> str:
         """Identify priority tasks based on current state."""

@@ -139,12 +139,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # Try to get token from Authorization header
         token = AuthUtils.extract_token_from_header(request)
         if token:
-            return token
+            return str(token)
 
         # Try to get token from cookies
         token = AuthUtils.extract_token_from_cookie(request)
         if token:
-            return token
+            return str(token)
 
         return None
 

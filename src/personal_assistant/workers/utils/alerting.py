@@ -75,7 +75,9 @@ class Alert:
 class AlertManager:
     """Manages task execution alerts and notifications."""
 
-    def __init__(self, initialize_defaults: bool = True):
+    def __init__(
+        self, config: Optional[Dict[str, Any]] = None, initialize_defaults: bool = True
+    ):
         """Initialize the alert manager."""
         self.rules: List[AlertRule] = []
         self.alert_history: List[Alert] = []
@@ -83,7 +85,7 @@ class AlertManager:
         self.logger = logging.getLogger(__name__)
         self.alert_counter = 0
         self.enabled = True
-        self.config = {}
+        self.config: Dict[str, Any] = config or {}
 
         # Initialize channels
         self._initialize_channels()
@@ -216,7 +218,7 @@ class AlertManager:
                     [a for a in self.alert_history if not a.acknowledged]
                 )
 
-                severity_counts = {}
+                severity_counts: Dict[str, int] = {}
                 for alert in self.alert_history:
                     severity = alert.severity.value
                     severity_counts[severity] = severity_counts.get(severity, 0) + 1
@@ -368,8 +370,8 @@ class AlertManager:
     def _evaluate_failure_rate(self, rule: AlertRule, metrics: Dict[str, Any]) -> bool:
         """Evaluate task failure rate condition."""
         try:
-            failed_tasks = metrics.get("failed_tasks", 0)
-            total_tasks = metrics.get("total_tasks", 0)
+            failed_tasks = int(metrics.get("failed_tasks", 0))
+            total_tasks = int(metrics.get("total_tasks", 0))
 
             if total_tasks == 0:
                 return False
@@ -384,7 +386,7 @@ class AlertManager:
     def _evaluate_memory_usage(self, rule: AlertRule, metrics: Dict[str, Any]) -> bool:
         """Evaluate memory usage condition."""
         try:
-            memory_percent = metrics.get("memory_percent", 0)
+            memory_percent = float(metrics.get("memory_percent", 0))
             return memory_percent >= rule.threshold
 
         except Exception as e:
@@ -394,7 +396,7 @@ class AlertManager:
     def _evaluate_cpu_usage(self, rule: AlertRule, metrics: Dict[str, Any]) -> bool:
         """Evaluate CPU usage condition."""
         try:
-            cpu_percent = metrics.get("cpu_percent", 0)
+            cpu_percent = float(metrics.get("cpu_percent", 0))
             return cpu_percent >= rule.threshold
 
         except Exception as e:
@@ -528,8 +530,7 @@ class AlertManager:
                         self._send_slack_alert(alert)
                     elif channel == AlertChannel.WEBHOOK:
                         self._send_webhook_alert(alert)
-                    else:
-                        self.logger.warning(f"Unknown alert channel: {channel}")
+                    # All AlertChannel enum values are handled above
 
                 except Exception as e:
                     self.logger.error(f"Error sending alert through {channel}: {e}")

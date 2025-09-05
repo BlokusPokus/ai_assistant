@@ -97,7 +97,7 @@ class NotionContentExtractor:
             main_content = "\n".join(content_lines)
 
             # Initialize structured content
-            structured = {
+            structured: dict[str, Any] = {
                 "title": title,
                 "text": note_content,  # Keep full text for embedding
                 "summary": "",

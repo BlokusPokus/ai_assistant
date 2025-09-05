@@ -202,7 +202,7 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
                     f"Failed to get user info: {response.status_code} - {response.text}"
                 )
 
-            return response.json()
+            return response.json()  # type: ignore
 
         except Exception as e:
             raise Exception(f"Failed to get user info: {e}")

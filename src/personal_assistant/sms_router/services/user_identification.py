@@ -55,7 +55,7 @@ class UserIdentificationService:
             cached_user = await self.cache_manager.get(cache_key)
             if cached_user:
                 logger.info(f"User found in cache for phone: {normalized_phone}")
-                return cached_user
+                return cached_user  # type: ignore
 
             # Database lookup - check users.phone_number (primary)
             user = await self._lookup_user_in_database(normalized_phone)
@@ -82,54 +82,49 @@ class UserIdentificationService:
     ) -> Optional[Dict[str, Any]]:
         """Look up user in database by phone number."""
         async with AsyncSessionLocal() as session:
-            try:
-                # First check users.phone_number (primary)
-                result = await session.execute(
-                    select(User.id, User.email, User.full_name, User.is_active).where(
-                        User.phone_number == phone_number
-                    )
+            # First check users.phone_number (primary)
+            result = await session.execute(
+                select(User.id, User.email, User.full_name, User.is_active).where(
+                    User.phone_number == phone_number
                 )
-                user = result.first()
+            )
+            user = result.first()
 
-                if user:
-                    return {
-                        "id": user.id,
-                        "email": user.email,
-                        "full_name": user.full_name,
-                        "is_active": user.is_active,
-                        "phone_number": phone_number,
-                        "source": "primary",
-                    }
+            if user:
+                return {
+                    "id": user.id,
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "is_active": user.is_active,
+                    "phone_number": phone_number,
+                    "source": "primary",
+                }
 
-                # Then check user_phone_mappings (additional numbers)
-                result = await session.execute(
-                    select(
-                        User.id,
-                        User.email,
-                        User.full_name,
-                        User.is_active,
-                        UserPhoneMapping.phone_number,
-                    )
-                    .join(UserPhoneMapping, User.id == UserPhoneMapping.user_id)
-                    .where(UserPhoneMapping.phone_number == phone_number)
+            # Then check user_phone_mappings (additional numbers)
+            result = await session.execute(
+                select(
+                    User.id,
+                    User.email,
+                    User.full_name,
+                    User.is_active,
+                    UserPhoneMapping.phone_number,
                 )
-                user = result.first()
+                .join(UserPhoneMapping, User.id == UserPhoneMapping.user_id)
+                .where(UserPhoneMapping.phone_number == phone_number)
+            )
+            user = result.first()
 
-                if user:
-                    return {
-                        "id": user.id,
-                        "email": user.email,
-                        "full_name": user.full_name,
-                        "is_active": user.is_active,
-                        "phone_number": phone_number,
-                        "source": "mapping",
-                    }
+            if user:
+                return {
+                    "id": user.id,
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "is_active": user.is_active,
+                    "phone_number": phone_number,
+                    "source": "mapping",
+                }
 
-                return None
-
-            except Exception as e:
-                logger.error(f"Database error looking up user by phone: {e}")
-                return None
+            return None
 
     async def get_user_phone_numbers(self, user_id: int) -> list[str]:
         """
@@ -142,32 +137,27 @@ class UserIdentificationService:
             List of phone numbers
         """
         async with AsyncSessionLocal() as session:
-            try:
-                # Get primary phone number
-                result = await session.execute(
-                    select(User.phone_number).where(User.id == user_id)
+            # Get primary phone number
+            result = await session.execute(
+                select(User.phone_number).where(User.id == user_id)
+            )
+            primary_phone = result.scalar_one_or_none()
+
+            # Get additional phone numbers
+            result = await session.execute(
+                select(UserPhoneMapping.phone_number).where(
+                    UserPhoneMapping.user_id == user_id
                 )
-                primary_phone = result.scalar_one_or_none()
+            )
+            additional_phones = [row[0] for row in result.fetchall()]
 
-                # Get additional phone numbers
-                result = await session.execute(
-                    select(UserPhoneMapping.phone_number).where(
-                        UserPhoneMapping.user_id == user_id
-                    )
-                )
-                additional_phones = [row[0] for row in result.fetchall()]
+            # Combine and filter out None values
+            all_phones = []
+            if primary_phone:
+                all_phones.append(primary_phone)
+            all_phones.extend(additional_phones)
 
-                # Combine and filter out None values
-                all_phones = []
-                if primary_phone:
-                    all_phones.append(primary_phone)
-                all_phones.extend(additional_phones)
-
-                return all_phones
-
-            except Exception as e:
-                logger.error(f"Error getting phone numbers for user {user_id}: {e}")
-                return []
+            return all_phones
 
     async def add_phone_mapping(
         self,

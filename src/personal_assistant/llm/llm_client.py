@@ -87,9 +87,9 @@ class LLMClient:
         if isinstance(response, dict):
             return response
         elif hasattr(response, "model_dump"):  # Pydantic model
-            return response.model_dump()
+            return response.model_dump()  # type: ignore
         elif hasattr(response, "dict"):  # Other object with dict method
-            return response.dict()
+            return response.dict()  # type: ignore
         else:
             return {"content": str(response)}  # Fallback
 

@@ -176,7 +176,7 @@ def _configure_module_logger(
 
     # Create formatter based on logging type
     if structured_logging and STRUCTURED_LOGGING_AVAILABLE:
-        formatter = StructuredJSONFormatter()
+        formatter: logging.Formatter = StructuredJSONFormatter()
         print(f"🔧 Using structured JSON logging for module: {module_name}")
     else:
         formatter = logging.Formatter(

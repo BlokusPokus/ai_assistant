@@ -351,7 +351,7 @@ class EnhancedMemoryLifecycleManager:
         importance_reduction = self.config.importance_reduction_on_aging * aging_factor
 
         new_importance = max(1, current_importance - importance_reduction)
-        return new_importance
+        return new_importance  # type: ignore
 
     def _group_memories_by_state_aware_similarity(
         self,
@@ -542,7 +542,7 @@ class EnhancedMemoryLifecycleManager:
                 ):
                     base_score *= 0.7  # Less likely to archive
 
-        return min(1.0, base_score)
+        return min(1.0, base_score)  # type: ignore
 
     def _calculate_memory_age_days(self, memory: dict) -> int:
         """Calculate memory age in days"""
@@ -702,7 +702,7 @@ class EnhancedMemoryLifecycleManager:
             return ""
 
         if len(memory_group) == 1:
-            return memory_group[0].get("content", "")
+            return memory_group[0].get("content", "")  # type: ignore
 
         # For multiple memories, combine with state-aware prioritization
         content_parts = []

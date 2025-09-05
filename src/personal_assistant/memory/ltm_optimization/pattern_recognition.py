@@ -247,21 +247,8 @@ class PatternRecognitionEngine:
                 # Convert tuple list to dict list if needed
                 history_data = []
                 for item in state_data.history:
-                    if isinstance(item, tuple):
-                        # Convert tuple to dict format
-                        history_data.append(
-                            {"interaction": item[0], "timestamp": item[1]}
-                        )
-                    elif isinstance(item, dict):
-                        history_data.append(item)
-                    else:
-                        # Fallback for other types
-                        history_data.append(
-                            {
-                                "data": str(item),
-                                "timestamp": datetime.utcnow().isoformat(),
-                            }
-                        )
+                    # Convert tuple to dict format
+                    history_data.append({"interaction": item[0], "timestamp": item[1]})
 
                 behavior_patterns = await self.recognize_user_behavior_patterns(
                     history_data

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import (
     JSON,
@@ -125,12 +126,12 @@ class LTMMemory(Base):
             "archive_reason": self.archive_reason,
         }
 
-    def update_access_stats(self, access_context: str = None):
+    def update_access_stats(self, access_context: Optional[str] = None):
         """Update access statistics when memory is retrieved."""
-        self.access_count += 1
-        self.last_accessed = datetime.utcnow()
+        self.access_count += 1  # type: ignore
+        self.last_accessed = datetime.utcnow()  # type: ignore
         if access_context:
-            self.last_access_context = access_context
+            self.last_access_context = access_context  # type: ignore
 
     def calculate_dynamic_importance(self) -> float:
         """Calculate dynamic importance based on various factors."""
@@ -144,7 +145,7 @@ class LTMMemory(Base):
         recency_boost = max(0, (30 - days_since_access) / 30) * 0.2
 
         # Usage boost (frequently accessed memories get a boost)
-        usage_boost = min(0.3, self.access_count * 0.05)
+        usage_boost = min(0.3, float(self.access_count) * 0.05)
 
         # Confidence boost
         confidence_boost = (self.confidence_score - 0.5) * 0.2
@@ -153,7 +154,7 @@ class LTMMemory(Base):
         dynamic_score = base_score + recency_boost + usage_boost + confidence_boost
 
         # Ensure it stays within reasonable bounds
-        return max(1.0, min(10.0, dynamic_score))
+        return max(1.0, min(10.0, float(dynamic_score)))
 
     # Relationships to related tables
     contexts = relationship(

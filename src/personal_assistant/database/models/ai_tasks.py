@@ -40,7 +40,7 @@ class AITask(Base):
     # AI processing
     ai_context = Column(Text)  # context for AI processing
     # ['sms', 'email', 'in_app']
-    notification_channels = Column(ARRAY(String), default=[])
+    notification_channels: Column = Column(ARRAY(String), default=[])
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -74,7 +74,7 @@ class AITask(Base):
             return False
         if not self.next_run_at:
             return False
-        return datetime.utcnow() >= self.next_run_at
+        return datetime.utcnow() >= self.next_run_at  # type: ignore
 
     def should_notify(self) -> bool:
         """Check if task should send notifications."""

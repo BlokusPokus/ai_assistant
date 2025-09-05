@@ -1,3 +1,5 @@
+from typing import AsyncGenerator
+
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import PlainTextResponse, Response
 from pydantic import BaseModel
@@ -19,10 +21,15 @@ router = APIRouter(prefix="/twilio", tags=["twilio"])
 # Database dependency
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session."""
-    async with AsyncSessionLocal() as session:
+    from personal_assistant.database.session import _get_session_factory
+
+    session = _get_session_factory()()
+    try:
         yield session
+    finally:
+        await session.close()
 
 
 # Authentication dependency

@@ -111,7 +111,7 @@ class UserService:
             )
             users = result.scalars().all()
 
-            return list(users), total
+            return list(users), total or 0
         except Exception as e:
             logger.error(f"Error listing users: {e}")
             return [], 0
@@ -204,10 +204,9 @@ class UserService:
             )
             settings = result.scalars().all()
 
-            preferences = {}
+            preferences: dict[str, Any] = {}
             for setting in settings:
                 preferences[setting.key] = setting.value
-
             return preferences
         except Exception as e:
             logger.error(f"Error retrieving preferences for user {user_id}: {e}")
@@ -231,10 +230,9 @@ class UserService:
             )
             settings = result.scalars().all()
 
-            user_settings = {}
+            user_settings: dict[str, Any] = {}
             for setting in settings:
                 user_settings[setting.key] = setting.value
-
             return user_settings
         except Exception as e:
             logger.error(f"Error retrieving settings for user {user_id}: {e}")
@@ -256,14 +254,14 @@ class UserService:
         try:
             for key, value in preferences.items():
                 # Check if setting exists
-                existing_setting = await self.db.execute(
+                existing_result = await self.db.execute(
                     select(UserSetting).where(
                         UserSetting.user_id == user_id,
                         UserSetting.key == key,
                         UserSetting.category == "preferences",
                     )
                 )
-                existing_setting = existing_setting.scalar_one_or_none()
+                existing_setting = existing_result.scalar_one_or_none()
 
                 if existing_setting:
                     # Update existing setting
@@ -313,14 +311,14 @@ class UserService:
         try:
             for key, value in settings.items():
                 # Check if setting exists
-                existing_setting = await self.db.execute(
+                existing_result = await self.db.execute(
                     select(UserSetting).where(
                         UserSetting.user_id == user_id,
                         UserSetting.key == key,
                         UserSetting.category == "settings",
                     )
                 )
-                existing_setting = existing_setting.scalar_one_or_none()
+                existing_setting = existing_result.scalar_one_or_none()
 
                 if existing_setting:
                     # Update existing setting

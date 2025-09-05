@@ -8,7 +8,7 @@ This module provides endpoints for:
 - Device tracking and security
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
@@ -19,7 +19,6 @@ from personal_assistant.auth.session_service import SessionService
 from personal_assistant.config.redis import get_async_session_redis
 from personal_assistant.database.models.mfa_models import SecurityEvent
 from personal_assistant.database.models.users import User
-from personal_assistant.database.session import AsyncSessionLocal
 
 # Create router
 router = APIRouter(prefix="/api/v1/sessions", tags=["Sessions"])
@@ -67,10 +66,15 @@ class InvalidateAllSessionsRequest(BaseModel):
 # Dependencies
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session."""
-    async with AsyncSessionLocal() as session:
+    from personal_assistant.database.session import _get_session_factory
+
+    session = _get_session_factory()()
+    try:
         yield session
+    finally:
+        await session.close()
 
 
 async def get_current_user(
@@ -103,7 +107,7 @@ async def get_user_sessions(
 ):
     """Get all active sessions for the current user."""
     try:
-        sessions = await session_service.get_user_sessions(str(current_user.id))
+        sessions = await session_service.get_user_sessions(int(current_user.id))
 
         # Filter sensitive information and format response
         session_list = []
@@ -147,7 +151,7 @@ async def get_session_stats(
 ):
     """Get session statistics for the current user."""
     try:
-        stats = await session_service.get_session_stats(str(current_user.id))
+        stats = await session_service.get_session_stats(int(current_user.id))
         return SessionStats(**stats)
 
     except Exception as e:
@@ -170,7 +174,7 @@ async def invalidate_session(
     try:
         # Get session to verify ownership
         session = await session_service.get_session(session_id)
-        if not session or session["user_id"] != str(current_user.id):
+        if not session or session["user_id"] != int(current_user.id):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
             )
@@ -224,16 +228,12 @@ async def invalidate_all_sessions(
     try:
         # Get current session ID from request headers or context
         # For now, we'll invalidate all sessions
-        current_session_id = None  # TODO: Extract from JWT or request context
+        # TODO: Extract current session ID from JWT or request context
 
-        if request_data.exclude_current and current_session_id:
-            invalidated_count = await session_service.invalidate_user_sessions(
-                str(current_user.id), exclude_session_id=current_session_id
-            )
-        else:
-            invalidated_count = await session_service.invalidate_user_sessions(
-                str(current_user.id)
-            )
+        # Since we don't have current session ID, we always invalidate all sessions
+        invalidated_count = await session_service.invalidate_user_sessions(
+            int(current_user.id)
+        )
 
         # Log security event
         security_event = SecurityEvent(
@@ -276,7 +276,7 @@ async def extend_session(
     try:
         # Get session to verify ownership
         session = await session_service.get_session(session_id)
-        if not session or session["user_id"] != str(current_user.id):
+        if not session or session["user_id"] != int(current_user.id):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
             )

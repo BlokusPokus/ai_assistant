@@ -289,31 +289,37 @@ class SMSRoutingEngine:
             async with AsyncSessionLocal() as session:
                 await session.execute(select(1))
                 db_status = "healthy"
+
+            # Check service dependencies
+            services_status = {
+                "user_identification": "healthy",
+                "message_processor": "healthy",
+                "response_formatter": "healthy",
+                "agent_integration": "healthy",
+            }
+
+            return {
+                "status": "healthy" if db_status == "healthy" else "degraded",
+                "timestamp": datetime.now().isoformat(),
+                "database": db_status,
+                "services": services_status,
+                "statistics": {
+                    "total_messages": self.total_messages_processed,
+                    "successful_routes": self.successful_routes,
+                    "failed_routes": self.failed_routes,
+                    "average_processing_time_ms": round(
+                        self.average_processing_time * 1000, 2
+                    ),
+                },
+            }
+
         except Exception as e:
-            db_status = f"unhealthy: {str(e)}"
-
-        # Check service dependencies
-        services_status = {
-            "user_identification": "healthy",
-            "message_processor": "healthy",
-            "response_formatter": "healthy",
-            "agent_integration": "healthy",
-        }
-
-        return {
-            "status": "healthy" if db_status == "healthy" else "degraded",
-            "timestamp": datetime.now().isoformat(),
-            "database": db_status,
-            "services": services_status,
-            "statistics": {
-                "total_messages": self.total_messages_processed,
-                "successful_routes": self.successful_routes,
-                "failed_routes": self.failed_routes,
-                "average_processing_time_ms": round(
-                    self.average_processing_time * 1000, 2
-                ),
-            },
-        }
+            logger.error(f"Error during health check: {e}")
+            return {
+                "status": "unhealthy",
+                "timestamp": datetime.now().isoformat(),
+                "error": str(e),
+            }
 
     async def get_routing_stats(self) -> Dict[str, Any]:
         """Get comprehensive routing statistics."""

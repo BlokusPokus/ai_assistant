@@ -1053,7 +1053,7 @@ class SMSPerformanceMonitor:
         if not daily_performance:
             return 0.0
 
-        total_rate = sum(day.get("success_rate", 0) for day in daily_performance)
+        total_rate = sum(float(day.get("success_rate", 0)) for day in daily_performance)
         return round(total_rate / len(daily_performance), 2)
 
     def _calculate_average_response_time(
@@ -1064,7 +1064,7 @@ class SMSPerformanceMonitor:
             return 0.0
 
         total_time = sum(
-            day.get("average_response_time_ms", 0) for day in daily_performance
+            float(day.get("average_response_time_ms", 0)) for day in daily_performance
         )
         return round(total_time / len(daily_performance), 2)
 

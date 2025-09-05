@@ -78,7 +78,7 @@ class ContextManager:
         return final_context
 
     def _extract_relevant_context(
-        self, conversation_history: List[dict], user_input: str
+        self, conversation_history: List[dict], user_input: str | list[Any]
     ) -> List[dict]:
         """
         Extract context relevant to current user input.

@@ -308,7 +308,7 @@ class SmartLTMRetriever:
         )
         score += confidence_boost
 
-        return min(1.0, score)
+        return min(1.0, score)  # type: ignore
 
     def _extract_phrases(
         self, text: str, min_length: int = 2, max_length: int = 4

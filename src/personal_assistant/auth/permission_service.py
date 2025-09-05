@@ -27,10 +27,12 @@ class PermissionService:
 
     def __init__(self, db_session: AsyncSession):
         self.db = db_session
-        self._permission_cache = {}  # Simple in-memory cache
-        self._role_cache = {}  # Cache for user roles
+        self._permission_cache: dict[str, bool] = {}  # Simple in-memory cache
+        self._role_cache: dict[str, list[Any]] = {}  # Cache for user roles
         self._cache_ttl = 300  # 5 minutes cache TTL
-        self._cache_timestamps = {}  # Track when cache entries were created
+        self._cache_timestamps: dict[
+            str, datetime
+        ] = {}  # Track when cache entries were created
 
     async def check_permission(
         self,
@@ -57,7 +59,7 @@ class PermissionService:
 
         # Check cache first
         if self._is_cache_valid(cache_key):
-            return self._permission_cache[cache_key]
+            return bool(self._permission_cache[cache_key])
 
         try:
             # Get user roles with permissions
@@ -108,7 +110,7 @@ class PermissionService:
 
         # Check cache first
         if self._is_cache_valid(cache_key):
-            return self._role_cache[cache_key]
+            return list(self._role_cache[cache_key])
 
         try:
             # Get user's direct roles
@@ -376,16 +378,24 @@ class PermissionService:
             if end_date:
                 conditions.append(AccessAuditLog.created_at <= end_date)
 
-            stmt = (
-                select(AccessAuditLog)
-                .where(and_(*conditions) if conditions else True)
-                .order_by(AccessAuditLog.created_at.desc())
-                .limit(limit)
-                .offset(offset)
-            )
+            if conditions:
+                stmt = (
+                    select(AccessAuditLog)
+                    .where(and_(*conditions))
+                    .order_by(AccessAuditLog.created_at.desc())
+                    .limit(limit)
+                    .offset(offset)
+                )
+            else:
+                stmt = (
+                    select(AccessAuditLog)
+                    .order_by(AccessAuditLog.created_at.desc())
+                    .limit(limit)
+                    .offset(offset)
+                )
 
             result = await self.db.execute(stmt)
-            return result.scalars().all()
+            return list(result.scalars().all())
 
         except Exception as e:
             logger.error(f"Error getting audit logs: {e}")
@@ -468,7 +478,7 @@ class PermissionService:
             return False
 
         age = datetime.utcnow() - self._cache_timestamps[key]
-        return age.total_seconds() < self._cache_ttl
+        return float(age.total_seconds()) < self._cache_ttl
 
     def _clear_user_cache(self, user_id: int) -> None:
         """Clear cache for specific user."""

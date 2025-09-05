@@ -105,7 +105,9 @@ def require_user_permission(resource_type: str, action: str):
 
 async def get_db():
     """Get database session."""
-    session = AsyncSessionLocal()
+    from personal_assistant.database.session import _get_session_factory
+
+    session = _get_session_factory()()
     try:
         yield session
     finally:

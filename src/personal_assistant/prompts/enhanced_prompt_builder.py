@@ -131,7 +131,7 @@ class EnhancedPromptBuilder:
 """
         return base_prompt
 
-    def _analyze_tool_requirements(self, user_input: str) -> List[str]:
+    def _analyze_tool_requirements(self, user_input: str | list[Any]) -> List[str]:
         """
         Analyze user input to determine which tools are likely needed.
 

@@ -352,7 +352,7 @@ class MetricsCollector:
     def _calculate_summary_for_task(self, task_name: str) -> Dict[str, Any]:
         """Calculate performance summary for a specific task."""
         try:
-            times = self.aggregate_stats.get(task_name, [])
+            times = self.aggregate_stats.get(task_name, deque())
             if not times:
                 return {
                     "count": 0,

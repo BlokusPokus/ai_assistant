@@ -224,7 +224,7 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
 
             # YouTube API returns items array, get the first (and usually only) channel
             if data.get("items") and len(data["items"]) > 0:
-                return data["items"][0]
+                return data["items"][0]  # type: ignore
             else:
                 # Fallback to placeholder data if no channel found
                 return {

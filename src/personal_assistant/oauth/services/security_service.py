@@ -243,7 +243,7 @@ class OAuthSecurityService:
             Dictionary containing validation results
         """
         try:
-            result = {
+            result: dict[str, Any] = {
                 "is_valid": True,
                 "invalid_scopes": [],
                 "missing_required": [],
@@ -374,7 +374,7 @@ class OAuthSecurityService:
             result = await db.execute(query)
             events = result.scalars().all()
 
-            return events
+            return list(events)
 
         except Exception as e:
             raise OAuthSecurityError(

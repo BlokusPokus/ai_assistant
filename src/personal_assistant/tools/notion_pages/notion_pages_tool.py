@@ -436,12 +436,13 @@ class NotionPagesTool:
                     page_title, page_tags, page_category = extract_page_properties(page)
 
                     # Check category filter
-                    if category and page_category != category:
+                    if category and category not in page_category:
                         continue
 
                     # Check tags filter
                     if tags:
                         tag_list = [tag.strip() for tag in tags.split(",")]
+                        # page_tags is now guaranteed to be List[str] from extract_page_properties
                         if not any(tag in page_tags for tag in tag_list):
                             continue
 

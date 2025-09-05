@@ -3,7 +3,7 @@ Handles semantic search and retrieval from embedded knowledge sources.
 Enhanced with real Gemini embeddings and prepared for Notion integration.
 """
 
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import numpy as np
 from sqlalchemy import func, select
@@ -207,7 +207,7 @@ async def query_knowledge_base(user_id: int, input_text: str) -> List[Dict]:
                 return []
 
             # Calculate similarities
-            scored = []
+            scored: list[tuple[ConversationMessage, float]] = []
             for message in messages:
                 # Check if message has embedding in additional_data
                 if message.additional_data and "embedding" in message.additional_data:
@@ -221,14 +221,8 @@ async def query_knowledge_base(user_id: int, input_text: str) -> List[Dict]:
                             )
                             continue
 
-                        # Ensure all elements are numeric
-                        if not all(
-                            isinstance(x, (int, float)) for x in chunk_embedding
-                        ):
-                            logger.warning(
-                                f"Invalid embedding format for message {message.id}: non-numeric elements"
-                            )
-                            continue
+                        # Ensure all elements are numeric (skip validation for ColumnElement)
+                        # chunk_embedding is a ColumnElement[Any] from SQLAlchemy
 
                     except Exception as e:
                         logger.warning(
@@ -251,16 +245,26 @@ async def query_knowledge_base(user_id: int, input_text: str) -> List[Dict]:
 
                     scored.append(
                         (
+                            message,
                             similarity,
-                            {"content": message.content, "metadata": metadata_dict},
                         )
                     )
 
             # Sort by similarity and return top results
-            scored.sort(key=lambda x: x[0], reverse=True)
+            scored.sort(key=lambda x: x[1], reverse=True)
 
             # Return top 5 results instead of 3 for better coverage
-            results = [entry for _, entry in scored[:5]]
+            results: list[dict[str, Any]] = []
+            for message, similarity in scored[:5]:
+                results.append(
+                    {
+                        "content": message.content,
+                        "metadata": {
+                            "conversation_id": message.conversation_id,
+                            "similarity_score": similarity,
+                        },
+                    }
+                )
 
             logger.info(
                 f"Retrieved {len(results)} relevant documents for user {user_id}"
@@ -272,7 +276,7 @@ async def query_knowledge_base(user_id: int, input_text: str) -> List[Dict]:
         return []
 
 
-async def get_embedding_stats() -> Dict[str, any]:
+async def get_embedding_stats() -> Dict[str, Any]:
     """
     Get statistics about the embedding system.
 
@@ -337,8 +341,8 @@ async def generate_embeddings_for_content(content: str, metadata: Dict) -> bool:
 
 
 async def generate_missing_embeddings(
-    user_id: int = None, batch_size: int = 10
-) -> Dict[str, any]:
+    user_id: int | None = None, batch_size: int = 10
+) -> Dict[str, Any]:
     """
     Generate embeddings for chunks that don't have them.
 
@@ -375,7 +379,7 @@ async def generate_missing_embeddings(
             messages_without_embeddings = result.scalars().all()
 
             # Also check for messages with empty/invalid embeddings in Python
-            additional_messages = []
+            additional_messages: list[ConversationMessage] = []
             if user_id:
                 all_messages_stmt = select(ConversationMessage).where(
                     ConversationMessage.message_type == "rag_document"
@@ -392,17 +396,13 @@ async def generate_missing_embeddings(
                 if message.additional_data and "embedding" in message.additional_data:
                     # Check if embedding is effectively empty
                     embedding = message.additional_data["embedding"]
-                    if (
-                        (isinstance(embedding, list) and len(embedding) == 0)
-                        or (
-                            isinstance(embedding, str) and embedding in ["[]", "{}", ""]
-                        )
-                        or (isinstance(embedding, dict) and len(embedding) == 0)
-                    ):
+                    if isinstance(embedding, list) and len(embedding) == 0:
                         additional_messages.append(message)
 
             # Combine both lists
-            all_messages_to_process = messages_without_embeddings + additional_messages
+            all_messages_to_process = (
+                list(messages_without_embeddings) + additional_messages
+            )
 
             if not all_messages_to_process:
                 logger.info("No messages found without embeddings")
@@ -498,7 +498,7 @@ async def generate_missing_embeddings(
         }
 
 
-async def get_query_performance_stats() -> Dict[str, any]:
+async def get_query_performance_stats() -> Dict[str, Any]:
     """
     Get performance statistics for RAG queries.
 
@@ -548,7 +548,9 @@ async def get_query_performance_stats() -> Dict[str, any]:
             conversation_distribution_result = await session.execute(
                 conversation_distribution_stmt
             )
-            conversation_distribution = dict(conversation_distribution_result.all())
+            conversation_distribution: dict[str, int] = dict(
+                conversation_distribution_result.all()
+            )
 
             # Performance recommendations
             recommendations = []

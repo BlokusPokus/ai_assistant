@@ -134,8 +134,13 @@ class AuditLogListResponse(BaseModel):
 # Dependency to get database session
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session."""
-    async with AsyncSessionLocal() as session:
+    from personal_assistant.database.session import _get_session_factory
+
+    session = _get_session_factory()()
+    try:
         yield session
+    finally:
+        await session.close()
 
 
 # Role Management Endpoints
@@ -191,8 +196,8 @@ async def create_role(
             parent_role_id=int(new_role.parent_role_id)
             if new_role.parent_role_id
             else None,
-            created_at=new_role.created_at,  # type: ignore
-            updated_at=new_role.updated_at,  # type: ignore
+            created_at=new_role.created_at,
+            updated_at=new_role.updated_at,
         )
 
     except HTTPException:
@@ -242,8 +247,8 @@ async def list_roles(
                 parent_role_id=int(role.parent_role_id)
                 if role.parent_role_id
                 else None,
-                created_at=role.created_at,  # type: ignore
-                updated_at=role.updated_at,  # type: ignore
+                created_at=role.created_at,
+                updated_at=role.updated_at,
             )
             for role in roles
         ]
@@ -290,8 +295,8 @@ async def get_role(role_id: int, db: AsyncSession = Depends(get_db)):
             parent_role_id=int(role_obj.parent_role_id)
             if role_obj.parent_role_id
             else None,
-            created_at=role_obj.created_at,  # type: ignore
-            updated_at=role_obj.updated_at,  # type: ignore
+            created_at=role_obj.created_at,
+            updated_at=role_obj.updated_at,
         )
 
     except HTTPException:
@@ -338,9 +343,9 @@ async def update_role(
 
         # Update role fields
         if role_data.description is not None:
-            role_obj.description = role_data.description  # type: ignore
+            role_obj.description = role_data.description
         if role_data.parent_role_id is not None:
-            role_obj.parent_role_id = role_data.parent_role_id  # type: ignore
+            role_obj.parent_role_id = role_data.parent_role_id
 
         await db.commit()
         await db.refresh(role_obj)
@@ -352,8 +357,8 @@ async def update_role(
             parent_role_id=int(role_obj.parent_role_id)
             if role_obj.parent_role_id
             else None,
-            created_at=role_obj.created_at,  # type: ignore
-            updated_at=role_obj.updated_at,  # type: ignore
+            created_at=role_obj.created_at,
+            updated_at=role_obj.updated_at,
         )
 
     except HTTPException:
@@ -437,8 +442,8 @@ async def grant_role(
             granted_by=int(user_role_obj.granted_by)
             if user_role_obj.granted_by
             else None,
-            granted_at=user_role_obj.granted_at,  # type: ignore
-            expires_at=user_role_obj.expires_at,  # type: ignore
+            granted_at=user_role_obj.granted_at,
+            expires_at=user_role_obj.expires_at,
         )
 
     except HTTPException:
@@ -589,7 +594,7 @@ async def list_permissions(
                 resource_type=str(perm.resource_type),
                 action=str(perm.action),
                 description=str(perm.description) if perm.description else None,
-                created_at=perm.created_at,  # type: ignore
+                created_at=perm.created_at,
             )
             for perm in permissions
         ]
@@ -663,7 +668,7 @@ async def get_audit_logs(
                 roles_checked=list(log.roles_checked) if log.roles_checked else [],
                 ip_address=str(log.ip_address) if log.ip_address else None,
                 user_agent=str(log.user_agent) if log.user_agent else None,
-                created_at=log.created_at,  # type: ignore
+                created_at=log.created_at,
             )
             for log in logs
         ]

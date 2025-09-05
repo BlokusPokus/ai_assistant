@@ -105,8 +105,13 @@ class EmailVerification(BaseModel):
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session."""
-    async with AsyncSessionLocal() as session:
+    from personal_assistant.database.session import _get_session_factory
+
+    session = _get_session_factory()()
+    try:
         yield session
+    finally:
+        await session.close()
 
 
 # Dependency to get current user (for protected endpoints)
@@ -242,12 +247,12 @@ async def login(
             user_data.password, str(user.hashed_password)
         ):
             # Increment failed login attempts
-            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1  # type: ignore
-            user.updated_at = datetime.utcnow()  # type: ignore
+            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+            user.updated_at = datetime.utcnow()
 
             # Lock account after 5 failed attempts
             if user.failed_login_attempts >= 5:
-                user.locked_until = datetime.utcnow() + timedelta(minutes=30)  # type: ignore
+                user.locked_until = datetime.utcnow() + timedelta(minutes=30)
                 await db.commit()
                 raise HTTPException(
                     status_code=401,
@@ -258,10 +263,10 @@ async def login(
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
         # Reset failed login attempts on successful login
-        user.failed_login_attempts = 0  # type: ignore
-        user.locked_until = None  # type: ignore
-        user.last_login = datetime.utcnow()  # type: ignore
-        user.updated_at = datetime.utcnow()  # type: ignore
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        user.last_login = datetime.utcnow()
+        user.updated_at = datetime.utcnow()
 
         # Generate tokens
         access_token = jwt_service.create_access_token(
@@ -489,9 +494,9 @@ async def forgot_password(
         reset_expires = datetime.utcnow() + timedelta(hours=24)
 
         # Update user with reset token
-        user.password_reset_token = reset_token  # type: ignore
-        user.password_reset_expires = reset_expires  # type: ignore
-        user.updated_at = datetime.utcnow()  # type: ignore
+        user.password_reset_token = reset_token
+        user.password_reset_expires = reset_expires
+        user.updated_at = datetime.utcnow()
 
         await db.commit()
 
@@ -532,10 +537,10 @@ async def reset_password(request: PasswordReset, db: AsyncSession = Depends(get_
         password_service._validate_password(request.new_password)
 
         # Hash new password and clear reset token
-        user.hashed_password = password_service.hash_password(request.new_password)  # type: ignore
-        user.password_reset_token = None  # type: ignore
-        user.password_reset_expires = None  # type: ignore
-        user.updated_at = datetime.utcnow()  # type: ignore
+        user.hashed_password = password_service.hash_password(request.new_password)
+        user.password_reset_token = None
+        user.password_reset_expires = None
+        user.updated_at = datetime.utcnow()
 
         await db.commit()
 
@@ -565,9 +570,9 @@ async def verify_email(request: EmailVerification, db: AsyncSession = Depends(ge
             return {"message": "Email already verified"}
 
         # Mark email as verified and clear token
-        user.is_verified = True  # type: ignore
-        user.verification_token = None  # type: ignore
-        user.updated_at = datetime.utcnow()  # type: ignore
+        user.is_verified = True
+        user.verification_token = None
+        user.updated_at = datetime.utcnow()
 
         await db.commit()
 
@@ -600,8 +605,8 @@ async def resend_verification(
 
         # Generate new verification token
         verification_token = secrets.token_urlsafe(32)
-        user.verification_token = verification_token  # type: ignore
-        user.updated_at = datetime.utcnow()  # type: ignore
+        user.verification_token = verification_token
+        user.updated_at = datetime.utcnow()
 
         await db.commit()
 

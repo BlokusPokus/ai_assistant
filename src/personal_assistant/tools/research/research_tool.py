@@ -205,11 +205,8 @@ class ResearchTool:
                     web_results = await internet_tool.web_search(
                         topic, max_results=max_results
                     )
-                    # Handle Union[str, dict] return type
-                    if isinstance(web_results, str):
-                        research_results["web"] = [web_results]
-                    else:
-                        research_results["web"] = web_results
+                    # web_search returns str, so wrap in list for consistency
+                    research_results["web"] = [web_results]
                 except Exception as e:
                     logger.warning(f"Web search failed: {e}")
                     research_results["web"] = f"Web search unavailable: {str(e)}"
@@ -282,23 +279,18 @@ class ResearchTool:
                         results = await internet_tool.web_search(
                             query, max_results=max_results_per_platform
                         )
-                        # Handle Union[str, dict] return type
-                        if isinstance(results, str):
-                            search_results[platform] = [results]
-                        else:
-                            search_results[platform] = results
+                        # web_search returns str, so wrap in list for consistency
+                        search_results[platform] = [results]
                     elif platform == "youtube":
                         youtube_tool = YouTubeTool()
                         youtube_results: Union[
-                            str, dict, list
+                            str, dict
                         ] = await youtube_tool.search_videos(
                             query, max_results=max_results_per_platform
                         )
                         # Handle Union[str, dict] return type
                         if isinstance(youtube_results, str):
                             search_results[platform] = [youtube_results]
-                        elif isinstance(youtube_results, list):
-                            search_results[platform] = youtube_results
                         else:
                             search_results[platform] = [str(youtube_results)]
                     elif platform == "news":
@@ -418,7 +410,7 @@ class ResearchTool:
                 )
 
             # Format the response
-            response = f"📊 **Content Analysis Results**\n\n"
+            response = "📊 **Content Analysis Results**\n\n"
             response += f"📝 **Sources**: {content_sources}\n"
             response += f"🔬 **Analysis Type**: {analysis_type}\n"
             response += f"📊 **Sources Analyzed**: {len(analysis_results['sources_analyzed'])}\n\n"
@@ -431,21 +423,21 @@ class ResearchTool:
 
             # Add key insights
             if include_insights and analysis_results["key_insights"]:
-                response += f"💡 **Key Insights**\n"
+                response += "💡 **Key Insights**\n"
                 for i, insight in enumerate(analysis_results["key_insights"], 1):
                     response += f"{i}. {insight}\n"
                 response += "\n"
 
             # Add source analysis details
-            response += f"🔍 **Source Analysis Details**\n"
+            response += "🔍 **Source Analysis Details**\n"
             for source_analysis in analysis_results["sources_analyzed"]:
                 response += f"**{source_analysis['type'].upper()}**: {source_analysis['source']}\n"
                 if isinstance(source_analysis["analysis"], str):
                     response += f"{source_analysis['analysis'][:100]}...\n\n"
                 else:
-                    response += f"Analysis completed\n\n"
+                    response += "Analysis completed\n\n"
 
-            response += f"⏱️ **Response Time**: <3 seconds (target)"
+            response += "⏱️ **Response Time**: <3 seconds (target)"
             return response
 
         except Exception as e:
@@ -506,7 +498,7 @@ class ResearchTool:
             response += f"📄 **Format**: {report_format}\n"
             response += f"📚 **Citations**: {'Included' if include_citations else 'Not included'}\n\n"
             response += f"📊 **Report Content**\n{report_content}\n\n"
-            response += f"⏱️ **Response Time**: <3 seconds (target)"
+            response += "⏱️ **Response Time**: <3 seconds (target)"
 
             return response
 
@@ -597,12 +589,12 @@ class ResearchTool:
 
             # Add relevance analysis
             if relevance_analysis:
-                response += f"🎯 **Relevance Analysis**\n"
+                response += "🎯 **Relevance Analysis**\n"
                 for insight in relevance_analysis:
                     response += f"• {insight}\n"
                 response += "\n"
 
-            response += f"⏱️ **Response Time**: <3 seconds (target)"
+            response += "⏱️ **Response Time**: <3 seconds (target)"
             return response
 
         except Exception as e:
@@ -614,10 +606,8 @@ class ResearchTool:
         try:
             internet_tool = InternetTool()
             result = await internet_tool.web_search(url, max_results=1)
-            if isinstance(result, str):
-                return result
-            else:
-                return f"Web content analysis completed for: {url}"
+            # web_search returns str, so return it directly
+            return result
         except Exception as e:
             return f"Failed to analyze web content: {str(e)}"
 
@@ -682,20 +672,16 @@ class ResearchTool:
                     internet_tool = InternetTool()
                     result = await internet_tool.web_search(topic, max_results=3)
                     # Handle Union[str, dict] return type
-                    if isinstance(result, str):
-                        research_data["sources"]["web"] = [result]
-                    else:
-                        research_data["sources"]["web"] = result
+                    # web_search returns str, so wrap in list for consistency
+                    research_data["sources"]["web"] = [result]
                 elif source == "youtube":
                     youtube_tool = YouTubeTool()
-                    youtube_result: Union[
-                        str, dict, list
-                    ] = await youtube_tool.search_videos(topic, max_results=3)
+                    youtube_result: Union[str, dict] = await youtube_tool.search_videos(
+                        topic, max_results=3
+                    )
                     # Handle Union[str, dict] return type
                     if isinstance(youtube_result, str):
                         research_data["sources"]["youtube"] = [youtube_result]
-                    elif isinstance(youtube_result, list):
-                        research_data["sources"]["youtube"] = youtube_result
                     else:
                         research_data["sources"]["youtube"] = [str(youtube_result)]
                 else:
@@ -720,12 +706,8 @@ class ResearchTool:
         try:
             internet_tool = InternetTool()
             result = await internet_tool.web_search(seed_content, max_results=max_items)
-            if isinstance(result, str):
-                return [result]
-            elif isinstance(result, list):
-                return result
-            else:
-                return [str(result)]
+            # web_search returns str, so wrap in list for consistency
+            return [result]
         except Exception as e:
             return [f"Related web content search failed: {str(e)}"]
 
@@ -740,8 +722,6 @@ class ResearchTool:
             )
             if isinstance(result, str):
                 return [result]
-            elif isinstance(result, list):
-                return result
             else:
                 return [str(result)]
         except Exception as e:
@@ -751,11 +731,8 @@ class ResearchTool:
         self, seed_content: str, max_items: int, threshold: str
     ) -> List[str]:
         """Find related news content"""
-        try:
-            # Placeholder for news search
-            return [f"News search not yet implemented for: {seed_content}"]
-        except Exception as e:
-            return [f"Related news content search failed: {str(e)}"]
+        # Placeholder for news search
+        return [f"News search not yet implemented for: {seed_content}"]
 
     def _analyze_content_relevance(
         self, seed_content: str, related_content: Dict[str, Any], threshold: str

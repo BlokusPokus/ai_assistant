@@ -210,7 +210,7 @@ class ContextQualityValidator:
 
         # Calculate scores for all items
         scored_items = []
-        context_type_scores = {}
+        context_type_scores: dict[str, list[float]] = {}
 
         for item in context_items:
             score = self.calculate_context_quality_score(item, user_input)

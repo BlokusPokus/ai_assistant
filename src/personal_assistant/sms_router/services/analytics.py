@@ -4,7 +4,7 @@ SMS Analytics Service for usage tracking, cost analysis, and performance monitor
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Sequence
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -72,7 +72,9 @@ class SMSAnalyticsService:
 
             # Calculate average processing time
             processing_times = [
-                log.processing_time_ms for log in usage_logs if log.processing_time_ms
+                float(log.processing_time_ms)
+                for log in usage_logs
+                if log.processing_time_ms
             ]
             avg_processing_time = (
                 sum(processing_times) / len(processing_times) if processing_times else 0
@@ -82,7 +84,7 @@ class SMSAnalyticsService:
             total_length = sum(log.message_length for log in usage_logs)
 
             # Get usage patterns by hour
-            usage_patterns = self._calculate_usage_patterns(usage_logs)
+            usage_patterns = self._calculate_usage_patterns(list(usage_logs))
 
             return {
                 "user_id": user_id,
@@ -183,7 +185,9 @@ class SMSAnalyticsService:
 
             # Processing time metrics
             processing_times = [
-                log.processing_time_ms for log in usage_logs if log.processing_time_ms
+                float(log.processing_time_ms)
+                for log in usage_logs
+                if log.processing_time_ms
             ]
             avg_processing_time = (
                 sum(processing_times) / len(processing_times) if processing_times else 0
@@ -193,9 +197,9 @@ class SMSAnalyticsService:
 
             # Error analysis
             error_messages = [log for log in usage_logs if not log.success]
-            error_types = {}
+            error_types: Dict[str, int] = {}
             for log in error_messages:
-                error_type = log.error_message or "Unknown"
+                error_type = str(log.error_message) if log.error_message else "Unknown"
                 error_types[error_type] = error_types.get(error_type, 0) + 1
 
             return {
@@ -261,11 +265,15 @@ class SMSAnalyticsService:
                 return self._create_empty_message_breakdown(user_id, time_range)
 
             # Analyze message breakdown
-            inbound_breakdown = self._analyze_message_direction(usage_logs, "inbound")
-            outbound_breakdown = self._analyze_message_direction(usage_logs, "outbound")
+            inbound_breakdown = self._analyze_message_direction(
+                list(usage_logs), "inbound"
+            )
+            outbound_breakdown = self._analyze_message_direction(
+                list(usage_logs), "outbound"
+            )
 
             # Message length analysis
-            length_analysis = self._analyze_message_lengths(usage_logs)
+            length_analysis = self._analyze_message_lengths(list(usage_logs))
 
             return {
                 "user_id": user_id,
@@ -333,7 +341,7 @@ class SMSAnalyticsService:
             unique_users = len(set(log.user_id for log in all_logs))
 
             # Hourly activity patterns
-            hourly_patterns = self._calculate_hourly_activity_patterns(all_logs)
+            hourly_patterns = self._calculate_hourly_activity_patterns(list(all_logs))
 
             return {
                 "time_range": time_range,
@@ -412,7 +420,7 @@ class SMSAnalyticsService:
 
             # Check SLA compliance
             sla_violations = []
-            compliance_score = 0
+            compliance_score = 0.0
 
             if avg_response_time > sla_thresholds["response_time_ms"]:
                 sla_violations.append(
@@ -589,7 +597,7 @@ class SMSAnalyticsService:
         self, usage_logs: List[SMSUsageLog]
     ) -> Dict[str, Any]:
         """Calculate usage patterns from usage logs."""
-        hourly_counts = {}
+        hourly_counts: Dict[int, int] = {}
         for log in usage_logs:
             if log.created_at and hasattr(log.created_at, "hour"):
                 hour = log.created_at.hour
@@ -665,7 +673,7 @@ class SMSAnalyticsService:
         )
 
         if first_avg == 0:
-            change_percentage = 100 if second_avg > 0 else 0
+            change_percentage: float = 100 if second_avg > 0 else 0
         else:
             change_percentage = ((second_avg - first_avg) / first_avg) * 100
 
@@ -756,7 +764,7 @@ class SMSAnalyticsService:
         self, usage_logs: List[SMSUsageLog]
     ) -> Dict[str, Any]:
         """Calculate hourly activity patterns for system-wide usage."""
-        hourly_counts = {}
+        hourly_counts: Dict[int, int] = {}
         for log in usage_logs:
             if log.created_at and hasattr(log.created_at, "hour"):
                 hour = log.created_at.hour
@@ -861,7 +869,7 @@ class SMSAnalyticsService:
         )
 
         if first_success_avg == 0:
-            success_change = 100 if second_success_avg > 0 else 0
+            success_change: float = 100 if second_success_avg > 0 else 0
         else:
             success_change = (
                 (second_success_avg - first_success_avg) / first_success_avg
@@ -882,7 +890,7 @@ class SMSAnalyticsService:
         )
 
         if first_time_avg == 0:
-            time_change = 100 if second_time_avg > 0 else 0
+            time_change: float = 100 if second_time_avg > 0 else 0
         else:
             time_change = ((second_time_avg - first_time_avg) / first_time_avg) * 100
 

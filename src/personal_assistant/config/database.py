@@ -19,8 +19,12 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from sqlalchemy import event
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    create_async_engine,
+    async_sessionmaker,
+)
 from sqlalchemy.pool import AsyncAdaptedQueuePool
 
 logger = logging.getLogger(__name__)
@@ -46,7 +50,7 @@ class DatabaseConfig:
 
     def __init__(self, auto_initialize: bool = True):
         self.engine: Optional[AsyncEngine] = None
-        self.session_factory = None
+        self.session_factory: Optional[async_sessionmaker] = None
         self.pool_stats: Optional[PoolStats] = None
         self.health_status: str = "unknown"
         self.last_health_check: Optional[datetime] = None
@@ -121,9 +125,8 @@ class DatabaseConfig:
             )
 
             # Create session factory
-            self.session_factory = sessionmaker(
+            self.session_factory = async_sessionmaker(
                 bind=self.engine,
-                class_=AsyncSession,
                 expire_on_commit=False,
                 autocommit=False,
                 autoflush=False,
@@ -187,11 +190,11 @@ class DatabaseConfig:
         """Get a database session from the pool."""
         await self._ensure_initialized()
 
-        if not self.session_factory:
-            raise RuntimeError("Database not initialized")
-
         start_time = time.time()
         try:
+            if self.session_factory is None:
+                raise RuntimeError("Database not initialized")
+
             session = self.session_factory()
 
             # Track connection wait time
@@ -199,7 +202,7 @@ class DatabaseConfig:
             if wait_time > self.max_connection_wait:
                 logger.warning(f"Slow connection acquisition: {wait_time:.3f}s")
 
-            return session
+            return session  # type: ignore
 
         except Exception as e:
             logger.error(f"Failed to get database session: {e}")
@@ -237,13 +240,13 @@ class DatabaseConfig:
         pool = self.engine.pool
 
         # Get pool statistics - handle both sync and async pools
-        checked_in = pool.checkedin()
-        checked_out = pool.checkedout()
-        overflow = pool.overflow()
+        checked_in = getattr(pool, "checkedin", lambda: 0)()
+        checked_out = getattr(pool, "checkedout", lambda: 0)()
+        overflow = getattr(pool, "overflow", lambda: 0)()
 
         # Handle invalid method availability for different pool types
         try:
-            invalid = pool.invalid()
+            invalid = getattr(pool, "invalid", lambda: 0)()
         except AttributeError:
             # AsyncAdaptedQueuePool doesn't have invalid() method
             invalid = 0

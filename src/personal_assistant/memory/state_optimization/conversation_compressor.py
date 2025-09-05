@@ -135,9 +135,6 @@ class ConversationCompressor:
         Returns:
             Categorized error type
         """
-        # Ensure content is a string
-        if not isinstance(content, str):
-            content = str(content)
         content_lower = content.lower()
 
         if "validation" in content_lower:
@@ -161,7 +158,7 @@ class ConversationCompressor:
         Returns:
             History with failed attempts filtered
         """
-        tool_results = {}
+        tool_results: Dict[str, Any] = {}
         filtered = []
 
         for item in history:
@@ -238,7 +235,7 @@ class ConversationCompressor:
 
         return cleaned
 
-    def _is_similar_content(self, content1: str, content2: str) -> bool:
+    def _is_similar_content(self, content1: Any, content2: Any) -> bool:
         """
         Check if two content strings are similar.
 
