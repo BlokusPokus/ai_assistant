@@ -142,23 +142,31 @@ jobs:
 
       - name: Run ${{ matrix.test-suite }} tests
         run: |
+          echo "Running ${{ matrix.test-suite }} tests with path: ${{ matrix.test-path }}"
           if [ "${{ matrix.test-suite }}" == "performance" ]; then
+            echo "Running performance tests..."
             pytest ${{ matrix.test-path }} -v --benchmark-only --benchmark-save=performance-${{ matrix.test-suite }} --timeout=${{ matrix.timeout }} --timeout-method=thread -c pytest.ini
+            echo "Performance tests completed. Checking for benchmark files..."
+            ls -la .benchmarks/ || echo "No .benchmarks directory found"
           elif [ "${{ matrix.test-suite }}" == "unit" ]; then
+            echo "Running unit tests..."
             pytest ${{ matrix.test-path }} --ignore=tests/unit/test_api/test_session_endpoints.py -v --cov=src --cov-report=xml --cov-report=html --timeout=${{ matrix.timeout }} --timeout-method=thread --maxfail=3
           else
+            echo "Running ${{ matrix.test-suite }} tests..."
             pytest ${{ matrix.test-path }} -v --cov=src --cov-report=xml --cov-report=html --timeout=${{ matrix.timeout }} --timeout-method=thread --maxfail=3
           fi
+          echo "Test run completed for ${{ matrix.test-suite }}"
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.test-suite }}
           path: |
-            coverage.xml
-            htmlcov/
             .pytest_cache/
             .benchmarks/
+            coverage.xml
+            htmlcov/
+          if-no-files-found: warn
 
       - name: Upload coverage to Codecov
         if: matrix.test-suite != 'performance'
@@ -201,6 +209,18 @@ jobs:
 
       - name: Check test results
         run: |
+          echo "Checking test results..."
+          ls -la test-results/ || echo "No test-results directory found"
+          echo "Looking for test result directories:"
+          for suite in unit integration e2e performance regression; do
+            if [ -d "test-results/test-results-$suite" ]; then
+              echo "✅ Found test-results-$suite"
+              ls -la "test-results/test-results-$suite/" || echo "Directory empty or inaccessible"
+            else
+              echo "❌ Missing test-results-$suite"
+            fi
+          done
+
           failed_suites=()
           for suite in unit integration e2e performance regression; do
             if [ ! -d "test-results/test-results-$suite" ]; then
