@@ -157,8 +157,27 @@ jobs:
           head: HEAD
           extra_args: --debug --only-verified
 
+      - name: Validate Gitleaks config
+        run: |
+          echo "Validating .gitleaks.toml syntax..."
+          if [ -f ".gitleaks.toml" ]; then
+            echo "Config file exists"
+            head -5 .gitleaks.toml
+          else
+            echo "Config file not found"
+            exit 1
+          fi
+
       - name: Run GitLeaks secret scanner
         uses: gitleaks/gitleaks-action@v2
+        with:
+          config-path: .gitleaks.toml
+          report-format: sarif
+          report-path: results.sarif
+          redact: true
+          verbose: true
+          exit-code: 0
+          no-git: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}

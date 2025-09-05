@@ -1,26 +1,8 @@
-# Gitleaks configuration to ignore test files and known test data
+# Minimal Gitleaks configuration
 [allowlist]
-  description = "Allowlist for test files and known test data"
-  paths = [
+description = "Allowlist for test files"
+paths = [
     "tests/**/*.py",
     "**/test_*.py",
     "**/*_test.py"
-  ]
-  regexes = [
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.*",  # JWT test tokens
-    "test.*token.*",  # Test tokens
-    "mock.*secret.*",  # Mock secrets
-    "fake.*key.*",  # Fake keys
-  ]
-  commits = [
-    "6c0a43692576702ac9ea600372194d4d98b73254"  # The specific commit with the test JWT
-  ]
-
-# Override default rules to be less strict for test files
-[[rules]]
-  description = "JWT tokens in test files"
-  regex = '''eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*'''
-  tags = ["jwt", "test"]
-  allowlist = {
-    paths = ["tests/**/*.py", "**/test_*.py", "**/*_test.py"]
-  }
+]
