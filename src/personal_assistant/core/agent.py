@@ -47,7 +47,7 @@ class AgentCore:
         self.tools = tools or ToolRegistry()
 
         api_key = os.getenv("GEMINI_API_KEY")
-        llm = llm or GeminiLLM(api_key=api_key, model="gemini-2.0-flash")
+        llm = llm or GeminiLLM(api_key=api_key, model="gemini-2.5-flash")
         self.llm = llm
 
         enhanced_prompt_builder = EnhancedPromptBuilder(self.tools)

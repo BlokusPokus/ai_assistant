@@ -109,7 +109,7 @@ def create_email_tool_metadata() -> ToolMetadata:
             description="Organize emails by moving them between different folders (Inbox, Archive, Junk, etc.)",
             example_request="Move my recent emails to the Archive folder",
             example_parameters={
-                "message_id": "email_message_id",
+                "email_id": "email_message_id",
                 "destination_folder": "Archive",
             },
             expected_outcome="Email successfully moved to the specified folder",
@@ -185,7 +185,7 @@ def create_email_tool_metadata() -> ToolMetadata:
             description="Move email to Archive folder",
             user_request="Move my most recent email to the Archive folder",
             parameters={
-                "message_id": "AQMkADAwATZiZmYAZC1iNzYwLWVhMzgtMDACLTAwCgBGAAAD...",
+                "email_id": "AQMkADAwATZiZmYAZC1iNzYwLWVhMzgtMDACLTAwCgBGAAAD...",
                 "destination_folder": "Archive",
             },
             expected_result="Email successfully moved from Inbox to Archive with confirmation message",
@@ -194,7 +194,7 @@ def create_email_tool_metadata() -> ToolMetadata:
         ToolExample(
             description="Move email to Junk folder",
             user_request="Move this spam email to the Junk folder",
-            parameters={"message_id": "email_id_here", "destination_folder": "Junk"},
+            parameters={"email_id": "email_id_here", "destination_folder": "Junk"},
             expected_result="Email moved to Junk folder to help train spam filters",
             notes="Helps organize spam and unwanted emails while keeping inbox clean",
         ),
@@ -202,7 +202,7 @@ def create_email_tool_metadata() -> ToolMetadata:
             description="Move email between custom folders",
             user_request="Move this project email to my Work Projects folder",
             parameters={
-                "message_id": "email_id_here",
+                "email_id": "email_id_here",
                 "destination_folder": "Work Projects",
             },
             expected_result="Email moved to custom Work Projects folder for better organization",
@@ -233,25 +233,23 @@ def create_email_tool_metadata() -> ToolMetadata:
         rate_limits="100 emails per hour",
         retry_strategy="Retry failed sends with exponential backoff",
         ai_instructions=(
-            "Use the email tool when users want to send messages, notifications, invitations, "
-            "or any form of written communication. Also use it when users want to review "
-            "emails they have previously sent, search existing emails, or organize emails by moving them between folders. "
-            "Analyze the user's request to determine whether they want to send new emails, review sent emails, "
-            "search existing emails, or organize their inbox. "
-            "For sending: determine appropriate recipients, subject, and body content. "
-            "For reviewing: determine how many sent emails to retrieve and any specific criteria. "
-            "For searching: identify search terms, date ranges, and folder preferences. "
-            "For organizing: identify which emails to move and to which destination folder."
+            "Use the email tool for sending emails, reading sent emails, searching emails, or organizing emails. "
+            "CRITICAL: Always use the exact parameter names from the tool schema: 'to_recipients' (not 'to'), 'subject', 'body', 'is_html'. "
+            "For sending: use 'to_recipients' as comma-separated string, 'subject' as string, 'body' as string. "
+            "For reading: use 'count' and 'batch_size' parameters. "
+            "For searching: use 'query', 'count', 'date_from', 'date_to', 'folder' parameters. "
+            "For organizing: use 'email_id' and 'destination_folder' parameters."
         ),
         parameter_guidance={
-            "to_recipients": "Comma-separated list of valid email addresses",
+            "to_recipients": "CRITICAL: Use 'to_recipients' (not 'to') - Comma-separated list of valid email addresses",
             "subject": "Clear, concise subject line that summarizes the email content",
             "body": "Professional, well-structured email body with appropriate greeting and closing",
             "is_html": "Set to true for formatted emails, false for plain text",
-            "message_id": "Unique identifier of the email message to move",
+            "email_id": "Unique identifier of the email message to move",
             "destination_folder": "Target folder name (e.g., 'Archive', 'Junk', 'Deleted Items', or custom folder)",
         },
         common_mistakes=[
+            "Using 'to' instead of 'to_recipients' parameter name",
             "Sending to invalid email addresses",
             "Missing subject line",
             "Inappropriate tone for business communication",
@@ -652,7 +650,7 @@ def create_email_ai_enhancements(enhancement_manager: AIEnhancementManager):
                 "step": 2,
                 "tool": "email_tool",
                 "action": "Move selected emails to appropriate folders",
-                "parameters": "message_id, destination_folder",
+                "parameters": "email_id, destination_folder",
             },
         ],
         examples=[

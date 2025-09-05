@@ -231,7 +231,6 @@ def format_email_list_response(emails: List[Dict[str, Any]], count: int) -> str:
         response += f"   📅 Received: {email['received']}\n"
         response += f"   📝 Preview: {email['preview'][:100]}...\n\n"
 
-    response += f"⏱️ Response Time: <3 seconds (target)"
     return response
 
 
@@ -239,14 +238,14 @@ def format_email_content_response(email_data: Dict[str, Any]) -> str:
     """Format email content response for display"""
     email = email_data.get("email", {})
 
-    response = f"📧 Email Content\n\n"
+    response = "📧 Email Content\n\n"
     response += f"**ID:** {email.get('id', 'Unknown')}\n"
     response += f"**Subject:** {email.get('subject', 'No Subject')}\n"
     response += f"**From:** {email.get('from_name', 'Unknown')} <{email.get('from_email', '')}>\n"
     response += f"**Received:** {email.get('received', 'Unknown')}\n"
     response += f"**To:** {', '.join(email.get('to_recipients', []))}\n\n"
     response += f"**Content:**\n{email.get('body', 'No content')}\n\n"
-    response += f"⏱️ Response Time: <3 seconds (target)"
+    response += "⏱️ Response Time: <3 seconds (target)"
 
     return response
 
@@ -279,3 +278,72 @@ def format_move_email_response(
         return f"✅ {message}\n📧 Email ID: {email_id}\n📁 Moved from: {previous_folder}\n📁 Moved to: {destination_folder}\n⏱️ Response Time: <3 seconds (target)"
     else:
         return f"❌ {message}\n⏱️ Response Time: <3 seconds (target)"
+
+
+# EmailTool internal helper functions
+def clean_html_content(html_content: str) -> str:
+    """Extract clean text content from HTML, removing styling and formatting"""
+    from personal_assistant.utils.text_cleaner import clean_html_content as clean_html
+    return str(clean_html(html_content))
+
+
+async def process_email_batch(client, headers: dict, batch_num: int, batch_size: int, skip: int, 
+                             ms_graph_url: str, logger) -> List[Dict[str, Any]]:
+    """Process a single batch of emails"""
+    params = build_email_params(
+        top=batch_size,
+        select="id,subject,bodyPreview,receivedDateTime,from,isDraft",
+        skip=skip,
+        orderby="receivedDateTime desc",
+    )
+
+    try:
+        response = await client.get(
+            f"{ms_graph_url}/me/messages",
+            headers=headers,
+            params=params,
+        )
+
+        if response.status_code != 200:
+            logger.error(f"HTTP error {response.status_code} in batch {batch_num}: {response.text}")
+            return []
+
+        batch_emails = response.json().get("value", [])
+        logger.info(f"Retrieved {len(batch_emails)} emails from API in batch {batch_num}")
+        return batch_emails
+
+    except Exception as batch_error:
+        logger.error(f"Error processing batch {batch_num}: {batch_error}")
+        return []
+
+
+def parse_emails_from_batch(batch_emails: List[Dict[str, Any]], logger) -> List[Dict[str, Any]]:
+    """Parse and filter emails from a batch"""
+    parsed_emails = []
+    for mail in batch_emails:
+        if not mail.get("isDraft"):
+            try:
+                parsed_email = parse_email_response(mail)
+                parsed_emails.append(parsed_email)
+                logger.debug(f"Successfully parsed email: {parsed_email.get('subject', 'No Subject')}")
+            except Exception as parse_error:
+                logger.error(f"Failed to parse email: {parse_error}")
+                continue
+    return parsed_emails
+
+
+def format_email_response(emails: List[Dict[str, Any]], requested_count: int, logger) -> str:
+    """Format the final email response"""
+    logger.info(f"Total emails collected: {len(emails)}, about to format response")
+    
+    if not emails:
+        logger.warning("No emails were successfully retrieved")
+        return "No emails found or all batches failed to retrieve emails."
+    
+    try:
+        formatted_response = format_email_list_response(emails[:requested_count], requested_count)
+        logger.info("Successfully formatted email response")
+        return formatted_response
+    except Exception as format_error:
+        logger.error(f"Failed to format email response: {format_error}")
+        return f"Retrieved {len(emails)} emails, but formatting failed: {str(format_error)}"
