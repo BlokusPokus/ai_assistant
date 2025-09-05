@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
-import {
-  Button,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from '@/components/ui';
-import { Brain, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Button, Card, CardContent } from '@/components/ui';
+import { ArrowLeft, CheckCircle } from 'lucide-react';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
 import { useAuthStore } from '@/stores/authStore';

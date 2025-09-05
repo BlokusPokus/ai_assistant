@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuthStore } from '@/stores/authStore';
-import { RefreshCw, Download, BarChart3, TrendingUp, DollarSign, Clock } from 'lucide-react';
+import { RefreshCw, Download, BarChart3 } from 'lucide-react';
 import { Select } from '@/components/ui';
 
 interface SMSAnalyticsData {
@@ -75,13 +74,14 @@ interface SMSAnalyticsWidgetProps {
   showPerformance?: boolean;
 }
 
-const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({ 
-  timeRange = '30d', 
-  showCosts = true, 
-  showPerformance = true 
+const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
+  timeRange = '30d',
+  showCosts = true,
+  showPerformance = true,
 }) => {
-  const { user } = useAuthStore();
-  const [analyticsData, setAnalyticsData] = useState<SMSAnalyticsData | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<SMSAnalyticsData | null>(
+    null
+  );
   const [costData, setCostData] = useState<SMSCostData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,26 +99,26 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
     }, 30000); // 30 seconds
 
     return () => clearInterval(interval);
-  }, [autoRefresh, selectedTimeRange]);
+  }, [autoRefresh, selectedTimeRange, fetchAnalyticsData]);
 
   // Initial data fetch
   useEffect(() => {
     fetchAnalyticsData();
-  }, [selectedTimeRange]);
+  }, [selectedTimeRange, fetchAnalyticsData]);
 
   const fetchAnalyticsData = useCallback(async () => {
     if (isRefreshing) return;
-    
+
     setIsRefreshing(true);
     try {
       setError(null);
-      
+
       // Fetch analytics data
       const analyticsResponse = await fetch(
         `/api/v1/analytics/me/sms-analytics?time_range=${selectedTimeRange}`,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            Authorization: `Bearer ${localStorage.getItem('access_token')}`,
           },
         }
       );
@@ -136,7 +136,7 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
           `/api/v1/analytics/me/sms-costs?time_range=${selectedTimeRange}`,
           {
             headers: {
-              'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+              Authorization: `Bearer ${localStorage.getItem('access_token')}`,
             },
           }
         );
@@ -150,7 +150,9 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Error fetching analytics data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch analytics data');
+      setError(
+        err instanceof Error ? err.message : 'Failed to fetch analytics data'
+      );
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -171,7 +173,7 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
         `/api/v1/analytics/me/sms-usage-report?format=${format}&time_range=${selectedTimeRange}`,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            Authorization: `Bearer ${localStorage.getItem('access_token')}`,
           },
         }
       );
@@ -234,7 +236,9 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
           <div className="text-red-500 mb-4">
             <BarChart3 className="w-16 h-16 mx-auto" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Analytics</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Error Loading Analytics
+          </h3>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={handleManualRefresh}
@@ -254,8 +258,12 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
           <div className="text-gray-400 mb-4">
             <BarChart3 className="w-16 h-16 mx-auto" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Analytics Data</h3>
-          <p className="text-gray-600">No SMS usage data available for the selected time period.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            No Analytics Data
+          </h3>
+          <p className="text-gray-600">
+            No SMS usage data available for the selected time period.
+          </p>
         </div>
       </div>
     );
@@ -266,9 +274,11 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
       {/* Header with Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">SMS Usage Analytics</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            SMS Usage Analytics
+          </h3>
           <p className="text-sm text-gray-600">
-            {formatTimeRange(selectedTimeRange)} • 
+            {formatTimeRange(selectedTimeRange)} •
             {lastUpdated && (
               <span className="ml-2">
                 Last updated: {lastUpdated.toLocaleTimeString()}
@@ -276,20 +286,20 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
             )}
           </p>
         </div>
-        
+
         <div className="flex items-center space-x-3">
           {/* Auto-refresh toggle */}
           <button
             onClick={toggleAutoRefresh}
             className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
-              autoRefresh 
-                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+              autoRefresh
+                ? 'bg-green-100 text-green-700 hover:bg-green-200'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             {autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
           </button>
-          
+
           {/* Manual refresh */}
           <button
             onClick={handleManualRefresh}
@@ -297,23 +307,27 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
             title="Refresh data"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
+            />
           </button>
-          
+
           {/* Time range selector */}
           <Select
             value={selectedTimeRange}
-            onChange={(value) => setSelectedTimeRange(value as '7d' | '30d' | '90d' | '1y')}
+            onChange={value =>
+              setSelectedTimeRange(value as '7d' | '30d' | '90d' | '1y')
+            }
             options={[
               { value: '7d', label: 'Last 7 days' },
               { value: '30d', label: 'Last 30 days' },
               { value: '90d', label: 'Last 90 days' },
-              { value: '1y', label: 'Last year' }
+              { value: '1y', label: 'Last year' },
             ]}
             placeholder="Select time range"
             className="w-48"
           />
-          
+
           {/* Download buttons */}
           <div className="flex space-x-2">
             <button
@@ -342,21 +356,21 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
           </div>
           <div className="text-sm text-blue-800">Total Messages</div>
         </div>
-        
+
         <div className="bg-green-50 p-4 rounded-lg">
           <div className="text-2xl font-bold text-green-600">
             {analyticsData.usage_summary.success_rate}%
           </div>
           <div className="text-sm text-green-800">Success Rate</div>
         </div>
-        
+
         <div className="bg-purple-50 p-4 rounded-lg">
           <div className="text-2xl font-bold text-purple-600">
             {analyticsData.usage_summary.average_processing_time_ms}ms
           </div>
           <div className="text-sm text-purple-800">Avg Response Time</div>
         </div>
-        
+
         <div className="bg-orange-50 p-4 rounded-lg">
           <div className="text-2xl font-bold text-orange-600">
             {analyticsData.usage_summary.total_message_length}
@@ -368,19 +382,25 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
       {/* Message Direction Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="font-semibold text-gray-900 mb-3">Message Direction</h3>
+          <h3 className="font-semibold text-gray-900 mb-3">
+            Message Direction
+          </h3>
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">Inbound:</span>
-              <span className="font-medium">{analyticsData.usage_summary.inbound_messages}</span>
+              <span className="font-medium">
+                {analyticsData.usage_summary.inbound_messages}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">Outbound:</span>
-              <span className="font-medium">{analyticsData.usage_summary.outbound_messages}</span>
+              <span className="font-medium">
+                {analyticsData.usage_summary.outbound_messages}
+              </span>
             </div>
           </div>
         </div>
-        
+
         <div className="bg-gray-50 p-4 rounded-lg">
           <h3 className="font-semibold text-gray-900 mb-3">Performance</h3>
           <div className="space-y-2">
@@ -407,13 +427,17 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <div className="text-lg font-bold text-gray-900">
-                {formatCurrency(costData.cost_breakdown.current_period_costs.total_cost_usd)}
+                {formatCurrency(
+                  costData.cost_breakdown.current_period_costs.total_cost_usd
+                )}
               </div>
               <div className="text-sm text-gray-600">Total Cost</div>
             </div>
             <div>
               <div className="text-lg font-bold text-gray-900">
-                {formatCurrency(costData.cost_breakdown.current_period_costs.cost_per_message)}
+                {formatCurrency(
+                  costData.cost_breakdown.current_period_costs.cost_per_message
+                )}
               </div>
               <div className="text-sm text-gray-600">Cost per Message</div>
             </div>
@@ -424,18 +448,22 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
               <div className="text-sm text-gray-600">Cost Trend</div>
             </div>
           </div>
-          
+
           {/* Optimization Tips */}
           {costData.cost_breakdown.optimization_tips.length > 0 && (
             <div className="mt-4">
-              <h4 className="font-medium text-gray-900 mb-2">Optimization Tips</h4>
+              <h4 className="font-medium text-gray-900 mb-2">
+                Optimization Tips
+              </h4>
               <ul className="text-sm text-gray-600 space-y-1">
-                {costData.cost_breakdown.optimization_tips.slice(0, 3).map((tip, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-blue-500 mr-2">•</span>
-                    {tip}
-                  </li>
-                ))}
+                {costData.cost_breakdown.optimization_tips
+                  .slice(0, 3)
+                  .map((tip, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="text-blue-500 mr-2">•</span>
+                      {tip}
+                    </li>
+                  ))}
               </ul>
             </div>
           )}
@@ -445,23 +473,37 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
       {/* Performance Metrics */}
       {showPerformance && (
         <div className="bg-gray-50 p-4 rounded-lg mb-6">
-          <h3 className="font-semibold text-gray-900 mb-3">Performance Metrics</h3>
+          <h3 className="font-semibold text-gray-900 mb-3">
+            Performance Metrics
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <div className="text-lg font-bold text-gray-900">
-                {analyticsData.performance_metrics.processing_time_metrics.average_ms}ms
+                {
+                  analyticsData.performance_metrics.processing_time_metrics
+                    .average_ms
+                }
+                ms
               </div>
               <div className="text-sm text-gray-600">Avg Response Time</div>
             </div>
             <div>
               <div className="text-lg font-bold text-gray-900">
-                {analyticsData.performance_metrics.processing_time_metrics.minimum_ms}ms
+                {
+                  analyticsData.performance_metrics.processing_time_metrics
+                    .minimum_ms
+                }
+                ms
               </div>
               <div className="text-sm text-gray-600">Min Response Time</div>
             </div>
             <div>
               <div className="text-lg font-bold text-gray-900">
-                {analyticsData.performance_metrics.processing_time_metrics.maximum_ms}ms
+                {
+                  analyticsData.performance_metrics.processing_time_metrics
+                    .maximum_ms
+                }
+                ms
               </div>
               <div className="text-sm text-gray-600">Max Response Time</div>
             </div>
@@ -478,11 +520,14 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
               {analyticsData.usage_trends.trend_analysis.trend}
             </div>
             <div className="text-sm text-gray-600">
-              {analyticsData.usage_trends.trend_analysis.change_percentage > 0 ? '+' : ''}
-              {analyticsData.usage_trends.trend_analysis.change_percentage}% change
+              {analyticsData.usage_trends.trend_analysis.change_percentage > 0
+                ? '+'
+                : ''}
+              {analyticsData.usage_trends.trend_analysis.change_percentage}%
+              change
             </div>
           </div>
-          
+
           {analyticsData.usage_summary.usage_patterns.peak_hour !== null && (
             <div className="text-right">
               <div className="text-lg font-bold text-gray-900">

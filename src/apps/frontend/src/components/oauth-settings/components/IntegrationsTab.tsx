@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useOAuthSettingsStore } from '../../../stores/oauthSettingsStore';
-import type { OAuthIntegrationEnhanced } from '../../../services/oauthSettingsService';
 
 export const IntegrationsTab: React.FC = () => {
   const { integrations, loading, refreshIntegration, revokeIntegration } =

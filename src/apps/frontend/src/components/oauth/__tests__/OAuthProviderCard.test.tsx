@@ -10,14 +10,28 @@ vi.mock('@/stores/oauthStore', () => ({
 
 // Mock the UI components
 vi.mock('@/components/ui', () => ({
-  Button: ({ children, onClick, disabled, className }: any) => (
+  Button: ({
+    children,
+    onClick,
+    disabled,
+    className,
+  }: {
+    children: React.ReactNode;
+    onClick?: () => void;
+    disabled?: boolean;
+    className?: string;
+  }) => (
     <button onClick={onClick} disabled={disabled} className={className}>
       {children}
     </button>
   ),
-  Card: ({ children, className }: any) => (
-    <div className={className}>{children}</div>
-  ),
+  Card: ({
+    children,
+    className,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+  }) => <div className={className}>{children}</div>,
 }));
 
 describe('OAuthProviderCard', () => {
@@ -34,7 +48,7 @@ describe('OAuthProviderCard', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useOAuthStore as any).mockReturnValue(mockStore);
+    (useOAuthStore as ReturnType<typeof vi.fn>).mockReturnValue(mockStore);
   });
 
   it('renders provider information correctly', () => {

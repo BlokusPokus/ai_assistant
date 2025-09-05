@@ -403,7 +403,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
               error={errors.phoneNumber?.message}
               {...register('phoneNumber', {
                 pattern: {
-                  value: /^[\+]?[1-9][\d]{0,15}$/,
+                  value: /^[+]?[1-9][\d]{0,15}$/,
                   message: 'Please enter a valid phone number',
                 },
               })}
