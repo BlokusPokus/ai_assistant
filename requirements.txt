@@ -76,7 +76,7 @@ mypy>=1.8.0,<2.0.0
 types-requests>=2.31.0,<2.32.0  # Type stubs for requests library (compatible with urllib3~=1.26)
 safety>=3.0.1,<4.0.0
 bandit>=1.7.5,<2.0.0
-semgrep>=1.45.0,<1.50.0
+semgrep>=1.45.0,<1.136.0
 pip-audit>=2.6.1,<3.0.0
 
 # Redis (if you're using it)
