@@ -54,7 +54,7 @@ jobs:
           - test-suite: regression
             timeout: 600
             mock-external: true
-            test-path: "tests/completed_tasks/"
+            test-path: "tests/test_auth/"
 
     services:
       postgres:
