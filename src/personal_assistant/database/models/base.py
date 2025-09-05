@@ -1,6 +1,7 @@
+from typing import Any
+
 from sqlalchemy import Column, DateTime, Integer, func
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from typing import Any
 
 Base = declarative_base()
 

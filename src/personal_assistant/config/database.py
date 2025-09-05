@@ -22,8 +22,8 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
-    create_async_engine,
     async_sessionmaker,
+    create_async_engine,
 )
 from sqlalchemy.pool import AsyncAdaptedQueuePool
 
