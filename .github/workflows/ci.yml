@@ -348,7 +348,7 @@ jobs:
 
       - name: Run performance tests
         run: |
-          pytest tests/test_auth/test_performance.py -v --benchmark-only --benchmark-save=performance --timeout=1200 --timeout-method=thread
+          pytest tests/test_auth/test_performance.py -v --benchmark-only --benchmark-save=performance --timeout=1200 --timeout-method=thread -c pytest.ini
 
       - name: Upload performance results
         uses: actions/upload-artifact@v4
