@@ -114,7 +114,7 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio pytest-benchmark pytest-xdist
           sudo apt-get update && sudo apt-get install -y netcat-openbsd
-          
+
           # Additional dependencies for performance tests
           if [ "${{ matrix.test-suite }}" == "performance" ]; then
             echo "Installing additional performance test dependencies..."
@@ -242,14 +242,14 @@ jobs:
           failed_suites=()
           critical_suites=("unit" "integration" "e2e" "regression")
           optional_suites=("performance")
-          
+
           # Check critical test suites
           for suite in "${critical_suites[@]}"; do
             if [ ! -d "test-results/test-results-$suite" ]; then
               failed_suites+=($suite)
             fi
           done
-          
+
           # Check optional test suites (warn but don't fail)
           for suite in "${optional_suites[@]}"; do
             if [ ! -d "test-results/test-results-$suite" ]; then
