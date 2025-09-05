@@ -170,14 +170,6 @@ jobs:
 
       - name: Run GitLeaks secret scanner
         uses: gitleaks/gitleaks-action@v2
-        with:
-          config-path: .gitleaks.toml
-          report-format: sarif
-          report-path: results.sarif
-          redact: true
-          verbose: true
-          exit-code: 0
-          no-git: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
