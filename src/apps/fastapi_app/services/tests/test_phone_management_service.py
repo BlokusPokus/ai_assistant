@@ -6,18 +6,17 @@ CRUD operations, verification, and primary phone selection.
 """
 
 import unittest
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
 from datetime import datetime, timezone
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from unittest.mock import AsyncMock, Mock, patch
 
-from personal_assistant.database.models.users import User
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from apps.fastapi_app.services.phone_management_service import PhoneManagementService
+from personal_assistant.communication.twilio_integration.twilio_client import (
+    TwilioService,
+)
 from personal_assistant.sms_router.models.sms_models import UserPhoneMapping
 from personal_assistant.sms_router.services.phone_validator import PhoneValidator
-from personal_assistant.communication.twilio_integration.twilio_client import TwilioService
-from personal_assistant.core import AgentCore
-from apps.fastapi_app.services.phone_management_service import PhoneManagementService
 
 
 class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
@@ -41,7 +40,7 @@ class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
 
         # Configure mock database to handle async operations properly
         self.mock_db.execute.side_effect = None  # Reset side effect
-        self.mock_db.commit.side_effect = None   # Reset side effect
+        self.mock_db.commit.side_effect = None  # Reset side effect
 
         # Ensure all async methods return proper values
         self.mock_db.commit.return_value = None
@@ -57,10 +56,13 @@ class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
         self.mock_twilio_service.send_verification_sms = AsyncMock()
 
         # Create service instance with mocked dependencies
-        with patch('apps.fastapi_app.services.phone_management_service.PhoneValidator') as mock_validator_class, \
-                patch('apps.fastapi_app.services.phone_management_service.TwilioService') as mock_twilio_class, \
-                patch('apps.fastapi_app.services.phone_management_service.UserPhoneMapping') as mock_mapping_class:
-
+        with patch(
+            "apps.fastapi_app.services.phone_management_service.PhoneValidator"
+        ) as mock_validator_class, patch(
+            "apps.fastapi_app.services.phone_management_service.TwilioService"
+        ) as mock_twilio_class, patch(
+            "apps.fastapi_app.services.phone_management_service.UserPhoneMapping"
+        ) as mock_mapping_class:
             mock_validator_class.return_value = self.mock_phone_validator
             mock_twilio_class.return_value = self.mock_twilio_service
             mock_mapping_class.return_value = self.mock_mapping_class.return_value
@@ -96,10 +98,8 @@ class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
         mapping2.updated_at = None
 
         mappings_result = Mock()
-        mappings_result.scalars.return_value.all.return_value = [
-            mapping1, mapping2]
-        self.mock_db.execute.side_effect = [
-            primary_phone_result, mappings_result]
+        mappings_result.scalars.return_value.all.return_value = [mapping1, mapping2]
+        self.mock_db.execute.side_effect = [primary_phone_result, mappings_result]
 
         # Call the method
         result = await self.service.get_user_phone_numbers(123)
@@ -110,24 +110,24 @@ class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
         # Check primary phone
         primary_phone = result[0]
         # Primary phone from users table has ID 0
-        self.assertEqual(primary_phone['id'], 0)
-        self.assertEqual(primary_phone['phone_number'], "+1234567890")
-        self.assertTrue(primary_phone['is_primary'])
-        self.assertTrue(primary_phone['is_verified'])
+        self.assertEqual(primary_phone["id"], 0)
+        self.assertEqual(primary_phone["phone_number"], "+1234567890")
+        self.assertTrue(primary_phone["is_primary"])
+        self.assertTrue(primary_phone["is_verified"])
 
         # Check first mapping
         first_mapping = result[1]
-        self.assertEqual(first_mapping['id'], 1)
-        self.assertEqual(first_mapping['phone_number'], "+1987654321")
-        self.assertFalse(first_mapping['is_primary'])
-        self.assertTrue(first_mapping['is_verified'])
+        self.assertEqual(first_mapping["id"], 1)
+        self.assertEqual(first_mapping["phone_number"], "+1987654321")
+        self.assertFalse(first_mapping["is_primary"])
+        self.assertTrue(first_mapping["is_verified"])
 
         # Check second mapping
         second_mapping = result[2]
-        self.assertEqual(second_mapping['id'], 2)
-        self.assertEqual(second_mapping['phone_number'], "+1555123456")
-        self.assertTrue(second_mapping['is_primary'])
-        self.assertFalse(second_mapping['is_verified'])
+        self.assertEqual(second_mapping["id"], 2)
+        self.assertEqual(second_mapping["phone_number"], "+1555123456")
+        self.assertTrue(second_mapping["is_primary"])
+        self.assertFalse(second_mapping["is_verified"])
 
     async def test_get_user_phone_numbers_no_primary(self):
         """Test getting user phone numbers with no primary phone."""
@@ -139,8 +139,7 @@ class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
         # Mock no additional phone mappings
         mappings_result = Mock()
         mappings_result.scalars.return_value.all.return_value = []
-        self.mock_db.execute.side_effect = [
-            primary_phone_result, mappings_result]
+        self.mock_db.execute.side_effect = [primary_phone_result, mappings_result]
 
         # Call the method
         result = await self.service.get_user_phone_numbers(123)
@@ -162,13 +161,21 @@ class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
         mapping_result = Mock()
         mapping_result.scalar_one_or_none.return_value = None
         self.mock_db.execute.side_effect = [
-            primary_phone_result, mapping_result, mapping_result]
+            primary_phone_result,
+            mapping_result,
+            mapping_result,
+        ]
 
         # Mock no other user using this phone
         other_user_result = Mock()
         other_user_result.scalar_one_or_none.return_value = None
-        self.mock_db.execute.side_effect = [primary_phone_result, mapping_result, mapping_result,
-                                            other_user_result, other_user_result]
+        self.mock_db.execute.side_effect = [
+            primary_phone_result,
+            mapping_result,
+            mapping_result,
+            other_user_result,
+            other_user_result,
+        ]
 
         # Mock the new mapping object
         new_mapping = Mock(spec=UserPhoneMapping)
@@ -182,15 +189,17 @@ class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
         new_mapping.updated_at = None
 
         # Call the method
-        result = await self.service.add_user_phone_number(123, "+1234567890", False, "sms")
+        result = await self.service.add_user_phone_number(
+            123, "+1234567890", False, "sms"
+        )
 
         # Verify results
         self.assertIsNotNone(result)
-        self.assertEqual(result['phone_number'], "+1234567890")
-        self.assertEqual(result['user_id'], 123)
-        self.assertFalse(result['is_primary'])
-        self.assertFalse(result['is_verified'])
-        self.assertEqual(result['verification_method'], "sms")
+        self.assertEqual(result["phone_number"], "+1234567890")
+        self.assertEqual(result["user_id"], 123)
+        self.assertFalse(result["is_primary"])
+        self.assertFalse(result["is_verified"])
+        self.assertEqual(result["verification_method"], "sms")
 
         # Verify database operations
         self.mock_db.add.assert_called_once()
@@ -219,7 +228,9 @@ class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
         self.mock_db.execute.return_value = primary_phone_result
 
         # Call the method
-        result = await self.service.add_user_phone_number(123, "+1234567890", False, "sms")
+        result = await self.service.add_user_phone_number(
+            123, "+1234567890", False, "sms"
+        )
 
         # Verify result
         self.assertIsNone(result)
@@ -238,16 +249,26 @@ class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
         mapping_result = Mock()
         mapping_result.scalar_one_or_none.return_value = None
         self.mock_db.execute.side_effect = [
-            primary_phone_result, mapping_result, mapping_result]
+            primary_phone_result,
+            mapping_result,
+            mapping_result,
+        ]
 
         # Mock other user using this phone
         other_user_result = Mock()
         other_user_result.scalar_one_or_none.return_value = 456  # Other user ID
-        self.mock_db.execute.side_effect = [primary_phone_result, mapping_result, mapping_result,
-                                            other_user_result, other_user_result]
+        self.mock_db.execute.side_effect = [
+            primary_phone_result,
+            mapping_result,
+            mapping_result,
+            other_user_result,
+            other_user_result,
+        ]
 
         # Call the method
-        result = await self.service.add_user_phone_number(123, "+1234567890", False, "sms")
+        result = await self.service.add_user_phone_number(
+            123, "+1234567890", False, "sms"
+        )
 
         # Verify result
         self.assertIsNone(result)
@@ -282,22 +303,22 @@ class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
 
         # Mock refresh to return updated mapping
         self.mock_db.refresh.side_effect = lambda obj: setattr(
-            obj, 'phone_number', "+1987654321") or setattr(obj, 'is_primary', True)
+            obj, "phone_number", "+1987654321"
+        ) or setattr(obj, "is_primary", True)
 
         # Mock phone validation
         self.mock_phone_validator.normalize_phone_number.return_value = "+1987654321"
 
         # Call the method
-        result = await self.service.update_user_phone_number(123, 1, {
-            'phone_number': '+1987654321',
-            'is_primary': True
-        })
+        result = await self.service.update_user_phone_number(
+            123, 1, {"phone_number": "+1987654321", "is_primary": True}
+        )
 
         # Verify results
         self.assertIsNotNone(result)
         # The mock object should reflect the updated values after refresh
-        self.assertEqual(result['phone_number'], "+1987654321")
-        self.assertTrue(result['is_primary'])
+        self.assertEqual(result["phone_number"], "+1987654321")
+        self.assertTrue(result["is_primary"])
 
         # Verify database operations
         self.mock_db.commit.assert_called_once()
@@ -311,7 +332,9 @@ class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
         self.mock_db.execute.return_value = mapping_result
 
         # Call the method
-        result = await self.service.update_user_phone_number(123, 999, {'phone_number': '+1987654321'})
+        result = await self.service.update_user_phone_number(
+            123, 999, {"phone_number": "+1987654321"}
+        )
 
         # Verify result
         self.assertIsNone(result)
@@ -405,13 +428,15 @@ class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
 
         # Verify TwilioService was called
         self.mock_twilio_service.send_verification_sms.assert_called_once_with(
-            "+1234567890", result)
+            "+1234567890", result
+        )
 
     async def test_send_verification_code_twilio_error(self):
         """Test sending verification code with Twilio error."""
         # Mock TwilioService error
         self.mock_twilio_service.send_verification_sms.side_effect = Exception(
-            "Twilio error")
+            "Twilio error"
+        )
 
         # Call the method
         result = await self.service.send_verification_code(123, "+1234567890")
@@ -454,5 +479,5 @@ class TestPhoneManagementService(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

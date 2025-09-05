@@ -6,4 +6,4 @@ This package provides tools for managing Notion note pages with bidirectional li
 
 from .notion_pages_tool import NotionPagesTool
 
-__all__ = ['NotionPagesTool']
+__all__ = ["NotionPagesTool"]

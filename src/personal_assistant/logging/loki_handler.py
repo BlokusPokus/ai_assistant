@@ -7,10 +7,11 @@ Provides Loki integration for shipping structured logs to centralized log storag
 
 import logging
 import os
-from typing import Optional, Dict, Any
+from typing import Dict, Optional
 
 try:
     from python_logging_loki import LokiHandler
+
     LOKI_AVAILABLE = True
 except ImportError:
     LOKI_AVAILABLE = False
@@ -20,9 +21,7 @@ from ..config.settings import settings
 
 
 def create_loki_handler(
-    url: Optional[str] = None,
-    tags: Optional[Dict[str, str]] = None,
-    version: str = "1"
+    url: Optional[str] = None, tags: Optional[Dict[str, str]] = None, version: str = "1"
 ) -> Optional[LokiHandler]:
     """
     Create a Loki handler for shipping logs to Loki.
@@ -51,7 +50,7 @@ def create_loki_handler(
     default_tags = {
         "application": "personal_assistant",
         "environment": settings.ENVIRONMENT,
-        "service": "api"
+        "service": "api",
     }
 
     # Merge with provided tags
@@ -59,11 +58,7 @@ def create_loki_handler(
         default_tags.update(tags)
 
     try:
-        handler = LokiHandler(
-            url=loki_url,
-            tags=default_tags,
-            version=version
-        )
+        handler = LokiHandler(url=loki_url, tags=default_tags, version=version)
         print(f"🔧 Loki handler created successfully: {loki_url}")
         return handler
     except Exception as e:
@@ -75,7 +70,7 @@ def add_loki_handler_to_logger(
     logger: logging.Logger,
     url: Optional[str] = None,
     tags: Optional[Dict[str, str]] = None,
-    level: int = logging.INFO
+    level: int = logging.INFO,
 ) -> bool:
     """
     Add Loki handler to a logger.
@@ -102,7 +97,7 @@ def add_loki_handler_to_logger(
 def configure_loki_logging(
     use_loki: Optional[bool] = None,
     url: Optional[str] = None,
-    tags: Optional[Dict[str, str]] = None
+    tags: Optional[Dict[str, str]] = None,
 ) -> bool:
     """
     Configure Loki logging for all module loggers.
@@ -117,12 +112,12 @@ def configure_loki_logging(
     """
     # Determine if Loki should be used
     if use_loki is None:
-        use_loki = getattr(settings, 'LOG_TO_LOKI', False)
+        use_loki = getattr(settings, "LOG_TO_LOKI", False)
 
     # Check environment variable override
     env_loki = os.getenv("PA_LOG_TO_LOKI")
     if env_loki:
-        use_loki = env_loki.lower() in ('true', '1', 'yes', 'on')
+        use_loki = env_loki.lower() in ("true", "1", "yes", "on")
 
     if not use_loki:
         print("🔧 Loki logging disabled")
@@ -146,8 +141,7 @@ def configure_loki_logging(
         if add_loki_handler_to_logger(logger, url, module_tags):
             success_count += 1
 
-    print(
-        f"🔧 Loki logging configured for {success_count}/{len(modules)} modules")
+    print(f"🔧 Loki logging configured for {success_count}/{len(modules)} modules")
     return success_count > 0
 
 

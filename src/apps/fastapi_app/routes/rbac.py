@@ -5,19 +5,24 @@ This module provides endpoints for managing roles, permissions,
 and viewing audit logs. All endpoints require appropriate permissions.
 """
 
-from datetime import datetime, timedelta
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
-from pydantic import BaseModel, EmailStr
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from datetime import datetime
+from typing import AsyncGenerator, List, Optional
 
-from personal_assistant.database.session import AsyncSessionLocal
-from personal_assistant.database.models.users import User
-from personal_assistant.database.models.rbac_models import Role, Permission, UserRole, AccessAuditLog
-from personal_assistant.auth.permission_service import PermissionService
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from apps.fastapi_app.routes.auth import get_current_user
 from personal_assistant.auth.decorators import require_admin, require_rbac_permission
-from apps.fastapi_app.routes.auth import get_current_user, get_db
+from personal_assistant.auth.permission_service import PermissionService
+from personal_assistant.database.models.rbac_models import (
+    Permission,
+    Role,
+    UserRole,
+)
+from personal_assistant.database.models.users import User
+from personal_assistant.database.session import AsyncSessionLocal
 
 # Create router
 router = APIRouter(prefix="/api/v1/rbac", tags=["RBAC Management"])
@@ -27,6 +32,7 @@ router = APIRouter(prefix="/api/v1/rbac", tags=["RBAC Management"])
 
 class RoleCreate(BaseModel):
     """Request model for creating a new role."""
+
     name: str
     description: Optional[str] = None
     parent_role_id: Optional[int] = None
@@ -34,12 +40,14 @@ class RoleCreate(BaseModel):
 
 class RoleUpdate(BaseModel):
     """Request model for updating a role."""
+
     description: Optional[str] = None
     parent_role_id: Optional[int] = None
 
 
 class RoleResponse(BaseModel):
     """Response model for role information."""
+
     id: int
     name: str
     description: Optional[str]
@@ -50,6 +58,7 @@ class RoleResponse(BaseModel):
 
 class PermissionResponse(BaseModel):
     """Response model for permission information."""
+
     id: int
     name: str
     resource_type: str
@@ -60,6 +69,7 @@ class PermissionResponse(BaseModel):
 
 class UserRoleGrant(BaseModel):
     """Request model for granting a role to a user."""
+
     role_name: str
     is_primary: bool = False
     expires_at: Optional[datetime] = None
@@ -67,6 +77,7 @@ class UserRoleGrant(BaseModel):
 
 class UserRoleResponse(BaseModel):
     """Response model for user role information."""
+
     id: int
     user_id: int
     role_name: str
@@ -78,6 +89,7 @@ class UserRoleResponse(BaseModel):
 
 class UserPermissionsResponse(BaseModel):
     """Response model for user permissions."""
+
     user_id: int
     roles: List[str]
     permissions: List[str]
@@ -85,6 +97,7 @@ class UserPermissionsResponse(BaseModel):
 
 class AuditLogResponse(BaseModel):
     """Response model for audit log entries."""
+
     id: int
     user_id: int
     resource_type: str
@@ -99,37 +112,46 @@ class AuditLogResponse(BaseModel):
 
 class RoleListResponse(BaseModel):
     """Response model for list of roles."""
+
     roles: List[RoleResponse]
     total: int
 
 
 class PermissionListResponse(BaseModel):
     """Response model for list of permissions."""
+
     permissions: List[PermissionResponse]
     total: int
 
 
 class AuditLogListResponse(BaseModel):
     """Response model for list of audit logs."""
+
     logs: List[AuditLogResponse]
     total: int
 
 
 # Dependency to get database session
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session."""
-    async with AsyncSessionLocal() as session:
+    from personal_assistant.database.session import _get_session_factory
+
+    session = _get_session_factory()()
+    try:
         yield session
+    finally:
+        await session.close()
 
 
 # Role Management Endpoints
+
 
 @router.post("/roles", response_model=RoleResponse)
 @require_admin()
 async def create_role(
     role_data: RoleCreate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Create a new role (administrator only).
@@ -153,14 +175,14 @@ async def create_role(
         if existing_role.scalar_one_or_none():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Role '{role_data.name}' already exists"
+                detail=f"Role '{role_data.name}' already exists",
             )
 
         # Create new role
         new_role = Role(
             name=role_data.name,
             description=role_data.description,
-            parent_role_id=role_data.parent_role_id
+            parent_role_id=role_data.parent_role_id,
         )
 
         db.add(new_role)
@@ -168,12 +190,14 @@ async def create_role(
         await db.refresh(new_role)
 
         return RoleResponse(
-            id=new_role.id,
-            name=new_role.name,
-            description=new_role.description,
-            parent_role_id=new_role.parent_role_id,
+            id=int(new_role.id),
+            name=str(new_role.name),
+            description=str(new_role.description) if new_role.description else None,
+            parent_role_id=int(new_role.parent_role_id)
+            if new_role.parent_role_id
+            else None,
             created_at=new_role.created_at,
-            updated_at=new_role.updated_at
+            updated_at=new_role.updated_at,
         )
 
     except HTTPException:
@@ -182,7 +206,7 @@ async def create_role(
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create role: {str(e)}"
+            detail=f"Failed to create role: {str(e)}",
         )
 
 
@@ -191,7 +215,7 @@ async def create_role(
 async def list_roles(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     List all roles with pagination.
@@ -217,12 +241,14 @@ async def list_roles(
 
         role_responses = [
             RoleResponse(
-                id=role.id,
-                name=role.name,
-                description=role.description,
-                parent_role_id=role.parent_role_id,
+                id=int(role.id),
+                name=str(role.name),
+                description=str(role.description) if role.description else None,
+                parent_role_id=int(role.parent_role_id)
+                if role.parent_role_id
+                else None,
                 created_at=role.created_at,
-                updated_at=role.updated_at
+                updated_at=role.updated_at,
             )
             for role in roles
         ]
@@ -232,16 +258,13 @@ async def list_roles(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list roles: {str(e)}"
+            detail=f"Failed to list roles: {str(e)}",
         )
 
 
 @router.get("/roles/{role_id}", response_model=RoleResponse)
 @require_rbac_permission("read")
-async def get_role(
-    role_id: int,
-    db: AsyncSession = Depends(get_db)
-):
+async def get_role(role_id: int, db: AsyncSession = Depends(get_db)):
     """
     Get role by ID.
 
@@ -262,16 +285,18 @@ async def get_role(
         if not role_obj:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Role with ID {role_id} not found"
+                detail=f"Role with ID {role_id} not found",
             )
 
         return RoleResponse(
-            id=role_obj.id,
-            name=role_obj.name,
-            description=role_obj.description,
-            parent_role_id=role_obj.parent_role_id,
+            id=int(role_obj.id),
+            name=str(role_obj.name),
+            description=str(role_obj.description) if role_obj.description else None,
+            parent_role_id=int(role_obj.parent_role_id)
+            if role_obj.parent_role_id
+            else None,
             created_at=role_obj.created_at,
-            updated_at=role_obj.updated_at
+            updated_at=role_obj.updated_at,
         )
 
     except HTTPException:
@@ -279,7 +304,7 @@ async def get_role(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get role: {str(e)}"
+            detail=f"Failed to get role: {str(e)}",
         )
 
 
@@ -289,7 +314,7 @@ async def update_role(
     role_id: int,
     role_data: RoleUpdate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Update role information (administrator only).
@@ -313,7 +338,7 @@ async def update_role(
         if not role_obj:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Role with ID {role_id} not found"
+                detail=f"Role with ID {role_id} not found",
             )
 
         # Update role fields
@@ -326,12 +351,14 @@ async def update_role(
         await db.refresh(role_obj)
 
         return RoleResponse(
-            id=role_obj.id,
-            name=role_obj.name,
-            description=role_obj.description,
-            parent_role_id=role_obj.parent_role_id,
+            id=int(role_obj.id),
+            name=str(role_obj.name),
+            description=str(role_obj.description) if role_obj.description else None,
+            parent_role_id=int(role_obj.parent_role_id)
+            if role_obj.parent_role_id
+            else None,
             created_at=role_obj.created_at,
-            updated_at=role_obj.updated_at
+            updated_at=role_obj.updated_at,
         )
 
     except HTTPException:
@@ -340,11 +367,12 @@ async def update_role(
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update role: {str(e)}"
+            detail=f"Failed to update role: {str(e)}",
         )
 
 
 # User Role Management Endpoints
+
 
 @router.post("/users/{user_id}/roles", response_model=UserRoleResponse)
 @require_admin()
@@ -352,7 +380,7 @@ async def grant_role(
     user_id: int,
     role_data: UserRoleGrant,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Grant role to user (administrator only).
@@ -375,24 +403,27 @@ async def grant_role(
         success = await permission_service.grant_role(
             user_id=user_id,
             role_name=role_data.role_name,
-            granted_by=current_user.id,
+            granted_by=int(current_user.id),
             is_primary=role_data.is_primary,
-            expires_at=role_data.expires_at
+            expires_at=role_data.expires_at,
         )
 
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Failed to grant role '{role_data.role_name}' to user {user_id}"
+                detail=f"Failed to grant role '{role_data.role_name}' to user {user_id}",
             )
 
         # Get the created user role
         user_role = await db.execute(
             select(UserRole).where(
                 UserRole.user_id == user_id,
-                UserRole.role_id == (await db.execute(
-                    select(Role.id).where(Role.name == role_data.role_name)
-                )).scalar_one()
+                UserRole.role_id
+                == (
+                    await db.execute(
+                        select(Role.id).where(Role.name == role_data.role_name)
+                    )
+                ).scalar_one(),
             )
         )
         user_role_obj = user_role.scalar_one_or_none()
@@ -400,17 +431,19 @@ async def grant_role(
         if not user_role_obj:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Role granted but user role not found"
+                detail="Role granted but user role not found",
             )
 
         return UserRoleResponse(
-            id=user_role_obj.id,
-            user_id=user_role_obj.user_id,
+            id=int(user_role_obj.id),
+            user_id=int(user_role_obj.user_id),
             role_name=role_data.role_name,
-            is_primary=user_role_obj.is_primary,
-            granted_by=user_role_obj.granted_by,
+            is_primary=bool(user_role_obj.is_primary),
+            granted_by=int(user_role_obj.granted_by)
+            if user_role_obj.granted_by
+            else None,
             granted_at=user_role_obj.granted_at,
-            expires_at=user_role_obj.expires_at
+            expires_at=user_role_obj.expires_at,
         )
 
     except HTTPException:
@@ -418,7 +451,7 @@ async def grant_role(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to grant role: {str(e)}"
+            detail=f"Failed to grant role: {str(e)}",
         )
 
 
@@ -428,7 +461,7 @@ async def revoke_role(
     user_id: int,
     role_name: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Revoke role from user (administrator only).
@@ -449,15 +482,13 @@ async def revoke_role(
         permission_service = PermissionService(db)
 
         success = await permission_service.revoke_role(
-            user_id=user_id,
-            role_name=role_name,
-            revoked_by=current_user.id
+            user_id=user_id, role_name=role_name, revoked_by=int(current_user.id)
         )
 
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Failed to revoke role '{role_name}' from user {user_id}"
+                detail=f"Failed to revoke role '{role_name}' from user {user_id}",
             )
 
         return {"message": f"Role '{role_name}' revoked from user {user_id}"}
@@ -467,16 +498,13 @@ async def revoke_role(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to revoke role: {str(e)}"
+            detail=f"Failed to revoke role: {str(e)}",
         )
 
 
 @router.get("/users/{user_id}/permissions", response_model=UserPermissionsResponse)
 @require_rbac_permission("read")
-async def get_user_permissions(
-    user_id: int,
-    db: AsyncSession = Depends(get_db)
-):
+async def get_user_permissions(user_id: int, db: AsyncSession = Depends(get_db)):
     """
     Get all permissions for a user including inherited roles.
 
@@ -495,25 +523,24 @@ async def get_user_permissions(
 
         # Get user roles
         user_roles = await permission_service.get_user_roles(user_id)
-        role_names = [role.name for role in user_roles]
+        role_names = [str(role.name) for role in user_roles]
 
         # Get user permissions
         permissions = await permission_service.get_user_permissions(user_id)
 
         return UserPermissionsResponse(
-            user_id=user_id,
-            roles=role_names,
-            permissions=list(permissions)
+            user_id=user_id, roles=role_names, permissions=list(permissions)
         )
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get user permissions: {str(e)}"
+            detail=f"Failed to get user permissions: {str(e)}",
         )
 
 
 # Permission Management Endpoints
+
 
 @router.get("/permissions", response_model=PermissionListResponse)
 @require_rbac_permission("read")
@@ -522,7 +549,7 @@ async def list_permissions(
     limit: int = Query(100, ge=1, le=1000),
     resource_type: Optional[str] = Query(None),
     action: Optional[str] = Query(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     List all permissions with optional filtering.
@@ -546,27 +573,28 @@ async def list_permissions(
             conditions.append(Permission.action == action)
 
         # Get total count
-        count_stmt = select(Permission).where(
-            conditions[0] if conditions else True
-        )
+        count_stmt = select(Permission)
+        if conditions:
+            count_stmt = count_stmt.where(*conditions)
         count_result = await db.execute(count_stmt)
         total = len(count_result.scalars().all())
 
         # Get permissions with pagination
-        permissions_stmt = select(Permission).where(
-            conditions[0] if conditions else True
-        ).offset(skip).limit(limit)
+        permissions_stmt = select(Permission)
+        if conditions:
+            permissions_stmt = permissions_stmt.where(*conditions)
+        permissions_stmt = permissions_stmt.offset(skip).limit(limit)
         permissions_result = await db.execute(permissions_stmt)
         permissions = permissions_result.scalars().all()
 
         permission_responses = [
             PermissionResponse(
-                id=perm.id,
-                name=perm.name,
-                resource_type=perm.resource_type,
-                action=perm.action,
-                description=perm.description,
-                created_at=perm.created_at
+                id=int(perm.id),
+                name=str(perm.name),
+                resource_type=str(perm.resource_type),
+                action=str(perm.action),
+                description=str(perm.description) if perm.description else None,
+                created_at=perm.created_at,
             )
             for perm in permissions
         ]
@@ -576,11 +604,12 @@ async def list_permissions(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list permissions: {str(e)}"
+            detail=f"Failed to list permissions: {str(e)}",
         )
 
 
 # Audit Log Endpoints
+
 
 @router.get("/audit-logs", response_model=AuditLogListResponse)
 @require_admin()
@@ -593,7 +622,7 @@ async def get_audit_logs(
     end_date: Optional[datetime] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Get audit logs with filtering options (administrator only).
@@ -624,22 +653,22 @@ async def get_audit_logs(
             start_date=start_date,
             end_date=end_date,
             limit=limit,
-            offset=skip
+            offset=skip,
         )
 
         # Convert to response models
         log_responses = [
             AuditLogResponse(
-                id=log.id,
-                user_id=log.user_id,
-                resource_type=log.resource_type,
-                resource_id=log.resource_id,
-                action=log.action,
-                permission_granted=log.permission_granted,
-                roles_checked=log.roles_checked or [],
+                id=int(log.id),
+                user_id=int(log.user_id),
+                resource_type=str(log.resource_type),
+                resource_id=int(log.resource_id) if log.resource_id else None,
+                action=str(log.action),
+                permission_granted=bool(log.permission_granted),
+                roles_checked=list(log.roles_checked) if log.roles_checked else [],
                 ip_address=str(log.ip_address) if log.ip_address else None,
-                user_agent=log.user_agent,
-                created_at=log.created_at
+                user_agent=str(log.user_agent) if log.user_agent else None,
+                created_at=log.created_at,
             )
             for log in logs
         ]
@@ -652,11 +681,12 @@ async def get_audit_logs(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get audit logs: {str(e)}"
+            detail=f"Failed to get audit logs: {str(e)}",
         )
 
 
 # Health Check Endpoint
+
 
 @router.get("/health")
 async def rbac_health_check():
@@ -670,5 +700,5 @@ async def rbac_health_check():
         "status": "healthy",
         "service": "RBAC Management",
         "timestamp": datetime.utcnow().isoformat(),
-        "version": "1.0.0"
+        "version": "1.0.0",
     }

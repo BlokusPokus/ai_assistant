@@ -6,7 +6,7 @@ This module handles the execution of AI tasks using the AI assistant.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from ...database.models.ai_tasks import AITask
 
@@ -43,7 +43,7 @@ class TaskExecutor:
 
             # Execute with AI assistant
             agent = AgentCore()
-            response = await agent.run(ai_prompt, task.user_id)
+            response = await agent.run(ai_prompt, int(task.user_id))
 
             # Process the response
             result = self._process_ai_response(task, response)
@@ -54,10 +54,10 @@ class TaskExecutor:
         except Exception as e:
             self.logger.error(f"Error executing task {task.id}: {e}")
             return {
-                'success': False,
-                'error': str(e),
-                'message': f'Failed to execute task: {e}',
-                'timestamp': datetime.utcnow().isoformat()
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to execute task: {e}",
+                "timestamp": datetime.utcnow().isoformat(),
             }
 
     def _build_task_context(self, task: AITask) -> Dict[str, Any]:
@@ -70,17 +70,17 @@ class TaskExecutor:
         Returns:
             Task context dictionary
         """
-        context = {
-            'task_id': task.id,
-            'title': task.title,
-            'description': task.description,
-            'task_type': task.task_type,
-            'schedule_type': task.schedule_type,
-            'ai_context': task.ai_context,
-            'notification_channels': task.notification_channels or [],
-            'created_at': task.created_at.isoformat() if task.created_at else None,
-            'last_run_at': task.last_run_at.isoformat() if task.last_run_at else None,
-            'current_time': datetime.utcnow().isoformat()
+        context: dict[str, Any] = {
+            "task_id": task.id,
+            "title": task.title,
+            "description": task.description,
+            "task_type": task.task_type,
+            "schedule_type": task.schedule_type,
+            "ai_context": task.ai_context,
+            "notification_channels": task.notification_channels or [],
+            "created_at": task.created_at.isoformat() if task.created_at else None,
+            "last_run_at": task.last_run_at.isoformat() if task.last_run_at else None,
+            "current_time": datetime.utcnow().isoformat(),
         }
 
         return context
@@ -96,11 +96,11 @@ class TaskExecutor:
         Returns:
             AI prompt string
         """
-        if task.task_type == 'reminder':
+        if task.task_type == "reminder":
             return self._create_reminder_prompt(task, context)
-        elif task.task_type == 'periodic_task':
+        elif task.task_type == "periodic_task":
             return self._create_periodic_task_prompt(task, context)
-        elif task.task_type == 'automated_task':
+        elif task.task_type == "automated_task":
             return self._create_automated_task_prompt(task, context)
         else:
             return self._create_generic_task_prompt(task, context)
@@ -130,7 +130,9 @@ Provide a helpful, actionable response for this reminder.
 """
         return prompt
 
-    def _create_periodic_task_prompt(self, task: AITask, context: Dict[str, Any]) -> str:
+    def _create_periodic_task_prompt(
+        self, task: AITask, context: Dict[str, Any]
+    ) -> str:
         """Create prompt for periodic tasks."""
         prompt = f"""
 You have a periodic task to execute:
@@ -157,7 +159,9 @@ Provide a detailed response about the task execution and results.
 """
         return prompt
 
-    def _create_automated_task_prompt(self, task: AITask, context: Dict[str, Any]) -> str:
+    def _create_automated_task_prompt(
+        self, task: AITask, context: Dict[str, Any]
+    ) -> str:
         """Create prompt for automated tasks."""
         prompt = f"""
 You have an automated task to execute:
@@ -220,13 +224,13 @@ Provide a helpful response about the task execution.
         # In the future, this could be enhanced to parse structured responses
 
         return {
-            'success': True,
-            'message': ai_response,
-            'task_id': task.id,
-            'task_title': task.title,
-            'task_type': task.task_type,
-            'execution_time': datetime.utcnow().isoformat(),
-            'ai_response': ai_response
+            "success": True,
+            "message": ai_response,
+            "task_id": task.id,
+            "task_title": task.title,
+            "task_type": task.task_type,
+            "execution_time": datetime.utcnow().isoformat(),
+            "ai_response": ai_response,
         }
 
     async def execute_reminder_task(self, task: AITask) -> Dict[str, Any]:

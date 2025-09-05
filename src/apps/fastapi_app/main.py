@@ -1,16 +1,25 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer
 from fastapi.responses import Response
-
-from personal_assistant.config.settings import settings
-from personal_assistant.monitoring import get_metrics_service
-from personal_assistant.middleware import CorrelationIDMiddleware
+from fastapi.security import HTTPBearer
 
 from apps.fastapi_app.middleware.auth import AuthMiddleware
 from apps.fastapi_app.middleware.rate_limiting import RateLimitingMiddleware
-from apps.fastapi_app.routes import twilio, auth, mfa, sessions, rbac, users, oauth, sms_router, analytics
+from apps.fastapi_app.routes import (
+    analytics,
+    auth,
+    mfa,
+    oauth,
+    rbac,
+    sessions,
+    sms_router,
+    twilio,
+    users,
+)
 from personal_assistant.config.monitoring import monitoring_router
+from personal_assistant.config.settings import settings
+from personal_assistant.middleware import CorrelationIDMiddleware
+from personal_assistant.monitoring import get_metrics_service
 
 # Create security scheme
 security = HTTPBearer()
@@ -19,7 +28,7 @@ app = FastAPI(
     title="Personal Assistant API",
     description="AI-powered personal assistant API",
     version="0.1.0",
-    debug=settings.DEBUG
+    debug=settings.DEBUG,
 )
 
 # Add CORS middleware
@@ -36,21 +45,24 @@ app.add_middleware(CorrelationIDMiddleware)
 
 # Add authentication and rate limiting middleware
 app.add_middleware(RateLimitingMiddleware)
-app.add_middleware(AuthMiddleware, exclude_paths=[
-    "/",
-    "/health",
-    "/metrics",  # Exclude metrics endpoint from authentication
-    "/docs",
-    "/redoc",
-    "/openapi.json",
-    "/api/v1/auth/login",
-    "/api/v1/auth/register",
-    "/api/v1/auth/refresh",
-    "/webhook/twilio",  # Keep Twilio webhook accessible
-    "/twilio/sms",      # Keep Twilio SMS webhook accessible
-    "/sms-router/webhook/sms",  # SMS Router webhook for Twilio
-    "/sms-router/webhook/health",  # SMS Router health check
-])
+app.add_middleware(
+    AuthMiddleware,
+    exclude_paths=[
+        "/",
+        "/health",
+        "/metrics",  # Exclude metrics endpoint from authentication
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+        "/api/v1/auth/login",
+        "/api/v1/auth/register",
+        "/api/v1/auth/refresh",
+        "/webhook/twilio",  # Keep Twilio webhook accessible
+        "/twilio/sms",  # Keep Twilio SMS webhook accessible
+        "/sms-router/webhook/sms",  # SMS Router webhook for Twilio
+        "/sms-router/webhook/health",  # SMS Router health check
+    ],
+)
 
 # Include routers
 app.include_router(twilio.router)
@@ -66,8 +78,7 @@ app.include_router(oauth.router)
 app.include_router(sms_router.router)
 
 # Add Analytics routes
-app.include_router(
-    analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
+app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 
 # Include health monitoring router
 app.include_router(monitoring_router)
@@ -94,20 +105,28 @@ async def metrics():
         metrics_service = get_metrics_service()
         metrics_data = metrics_service.generate_metrics()
         return Response(
-            content=metrics_data,
-            media_type=metrics_service.get_metrics_content_type()
+            content=metrics_data, media_type=metrics_service.get_metrics_content_type()
         )
     except Exception as e:
         # Log error but don't expose internal details
         import logging
+
         logger = logging.getLogger(__name__)
         logger.error(f"Error generating metrics: {e}")
         return Response(
             content="# Error generating metrics\n",
             media_type="text/plain",
-            status_code=500
+            status_code=500,
         )
 
+
 if __name__ == "__main__":
+    import os
+
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    # Use environment variables for host and port, with secure defaults
+    host = os.getenv("HOST", "127.0.0.1")  # Default to localhost for security
+    port = int(os.getenv("PORT", "8000"))
+
+    uvicorn.run(app, host=host, port=port)

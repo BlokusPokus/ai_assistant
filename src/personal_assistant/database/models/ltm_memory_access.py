@@ -6,7 +6,17 @@ and helps optimize retrieval and importance scoring.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, Boolean
+
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -19,10 +29,11 @@ class LTMMemoryAccess(Base):
     This table provides insights into how memories are used
     and helps optimize retrieval and importance scoring.
     """
-    __tablename__ = 'ltm_memory_access'
+
+    __tablename__ = "ltm_memory_access"
 
     id = Column(Integer, primary_key=True)
-    memory_id = Column(Integer, ForeignKey('ltm_memories.id'), nullable=False)
+    memory_id = Column(Integer, ForeignKey("ltm_memories.id"), nullable=False)
 
     # Access details
     access_timestamp = Column(DateTime, default=datetime.utcnow)
@@ -49,10 +60,12 @@ class LTMMemoryAccess(Base):
         return {
             "id": self.id,
             "memory_id": self.memory_id,
-            "access_timestamp": self.access_timestamp.isoformat() if self.access_timestamp else None,
+            "access_timestamp": self.access_timestamp.isoformat()
+            if self.access_timestamp
+            else None,
             "access_context": self.access_context,
             "access_method": self.access_method,
             "user_query": self.user_query,
             "was_relevant": self.was_relevant,
-            "relevance_score": self.relevance_score
+            "relevance_score": self.relevance_score,
         }

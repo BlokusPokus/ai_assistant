@@ -2,9 +2,7 @@
 
 from sqlalchemy import select
 
-from ..database.models.users import (
-    User,  # adjust import path as needed
-)
+from ..database.models.users import User  # adjust import path as needed
 from ..database.session import AsyncSessionLocal
 
 
@@ -16,4 +14,4 @@ async def get_user_id_by_phone(phone_number: str) -> int | None:
         )
         user_id = result.scalar_one_or_none()
 
-        return user_id
+        return int(user_id) if user_id is not None else None

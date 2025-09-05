@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuthStore } from '@/stores/authStore';
-import { RefreshCw, Download, BarChart3, TrendingUp, DollarSign, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
+import { RefreshCw, AlertTriangle } from 'lucide-react';
 import { Select } from '@/components/ui';
 
 interface SystemAnalyticsData {
@@ -65,7 +64,7 @@ interface PerformanceMetricsData {
     sla_status: string;
     compliance_percentage: number;
     overall_health: string;
-    sla_checks: Record<string, any>;
+    sla_checks: Record<string, boolean | number | string>;
   };
   performance_alerts: Array<{
     id: string;
@@ -102,13 +101,16 @@ interface SMSAnalyticsPanelProps {
 const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
   timeRange = '30d',
 }) => {
-  const { user } = useAuthStore();
-  const [systemAnalytics, setSystemAnalytics] = useState<SystemAnalyticsData | null>(null);
-  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetricsData | null>(null);
+  const [systemAnalytics, setSystemAnalytics] =
+    useState<SystemAnalyticsData | null>(null);
+  const [performanceMetrics, setPerformanceMetrics] =
+    useState<PerformanceMetricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTimeRange, setSelectedTimeRange] = useState(timeRange);
-  const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'costs' | 'alerts'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'performance' | 'costs' | 'alerts'
+  >('overview');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -123,13 +125,18 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
     }, 30000); // 30 seconds
 
     return () => clearInterval(interval);
-  }, [autoRefresh, selectedTimeRange]);
+  }, [
+    autoRefresh,
+    selectedTimeRange,
+    fetchSystemAnalytics,
+    fetchPerformanceMetrics,
+  ]);
 
   // Initial data fetch
   useEffect(() => {
     fetchSystemAnalytics();
     fetchPerformanceMetrics();
-  }, [selectedTimeRange]);
+  }, [selectedTimeRange, fetchSystemAnalytics, fetchPerformanceMetrics]);
 
   const fetchSystemAnalytics = useCallback(async () => {
     try {
@@ -137,7 +144,7 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
         `/api/v1/analytics/admin/sms-analytics/system?time_range=${selectedTimeRange}`,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            Authorization: `Bearer ${localStorage.getItem('access_token')}`,
           },
         }
       );
@@ -151,20 +158,19 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Error fetching system analytics:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch system analytics');
+      setError(
+        err instanceof Error ? err.message : 'Failed to fetch system analytics'
+      );
     }
   }, [selectedTimeRange]);
 
   const fetchPerformanceMetrics = useCallback(async () => {
     try {
-      const response = await fetch(
-        `/api/v1/analytics/admin/sms-performance`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-          },
-        }
-      );
+      const response = await fetch(`/api/v1/analytics/admin/sms-performance`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error('Failed to fetch performance metrics');
@@ -175,7 +181,11 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Error fetching performance metrics:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch performance metrics');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to fetch performance metrics'
+      );
     } finally {
       setLoading(false);
     }
@@ -183,9 +193,11 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
 
   const handleManualRefresh = () => {
     setIsRefreshing(true);
-    Promise.all([fetchSystemAnalytics(), fetchPerformanceMetrics()]).finally(() => {
-      setIsRefreshing(false);
-    });
+    Promise.all([fetchSystemAnalytics(), fetchPerformanceMetrics()]).finally(
+      () => {
+        setIsRefreshing(false);
+      }
+    );
   };
 
   const toggleAutoRefresh = () => {
@@ -251,7 +263,9 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
           <div className="text-red-500 mb-4">
             <AlertTriangle className="w-16 h-16 mx-auto" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Analytics</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Error Loading Analytics
+          </h3>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={handleManualRefresh}
@@ -269,9 +283,11 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
       {/* Header with Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">System Analytics Dashboard</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            System Analytics Dashboard
+          </h3>
           <p className="text-sm text-gray-600">
-            {formatTimeRange(selectedTimeRange)} • 
+            {formatTimeRange(selectedTimeRange)} •
             {lastUpdated && (
               <span className="ml-2">
                 Last updated: {lastUpdated.toLocaleTimeString()}
@@ -279,20 +295,20 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
             )}
           </p>
         </div>
-        
+
         <div className="flex items-center space-x-3">
           {/* Auto-refresh toggle */}
           <button
             onClick={toggleAutoRefresh}
             className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
-              autoRefresh 
-                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+              autoRefresh
+                ? 'bg-green-100 text-green-700 hover:bg-green-200'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             {autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
           </button>
-          
+
           {/* Manual refresh */}
           <button
             onClick={handleManualRefresh}
@@ -300,18 +316,22 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
             title="Refresh data"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
+            />
           </button>
-          
+
           {/* Time range selector */}
           <Select
             value={selectedTimeRange}
-            onChange={(value) => setSelectedTimeRange(value as '7d' | '30d' | '90d' | '1y')}
+            onChange={value =>
+              setSelectedTimeRange(value as '7d' | '30d' | '90d' | '1y')
+            }
             options={[
               { value: '7d', label: 'Last 7 days' },
               { value: '30d', label: 'Last 30 days' },
               { value: '90d', label: 'Last 90 days' },
-              { value: '1y', label: 'Last year' }
+              { value: '1y', label: 'Last year' },
             ]}
             placeholder="Select time range"
             className="w-48"
@@ -327,10 +347,14 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
             { id: 'performance', label: 'Performance' },
             { id: 'costs', label: 'Costs' },
             { id: 'alerts', label: 'Alerts' },
-          ].map((tab) => (
+          ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() =>
+                setActiveTab(
+                  tab.id as 'overview' | 'performance' | 'costs' | 'alerts'
+                )
+              }
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
@@ -354,21 +378,21 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
               </div>
               <div className="text-sm text-blue-800">Total Messages</div>
             </div>
-            
+
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
                 {systemAnalytics.system_performance.success_rate}%
               </div>
               <div className="text-sm text-green-800">Success Rate</div>
             </div>
-            
+
             <div className="bg-purple-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-purple-600">
                 {systemAnalytics.system_performance.unique_active_users}
               </div>
               <div className="text-sm text-purple-800">Active Users</div>
             </div>
-            
+
             <div className="bg-orange-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-orange-600">
                 {formatCurrency(systemAnalytics.system_costs.total_cost_usd)}
@@ -379,27 +403,51 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
 
           {/* Performance Trends */}
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-semibold text-gray-900 mb-3">Performance Trends</h3>
+            <h3 className="font-semibold text-gray-900 mb-3">
+              Performance Trends
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <h4 className="font-medium text-gray-700 mb-2">Success Rate</h4>
                 <div className="text-lg font-bold text-gray-900">
-                  {systemAnalytics.performance_trends.trend_analysis.success_rate_trend.trend}
+                  {
+                    systemAnalytics.performance_trends.trend_analysis
+                      .success_rate_trend.trend
+                  }
                 </div>
                 <div className="text-sm text-gray-600">
-                  {systemAnalytics.performance_trends.trend_analysis.success_rate_trend.change_percentage > 0 ? '+' : ''}
-                  {systemAnalytics.performance_trends.trend_analysis.success_rate_trend.change_percentage}% change
+                  {systemAnalytics.performance_trends.trend_analysis
+                    .success_rate_trend.change_percentage > 0
+                    ? '+'
+                    : ''}
+                  {
+                    systemAnalytics.performance_trends.trend_analysis
+                      .success_rate_trend.change_percentage
+                  }
+                  % change
                 </div>
               </div>
-              
+
               <div>
-                <h4 className="font-medium text-gray-700 mb-2">Response Time</h4>
+                <h4 className="font-medium text-gray-700 mb-2">
+                  Response Time
+                </h4>
                 <div className="text-lg font-bold text-gray-900">
-                  {systemAnalytics.performance_trends.trend_analysis.processing_time_trend.trend}
+                  {
+                    systemAnalytics.performance_trends.trend_analysis
+                      .processing_time_trend.trend
+                  }
                 </div>
                 <div className="text-sm text-gray-600">
-                  {systemAnalytics.performance_trends.trend_analysis.processing_time_trend.change_percentage > 0 ? '+' : ''}
-                  {systemAnalytics.performance_trends.trend_analysis.processing_time_trend.change_percentage}% change
+                  {systemAnalytics.performance_trends.trend_analysis
+                    .processing_time_trend.change_percentage > 0
+                    ? '+'
+                    : ''}
+                  {
+                    systemAnalytics.performance_trends.trend_analysis
+                      .processing_time_trend.change_percentage
+                  }
+                  % change
                 </div>
               </div>
             </div>
@@ -408,14 +456,25 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
           {/* Top Cost Users */}
           {systemAnalytics.system_costs.top_cost_users.length > 0 && (
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-gray-900 mb-3">Top Cost Users</h3>
+              <h3 className="font-semibold text-gray-900 mb-3">
+                Top Cost Users
+              </h3>
               <div className="space-y-2">
-                {systemAnalytics.system_costs.top_cost_users.slice(0, 5).map((user, index) => (
-                  <div key={user.user_id} className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">User {user.user_id}</span>
-                    <span className="font-medium">{formatCurrency(user.cost_usd)}</span>
-                  </div>
-                ))}
+                {systemAnalytics.system_costs.top_cost_users
+                  .slice(0, 5)
+                  .map(user => (
+                    <div
+                      key={user.user_id}
+                      className="flex justify-between items-center"
+                    >
+                      <span className="text-sm text-gray-600">
+                        User {user.user_id}
+                      </span>
+                      <span className="font-medium">
+                        {formatCurrency(user.cost_usd)}
+                      </span>
+                    </div>
+                  ))}
               </div>
             </div>
           )}
@@ -433,21 +492,22 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
               </div>
               <div className="text-sm text-blue-800">Messages (1h)</div>
             </div>
-            
+
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
                 {performanceMetrics.real_time_metrics.success_rate_percent}%
               </div>
               <div className="text-sm text-green-800">Success Rate</div>
             </div>
-            
+
             <div className="bg-purple-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-purple-600">
-                {performanceMetrics.real_time_metrics.average_response_time_ms}ms
+                {performanceMetrics.real_time_metrics.average_response_time_ms}
+                ms
               </div>
               <div className="text-sm text-purple-800">Avg Response</div>
             </div>
-            
+
             <div className="bg-orange-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-orange-600">
                 {performanceMetrics.real_time_metrics.active_users}
@@ -461,19 +521,21 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
             <h3 className="font-semibold text-gray-900 mb-3">SLA Compliance</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <div className={`text-lg font-bold ${getHealthStatusColor(performanceMetrics.sla_compliance.overall_health)}`}>
+                <div
+                  className={`text-lg font-bold ${getHealthStatusColor(performanceMetrics.sla_compliance.overall_health)}`}
+                >
                   {performanceMetrics.sla_compliance.overall_health.toUpperCase()}
                 </div>
                 <div className="text-sm text-gray-600">Overall Health</div>
               </div>
-              
+
               <div>
                 <div className="text-lg font-bold text-gray-900">
                   {performanceMetrics.sla_compliance.compliance_percentage}%
                 </div>
                 <div className="text-sm text-gray-600">Compliance</div>
               </div>
-              
+
               <div>
                 <div className="text-lg font-bold text-gray-900">
                   {performanceMetrics.system_health.health_score}
@@ -486,21 +548,32 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
           {/* Performance Recommendations */}
           {performanceMetrics.recommendations.length > 0 && (
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-gray-900 mb-3">Performance Recommendations</h3>
+              <h3 className="font-semibold text-gray-900 mb-3">
+                Performance Recommendations
+              </h3>
               <div className="space-y-3">
-                {performanceMetrics.recommendations.slice(0, 3).map((rec, index) => (
-                  <div key={index} className="border-l-4 border-blue-500 pl-3">
-                    <h4 className="font-medium text-gray-900">{rec.title}</h4>
-                    <p className="text-sm text-gray-600 mb-2">{rec.description}</p>
-                    <div className="flex items-center space-x-4 text-xs text-gray-500">
-                      <span className={`px-2 py-1 rounded ${getSeverityColor(rec.priority)}`}>
-                        {rec.priority}
-                      </span>
-                      <span>Impact: {rec.estimated_impact}</span>
-                      <span>Effort: {rec.effort_required}</span>
+                {performanceMetrics.recommendations
+                  .slice(0, 3)
+                  .map((rec, index) => (
+                    <div
+                      key={index}
+                      className="border-l-4 border-blue-500 pl-3"
+                    >
+                      <h4 className="font-medium text-gray-900">{rec.title}</h4>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {rec.description}
+                      </p>
+                      <div className="flex items-center space-x-4 text-xs text-gray-500">
+                        <span
+                          className={`px-2 py-1 rounded ${getSeverityColor(rec.priority)}`}
+                        >
+                          {rec.priority}
+                        </span>
+                        <span>Impact: {rec.estimated_impact}</span>
+                        <span>Effort: {rec.effort_required}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           )}
@@ -518,14 +591,16 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
               </div>
               <div className="text-sm text-red-800">Total Cost</div>
             </div>
-            
+
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">
-                {formatCurrency(systemAnalytics.system_costs.average_cost_per_user)}
+                {formatCurrency(
+                  systemAnalytics.system_costs.average_cost_per_user
+                )}
               </div>
               <div className="text-sm text-blue-800">Avg Cost per User</div>
             </div>
-            
+
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
                 {systemAnalytics.system_costs.unique_users}
@@ -540,31 +615,58 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Inbound Messages:</span>
-                  <span className="font-medium">{formatCurrency(systemAnalytics.system_costs.inbound_cost_usd)}</span>
+                  <span className="text-sm text-gray-600">
+                    Inbound Messages:
+                  </span>
+                  <span className="font-medium">
+                    {formatCurrency(
+                      systemAnalytics.system_costs.inbound_cost_usd
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Outbound Messages:</span>
-                  <span className="font-medium">{formatCurrency(systemAnalytics.system_costs.outbound_cost_usd)}</span>
+                  <span className="text-sm text-gray-600">
+                    Outbound Messages:
+                  </span>
+                  <span className="font-medium">
+                    {formatCurrency(
+                      systemAnalytics.system_costs.outbound_cost_usd
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">MMS Messages:</span>
-                  <span className="font-medium">{formatCurrency(systemAnalytics.system_costs.mms_cost_usd)}</span>
+                  <span className="font-medium">
+                    {formatCurrency(systemAnalytics.system_costs.mms_cost_usd)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">International:</span>
-                  <span className="font-medium">{formatCurrency(systemAnalytics.system_costs.international_cost_usd)}</span>
+                  <span className="font-medium">
+                    {formatCurrency(
+                      systemAnalytics.system_costs.international_cost_usd
+                    )}
+                  </span>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Total Messages:</span>
-                  <span className="font-medium">{systemAnalytics.system_costs.total_messages.toLocaleString()}</span>
+                  <span className="font-medium">
+                    {systemAnalytics.system_costs.total_messages.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Cost per Message:</span>
-                  <span className="font-medium">{formatCurrency(systemAnalytics.system_costs.total_cost_usd / systemAnalytics.system_costs.total_messages)}</span>
+                  <span className="text-sm text-gray-600">
+                    Cost per Message:
+                  </span>
+                  <span className="font-medium">
+                    {formatCurrency(
+                      systemAnalytics.system_costs.total_cost_usd /
+                        systemAnalytics.system_costs.total_messages
+                    )}
+                  </span>
                 </div>
               </div>
             </div>
@@ -583,14 +685,14 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
               </div>
               <div className="text-sm text-red-800">Critical Alerts</div>
             </div>
-            
+
             <div className="bg-yellow-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-yellow-600">
                 {performanceMetrics.system_health.warning_alerts}
               </div>
               <div className="text-sm text-yellow-800">Warning Alerts</div>
             </div>
-            
+
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">
                 {performanceMetrics.system_health.active_alerts}
@@ -602,17 +704,28 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
           {/* Active Alerts */}
           {performanceMetrics.performance_alerts.length > 0 ? (
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-gray-900 mb-3">Active Alerts</h3>
+              <h3 className="font-semibold text-gray-900 mb-3">
+                Active Alerts
+              </h3>
               <div className="space-y-3">
-                {performanceMetrics.performance_alerts.map((alert) => (
-                  <div key={alert.id} className="border-l-4 border-red-500 pl-3 bg-white p-3 rounded">
+                {performanceMetrics.performance_alerts.map(alert => (
+                  <div
+                    key={alert.id}
+                    className="border-l-4 border-red-500 pl-3 bg-white p-3 rounded"
+                  >
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium text-gray-900">{alert.message}</h4>
-                      <span className={`px-2 py-1 rounded text-xs ${getSeverityColor(alert.severity)}`}>
+                      <h4 className="font-medium text-gray-900">
+                        {alert.message}
+                      </h4>
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${getSeverityColor(alert.severity)}`}
+                      >
                         {alert.severity}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">{alert.recommendation}</p>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {alert.recommendation}
+                    </p>
                     <div className="flex items-center justify-between text-xs text-gray-500">
                       <span>Type: {alert.type}</span>
                       <span>{new Date(alert.timestamp).toLocaleString()}</span>
@@ -624,7 +737,9 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
           ) : (
             <div className="bg-green-50 p-4 rounded-lg text-center">
               <div className="text-green-600 font-medium">No active alerts</div>
-              <div className="text-sm text-green-700">System is running smoothly</div>
+              <div className="text-sm text-green-700">
+                System is running smoothly
+              </div>
             </div>
           )}
         </div>

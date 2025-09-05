@@ -7,7 +7,6 @@ from dateutil import parser as date_parser
 from dateutil.relativedelta import relativedelta
 
 from ...llm.llm_client import LLMClient
-
 from .event_details import (
     EventDetails,
     RecurrencePattern,
@@ -39,23 +38,23 @@ class EventAIParser:
                     "properties": {
                         "title": {
                             "type": "string",
-                            "description": "Event title or name"
+                            "description": "Event title or name",
                         },
                         "start_time": {
                             "type": "string",
-                            "description": "Start time in ISO format (YYYY-MM-DDTHH:MM:SS)"
+                            "description": "Start time in ISO format (YYYY-MM-DDTHH:MM:SS)",
                         },
                         "duration": {
                             "type": "integer",
-                            "description": "Duration in minutes (default 60)"
+                            "description": "Duration in minutes (default 60)",
                         },
                         "location": {
                             "type": "string",
-                            "description": "Event location (optional)"
+                            "description": "Event location (optional)",
                         },
                         "description": {
                             "type": "string",
-                            "description": "Event description (optional)"
+                            "description": "Event description (optional)",
                         },
                         "recurrence_pattern": {
                             "type": "object",
@@ -63,30 +62,30 @@ class EventAIParser:
                             "properties": {
                                 "frequency": {
                                     "type": "string",
-                                    "enum": ["daily", "weekly", "monthly", "yearly"]
+                                    "enum": ["daily", "weekly", "monthly", "yearly"],
                                 },
                                 "interval": {
                                     "type": "integer",
-                                    "description": "Interval between occurrences"
+                                    "description": "Interval between occurrences",
                                 },
                                 "weekdays": {
                                     "type": "array",
                                     "items": {"type": "integer"},
-                                    "description": "Weekdays for weekly patterns (0=Monday, 6=Sunday)"
+                                    "description": "Weekdays for weekly patterns (0=Monday, 6=Sunday)",
                                 },
                                 "end_date": {
                                     "type": "string",
-                                    "description": "End date in ISO format (optional)"
+                                    "description": "End date in ISO format (optional)",
                                 },
                                 "max_occurrences": {
                                     "type": "integer",
-                                    "description": "Maximum number of occurrences (optional)"
-                                }
-                            }
-                        }
+                                    "description": "Maximum number of occurrences (optional)",
+                                },
+                            },
+                        },
                     },
-                    "required": ["title", "start_time"]
-                }
+                    "required": ["title", "start_time"],
+                },
             }
 
             # Get LLM response
@@ -104,7 +103,9 @@ class EventAIParser:
             logger.error(f"Error parsing event details: {e}")
             raise
 
-    async def extract_recurrence_pattern(self, description: str) -> Optional[RecurrencePattern]:
+    async def extract_recurrence_pattern(
+        self, description: str
+    ) -> Optional[RecurrencePattern]:
         """Extract recurrence pattern using AI."""
         try:
             # Create prompt for recurrence pattern extraction
@@ -120,28 +121,28 @@ class EventAIParser:
                         "frequency": {
                             "type": "string",
                             "enum": ["daily", "weekly", "monthly", "yearly"],
-                            "description": "Frequency of recurrence"
+                            "description": "Frequency of recurrence",
                         },
                         "interval": {
                             "type": "integer",
-                            "description": "Interval between occurrences (default 1)"
+                            "description": "Interval between occurrences (default 1)",
                         },
                         "weekdays": {
                             "type": "array",
                             "items": {"type": "integer"},
-                            "description": "Weekdays for weekly patterns (0=Monday, 6=Sunday)"
+                            "description": "Weekdays for weekly patterns (0=Monday, 6=Sunday)",
                         },
                         "end_date": {
                             "type": "string",
-                            "description": "End date in ISO format (optional)"
+                            "description": "End date in ISO format (optional)",
                         },
                         "max_occurrences": {
                             "type": "integer",
-                            "description": "Maximum number of occurrences (optional)"
-                        }
+                            "description": "Maximum number of occurrences (optional)",
+                        },
                     },
-                    "required": ["frequency"]
-                }
+                    "required": ["frequency"],
+                },
             }
 
             # Get LLM response
@@ -193,10 +194,7 @@ class EventAIParser:
             status = ValidationStatus.VALID
 
         return ValidationResult(
-            status=status,
-            errors=errors,
-            warnings=warnings,
-            suggestions=suggestions
+            status=status, errors=errors, warnings=warnings, suggestions=suggestions
         )
 
     def _create_parsing_prompt(self, user_input: str) -> str:
@@ -250,7 +248,7 @@ Current date/time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             duration=args.get("duration", 60),
             location=args.get("location", ""),
             description=args.get("description", ""),
-            recurrence_pattern=args.get("recurrence_pattern")
+            recurrence_pattern=args.get("recurrence_pattern"),
         )
 
         return event_details
@@ -278,11 +276,8 @@ Current date/time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                         if "pm" in time_word or "am" in time_word:
                             # Basic time parsing
                             pass
-                    except:
+                    except (ValueError, TypeError, IndexError):
+                        # Ignore parsing errors for time words
                         pass
 
-        return EventDetails(
-            title=title,
-            start_time=start_time,
-            duration=duration
-        )
+        return EventDetails(title=title, start_time=start_time, duration=duration)

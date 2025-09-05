@@ -5,21 +5,19 @@ This module provides a clean interface to the new normalized storage system,
 enabling efficient state management with structured, queryable data.
 """
 
-import logging
-import time
-from typing import Optional, Union
-from datetime import datetime, timezone
+from datetime import datetime
+from typing import Any, Optional
 
+from ..config.feature_flags import normalized_storage_logging, use_normalized_storage
 from ..config.logging_config import get_logger
-from ..config.feature_flags import use_normalized_storage, normalized_storage_logging
+from ..database.session import AsyncSessionLocal
 from ..types.state import AgentState
 from .normalized_storage import (
-    save_state_normalized,
+    delete_conversation_normalized,
     load_state_normalized,
+    save_state_normalized,
     update_state_partial,
-    delete_conversation_normalized
 )
-from ..database.session import AsyncSessionLocal
 
 logger = get_logger("storage_integration")
 
@@ -38,17 +36,15 @@ class StorageIntegrationManager:
 
         if not self.use_normalized:
             logger.warning(
-                "⚠️ Normalized storage is disabled. Enable with USE_NORMALIZED_STORAGE=true")
+                "⚠️ Normalized storage is disabled. Enable with USE_NORMALIZED_STORAGE=true"
+            )
 
         logger.info(f"🔧 Storage Integration Manager initialized:")
         logger.info(f"  Use normalized storage: {self.use_normalized}")
         logger.info(f"  Detailed logging: {self.logging_enabled}")
 
     async def save_state(
-        self,
-        conversation_id: str,
-        state: AgentState,
-        user_id: int
+        self, conversation_id: str, state: AgentState, user_id: int
     ) -> bool:
         """
         Save conversation state using the new normalized database schema.
@@ -69,14 +65,16 @@ class StorageIntegrationManager:
 
         if not self.use_normalized:
             raise RuntimeError(
-                "Normalized storage is disabled. Enable with USE_NORMALIZED_STORAGE=true")
+                "Normalized storage is disabled. Enable with USE_NORMALIZED_STORAGE=true"
+            )
 
         logger.info(f"💾 Saving state for conversation: {conversation_id}")
 
         try:
             await save_state_normalized(conversation_id, state, user_id)
             logger.info(
-                f"✅ Successfully saved state for conversation {conversation_id}")
+                f"✅ Successfully saved state for conversation {conversation_id}"
+            )
             return True
 
         except Exception as e:
@@ -89,7 +87,7 @@ class StorageIntegrationManager:
         user_id: int,
         max_messages: int = 50,
         max_context_items: int = 20,
-        min_relevance_score: float = 0.3
+        min_relevance_score: float = 0.3,
     ) -> Optional[AgentState]:
         """
         Load conversation state using the new normalized database schema.
@@ -118,7 +116,8 @@ class StorageIntegrationManager:
 
         if not self.use_normalized:
             raise RuntimeError(
-                "Normalized storage is disabled. Enable with USE_NORMALIZED_STORAGE=true")
+                "Normalized storage is disabled. Enable with USE_NORMALIZED_STORAGE=true"
+            )
 
         logger.info(f"📂 Loading state for conversation: {conversation_id}")
 
@@ -128,19 +127,17 @@ class StorageIntegrationManager:
                 user_id,
                 max_messages=max_messages,
                 max_context_items=max_context_items,
-                min_relevance_score=min_relevance_score
+                min_relevance_score=min_relevance_score,
             )
 
             if state:
                 logger.info(
-                    f"✅ Successfully loaded state for conversation {conversation_id}")
-                logger.info(
-                    f"  Messages loaded: {len(state.conversation_history)}")
-                logger.info(
-                    f"  Context items loaded: {len(state.memory_context)}")
+                    f"✅ Successfully loaded state for conversation {conversation_id}"
+                )
+                logger.info(f"  Messages loaded: {len(state.conversation_history)}")
+                logger.info(f"  Context items loaded: {len(state.memory_context)}")
             else:
-                logger.warning(
-                    f"⚠️ No state found for conversation {conversation_id}")
+                logger.warning(f"⚠️ No state found for conversation {conversation_id}")
 
             return state
 
@@ -149,10 +146,7 @@ class StorageIntegrationManager:
             return None
 
     async def update_state_partial(
-        self,
-        conversation_id: str,
-        updates: dict,
-        user_id: int
+        self, conversation_id: str, updates: dict, user_id: int
     ) -> bool:
         """
         Update specific parts of a conversation state using normalized schema.
@@ -176,32 +170,28 @@ class StorageIntegrationManager:
 
         if not self.use_normalized:
             raise RuntimeError(
-                "Normalized storage is disabled. Enable with USE_NORMALIZED_STORAGE=true")
+                "Normalized storage is disabled. Enable with USE_NORMALIZED_STORAGE=true"
+            )
 
-        logger.info(
-            f"🔄 Updating state partially for conversation: {conversation_id}")
+        logger.info(f"🔄 Updating state partially for conversation: {conversation_id}")
 
         try:
-            success = await update_state_partial(
-                conversation_id, updates, user_id)
+            success = await update_state_partial(conversation_id, updates, user_id)
             if success:
                 logger.info(
-                    f"✅ Successfully updated state for conversation {conversation_id}")
+                    f"✅ Successfully updated state for conversation {conversation_id}"
+                )
             else:
                 logger.warning(
-                    f"⚠️ Partial update failed for conversation {conversation_id}")
+                    f"⚠️ Partial update failed for conversation {conversation_id}"
+                )
             return success
 
         except Exception as e:
-            logger.error(
-                f"❌ Failed to update state for {conversation_id}: {e}")
+            logger.error(f"❌ Failed to update state for {conversation_id}: {e}")
             return False
 
-    async def delete_conversation(
-        self,
-        conversation_id: str,
-        user_id: int
-    ) -> bool:
+    async def delete_conversation(self, conversation_id: str, user_id: int) -> bool:
         """
         Delete a conversation and all associated data using normalized schema.
 
@@ -224,31 +214,25 @@ class StorageIntegrationManager:
 
         if not self.use_normalized:
             raise RuntimeError(
-                "Normalized storage is disabled. Enable with USE_NORMALIZED_STORAGE=true")
+                "Normalized storage is disabled. Enable with USE_NORMALIZED_STORAGE=true"
+            )
 
-        logger.info(
-            f"🗑️ Deleting conversation: {conversation_id}")
+        logger.info(f"🗑️ Deleting conversation: {conversation_id}")
 
         try:
-            success = await delete_conversation_normalized(
-                conversation_id, user_id)
+            success = await delete_conversation_normalized(conversation_id, user_id)
             if success:
-                logger.info(
-                    f"✅ Successfully deleted conversation {conversation_id}")
+                logger.info(f"✅ Successfully deleted conversation {conversation_id}")
             else:
-                logger.warning(
-                    f"⚠️ Deletion failed for conversation {conversation_id}")
+                logger.warning(f"⚠️ Deletion failed for conversation {conversation_id}")
             return success
 
         except Exception as e:
-            logger.error(
-                f"❌ Failed to delete conversation {conversation_id}: {e}")
+            logger.error(f"❌ Failed to delete conversation {conversation_id}: {e}")
             return False
 
     async def get_conversation_timestamp(
-        self,
-        user_id: int,
-        conversation_id: str
+        self, user_id: int, conversation_id: str
     ) -> Optional[datetime]:
         """
         Get last update time for a conversation using the new normalized database schema.
@@ -262,32 +246,35 @@ class StorageIntegrationManager:
         """
         if not self.use_normalized:
             raise RuntimeError(
-                "Normalized storage is disabled. Enable with USE_NORMALIZED_STORAGE=true")
+                "Normalized storage is disabled. Enable with USE_NORMALIZED_STORAGE=true"
+            )
 
         try:
             from sqlalchemy import select
+
             from ..database.models.conversation_state import ConversationState
 
             async with AsyncSessionLocal() as session:
                 stmt = select(ConversationState.updated_at).where(
                     ConversationState.conversation_id == conversation_id,
-                    ConversationState.user_id == user_id
+                    ConversationState.user_id == user_id,
                 )
                 result = await session.execute(stmt)
                 timestamp = result.scalar_one_or_none()
 
                 if timestamp:
                     logger.debug(
-                        f"Found timestamp in normalized storage: {conversation_id}")
-                    return timestamp
+                        f"Found timestamp in normalized storage: {conversation_id}"
+                    )
+                    return timestamp if isinstance(timestamp, datetime) else None
                 else:
                     logger.debug(
-                        f"No timestamp found in normalized storage: {conversation_id}")
+                        f"No timestamp found in normalized storage: {conversation_id}"
+                    )
                     return None
 
         except Exception as e:
-            logger.error(
-                f"❌ Failed to get timestamp for {conversation_id}: {e}")
+            logger.error(f"❌ Failed to get timestamp for {conversation_id}: {e}")
             return None
 
     async def log_agent_interaction(
@@ -295,10 +282,10 @@ class StorageIntegrationManager:
         user_id: int,
         user_input: str,
         agent_response: str,
-        tool_called: str = None,
-        tool_output: str = None,
-        memory_used: list = None,
-        timestamp: datetime = None
+        tool_called: str | None = None,
+        tool_output: str | None = None,
+        memory_used: list[Any] | None = None,
+        timestamp: datetime | None = None,
     ) -> bool:
         """
         Log agent interaction using the new normalized database schema.
@@ -317,19 +304,20 @@ class StorageIntegrationManager:
         """
         if not self.use_normalized:
             raise RuntimeError(
-                "Normalized storage is disabled. Enable with USE_NORMALIZED_STORAGE=true")
+                "Normalized storage is disabled. Enable with USE_NORMALIZED_STORAGE=true"
+            )
 
         try:
             # For now, we'll skip interaction logging since it requires a valid conversation_id
             # This avoids the foreign key constraint issue
             # TODO: Implement proper interaction logging in the new schema
             logger.debug(
-                f"Interaction logging skipped for user {user_id} (not yet implemented in new schema)")
+                f"Interaction logging skipped for user {user_id} (not yet implemented in new schema)"
+            )
             return True
 
         except Exception as e:
-            logger.error(
-                f"❌ Failed to log interaction for user {user_id}: {e}")
+            logger.error(f"❌ Failed to log interaction for user {user_id}: {e}")
             return False
 
     def get_storage_info(self) -> dict:
@@ -340,11 +328,13 @@ class StorageIntegrationManager:
             Dictionary with storage configuration information
         """
         return {
-            'use_normalized_storage': self.use_normalized,
-            'current_storage_system': 'normalized' if self.use_normalized else 'disabled',
-            'supports_partial_updates': self.use_normalized,
-            'supports_intelligent_loading': self.use_normalized,
-            'detailed_logging': self.logging_enabled
+            "use_normalized_storage": self.use_normalized,
+            "current_storage_system": "normalized"
+            if self.use_normalized
+            else "disabled",
+            "supports_partial_updates": self.use_normalized,
+            "supports_intelligent_loading": self.use_normalized,
+            "detailed_logging": self.logging_enabled,
         }
 
     def validate_configuration(self) -> bool:
@@ -376,9 +366,7 @@ def get_storage_integration_manager() -> StorageIntegrationManager:
 
 # Convenience functions for easy access
 async def save_state_integrated(
-    conversation_id: str,
-    state: AgentState,
-    user_id: int
+    conversation_id: str, state: AgentState, user_id: int
 ) -> bool:
     """Save state using the integrated storage system."""
     manager = get_storage_integration_manager()
@@ -390,7 +378,7 @@ async def load_state_integrated(
     user_id: int,
     max_messages: int = 50,
     max_context_items: int = 20,
-    min_relevance_score: float = 0.3
+    min_relevance_score: float = 0.3,
 ) -> Optional[AgentState]:
     """Load state using the integrated storage system."""
     manager = get_storage_integration_manager()
@@ -399,24 +387,19 @@ async def load_state_integrated(
         user_id,
         max_messages=max_messages,
         max_context_items=max_context_items,
-        min_relevance_score=min_relevance_score
+        min_relevance_score=min_relevance_score,
     )
 
 
 async def update_state_partial_integrated(
-    conversation_id: str,
-    updates: dict,
-    user_id: int
+    conversation_id: str, updates: dict, user_id: int
 ) -> bool:
     """Update state partially using the integrated storage system."""
     manager = get_storage_integration_manager()
     return await manager.update_state_partial(conversation_id, updates, user_id)
 
 
-async def delete_conversation_integrated(
-    conversation_id: str,
-    user_id: int
-) -> bool:
+async def delete_conversation_integrated(conversation_id: str, user_id: int) -> bool:
     """Delete conversation using the integrated storage system."""
     manager = get_storage_integration_manager()
     return await manager.delete_conversation(conversation_id, user_id)

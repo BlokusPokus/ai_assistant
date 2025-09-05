@@ -1,21 +1,24 @@
 """Enhanced logging utilities for the agent core system."""
 
-import time
 import logging
+import time
 from contextlib import contextmanager
-from typing import Optional, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 # Import structured logging utilities
 try:
-    from ..logging import get_correlation_id, log_with_context
+    from ..logging import log_with_context
+
     STRUCTURED_LOGGING_AVAILABLE = True
 except ImportError:
     STRUCTURED_LOGGING_AVAILABLE = False
 
 
 @contextmanager
-def agent_context_logger(logger: logging.Logger, user_id: int, operation: str, **kwargs):
+def agent_context_logger(
+    logger: logging.Logger, user_id: int, operation: str, **kwargs
+):
     """
     Context manager for enhanced logging with user context and correlation IDs.
 
@@ -36,8 +39,12 @@ def agent_context_logger(logger: logging.Logger, user_id: int, operation: str, *
     # Enhanced logging with correlation ID and structured metadata
     if STRUCTURED_LOGGING_AVAILABLE:
         log_with_context(
-            logger, "info", f"Starting {operation} for user {user_id}",
-            user_id=user_id, operation=operation, metadata=kwargs
+            logger,
+            "info",
+            f"Starting {operation} for user {user_id}",
+            user_id=user_id,
+            operation=operation,
+            metadata=kwargs,
         )
     else:
         logger.info(f"Starting {operation} for user {user_id}")
@@ -50,19 +57,23 @@ def agent_context_logger(logger: logging.Logger, user_id: int, operation: str, *
             "error": str(e),
             "duration": duration,
             "timestamp": datetime.utcnow().isoformat(),
-            **kwargs
+            **kwargs,
         }
 
         if STRUCTURED_LOGGING_AVAILABLE:
             log_with_context(
-                logger, "error", f"Error during {operation} for user {user_id}: {str(e)}",
-                user_id=user_id, operation=operation, metadata=error_metadata
+                logger,
+                "error",
+                f"Error during {operation} for user {user_id}: {str(e)}",
+                user_id=user_id,
+                operation=operation,
+                metadata=error_metadata,
             )
         else:
             logger.error(
                 f"Error during {operation} for user {user_id}: {str(e)}",
                 extra=error_metadata,
-                exc_info=True
+                exc_info=True,
             )
         raise
     else:
@@ -70,23 +81,31 @@ def agent_context_logger(logger: logging.Logger, user_id: int, operation: str, *
         success_metadata = {
             "duration": duration,
             "timestamp": datetime.utcnow().isoformat(),
-            **kwargs
+            **kwargs,
         }
 
         if STRUCTURED_LOGGING_AVAILABLE:
             log_with_context(
-                logger, "info", f"Completed {operation} for user {user_id}",
-                user_id=user_id, operation=operation, metadata=success_metadata
+                logger,
+                "info",
+                f"Completed {operation} for user {user_id}",
+                user_id=user_id,
+                operation=operation,
+                metadata=success_metadata,
             )
         else:
             logger.info(
-                f"Completed {operation} for user {user_id}",
-                extra=success_metadata
+                f"Completed {operation} for user {user_id}", extra=success_metadata
             )
 
 
-def log_agent_operation(logger: logging.Logger, user_id: int, operation: str,
-                        details: Optional[Dict[str, Any]] = None, level: str = "info"):
+def log_agent_operation(
+    logger: logging.Logger,
+    user_id: int,
+    operation: str,
+    details: Optional[Dict[str, Any]] = None,
+    level: str = "info",
+):
     """
     Log agent operations with consistent formatting and context.
 
@@ -101,14 +120,18 @@ def log_agent_operation(logger: logging.Logger, user_id: int, operation: str,
 
     if STRUCTURED_LOGGING_AVAILABLE:
         log_with_context(
-            logger, level, message,
-            user_id=user_id, operation=operation, metadata=details or {}
+            logger,
+            level,
+            message,
+            user_id=user_id,
+            operation=operation,
+            metadata=details or {},
         )
     else:
         log_data = {
             "user_id": user_id,
             "operation": operation,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         if details:
@@ -124,8 +147,13 @@ def log_agent_operation(logger: logging.Logger, user_id: int, operation: str,
             logger.debug(message, extra=log_data)
 
 
-def log_error_with_context(logger: logging.Logger, error: Exception, user_id: int,
-                           operation: str, additional_context: Optional[Dict[str, Any]] = None):
+def log_error_with_context(
+    logger: logging.Logger,
+    error: Exception,
+    user_id: int,
+    operation: str,
+    additional_context: Optional[Dict[str, Any]] = None,
+):
     """
     Log errors with comprehensive context information.
 
@@ -141,7 +169,7 @@ def log_error_with_context(logger: logging.Logger, error: Exception, user_id: in
         "operation": operation,
         "error_type": type(error).__name__,
         "error_message": str(error),
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
     }
 
     if additional_context:
@@ -150,12 +178,18 @@ def log_error_with_context(logger: logging.Logger, error: Exception, user_id: in
     logger.error(
         f"Error in {operation} for user {user_id}: {str(error)}",
         extra=error_data,
-        exc_info=True
+        exc_info=True,
     )
 
 
-def log_performance_metrics(logger: logging.Logger, user_id: int, operation: str,
-                            duration: float, success: bool, metadata: Optional[Dict[str, Any]] = None):
+def log_performance_metrics(
+    logger: logging.Logger,
+    user_id: int,
+    operation: str,
+    duration: float,
+    success: bool,
+    metadata: Optional[Dict[str, Any]] = None,
+):
     """
     Log performance metrics for agent operations.
 
@@ -174,19 +208,23 @@ def log_performance_metrics(logger: logging.Logger, user_id: int, operation: str
         "duration": duration,
         "success": success,
         "timestamp": datetime.utcnow().isoformat(),
-        **(metadata or {})
+        **(metadata or {}),
     }
 
     if STRUCTURED_LOGGING_AVAILABLE:
         log_with_context(
-            logger, level, message,
-            user_id=user_id, operation=operation, metadata=performance_metadata
+            logger,
+            level,
+            message,
+            user_id=user_id,
+            operation=operation,
+            metadata=performance_metadata,
         )
     else:
         metrics_data = {
             "user_id": user_id,
             "operation": operation,
-            **performance_metadata
+            **performance_metadata,
         }
 
         if success:

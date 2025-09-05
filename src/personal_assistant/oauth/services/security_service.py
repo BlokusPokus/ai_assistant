@@ -7,14 +7,14 @@ CSRF protection, scope validation, and security audit logging.
 
 import secrets
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete
+from typing import Any, Dict, List, Optional
 
-from personal_assistant.oauth.models.state import OAuthState
-from personal_assistant.oauth.models.audit_log import OAuthAuditLog
+from sqlalchemy import delete, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from personal_assistant.oauth.exceptions import OAuthSecurityError, OAuthStateError
-from personal_assistant.config.settings import settings
+from personal_assistant.oauth.models.audit_log import OAuthAuditLog
+from personal_assistant.oauth.models.state import OAuthState
 
 
 class OAuthSecurityService:
@@ -37,7 +37,8 @@ class OAuthSecurityService:
             return secrets.token_urlsafe(32)
         except Exception as e:
             raise OAuthSecurityError(
-                f"Failed to generate state token: {e}", "token_generation")
+                f"Failed to generate state token: {e}", "token_generation"
+            )
 
     async def create_state(
         self,
@@ -46,7 +47,7 @@ class OAuthSecurityService:
         user_id: Optional[int] = None,
         redirect_uri: Optional[str] = None,
         scopes: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> OAuthState:
         """
         Create a new OAuth state for CSRF protection.
@@ -71,7 +72,7 @@ class OAuthSecurityService:
                 scopes=scopes if scopes else None,  # Store as array, not string
                 metadata=metadata or {},
                 is_used=False,
-                expires_at=datetime.utcnow() + timedelta(hours=self.state_expiry_hours)
+                expires_at=datetime.utcnow() + timedelta(hours=self.state_expiry_hours),
             )
 
             db.add(state)
@@ -82,13 +83,10 @@ class OAuthSecurityService:
 
         except Exception as e:
             await db.rollback()
-            raise OAuthSecurityError(
-                f"Failed to create state: {e}", "state_creation")
+            raise OAuthSecurityError(f"Failed to create state: {e}", "state_creation")
 
     async def get_state_by_token(
-        self,
-        db: AsyncSession,
-        state_token: str
+        self, db: AsyncSession, state_token: str
     ) -> Optional[OAuthState]:
         """
         Get OAuth state by token without validation.
@@ -101,21 +99,16 @@ class OAuthSecurityService:
             OAuthState object or None if not found
         """
         try:
-            query = select(OAuthState).where(
-                OAuthState.state_token == state_token
-            )
+            query = select(OAuthState).where(OAuthState.state_token == state_token)
             result = await db.execute(query)
             return result.scalar_one_or_none()
         except Exception as e:
             raise OAuthSecurityError(
-                f"Failed to get state by token: {e}", "state_retrieval")
+                f"Failed to get state by token: {e}", "state_retrieval"
+            )
 
     async def validate_state(
-        self,
-        db: AsyncSession,
-        state_token: str,
-        provider: str,
-        mark_used: bool = True
+        self, db: AsyncSession, state_token: str, provider: str, mark_used: bool = True
     ) -> OAuthState:
         """
         Validate an OAuth state token.
@@ -135,8 +128,7 @@ class OAuthSecurityService:
         try:
             # Find the state
             query = select(OAuthState).where(
-                OAuthState.state_token == state_token,
-                OAuthState.provider == provider
+                OAuthState.state_token == state_token, OAuthState.provider == provider
             )
 
             result = await db.execute(query)
@@ -161,13 +153,10 @@ class OAuthSecurityService:
             raise
         except Exception as e:
             raise OAuthSecurityError(
-                f"Failed to validate state: {e}", "state_validation")
+                f"Failed to validate state: {e}", "state_validation"
+            )
 
-    async def mark_state_used(
-        self,
-        db: AsyncSession,
-        state_id: int
-    ) -> bool:
+    async def mark_state_used(self, db: AsyncSession, state_id: int) -> bool:
         """
         Mark a state token as used.
 
@@ -179,9 +168,9 @@ class OAuthSecurityService:
             True if state was marked as used
         """
         try:
-            query = update(OAuthState).where(
-                OAuthState.id == state_id
-            ).values(is_used=True)
+            query = (
+                update(OAuthState).where(OAuthState.id == state_id).values(is_used=True)
+            )
 
             await db.execute(query)
             await db.commit()
@@ -190,7 +179,8 @@ class OAuthSecurityService:
         except Exception as e:
             await db.rollback()
             raise OAuthSecurityError(
-                f"Failed to mark state as used: {e}", "state_mark_used")
+                f"Failed to mark state as used: {e}", "state_mark_used"
+            )
 
     async def cleanup_expired_states(self, db: AsyncSession) -> int:
         """
@@ -203,9 +193,7 @@ class OAuthSecurityService:
             Number of states cleaned up
         """
         try:
-            query = delete(OAuthState).where(
-                OAuthState.expires_at < datetime.utcnow()
-            )
+            query = delete(OAuthState).where(OAuthState.expires_at < datetime.utcnow())
 
             result = await db.execute(query)
             await db.commit()
@@ -215,13 +203,10 @@ class OAuthSecurityService:
         except Exception as e:
             await db.rollback()
             raise OAuthSecurityError(
-                f"Failed to cleanup expired states: {e}", "state_cleanup")
+                f"Failed to cleanup expired states: {e}", "state_cleanup"
+            )
 
-    def validate_redirect_uri(
-        self,
-        redirect_uri: str,
-        allowed_uris: List[str]
-    ) -> bool:
+    def validate_redirect_uri(self, redirect_uri: str, allowed_uris: List[str]) -> bool:
         """
         Validate a redirect URI against allowed URIs.
 
@@ -237,13 +222,14 @@ class OAuthSecurityService:
             return redirect_uri in allowed_uris
         except Exception as e:
             raise OAuthSecurityError(
-                f"Failed to validate redirect URI: {e}", "redirect_uri_validation")
+                f"Failed to validate redirect URI: {e}", "redirect_uri_validation"
+            )
 
     def validate_scopes(
         self,
         requested_scopes: List[str],
         allowed_scopes: List[str],
-        required_scopes: Optional[List[str]] = None
+        required_scopes: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Validate requested OAuth scopes.
@@ -257,11 +243,11 @@ class OAuthSecurityService:
             Dictionary containing validation results
         """
         try:
-            result = {
+            result: dict[str, Any] = {
                 "is_valid": True,
                 "invalid_scopes": [],
                 "missing_required": [],
-                "valid_scopes": []
+                "valid_scopes": [],
             }
 
             # Check for invalid scopes
@@ -283,7 +269,8 @@ class OAuthSecurityService:
 
         except Exception as e:
             raise OAuthSecurityError(
-                f"Failed to validate scopes: {e}", "scope_validation")
+                f"Failed to validate scopes: {e}", "scope_validation"
+            )
 
     async def log_security_event(
         self,
@@ -296,7 +283,7 @@ class OAuthSecurityService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None,
-        error_message: Optional[str] = None
+        error_message: Optional[str] = None,
     ) -> OAuthAuditLog:
         """
         Log a security event for audit purposes.
@@ -328,7 +315,7 @@ class OAuthSecurityService:
                 ip_address=ip_address,
                 user_agent=user_agent,
                 details=details or {},
-                error_message=error_message
+                error_message=error_message,
             )
 
             db.add(audit_log)
@@ -340,7 +327,8 @@ class OAuthSecurityService:
         except Exception as e:
             await db.rollback()
             raise OAuthSecurityError(
-                f"Failed to log security event: {e}", "security_logging")
+                f"Failed to log security event: {e}", "security_logging"
+            )
 
     async def get_security_events(
         self,
@@ -349,7 +337,7 @@ class OAuthSecurityService:
         provider: Optional[str] = None,
         action: Optional[str] = None,
         status: Optional[str] = None,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[OAuthAuditLog]:
         """
         Get security events with optional filtering.
@@ -381,17 +369,17 @@ class OAuthSecurityService:
                 query = query.where(OAuthAuditLog.status == status)
 
             # Order by creation time (newest first)
-            query = query.order_by(
-                OAuthAuditLog.created_at.desc()).limit(limit)
+            query = query.order_by(OAuthAuditLog.created_at.desc()).limit(limit)
 
             result = await db.execute(query)
             events = result.scalars().all()
 
-            return events
+            return list(events)
 
         except Exception as e:
             raise OAuthSecurityError(
-                f"Failed to retrieve security events: {e}", "security_retrieval")
+                f"Failed to retrieve security events: {e}", "security_retrieval"
+            )
 
     def generate_csrf_token(self) -> str:
         """
@@ -404,7 +392,8 @@ class OAuthSecurityService:
             return secrets.token_urlsafe(32)
         except Exception as e:
             raise OAuthSecurityError(
-                f"Failed to generate CSRF token: {e}", "csrf_token_generation")
+                f"Failed to generate CSRF token: {e}", "csrf_token_generation"
+            )
 
     def validate_csrf_token(self, token: str, expected_token: str) -> bool:
         """
@@ -422,7 +411,8 @@ class OAuthSecurityService:
             return secrets.compare_digest(token, expected_token)
         except Exception as e:
             raise OAuthSecurityError(
-                f"Failed to validate CSRF token: {e}", "csrf_token_validation")
+                f"Failed to validate CSRF token: {e}", "csrf_token_validation"
+            )
 
     async def cleanup_old_audit_logs(self, db: AsyncSession, days: int = 90) -> int:
         """
@@ -438,9 +428,7 @@ class OAuthSecurityService:
         try:
             cutoff_date = datetime.utcnow() - timedelta(days=days)
 
-            query = delete(OAuthAuditLog).where(
-                OAuthAuditLog.created_at < cutoff_date
-            )
+            query = delete(OAuthAuditLog).where(OAuthAuditLog.created_at < cutoff_date)
 
             result = await db.execute(query)
             await db.commit()
@@ -450,4 +438,5 @@ class OAuthSecurityService:
         except Exception as e:
             await db.rollback()
             raise OAuthSecurityError(
-                f"Failed to cleanup old audit logs: {e}", "audit_log_cleanup")
+                f"Failed to cleanup old audit logs: {e}", "audit_log_cleanup"
+            )

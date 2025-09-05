@@ -3,21 +3,18 @@ Error handler for the agent core system that centralizes error processing and us
 """
 
 import time
-from typing import Dict, Any, Optional
+from typing import Any, Dict
+
 from .exceptions import (
-    ConversationError,
     AgentExecutionError,
-    ValidationError,
     AgentMemoryError,
-    ToolExecutionError,
-    LLMError,
     ContextError,
-    AgentCoreError
+    ConversationError,
+    LLMError,
+    ToolExecutionError,
+    ValidationError,
 )
-from .logging_utils import (
-    log_error_with_context,
-    log_performance_metrics
-)
+from .logging_utils import log_error_with_context, log_performance_metrics
 
 
 class AgentErrorHandler:
@@ -37,15 +34,11 @@ class AgentErrorHandler:
             "llm_error": "I'm having trouble processing your request with my language model. Please try again in a moment.",
             "context_error": "I'm having trouble accessing relevant information. Please try again.",
             "agent_execution_error": "I'm having trouble executing your request. Please try again.",
-            "unexpected_error": "I'm experiencing technical difficulties. Please try again later."
+            "unexpected_error": "I'm experiencing technical difficulties. Please try again later.",
         }
 
     async def handle_error(
-        self,
-        error: Exception,
-        user_id: int,
-        start_time: float,
-        **context: Any
+        self, error: Exception, user_id: int, start_time: float, **context: Any
     ) -> str:
         """
         Handle an error by logging it and returning a user-friendly message.
@@ -62,13 +55,7 @@ class AgentErrorHandler:
         error_type = self._get_error_type(error)
 
         # Log the error with context
-        log_error_with_context(
-            self.logger,
-            error,
-            user_id,
-            error_type,
-            context
-        )
+        log_error_with_context(self.logger, error, user_id, error_type, context)
 
         # Log performance metrics
         duration = time.time() - start_time
@@ -78,7 +65,7 @@ class AgentErrorHandler:
             "agent_run_complete",
             duration,
             False,
-            {"error_type": error_type, **context}
+            {"error_type": error_type, **context},
         )
 
         # Return user-friendly message
@@ -106,10 +93,11 @@ class AgentErrorHandler:
     def _get_user_friendly_message(self, error: Exception, error_type: str) -> str:
         """Generate a user-friendly error message."""
         base_message = self._error_messages.get(
-            error_type, self._error_messages["unexpected_error"])
+            error_type, self._error_messages["unexpected_error"]
+        )
 
         # Add error details for debugging (in development)
-        if hasattr(error, 'message'):
+        if hasattr(error, "message"):
             error_detail = str(error.message)
         else:
             error_detail = str(error)
@@ -122,31 +110,31 @@ class AgentErrorHandler:
         context = {}
 
         if isinstance(error, ValidationError):
-            context.update({
-                "field": getattr(error, 'field', None),
-                "value": getattr(error, 'value', None)
-            })
+            context.update(
+                {
+                    "field": getattr(error, "field", None),
+                    "value": getattr(error, "value", None),
+                }
+            )
         elif isinstance(error, AgentMemoryError):
-            context.update({
-                "operation": getattr(error, 'operation', None)
-            })
+            context.update({"operation": getattr(error, "operation", None)})
         elif isinstance(error, ToolExecutionError):
-            context.update({
-                "tool_name": getattr(error, 'tool_name', None)
-            })
+            context.update({"tool_name": getattr(error, "tool_name", None)})
         elif isinstance(error, LLMError):
-            context.update({
-                "model": getattr(error, 'model', None),
-                "operation": getattr(error, 'operation', None)
-            })
+            context.update(
+                {
+                    "model": getattr(error, "model", None),
+                    "operation": getattr(error, "operation", None),
+                }
+            )
         elif isinstance(error, ContextError):
-            context.update({
-                "context_type": getattr(error, 'context_type', None)
-            })
+            context.update({"context_type": getattr(error, "context_type", None)})
         elif isinstance(error, AgentExecutionError):
-            context.update({
-                # tool_name is used for operation in this case
-                "operation": getattr(error, 'tool_name', None)
-            })
+            context.update(
+                {
+                    # tool_name is used for operation in this case
+                    "operation": getattr(error, "tool_name", None)
+                }
+            )
 
         return context

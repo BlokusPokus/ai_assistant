@@ -1,7 +1,17 @@
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Optional
 
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text, Float, Boolean
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -20,10 +30,11 @@ class LTMMemory(Base):
     - Enhanced metadata tracking
     - Relationship capabilities
     """
-    __tablename__ = 'ltm_memories'
+
+    __tablename__ = "ltm_memories"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     # Memory content (insight, pattern, preference)
     content = Column(Text, nullable=False)
@@ -69,8 +80,9 @@ class LTMMemory(Base):
     # Relationship tracking
     # List of related memory IDs
     related_memory_ids = Column(JSON, nullable=True)
-    parent_memory_id = Column(Integer, ForeignKey(
-        'ltm_memories.id'), nullable=True)  # Parent memory if this is a child
+    parent_memory_id = Column(
+        Integer, ForeignKey("ltm_memories.id"), nullable=True
+    )  # Parent memory if this is a child
 
     # Metadata
     # Additional flexible metadata
@@ -99,23 +111,27 @@ class LTMMemory(Base):
             "source_id": self.source_id,
             "created_by": self.created_by,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "last_accessed": self.last_accessed.isoformat() if self.last_accessed else None,
-            "last_modified": self.last_modified.isoformat() if self.last_modified else None,
+            "last_accessed": self.last_accessed.isoformat()
+            if self.last_accessed
+            else None,
+            "last_modified": self.last_modified.isoformat()
+            if self.last_modified
+            else None,
             "access_count": self.access_count,
             "last_access_context": self.last_access_context,
             "related_memory_ids": self.related_memory_ids,
             "parent_memory_id": self.parent_memory_id,
             "metadata": self.memory_metadata,
             "is_archived": self.is_archived,
-            "archive_reason": self.archive_reason
+            "archive_reason": self.archive_reason,
         }
 
-    def update_access_stats(self, access_context: str = None):
+    def update_access_stats(self, access_context: Optional[str] = None):
         """Update access statistics when memory is retrieved."""
-        self.access_count += 1
-        self.last_accessed = datetime.utcnow()
+        self.access_count += 1  # type: ignore
+        self.last_accessed = datetime.utcnow()  # type: ignore
         if access_context:
-            self.last_access_context = access_context
+            self.last_access_context = access_context  # type: ignore
 
     def calculate_dynamic_importance(self) -> float:
         """Calculate dynamic importance based on various factors."""
@@ -124,11 +140,12 @@ class LTMMemory(Base):
 
         # Recency boost (memories accessed recently get a boost)
         days_since_access = (
-            datetime.utcnow() - self.last_accessed).days if self.last_accessed else 30
+            (datetime.utcnow() - self.last_accessed).days if self.last_accessed else 30
+        )
         recency_boost = max(0, (30 - days_since_access) / 30) * 0.2
 
         # Usage boost (frequently accessed memories get a boost)
-        usage_boost = min(0.3, self.access_count * 0.05)
+        usage_boost = min(0.3, float(self.access_count) * 0.05)
 
         # Confidence boost
         confidence_boost = (self.confidence_score - 0.5) * 0.2
@@ -137,17 +154,21 @@ class LTMMemory(Base):
         dynamic_score = base_score + recency_boost + usage_boost + confidence_boost
 
         # Ensure it stays within reasonable bounds
-        return max(1.0, min(10.0, dynamic_score))
+        return max(1.0, min(10.0, float(dynamic_score)))
 
     # Relationships to related tables
     contexts = relationship(
-        "LTMContext", back_populates="memory", cascade="all, delete-orphan")
+        "LTMContext", back_populates="memory", cascade="all, delete-orphan"
+    )
     access_logs = relationship(
-        "LTMMemoryAccess", back_populates="memory", cascade="all, delete-orphan")
+        "LTMMemoryAccess", back_populates="memory", cascade="all, delete-orphan"
+    )
     tag_entries = relationship(
-        "LTMMemoryTag", back_populates="memory", cascade="all, delete-orphan")
+        "LTMMemoryTag", back_populates="memory", cascade="all, delete-orphan"
+    )
 
     # Self-referential relationships
-    parent_memory = relationship("LTMMemory", remote_side=[
-                                 id], back_populates="child_memories")
+    parent_memory = relationship(
+        "LTMMemory", remote_side=[id], back_populates="child_memories"
+    )
     child_memories = relationship("LTMMemory", back_populates="parent_memory")

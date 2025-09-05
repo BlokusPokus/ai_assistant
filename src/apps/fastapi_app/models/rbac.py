@@ -5,12 +5,14 @@ This module provides Pydantic models for RBAC API requests and responses.
 """
 
 from datetime import datetime
-from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field, ConfigDict
+from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RoleResponse(BaseModel):
     """Response model for role information."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -23,22 +25,25 @@ class RoleResponse(BaseModel):
 
 class RoleCreateRequest(BaseModel):
     """Request model for creating a new role."""
-    name: str = Field(..., min_length=1, max_length=50,
-                      description="Role name")
+
+    name: str = Field(..., min_length=1, max_length=50, description="Role name")
     description: Optional[str] = Field(None, description="Role description")
     parent_role_id: Optional[int] = Field(None, description="Parent role ID")
 
 
 class RoleUpdateRequest(BaseModel):
     """Request model for updating a role."""
+
     name: Optional[str] = Field(
-        None, min_length=1, max_length=50, description="Role name")
+        None, min_length=1, max_length=50, description="Role name"
+    )
     description: Optional[str] = Field(None, description="Role description")
     parent_role_id: Optional[int] = Field(None, description="Parent role ID")
 
 
 class PermissionResponse(BaseModel):
     """Response model for permission information."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -51,17 +56,18 @@ class PermissionResponse(BaseModel):
 
 class PermissionCreateRequest(BaseModel):
     """Request model for creating a new permission."""
-    name: str = Field(..., min_length=1, max_length=100,
-                      description="Permission name")
-    resource_type: str = Field(..., min_length=1,
-                               max_length=50, description="Resource type")
+
+    name: str = Field(..., min_length=1, max_length=100, description="Permission name")
+    resource_type: str = Field(
+        ..., min_length=1, max_length=50, description="Resource type"
+    )
     action: str = Field(..., min_length=1, max_length=50, description="Action")
-    description: Optional[str] = Field(
-        None, description="Permission description")
+    description: Optional[str] = Field(None, description="Permission description")
 
 
 class RolePermissionResponse(BaseModel):
     """Response model for role-permission relationship."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -72,12 +78,14 @@ class RolePermissionResponse(BaseModel):
 
 class RolePermissionCreateRequest(BaseModel):
     """Request model for assigning permission to role."""
+
     role_id: int = Field(..., description="Role ID")
     permission_id: int = Field(..., description="Permission ID")
 
 
 class UserRoleResponse(BaseModel):
     """Response model for user-role relationship."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -91,16 +99,18 @@ class UserRoleResponse(BaseModel):
 
 class UserRoleCreateRequest(BaseModel):
     """Request model for assigning role to user."""
+
     user_id: int = Field(..., description="User ID")
     role_id: int = Field(..., description="Role ID")
     is_primary: bool = Field(
-        default=False, description="Whether this is the primary role")
-    expires_at: Optional[datetime] = Field(
-        None, description="Role expiration date")
+        default=False, description="Whether this is the primary role"
+    )
+    expires_at: Optional[datetime] = Field(None, description="Role expiration date")
 
 
 class AccessAuditLogResponse(BaseModel):
     """Response model for access audit log information."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -117,22 +127,26 @@ class AccessAuditLogResponse(BaseModel):
 
 class AccessAuditLogCreateRequest(BaseModel):
     """Request model for creating access audit log entry."""
+
     user_id: Optional[int] = Field(None, description="User ID")
-    resource_type: str = Field(..., min_length=1,
-                               max_length=50, description="Resource type")
+    resource_type: str = Field(
+        ..., min_length=1, max_length=50, description="Resource type"
+    )
     resource_id: Optional[int] = Field(None, description="Resource ID")
-    action: str = Field(..., min_length=1, max_length=50,
-                        description="Action performed")
-    permission_granted: bool = Field(...,
-                                     description="Whether permission was granted")
+    action: str = Field(
+        ..., min_length=1, max_length=50, description="Action performed"
+    )
+    permission_granted: bool = Field(..., description="Whether permission was granted")
     roles_checked: Optional[List[str]] = Field(
-        None, description="Roles that were checked")
+        None, description="Roles that were checked"
+    )
     ip_address: Optional[str] = Field(None, description="IP address")
     user_agent: Optional[str] = Field(None, description="User agent string")
 
 
 class RoleListResponse(BaseModel):
     """Response model for role list."""
+
     roles: List[RoleResponse]
     total: int
     skip: int
@@ -141,6 +155,7 @@ class RoleListResponse(BaseModel):
 
 class PermissionListResponse(BaseModel):
     """Response model for permission list."""
+
     permissions: List[PermissionResponse]
     total: int
     skip: int
@@ -149,6 +164,7 @@ class PermissionListResponse(BaseModel):
 
 class UserRoleListResponse(BaseModel):
     """Response model for user role list."""
+
     user_roles: List[UserRoleResponse]
     total: int
     skip: int
@@ -157,6 +173,7 @@ class UserRoleListResponse(BaseModel):
 
 class AccessAuditLogListResponse(BaseModel):
     """Response model for access audit log list."""
+
     audit_logs: List[AccessAuditLogResponse]
     total: int
     skip: int
@@ -165,37 +182,43 @@ class AccessAuditLogListResponse(BaseModel):
 
 class RoleSearchRequest(BaseModel):
     """Request model for searching roles."""
+
     name: Optional[str] = Field(None, description="Filter by role name")
-    parent_role_id: Optional[int] = Field(
-        None, description="Filter by parent role ID")
+    parent_role_id: Optional[int] = Field(None, description="Filter by parent role ID")
     skip: int = Field(default=0, ge=0, description="Number of records to skip")
-    limit: int = Field(default=50, ge=1, le=100,
-                       description="Maximum number of records to return")
+    limit: int = Field(
+        default=50, ge=1, le=100, description="Maximum number of records to return"
+    )
 
 
 class PermissionSearchRequest(BaseModel):
     """Request model for searching permissions."""
+
     name: Optional[str] = Field(None, description="Filter by permission name")
-    resource_type: Optional[str] = Field(
-        None, description="Filter by resource type")
+    resource_type: Optional[str] = Field(None, description="Filter by resource type")
     action: Optional[str] = Field(None, description="Filter by action")
     skip: int = Field(default=0, ge=0, description="Number of records to skip")
-    limit: int = Field(default=50, ge=1, le=100,
-                       description="Maximum number of records to return")
+    limit: int = Field(
+        default=50, ge=1, le=100, description="Maximum number of records to return"
+    )
 
 
 class AccessAuditLogSearchRequest(BaseModel):
     """Request model for searching access audit logs."""
+
     user_id: Optional[int] = Field(None, description="Filter by user ID")
-    resource_type: Optional[str] = Field(
-        None, description="Filter by resource type")
+    resource_type: Optional[str] = Field(None, description="Filter by resource type")
     action: Optional[str] = Field(None, description="Filter by action")
     permission_granted: Optional[bool] = Field(
-        None, description="Filter by permission granted")
+        None, description="Filter by permission granted"
+    )
     created_after: Optional[datetime] = Field(
-        None, description="Filter by creation date")
+        None, description="Filter by creation date"
+    )
     created_before: Optional[datetime] = Field(
-        None, description="Filter by creation date")
+        None, description="Filter by creation date"
+    )
     skip: int = Field(default=0, ge=0, description="Number of records to skip")
-    limit: int = Field(default=50, ge=1, le=100,
-                       description="Maximum number of records to return")
+    limit: int = Field(
+        default=50, ge=1, le=100, description="Maximum number of records to return"
+    )

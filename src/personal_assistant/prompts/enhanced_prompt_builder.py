@@ -6,12 +6,13 @@ Builds agent prompts with intelligent metadata loading based on user context.
 """
 
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any, List
+
 from ..config.logging_config import get_logger
 from ..tools.base import ToolRegistry
+from ..tools.metadata import AIEnhancementManager, ToolMetadataManager
 from ..types.state import AgentState
 from .prompt_helpers import PromptHelpers
-from ..tools.metadata import ToolMetadataManager, AIEnhancementManager
 
 logger = get_logger("enhanced_prompts")
 
@@ -27,7 +28,7 @@ class EnhancedPromptBuilder:
     - Maintains existing prompt structure
     """
 
-    def __init__(self, tool_registry: 'ToolRegistry'):
+    def __init__(self, tool_registry: "ToolRegistry"):
         """
         Initialize the enhanced prompt builder.
 
@@ -45,7 +46,10 @@ class EnhancedPromptBuilder:
         """Initialize metadata for all available tools."""
         try:
             # Import and register metadata for each tool
-            from ..tools.metadata.email_metadata import create_email_tool_metadata, create_email_ai_enhancements
+            from ..tools.metadata.email_metadata import (
+                create_email_ai_enhancements,
+                create_email_tool_metadata,
+            )
 
             # Register email tool metadata
             email_metadata = create_email_tool_metadata()
@@ -54,8 +58,7 @@ class EnhancedPromptBuilder:
             # Register email tool AI enhancements
             create_email_ai_enhancements(self.enhancement_manager)
 
-            logger.info(
-                "Enhanced prompt builder initialized with tool metadata")
+            logger.info("Enhanced prompt builder initialized with tool metadata")
 
         except Exception as e:
             logger.warning(f"Failed to initialize tool metadata: {e}")
@@ -128,7 +131,7 @@ class EnhancedPromptBuilder:
 """
         return base_prompt
 
-    def _analyze_tool_requirements(self, user_input: str) -> List[str]:
+    def _analyze_tool_requirements(self, user_input: str | list[Any]) -> List[str]:
         """
         Analyze user input to determine which tools are likely needed.
 
@@ -148,27 +151,38 @@ class EnhancedPromptBuilder:
         input_lower = user_input_str.lower()
 
         # Email-related tasks
-        if any(word in input_lower for word in ['email', 'send', 'message', 'mail']):
-            required_tools.append('email_tool')
+        if any(word in input_lower for word in ["email", "send", "message", "mail"]):
+            required_tools.append("email_tool")
 
         # Calendar-related tasks
-        if any(word in input_lower for word in ['meeting', 'schedule', 'calendar', 'appointment', 'book']):
-            required_tools.append('calendar_tool')
+        if any(
+            word in input_lower
+            for word in ["meeting", "schedule", "calendar", "appointment", "book"]
+        ):
+            required_tools.append("calendar_tool")
 
         # Research/information tasks
-        if any(word in input_lower for word in ['research', 'search', 'find', 'look up', 'investigate']):
-            required_tools.append('internet_tool')
+        if any(
+            word in input_lower
+            for word in ["research", "search", "find", "look up", "investigate"]
+        ):
+            required_tools.append("internet_tool")
 
         # Note-taking tasks
-        if any(word in input_lower for word in ['note', 'write down', 'document', 'save']):
-            required_tools.append('notion_tool')
+        if any(
+            word in input_lower for word in ["note", "write down", "document", "save"]
+        ):
+            required_tools.append("notion_tool")
 
         # Planning tasks
-        if any(word in input_lower for word in ['plan', 'organize', 'coordinate', 'manage']):
-            required_tools.append('ai_scheduler_tool')
+        if any(
+            word in input_lower for word in ["plan", "organize", "coordinate", "manage"]
+        ):
+            required_tools.append("ai_scheduler_tool")
 
         logger.debug(
-            f"Analyzed tool requirements: {required_tools} for input: {user_input[:50]}...")
+            f"Analyzed tool requirements: {required_tools} for input: {user_input[:50]}..."
+        )
         return required_tools
 
     def _get_contextual_metadata(self, required_tools: List[str]) -> str:
@@ -189,16 +203,17 @@ class EnhancedPromptBuilder:
         for tool_name in required_tools:
             try:
                 # Get tool metadata
-                tool_metadata = self.metadata_manager.get_tool_metadata(
-                    tool_name)
+                tool_metadata = self.metadata_manager.get_tool_metadata(tool_name)
                 if tool_metadata:
                     # Get AI enhancements for this tool
                     tool_enhancements = self.enhancement_manager.get_tool_enhancements(
-                        tool_name)
+                        tool_name
+                    )
 
                     # Format metadata section
                     section = self._format_tool_metadata_section(
-                        tool_metadata, tool_enhancements)
+                        tool_metadata, tool_enhancements
+                    )
                     metadata_sections.append(section)
                 else:
                     logger.warning(f"No metadata found for tool: {tool_name}")
@@ -212,7 +227,9 @@ class EnhancedPromptBuilder:
 
         return "\n\n".join(metadata_sections)
 
-    def _format_tool_metadata_section(self, metadata: Any, enhancements: List[Any]) -> str:
+    def _format_tool_metadata_section(
+        self, metadata: Any, enhancements: List[Any]
+    ) -> str:
         """
         Format a single tool's metadata section.
 
@@ -225,7 +242,9 @@ class EnhancedPromptBuilder:
         """
         try:
             # Get metadata as dictionary
-            metadata_dict = metadata.to_dict() if hasattr(metadata, 'to_dict') else metadata
+            metadata_dict = (
+                metadata.to_dict() if hasattr(metadata, "to_dict") else metadata
+            )
 
             section = f"""
 🚨 **CRITICAL RULES FOR {metadata_dict.get('tool_name', 'Unknown Tool').upper()}** 🚨
@@ -238,7 +257,7 @@ class EnhancedPromptBuilder:
 🎯 **Use Cases**:"""
 
             # Add use cases
-            use_cases = metadata_dict.get('use_cases', [])
+            use_cases = metadata_dict.get("use_cases", [])
             if use_cases:
                 # Limit to 2 use cases to keep prompt manageable
                 for use_case in use_cases[:2]:
@@ -247,12 +266,12 @@ class EnhancedPromptBuilder:
                 section += "\n   • General usage"
 
             # Add examples
-            examples = metadata_dict.get('examples', [])
+            examples = metadata_dict.get("examples", [])
             if examples:
                 section += f"\n\n💡 **Examples**:"
                 for example in examples[:1]:  # Limit to 1 example
-                    user_request = example.get('user_request', '')[:100]
-                    if len(example.get('user_request', '')) > 100:
+                    user_request = example.get("user_request", "")[:100]
+                    if len(example.get("user_request", "")) > 100:
                         user_request += "..."
                     section += f"\n   • User: '{user_request}'"
 
@@ -261,16 +280,23 @@ class EnhancedPromptBuilder:
                 section += f"\n\n🚨 **CRITICAL AI RULES (MUST FOLLOW)**:"
                 for enhancement in enhancements[:3]:  # Show more enhancements
                     # Handle both dataclass and dict objects
-                    if hasattr(enhancement, 'enhancement_type'):
-                        enhancement_type = enhancement.enhancement_type.value if hasattr(
-                            enhancement.enhancement_type, 'value') else enhancement.enhancement_type
-                        description = enhancement.description[:100] if len(
-                            enhancement.description) > 100 else enhancement.description
+                    if hasattr(enhancement, "enhancement_type"):
+                        enhancement_type = (
+                            enhancement.enhancement_type.value
+                            if hasattr(enhancement.enhancement_type, "value")
+                            else enhancement.enhancement_type
+                        )
+                        description = (
+                            enhancement.description[:100]
+                            if len(enhancement.description) > 100
+                            else enhancement.description
+                        )
                     else:
                         enhancement_type = enhancement.get(
-                            'enhancement_type', 'Unknown')
-                        description = enhancement.get('description', '')[:100]
-                        if len(enhancement.get('description', '')) > 100:
+                            "enhancement_type", "Unknown"
+                        )
+                        description = enhancement.get("description", "")[:100]
+                        if len(enhancement.get("description", "")) > 100:
                             description += "..."
                     section += f"\n   🚨 **{enhancement_type.upper()}**: {description}"
 

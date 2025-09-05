@@ -6,10 +6,9 @@ injection, ensuring that only relevant, high-quality memories are
 included in the context provided to the LLM.
 """
 
-import logging
-from typing import List, Dict, Any, Optional, Tuple
-from collections import defaultdict
 import re
+from collections import defaultdict
+from typing import Any, Dict, List, Optional, Tuple
 
 from ...config.logging_config import get_logger
 from ...types.state import AgentState
@@ -29,16 +28,13 @@ class ContextQualityValidator:
     - State-LTM coordination is maintained
     """
 
-    def __init__(self, config: EnhancedLTMConfig = None):
+    def __init__(self, config: Optional[EnhancedLTMConfig] = None):
         """Initialize the context quality validator"""
         self.config = config or EnhancedLTMConfig()
         self.logger = get_logger("context_quality")
 
     async def validate_memory_relevance(
-        self,
-        memory: Dict[str, Any],
-        context: str,
-        user_input: str = None
+        self, memory: Dict[str, Any], context: str, user_input: Optional[str] = None
     ) -> float:
         """
         Validate memory relevance for the given context.
@@ -60,8 +56,7 @@ class ContextQualityValidator:
             relevance_score += tag_score * 0.4
 
             # Content relevance (30%)
-            content_score = self._score_content_relevance(
-                memory, context, user_input)
+            content_score = self._score_content_relevance(memory, context, user_input)
             relevance_score += content_score * 0.3
 
             # Temporal relevance (20%)
@@ -69,12 +64,12 @@ class ContextQualityValidator:
             relevance_score += temporal_score * 0.2
 
             # State coordination relevance (10%)
-            state_score = self._score_state_coordination_relevance(
-                memory, context)
+            state_score = self._score_state_coordination_relevance(memory, context)
             relevance_score += state_score * 0.1
 
             self.logger.debug(
-                f"Memory relevance score: {relevance_score:.2f} for memory: {memory.get('content', '')[:50]}...")
+                f"Memory relevance score: {relevance_score:.2f} for memory: {memory.get('content', '')[:50]}..."
+            )
 
             return relevance_score
 
@@ -86,7 +81,7 @@ class ContextQualityValidator:
         self,
         memories: List[Dict[str, Any]],
         user_input: str,
-        max_context_length: int = None
+        max_context_length: Optional[int] = None,
     ) -> float:
         """
         Score overall context quality for a set of memories.
@@ -116,26 +111,28 @@ class ContextQualityValidator:
                 memory_scores.append(relevance_score)
 
                 # Calculate context length
-                memory_content = memory.get('content', '')
+                memory_content = memory.get("content", "")
                 total_length += len(memory_content)
 
             # Calculate average relevance score
-            avg_relevance = sum(memory_scores) / \
-                len(memory_scores) if memory_scores else 0.0
+            avg_relevance = (
+                sum(memory_scores) / len(memory_scores) if memory_scores else 0.0
+            )
 
             # Length optimization score
-            length_score = self._score_context_length(
-                total_length, max_context_length)
+            length_score = self._score_context_length(total_length, max_context_length)
 
             # Diversity score (avoid too many similar memories)
             diversity_score = self._score_memory_diversity(memories)
 
             # Overall quality score
-            quality_score = (avg_relevance * 0.6 +
-                             length_score * 0.2 + diversity_score * 0.2)
+            quality_score = (
+                avg_relevance * 0.6 + length_score * 0.2 + diversity_score * 0.2
+            )
 
             self.logger.info(
-                f"Context quality score: {quality_score:.2f} for {len(memories)} memories")
+                f"Context quality score: {quality_score:.2f} for {len(memories)} memories"
+            )
 
             return quality_score
 
@@ -144,8 +141,7 @@ class ContextQualityValidator:
             return 0.0
 
     async def detect_redundancy(
-        self,
-        memories: List[Dict[str, Any]]
+        self, memories: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         """
         Detect and remove redundant memories from the context.
@@ -190,7 +186,7 @@ class ContextQualityValidator:
         memories: List[Dict[str, Any]],
         state_data: AgentState,
         user_input: str,
-        max_context_length: int = None
+        max_context_length: Optional[int] = None,
     ) -> Tuple[List[Dict[str, Any]], float]:
         """
         Optimize context for state management integration.
@@ -213,12 +209,16 @@ class ContextQualityValidator:
             state_relevant_memories = []
 
             for memory in memories:
-                state_relevance = await self._assess_state_relevance(memory, state_data, user_input)
+                state_relevance = await self._assess_state_relevance(
+                    memory, state_data, user_input
+                )
                 if state_relevance >= self.config.coordination_quality_threshold:
                     state_relevant_memories.append(memory)
 
             # Remove redundancy
-            deduplicated_memories = await self.detect_redundancy(state_relevant_memories)
+            deduplicated_memories = await self.detect_redundancy(
+                state_relevant_memories
+            )
 
             # Score final context quality
             quality_score = await self.score_context_quality(
@@ -232,7 +232,8 @@ class ContextQualityValidator:
                 )
 
             self.logger.info(
-                f"State-optimized context: {len(deduplicated_memories)} memories, quality: {quality_score:.2f}")
+                f"State-optimized context: {len(deduplicated_memories)} memories, quality: {quality_score:.2f}"
+            )
 
             return deduplicated_memories, quality_score
 
@@ -241,23 +242,18 @@ class ContextQualityValidator:
             return memories, 0.0
 
     def _score_tag_relevance(
-        self,
-        memory: Dict[str, Any],
-        context: str,
-        user_input: str = None
+        self, memory: Dict[str, Any], context: str, user_input: Optional[str] = None
     ) -> float:
         """Score memory tag relevance"""
 
         try:
-            memory_tags = memory.get('tags', [])
+            memory_tags = memory.get("tags", [])
             if not memory_tags:
                 return 0.0
 
             # Extract keywords from context and user input
-            context_keywords = self._extract_keywords(
-                context) if context else []
-            user_keywords = self._extract_keywords(
-                user_input) if user_input else []
+            context_keywords = self._extract_keywords(context) if context else []
+            user_keywords = self._extract_keywords(user_input) if user_input else []
 
             all_keywords = context_keywords + user_keywords
 
@@ -283,23 +279,18 @@ class ContextQualityValidator:
             return 0.0
 
     def _score_content_relevance(
-        self,
-        memory: Dict[str, Any],
-        context: str,
-        user_input: str = None
+        self, memory: Dict[str, Any], context: str, user_input: Optional[str] = None
     ) -> float:
         """Score memory content relevance"""
 
         try:
-            memory_content = memory.get('content', '').lower()
+            memory_content = memory.get("content", "").lower()
             if not memory_content:
                 return 0.0
 
             # Extract keywords from context and user input
-            context_keywords = self._extract_keywords(
-                context) if context else []
-            user_keywords = self._extract_keywords(
-                user_input) if user_input else []
+            context_keywords = self._extract_keywords(context) if context else []
+            user_keywords = self._extract_keywords(user_input) if user_input else []
 
             all_keywords = context_keywords + user_keywords
 
@@ -337,9 +328,7 @@ class ContextQualityValidator:
             return 0.5
 
     def _score_state_coordination_relevance(
-        self,
-        memory: Dict[str, Any],
-        context: str
+        self, memory: Dict[str, Any], context: str
     ) -> float:
         """Score how well memory coordinates with current state"""
 
@@ -349,11 +338,12 @@ class ContextQualityValidator:
             return 0.6
 
         except Exception as e:
-            self.logger.error(
-                f"Error scoring state coordination relevance: {e}")
+            self.logger.error(f"Error scoring state coordination relevance: {e}")
             return 0.5
 
-    def _score_context_length(self, total_length: int, max_length: int = None) -> float:
+    def _score_context_length(
+        self, total_length: int, max_length: Optional[int] = None
+    ) -> float:
         """Score context length optimization"""
 
         try:
@@ -385,8 +375,8 @@ class ContextQualityValidator:
                 return 1.0
 
             # Analyze memory types and categories
-            memory_types = [m.get('memory_type', 'unknown') for m in memories]
-            categories = [m.get('category', 'unknown') for m in memories]
+            memory_types = [m.get("memory_type", "unknown") for m in memories]
+            categories = [m.get("category", "unknown") for m in memories]
 
             # Calculate diversity scores
             type_diversity = len(set(memory_types)) / len(memory_types)
@@ -401,7 +391,9 @@ class ContextQualityValidator:
             self.logger.error(f"Error scoring memory diversity: {e}")
             return 0.5
 
-    def _group_similar_memories(self, memories: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
+    def _group_similar_memories(
+        self, memories: List[Dict[str, Any]]
+    ) -> List[List[Dict[str, Any]]]:
         """Group memories by similarity for redundancy detection"""
 
         try:
@@ -413,8 +405,8 @@ class ContextQualityValidator:
             groups = defaultdict(list)
 
             for memory in memories:
-                memory_type = memory.get('memory_type', 'unknown')
-                category = memory.get('category', 'unknown')
+                memory_type = memory.get("memory_type", "unknown")
+                category = memory.get("category", "unknown")
 
                 # Create group key
                 group_key = f"{memory_type}_{category}"
@@ -426,7 +418,9 @@ class ContextQualityValidator:
             self.logger.error(f"Error grouping similar memories: {e}")
             return [memories]
 
-    def _select_best_memory_from_group(self, group: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _select_best_memory_from_group(
+        self, group: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Select the best memory from a group of similar memories"""
 
         try:
@@ -437,8 +431,8 @@ class ContextQualityValidator:
             scored_memories = []
 
             for memory in group:
-                importance = memory.get('importance_score', 1)
-                confidence = memory.get('confidence_score', 0.5)
+                importance = memory.get("importance_score", 1)
+                confidence = memory.get("confidence_score", 0.5)
 
                 # Combined score
                 score = (importance * 0.6) + (confidence * 0.4)
@@ -453,10 +447,7 @@ class ContextQualityValidator:
             return group[0] if group else {}
 
     async def _assess_state_relevance(
-        self,
-        memory: Dict[str, Any],
-        state_data: AgentState,
-        user_input: str
+        self, memory: Dict[str, Any], state_data: AgentState, user_input: str
     ) -> float:
         """Assess how relevant a memory is to current state"""
 
@@ -464,16 +455,16 @@ class ContextQualityValidator:
             relevance_score = 0.0
 
             # Focus area relevance
-            if state_data.focus and memory.get('category'):
-                category = memory['category'].lower()
+            if state_data.focus and memory.get("category"):
+                category = memory["category"].lower()
                 focus_lower = [f.lower() for f in state_data.focus]
 
                 if any(focus in category or category in focus for focus in focus_lower):
                     relevance_score += 0.4
 
             # User input relevance
-            if user_input and memory.get('content'):
-                content_lower = memory['content'].lower()
+            if user_input and memory.get("content"):
+                content_lower = memory["content"].lower()
                 input_lower = user_input.lower()
 
                 # Check for keyword overlap
@@ -485,12 +476,12 @@ class ContextQualityValidator:
                     relevance_score += min(0.3, overlap * 0.1)
 
             # Memory type relevance
-            memory_type = memory.get('memory_type', 'general')
-            if memory_type in ['preference', 'pattern']:
+            memory_type = memory.get("memory_type", "general")
+            if memory_type in ["preference", "pattern"]:
                 relevance_score += 0.2
 
             # Importance relevance
-            importance = memory.get('importance_score', 1)
+            importance = memory.get("importance_score", 1)
             if importance >= 7:
                 relevance_score += 0.1
 
@@ -501,9 +492,7 @@ class ContextQualityValidator:
             return 0.0
 
     def _apply_context_length_limits(
-        self,
-        memories: List[Dict[str, Any]],
-        max_length: int
+        self, memories: List[Dict[str, Any]], max_length: int
     ) -> List[Dict[str, Any]]:
         """Apply context length limits to memories"""
 
@@ -514,8 +503,8 @@ class ContextQualityValidator:
             # Sort memories by importance and relevance
             scored_memories = []
             for memory in memories:
-                importance = memory.get('importance_score', 1)
-                confidence = memory.get('confidence_score', 0.5)
+                importance = memory.get("importance_score", 1)
+                confidence = memory.get("confidence_score", 0.5)
                 score = (importance * 0.7) + (confidence * 0.3)
                 scored_memories.append((score, memory))
 
@@ -526,7 +515,7 @@ class ContextQualityValidator:
             current_length = 0
 
             for score, memory in scored_memories:
-                memory_content = memory.get('content', '')
+                memory_content = memory.get("content", "")
                 memory_length = len(memory_content)
 
                 if current_length + memory_length <= max_length:
@@ -550,12 +539,27 @@ class ContextQualityValidator:
 
             # Simple keyword extraction
             # Remove common words and extract meaningful terms
-            common_words = {'the', 'a', 'an', 'and', 'or', 'but',
-                            'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'}
+            common_words = {
+                "the",
+                "a",
+                "an",
+                "and",
+                "or",
+                "but",
+                "in",
+                "on",
+                "at",
+                "to",
+                "for",
+                "of",
+                "with",
+                "by",
+            }
 
-            words = re.findall(r'\b\w+\b', text.lower())
+            words = re.findall(r"\b\w+\b", text.lower())
             keywords = [
-                word for word in words if word not in common_words and len(word) > 2]
+                word for word in words if word not in common_words and len(word) > 2
+            ]
 
             return keywords[:10]  # Limit to top 10 keywords
 

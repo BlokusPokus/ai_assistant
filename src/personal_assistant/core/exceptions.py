@@ -5,13 +5,14 @@ from typing import Optional
 
 class AgentCoreError(Exception):
     """Base exception for agent core errors."""
-    pass
 
 
 class ConversationError(AgentCoreError):
     """Exception raised when conversation management fails."""
 
-    def __init__(self, message: str, user_id: int, conversation_id: Optional[str] = None):
+    def __init__(
+        self, message: str, user_id: int, conversation_id: Optional[str] = None
+    ):
         self.message = message
         self.user_id = user_id
         self.conversation_id = conversation_id
@@ -31,7 +32,9 @@ class AgentExecutionError(AgentCoreError):
 class ValidationError(AgentCoreError):
     """Exception raised when input validation fails."""
 
-    def __init__(self, message: str, field: Optional[str] = None, value: Optional[str] = None):
+    def __init__(
+        self, message: str, field: Optional[str] = None, value: Optional[str] = None
+    ):
         self.message = message
         self.field = field
         self.value = value
@@ -51,18 +54,26 @@ class AgentMemoryError(AgentCoreError):
 class ToolExecutionError(AgentCoreError):
     """Exception raised when tool execution fails."""
 
-    def __init__(self, message: str, tool_name: str, user_id: int, args: Optional[dict] = None):
+    def __init__(
+        self,
+        message: str,
+        tool_name: str,
+        user_id: int,
+        tool_args: Optional[dict] = None,
+    ):
         self.message = message
         self.tool_name = tool_name
         self.user_id = user_id
-        self.args = args or {}
+        self.tool_args = tool_args or {}
         super().__init__(self.message)
 
 
 class LLMError(AgentCoreError):
     """Exception raised when LLM operations fail."""
 
-    def __init__(self, message: str, model: Optional[str] = None, operation: Optional[str] = None):
+    def __init__(
+        self, message: str, model: Optional[str] = None, operation: Optional[str] = None
+    ):
         self.message = message
         self.model = model
         self.operation = operation

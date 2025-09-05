@@ -6,8 +6,10 @@ accessing YouTube videos, channels, and playlists.
 """
 
 import urllib.parse
+from typing import Any, Dict, List
+
 import requests
-from typing import Dict, List, Any
+
 from .base import BaseOAuthProvider
 
 
@@ -35,12 +37,7 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
     def userinfo_url(self) -> str:
         return "https://www.googleapis.com/youtube/v3/channels"
 
-    def get_authorization_url(
-        self,
-        state: str,
-        scopes: List[str],
-        **kwargs
-    ) -> str:
+    def get_authorization_url(self, state: str, scopes: List[str], **kwargs) -> str:
         """
         Generate YouTube OAuth authorization URL.
 
@@ -55,8 +52,7 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
         # YouTube uses Google OAuth, so we need YouTube-specific scopes
         youtube_scopes = [scope for scope in scopes if "youtube" in scope]
         if not youtube_scopes:
-            youtube_scopes = [
-                "https://www.googleapis.com/auth/youtube.readonly"]
+            youtube_scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
 
         params = {
             "client_id": self.client_id,
@@ -77,9 +73,7 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
         return f"{self.authorization_url}?{query_string}"
 
     def exchange_code_for_tokens(
-        self,
-        authorization_code: str,
-        **kwargs
+        self, authorization_code: str, **kwargs
     ) -> Dict[str, Any]:
         """
         Exchange authorization code for YouTube OAuth tokens.
@@ -106,12 +100,13 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
                 self.token_url,
                 data=data,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
-                timeout=30
+                timeout=30,
             )
 
             if response.status_code != 200:
                 raise Exception(
-                    f"YouTube OAuth token exchange failed: {response.status_code} - {response.text}")
+                    f"YouTube OAuth token exchange failed: {response.status_code} - {response.text}"
+                )
 
             # Parse the response
             token_data = response.json()
@@ -133,21 +128,18 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
                 "expires_in": token_data.get("expires_in", 3600),
                 "scope": token_data.get("scope", ""),
                 "provider_user_id": user_info.get("id"),
-                "provider_name": user_info.get("snippet", {}).get("title") if user_info.get("snippet") else None,
+                "provider_name": user_info.get("snippet", {}).get("title")
+                if user_info.get("snippet")
+                else None,
                 "provider_email": None,  # YouTube doesn't provide email in channel info
                 # Include the full response for debugging
-                "raw_response": token_data
+                "raw_response": token_data,
             }
 
         except Exception as e:
-            raise Exception(
-                f"Failed to exchange authorization code for tokens: {e}")
+            raise Exception(f"Failed to exchange authorization code for tokens: {e}")
 
-    def refresh_access_token(
-        self,
-        refresh_token: str,
-        **kwargs
-    ) -> Dict[str, Any]:
+    def refresh_access_token(self, refresh_token: str, **kwargs) -> Dict[str, Any]:
         """
         Refresh YouTube OAuth access token.
 
@@ -172,12 +164,13 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
                 self.token_url,
                 data=data,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
-                timeout=30
+                timeout=30,
             )
 
             if response.status_code != 200:
                 raise Exception(
-                    f"YouTube OAuth token refresh failed: {response.status_code} - {response.text}")
+                    f"YouTube OAuth token refresh failed: {response.status_code} - {response.text}"
+                )
 
             # Parse the response
             token_data = response.json()
@@ -193,11 +186,7 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
         except Exception as e:
             raise Exception(f"Failed to refresh access token: {e}")
 
-    def get_user_info(
-        self,
-        access_token: str,
-        **kwargs
-    ) -> Dict[str, Any]:
+    def get_user_info(self, access_token: str, **kwargs) -> Dict[str, Any]:
         """
         Get YouTube user information.
 
@@ -213,7 +202,7 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
             # We need to get the authenticated user's channel info
             params = {
                 "part": "snippet,statistics",
-                "mine": "true"  # Get the authenticated user's channel
+                "mine": "true",  # Get the authenticated user's channel
             }
 
             response = requests.get(
@@ -221,20 +210,21 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
                 params=params,
                 headers={
                     "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/json"
+                    "Accept": "application/json",
                 },
-                timeout=30
+                timeout=30,
             )
 
             if response.status_code != 200:
                 raise Exception(
-                    f"Failed to get user info: {response.status_code} - {response.text}")
+                    f"Failed to get user info: {response.status_code} - {response.text}"
+                )
 
             data = response.json()
 
             # YouTube API returns items array, get the first (and usually only) channel
             if data.get("items") and len(data["items"]) > 0:
-                return data["items"][0]
+                return data["items"][0]  # type: ignore
             else:
                 # Fallback to placeholder data if no channel found
                 return {
@@ -249,26 +239,22 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
                             "default": {
                                 "url": "https://example.com/placeholder.jpg",
                                 "width": 88,
-                                "height": 88
+                                "height": 88,
                             }
-                        }
+                        },
                     },
                     "statistics": {
                         "viewCount": "0",
                         "subscriberCount": "0",
                         "hiddenSubscriberCount": False,
-                        "videoCount": "0"
-                    }
+                        "videoCount": "0",
+                    },
                 }
 
         except Exception as e:
             raise Exception(f"Failed to get user info: {e}")
 
-    def validate_token(
-        self,
-        access_token: str,
-        **kwargs
-    ) -> bool:
+    def validate_token(self, access_token: str, **kwargs) -> bool:
         """
         Validate YouTube OAuth access token.
 
@@ -329,10 +315,7 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
         ]
 
     def revoke_token(
-        self,
-        token: str,
-        token_type: str = "access_token",
-        **kwargs
+        self, token: str, token_type: str = "access_token", **kwargs
     ) -> bool:
         """
         Revoke YouTube OAuth token.
@@ -354,7 +337,7 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
                 revoke_url,
                 data={"token": token},
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
-                timeout=30
+                timeout=30,
             )
 
             # Google returns 200 for successful revocation
@@ -362,7 +345,8 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
                 return True
             else:
                 print(
-                    f"Warning: Token revocation returned status {response.status_code}")
+                    f"Warning: Token revocation returned status {response.status_code}"
+                )
                 return False
 
         except Exception as e:
@@ -373,7 +357,7 @@ class YouTubeOAuthProvider(BaseOAuthProvider):
         """Get default YouTube OAuth scopes."""
         return [
             "https://www.googleapis.com/auth/youtube.readonly",
-            "https://www.googleapis.com/auth/youtube.force-ssl"
+            "https://www.googleapis.com/auth/youtube.force-ssl",
         ]
 
     def get_required_scopes(self) -> List[str]:

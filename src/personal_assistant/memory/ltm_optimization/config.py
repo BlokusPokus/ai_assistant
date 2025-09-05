@@ -5,7 +5,7 @@ This module provides configuration settings for the LTM optimization system.
 """
 
 from dataclasses import dataclass
-from typing import List, Dict, Any
+from typing import Dict, List
 
 
 @dataclass
@@ -38,19 +38,19 @@ class LTMConfig:
     tag_priority_weight: float = 0.1
 
     # Memory type importance adjustments
-    memory_type_importance_boost: Dict[str, float] = None
+    memory_type_importance_boost: Dict[str, float] | None = None
 
     # Category importance adjustments
-    category_importance_boost: Dict[str, float] = None
+    category_importance_boost: Dict[str, float] | None = None
 
     # Priority tags for importance boosting
-    priority_tags_for_importance: List[str] = None
+    priority_tags_for_importance: List[str] | None = None
 
     # Automated tag suggestion settings
     tag_suggestion_confidence_threshold: float = 0.7
     max_suggested_tags_per_memory: int = 5
     enable_semantic_tag_suggestion: bool = True
-    tag_suggestion_fallback_tags: List[str] = None
+    tag_suggestion_fallback_tags: List[str] | None = None
 
     # Memory consolidation settings
     tag_similarity_threshold: float = 0.7
@@ -101,18 +101,16 @@ class LTMConfig:
 
     # Dynamic Context Management settings (Phase 3.1)
     min_context_length: int = 100  # Minimum context length
-    max_context_length: int = 2000  # Maximum context length
     optimal_context_length: int = 800  # Optimal context length
     simple_query_threshold: int = 50  # Threshold for simple queries
     complex_query_threshold: int = 200  # Threshold for complex queries
     focus_boost_multiplier: float = 1.5  # Multiplier for focus area matches
-    state_context_weight: float = 0.3  # Weight for state context relevance
 
     # Pattern detection settings
-    communication_style_indicators: Dict[str, List[str]] = None
-    topic_preference_keywords: Dict[str, List[str]] = None
-    tool_preference_patterns: List[str] = None
-    response_format_indicators: Dict[str, List[str]] = None
+    communication_style_indicators: Dict[str, List[str]] | None = None
+    topic_preference_keywords: Dict[str, List[str]] | None = None
+    tool_preference_patterns: List[str] | None = None
+    response_format_indicators: Dict[str, List[str]] | None = None
 
     def __post_init__(self):
         """Initialize default pattern detection settings if not provided"""
@@ -121,7 +119,7 @@ class LTMConfig:
                 "formal": ["please", "thank you", "would you mind", "if you could"],
                 "casual": ["hey", "cool", "awesome", "thanks"],
                 "detailed": ["can you explain", "tell me more", "what do you mean"],
-                "concise": ["just", "only", "simple", "quick"]
+                "concise": ["just", "only", "simple", "quick"],
             }
 
         if self.topic_preference_keywords is None:
@@ -130,75 +128,117 @@ class LTMConfig:
                 "personal": ["family", "home", "personal", "private", "life"],
                 "health": ["exercise", "diet", "health", "wellness", "fitness"],
                 "finance": ["budget", "money", "expense", "investment", "finance"],
-                "travel": ["trip", "vacation", "travel", "hotel", "flight"]
+                "travel": ["trip", "vacation", "travel", "hotel", "flight"],
             }
 
         if self.tool_preference_patterns is None:
             self.tool_preference_patterns = [
-                "tool", "success", "error", "created", "deleted", "updated"
+                "tool",
+                "success",
+                "error",
+                "created",
+                "deleted",
+                "updated",
             ]
 
         if self.response_format_indicators is None:
             self.response_format_indicators = {
-                "detailed": ["explain", "tell me more", "what do you mean", "how does this work"],
+                "detailed": [
+                    "explain",
+                    "tell me more",
+                    "what do you mean",
+                    "how does this work",
+                ],
                 "concise": ["just", "only", "simple", "quick", "brief"],
                 "structured": ["list", "steps", "organize", "categorize"],
-                "visual": ["show me", "display", "picture", "diagram"]
+                "visual": ["show me", "display", "picture", "diagram"],
             }
 
         # Initialize Phase 3 enhanced settings if not provided
         if self.memory_type_importance_boost is None:
             self.memory_type_importance_boost = {
-                "preference": 1.0,      # User preferences are important
-                "pattern": 0.8,          # Behavioral patterns are valuable
-                "habit": 0.7,            # Habits show consistency
-                "communication": 0.6,    # Communication style is useful
-                "learning": 0.5,         # Learning patterns are helpful
-                "tool_usage": 0.4,       # Tool usage patterns are moderate
-                "interest": 0.3,         # Topic interests are lower priority
-                "general": 0.0           # General insights get no boost
+                "preference": 1.0,  # User preferences are important
+                "pattern": 0.8,  # Behavioral patterns are valuable
+                "habit": 0.7,  # Habits show consistency
+                "communication": 0.6,  # Communication style is useful
+                "learning": 0.5,  # Learning patterns are helpful
+                "tool_usage": 0.4,  # Tool usage patterns are moderate
+                "interest": 0.3,  # Topic interests are lower priority
+                "general": 0.0,  # General insights get no boost
             }
 
         if self.category_importance_boost is None:
             self.category_importance_boost = {
-                "work": 0.5,             # Work-related memories are important
-                "health": 0.4,           # Health-related memories are valuable
-                "finance": 0.3,           # Finance-related memories are useful
-                "personal": 0.2,          # Personal memories are moderate
-                "education": 0.1,         # Education-related memories are helpful
-                "general": 0.0            # General category gets no boost
+                "work": 0.5,  # Work-related memories are important
+                "health": 0.4,  # Health-related memories are valuable
+                "finance": 0.3,  # Finance-related memories are useful
+                "personal": 0.2,  # Personal memories are moderate
+                "education": 0.1,  # Education-related memories are helpful
+                "general": 0.0,  # General category gets no boost
             }
 
         if self.priority_tags_for_importance is None:
             self.priority_tags_for_importance = [
-                "important", "urgent", "critical", "preference", "habit", "pattern"
+                "important",
+                "urgent",
+                "critical",
+                "preference",
+                "habit",
+                "pattern",
             ]
 
         if self.tag_suggestion_fallback_tags is None:
             self.tag_suggestion_fallback_tags = [
-                "general", "miscellaneous", "conversation", "insight"
+                "general",
+                "miscellaneous",
+                "conversation",
+                "insight",
             ]
 
     def get_memory_creation_keywords(self) -> List[str]:
         """Get keywords that always trigger memory creation"""
         return [
-            "remember this", "save this", "note this", "keep this in mind",
-            "important", "urgent", "critical", "preference", "habit", "pattern"
+            "remember this",
+            "save this",
+            "note this",
+            "keep this in mind",
+            "important",
+            "urgent",
+            "critical",
+            "preference",
+            "habit",
+            "pattern",
         ]
 
     def get_personal_pattern_keywords(self) -> List[str]:
         """Get keywords that indicate personal information"""
         return [
-            "i prefer", "i like", "i dislike", "i always", "i never",
-            "my preference", "my habit", "my routine", "i work", "i live",
-            "i usually", "i typically", "i tend to", "i avoid"
+            "i prefer",
+            "i like",
+            "i dislike",
+            "i always",
+            "i never",
+            "my preference",
+            "my habit",
+            "my routine",
+            "i work",
+            "i live",
+            "i usually",
+            "i typically",
+            "i tend to",
+            "i avoid",
         ]
 
     def get_learning_pattern_keywords(self) -> List[str]:
         """Get keywords that indicate learning moments"""
         return [
-            "learned", "figured out", "discovered", "realized",
-            "now i know", "i understand", "this helps"
+            "learned",
+            "figured out",
+            "discovered",
+            "realized",
+            "now i know",
+            "i understand",
+            "this helps",
         ]
 
 
@@ -244,7 +284,6 @@ class EnhancedLTMConfig(LTMConfig):
     # Pattern recognition from state data
     enable_pattern_recognition: bool = True
     conversation_pattern_weight: float = 0.4
-    tool_usage_pattern_weight: float = 0.3
     user_behavior_pattern_weight: float = 0.3
     temporal_pattern_weight: float = 0.2
 

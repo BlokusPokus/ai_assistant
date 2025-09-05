@@ -5,24 +5,26 @@ Monitors task execution and sends alerts for failures,
 performance issues, and system problems.
 """
 
-import logging
 import json
+import logging
 import smtplib
-import requests
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Union
-from dataclasses import dataclass, field
-from enum import Enum
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import threading
 import time
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
+import requests
 
 logger = logging.getLogger(__name__)
 
 
 class AlertSeverity(Enum):
     """Alert severity levels."""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -31,6 +33,7 @@ class AlertSeverity(Enum):
 
 class AlertChannel(Enum):
     """Available alert channels."""
+
     EMAIL = "email"
     SLACK = "slack"
     WEBHOOK = "webhook"
@@ -41,6 +44,7 @@ class AlertChannel(Enum):
 @dataclass
 class AlertRule:
     """Defines when and how to send alerts."""
+
     name: str
     condition: str  # e.g., "task_failure", "performance_degradation", "system_issue"
     threshold: float
@@ -56,6 +60,7 @@ class AlertRule:
 @dataclass
 class Alert:
     """Represents an alert instance."""
+
     id: str
     rule_name: str
     severity: AlertSeverity
@@ -70,7 +75,9 @@ class Alert:
 class AlertManager:
     """Manages task execution alerts and notifications."""
 
-    def __init__(self, initialize_defaults: bool = True):
+    def __init__(
+        self, config: Optional[Dict[str, Any]] = None, initialize_defaults: bool = True
+    ):
         """Initialize the alert manager."""
         self.rules: List[AlertRule] = []
         self.alert_history: List[Alert] = []
@@ -78,7 +85,7 @@ class AlertManager:
         self.logger = logging.getLogger(__name__)
         self.alert_counter = 0
         self.enabled = True
-        self.config = {}
+        self.config: Dict[str, Any] = config or {}
 
         # Initialize channels
         self._initialize_channels()
@@ -93,8 +100,7 @@ class AlertManager:
             with self.lock:
                 # Check for duplicate rule names
                 if any(r.name == rule.name for r in self.rules):
-                    self.logger.warning(
-                        f"Rule with name '{rule.name}' already exists")
+                    self.logger.warning(f"Rule with name '{rule.name}' already exists")
                     return False
 
                 self.rules.append(rule)
@@ -137,7 +143,10 @@ class AlertManager:
                         continue
 
                     # Check cooldown
-                    if rule.last_triggered and datetime.utcnow() - rule.last_triggered < rule.cooldown:
+                    if (
+                        rule.last_triggered
+                        and datetime.utcnow() - rule.last_triggered < rule.cooldown
+                    ):
                         continue
 
                     if self._evaluate_rule(rule, metrics):
@@ -164,8 +173,7 @@ class AlertManager:
                         alert.acknowledged = True
                         alert.acknowledged_by = user
                         alert.acknowledged_at = datetime.utcnow()
-                        self.logger.info(
-                            f"Alert {alert_id} acknowledged by {user}")
+                        self.logger.info(f"Alert {alert_id} acknowledged by {user}")
                         return True
 
                 self.logger.warning(f"Alert {alert_id} not found")
@@ -192,7 +200,8 @@ class AlertManager:
 
             with self.lock:
                 return [
-                    alert for alert in self.alert_history
+                    alert
+                    for alert in self.alert_history
                     if alert.timestamp > cutoff_time
                 ]
 
@@ -206,21 +215,21 @@ class AlertManager:
             with self.lock:
                 total_alerts = len(self.alert_history)
                 active_alerts = len(
-                    [a for a in self.alert_history if not a.acknowledged])
+                    [a for a in self.alert_history if not a.acknowledged]
+                )
 
-                severity_counts = {}
+                severity_counts: Dict[str, int] = {}
                 for alert in self.alert_history:
                     severity = alert.severity.value
-                    severity_counts[severity] = severity_counts.get(
-                        severity, 0) + 1
+                    severity_counts[severity] = severity_counts.get(severity, 0) + 1
 
                 return {
-                    'total_alerts': total_alerts,
-                    'active_alerts': active_alerts,
-                    'acknowledged_alerts': total_alerts - active_alerts,
-                    'severity_distribution': severity_counts,
-                    'rules_count': len(self.rules),
-                    'enabled_rules': len([r for r in self.rules if r.enabled])
+                    "total_alerts": total_alerts,
+                    "active_alerts": active_alerts,
+                    "acknowledged_alerts": total_alerts - active_alerts,
+                    "severity_distribution": severity_counts,
+                    "rules_count": len(self.rules),
+                    "enabled_rules": len([r for r in self.rules if r.enabled]),
                 }
 
         except Exception as e:
@@ -235,7 +244,8 @@ class AlertManager:
 
             with self.lock:
                 self.alert_history = [
-                    alert for alert in self.alert_history
+                    alert
+                    for alert in self.alert_history
                     if alert.timestamp > cutoff_time
                 ]
 
@@ -269,17 +279,20 @@ class AlertManager:
                     window=timedelta(minutes=15),
                     channels=[AlertChannel.LOG, AlertChannel.CONSOLE],
                     severity=AlertSeverity.WARNING,
-                    message_template="Task failure rate is {rate:.1%} over the last {window} minutes"
+                    message_template="Task failure rate is {rate:.1%} over the last {window} minutes",
                 ),
                 AlertRule(
                     name="critical_task_failure_rate",
                     condition="task_failure_rate",
                     threshold=0.25,  # 25% failure rate
                     window=timedelta(minutes=15),
-                    channels=[AlertChannel.LOG,
-                              AlertChannel.CONSOLE, AlertChannel.EMAIL],
+                    channels=[
+                        AlertChannel.LOG,
+                        AlertChannel.CONSOLE,
+                        AlertChannel.EMAIL,
+                    ],
                     severity=AlertSeverity.CRITICAL,
-                    message_template="CRITICAL: Task failure rate is {rate:.1%} over the last {window} minutes"
+                    message_template="CRITICAL: Task failure rate is {rate:.1%} over the last {window} minutes",
                 ),
                 AlertRule(
                     name="high_memory_usage",
@@ -288,7 +301,7 @@ class AlertManager:
                     window=timedelta(minutes=5),
                     channels=[AlertChannel.LOG, AlertChannel.CONSOLE],
                     severity=AlertSeverity.WARNING,
-                    message_template="High memory usage: {memory_percent:.1%}"
+                    message_template="High memory usage: {memory_percent:.1%}",
                 ),
                 AlertRule(
                     name="high_cpu_usage",
@@ -297,7 +310,7 @@ class AlertManager:
                     window=timedelta(minutes=5),
                     channels=[AlertChannel.LOG, AlertChannel.CONSOLE],
                     severity=AlertSeverity.WARNING,
-                    message_template="High CPU usage: {cpu_percent:.1%}"
+                    message_template="High CPU usage: {cpu_percent:.1%}",
                 ),
                 AlertRule(
                     name="queue_backlog",
@@ -306,8 +319,8 @@ class AlertManager:
                     window=timedelta(minutes=5),
                     channels=[AlertChannel.LOG, AlertChannel.CONSOLE],
                     severity=AlertSeverity.WARNING,
-                    message_template="Queue backlog detected: {queue_length} tasks in {queue_name}"
-                )
+                    message_template="Queue backlog detected: {queue_length} tasks in {queue_name}",
+                ),
             ]
 
             for rule in default_rules:
@@ -320,13 +333,13 @@ class AlertManager:
         """Initialize alert channels."""
         try:
             # Email configuration
-            self.email_config = self.config.get('email', {})
+            self.email_config = self.config.get("email", {})
 
             # Slack configuration
-            self.slack_config = self.config.get('slack', {})
+            self.slack_config = self.config.get("slack", {})
 
             # Webhook configuration
-            self.webhook_config = self.config.get('webhook', {})
+            self.webhook_config = self.config.get("webhook", {})
 
             self.logger.info("Alert channels initialized")
 
@@ -347,8 +360,7 @@ class AlertManager:
             elif rule.condition == "system_issue":
                 return self._evaluate_system_issue(rule, metrics)
             else:
-                self.logger.warning(
-                    f"Unknown alert condition: {rule.condition}")
+                self.logger.warning(f"Unknown alert condition: {rule.condition}")
                 return False
 
         except Exception as e:
@@ -358,8 +370,8 @@ class AlertManager:
     def _evaluate_failure_rate(self, rule: AlertRule, metrics: Dict[str, Any]) -> bool:
         """Evaluate task failure rate condition."""
         try:
-            failed_tasks = metrics.get('failed_tasks', 0)
-            total_tasks = metrics.get('total_tasks', 0)
+            failed_tasks = int(metrics.get("failed_tasks", 0))
+            total_tasks = int(metrics.get("total_tasks", 0))
 
             if total_tasks == 0:
                 return False
@@ -374,7 +386,7 @@ class AlertManager:
     def _evaluate_memory_usage(self, rule: AlertRule, metrics: Dict[str, Any]) -> bool:
         """Evaluate memory usage condition."""
         try:
-            memory_percent = metrics.get('memory_percent', 0)
+            memory_percent = float(metrics.get("memory_percent", 0))
             return memory_percent >= rule.threshold
 
         except Exception as e:
@@ -384,7 +396,7 @@ class AlertManager:
     def _evaluate_cpu_usage(self, rule: AlertRule, metrics: Dict[str, Any]) -> bool:
         """Evaluate CPU usage condition."""
         try:
-            cpu_percent = metrics.get('cpu_percent', 0)
+            cpu_percent = float(metrics.get("cpu_percent", 0))
             return cpu_percent >= rule.threshold
 
         except Exception as e:
@@ -394,7 +406,7 @@ class AlertManager:
     def _evaluate_queue_length(self, rule: AlertRule, metrics: Dict[str, Any]) -> bool:
         """Evaluate queue length condition."""
         try:
-            queue_lengths = metrics.get('queue_lengths', {})
+            queue_lengths = metrics.get("queue_lengths", {})
             for queue_name, length in queue_lengths.items():
                 if length >= rule.threshold:
                     return True
@@ -415,15 +427,16 @@ class AlertManager:
             self.logger.error(f"Error evaluating system issue: {e}")
             return False
 
-    def _create_alert(self, rule: AlertRule, metrics: Dict[str, Any]) -> Optional[Alert]:
+    def _create_alert(
+        self, rule: AlertRule, metrics: Dict[str, Any]
+    ) -> Optional[Alert]:
         """Create an alert instance."""
         try:
             self.alert_counter += 1
             alert_id = f"alert_{self.alert_counter}_{int(time.time())}"
 
             # Format message using template
-            message = self._format_message(
-                rule.message_template, rule, metrics)
+            message = self._format_message(rule.message_template, rule, metrics)
 
             alert = Alert(
                 id=alert_id,
@@ -432,10 +445,10 @@ class AlertManager:
                 message=message,
                 timestamp=datetime.utcnow(),
                 metadata={
-                    'condition': rule.condition,
-                    'threshold': rule.threshold,
-                    'metrics': metrics
-                }
+                    "condition": rule.condition,
+                    "threshold": rule.threshold,
+                    "metrics": metrics,
+                },
             )
 
             # Add to history
@@ -447,7 +460,9 @@ class AlertManager:
             self.logger.error(f"Error creating alert: {e}")
             return None
 
-    def _format_message(self, template: str, rule: AlertRule, metrics: Dict[str, Any]) -> str:
+    def _format_message(
+        self, template: str, rule: AlertRule, metrics: Dict[str, Any]
+    ) -> str:
         """Format alert message using template and metrics."""
         try:
             if not template:
@@ -457,46 +472,48 @@ class AlertManager:
             formatted = template
 
             # Replace common placeholders
-            if "{rate}" in formatted and "failed_tasks" in metrics and "total_tasks" in metrics:
-                total = metrics.get('total_tasks', 0)
-                failed = metrics.get('failed_tasks', 0)
+            if (
+                "{rate}" in formatted
+                and "failed_tasks" in metrics
+                and "total_tasks" in metrics
+            ):
+                total = metrics.get("total_tasks", 0)
+                failed = metrics.get("failed_tasks", 0)
                 rate = failed / total if total > 0 else 0
                 formatted = formatted.replace("{rate}", f"{rate:.1%}")
 
             if "{window}" in formatted:
                 window_minutes = int(rule.window.total_seconds() / 60)
-                formatted = formatted.replace(
-                    "{window}", f"{window_minutes} minutes")
+                formatted = formatted.replace("{window}", f"{window_minutes} minutes")
 
             if "{memory_percent}" in formatted:
-                memory_percent = metrics.get('memory_percent', 0)
+                memory_percent = metrics.get("memory_percent", 0)
                 formatted = formatted.replace(
-                    "{memory_percent}", f"{memory_percent:.1%}")
+                    "{memory_percent}", f"{memory_percent:.1%}"
+                )
 
             if "{cpu_percent}" in formatted:
-                cpu_percent = metrics.get('cpu_percent', 0)
-                formatted = formatted.replace(
-                    "{cpu_percent}", f"{cpu_percent:.1%}")
+                cpu_percent = metrics.get("cpu_percent", 0)
+                formatted = formatted.replace("{cpu_percent}", f"{cpu_percent:.1%}")
 
             if "{queue_length}" in formatted:
-                queue_lengths = metrics.get('queue_lengths', {})
-                max_length = max(queue_lengths.values()
-                                 ) if queue_lengths else 0
-                formatted = formatted.replace(
-                    "{queue_length}", str(max_length))
+                queue_lengths = metrics.get("queue_lengths", {})
+                max_length = max(queue_lengths.values()) if queue_lengths else 0
+                formatted = formatted.replace("{queue_length}", str(max_length))
 
             if "{queue_name}" in formatted:
-                queue_lengths = metrics.get('queue_lengths', {})
+                queue_lengths = metrics.get("queue_lengths", {})
                 if queue_lengths:
-                    max_queue = max(queue_lengths.items(),
-                                    key=lambda x: x[1])[0]
+                    max_queue = max(queue_lengths.items(), key=lambda x: x[1])[0]
                     formatted = formatted.replace("{queue_name}", max_queue)
 
             return formatted
 
         except Exception as e:
             self.logger.error(f"Error formatting message: {e}")
-            return f"Alert triggered: {rule.condition} exceeded threshold {rule.threshold}"
+            return (
+                f"Alert triggered: {rule.condition} exceeded threshold {rule.threshold}"
+            )
 
     def _send_alert(self, alert: Alert, channels: List[AlertChannel]):
         """Send alert through configured channels."""
@@ -513,13 +530,10 @@ class AlertManager:
                         self._send_slack_alert(alert)
                     elif channel == AlertChannel.WEBHOOK:
                         self._send_webhook_alert(alert)
-                    else:
-                        self.logger.warning(
-                            f"Unknown alert channel: {channel}")
+                    # All AlertChannel enum values are handled above
 
                 except Exception as e:
-                    self.logger.error(
-                        f"Error sending alert through {channel}: {e}")
+                    self.logger.error(f"Error sending alert through {channel}: {e}")
 
         except Exception as e:
             self.logger.error(f"Error sending alert: {e}")
@@ -530,26 +544,28 @@ class AlertManager:
             AlertSeverity.INFO: logging.INFO,
             AlertSeverity.WARNING: logging.WARNING,
             AlertSeverity.ERROR: logging.ERROR,
-            AlertSeverity.CRITICAL: logging.CRITICAL
+            AlertSeverity.CRITICAL: logging.CRITICAL,
         }.get(alert.severity, logging.WARNING)
 
         self.logger.log(
-            log_level, f"ALERT [{alert.severity.value.upper()}]: {alert.message}")
+            log_level, f"ALERT [{alert.severity.value.upper()}]: {alert.message}"
+        )
 
     def _send_console_alert(self, alert: Alert):
         """Send alert to console."""
         severity_color = {
-            AlertSeverity.INFO: "\033[94m",      # Blue
-            AlertSeverity.WARNING: "\033[93m",   # Yellow
-            AlertSeverity.ERROR: "\033[91m",     # Red
-            AlertSeverity.CRITICAL: "\033[95m"   # Magenta
+            AlertSeverity.INFO: "\033[94m",  # Blue
+            AlertSeverity.WARNING: "\033[93m",  # Yellow
+            AlertSeverity.ERROR: "\033[91m",  # Red
+            AlertSeverity.CRITICAL: "\033[95m",  # Magenta
         }.get(alert.severity, "\033[93m")
 
         reset_color = "\033[0m"
         timestamp = alert.timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
         print(
-            f"{severity_color}[{timestamp}] ALERT [{alert.severity.value.upper()}]: {alert.message}{reset_color}")
+            f"{severity_color}[{timestamp}] ALERT [{alert.severity.value.upper()}]: {alert.message}{reset_color}"
+        )
 
     def _send_email_alert(self, alert: Alert):
         """Send alert via email."""
@@ -559,12 +575,12 @@ class AlertManager:
                 return
 
             # Email configuration
-            smtp_server = self.email_config.get('smtp_server')
-            smtp_port = self.email_config.get('smtp_port', 587)
-            username = self.email_config.get('username')
-            password = self.email_config.get('password')
-            from_email = self.email_config.get('from_email')
-            to_emails = self.email_config.get('to_emails', [])
+            smtp_server = self.email_config.get("smtp_server")
+            smtp_port = self.email_config.get("smtp_port", 587)
+            username = self.email_config.get("username")
+            password = self.email_config.get("password")
+            from_email = self.email_config.get("from_email")
+            to_emails = self.email_config.get("to_emails", [])
 
             if not all([smtp_server, username, password, from_email, to_emails]):
                 self.logger.warning("Incomplete email configuration")
@@ -572,9 +588,11 @@ class AlertManager:
 
             # Create message
             msg = MIMEMultipart()
-            msg['From'] = from_email
-            msg['To'] = ', '.join(to_emails)
-            msg['Subject'] = f"ALERT: {alert.severity.value.upper()} - {alert.rule_name}"
+            msg["From"] = from_email
+            msg["To"] = ", ".join(to_emails)
+            msg[
+                "Subject"
+            ] = f"ALERT: {alert.severity.value.upper()} - {alert.rule_name}"
 
             body = f"""
 Alert Details:
@@ -590,7 +608,7 @@ System Status:
 {json.dumps(alert.metadata.get('metrics', {}), indent=2)}
             """
 
-            msg.attach(MIMEText(body, 'plain'))
+            msg.attach(MIMEText(body, "plain"))
 
             # Send email
             with smtplib.SMTP(smtp_server, smtp_port) as server:
@@ -610,17 +628,17 @@ System Status:
                 self.logger.warning("Slack configuration not available")
                 return
 
-            webhook_url = self.slack_config.get('webhook_url')
+            webhook_url = self.slack_config.get("webhook_url")
             if not webhook_url:
                 self.logger.warning("Slack webhook URL not configured")
                 return
 
             # Slack message formatting
             color = {
-                AlertSeverity.INFO: "#36a64f",      # Green
-                AlertSeverity.WARNING: "#ffcc00",   # Yellow
-                AlertSeverity.ERROR: "#ff0000",     # Red
-                AlertSeverity.CRITICAL: "#8b0000"   # Dark Red
+                AlertSeverity.INFO: "#36a64f",  # Green
+                AlertSeverity.WARNING: "#ffcc00",  # Yellow
+                AlertSeverity.ERROR: "#ff0000",  # Red
+                AlertSeverity.CRITICAL: "#8b0000",  # Dark Red
             }.get(alert.severity, "#ffcc00")
 
             payload = {
@@ -630,28 +648,22 @@ System Status:
                         "title": f"🚨 ALERT: {alert.severity.value.upper()}",
                         "text": alert.message,
                         "fields": [
-                            {
-                                "title": "Rule",
-                                "value": alert.rule_name,
-                                "short": True
-                            },
+                            {"title": "Rule", "value": alert.rule_name, "short": True},
                             {
                                 "title": "Severity",
                                 "value": alert.severity.value.upper(),
-                                "short": True
+                                "short": True,
                             },
                             {
                                 "title": "Timestamp",
-                                "value": alert.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC"),
-                                "short": True
+                                "value": alert.timestamp.strftime(
+                                    "%Y-%m-%d %H:%M:%S UTC"
+                                ),
+                                "short": True,
                             },
-                            {
-                                "title": "Alert ID",
-                                "value": alert.id,
-                                "short": True
-                            }
+                            {"title": "Alert ID", "value": alert.id, "short": True},
                         ],
-                        "footer": "Personal Assistant Background Task System"
+                        "footer": "Personal Assistant Background Task System",
                     }
                 ]
             }
@@ -671,7 +683,7 @@ System Status:
                 self.logger.warning("Webhook configuration not available")
                 return
 
-            webhook_url = self.webhook_config.get('url')
+            webhook_url = self.webhook_config.get("url")
             if not webhook_url:
                 self.logger.warning("Webhook URL not configured")
                 return
@@ -683,15 +695,16 @@ System Status:
                 "severity": alert.severity.value,
                 "message": alert.message,
                 "timestamp": alert.timestamp.isoformat(),
-                "metadata": alert.metadata
+                "metadata": alert.metadata,
             }
 
             # Send webhook
-            headers = self.webhook_config.get('headers', {})
-            timeout = self.webhook_config.get('timeout', 10)
+            headers = self.webhook_config.get("headers", {})
+            timeout = self.webhook_config.get("timeout", 10)
 
             response = requests.post(
-                webhook_url, json=payload, headers=headers, timeout=timeout)
+                webhook_url, json=payload, headers=headers, timeout=timeout
+            )
             response.raise_for_status()
 
             self.logger.info(f"Webhook alert sent for {alert.id}")

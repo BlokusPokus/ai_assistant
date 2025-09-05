@@ -4,7 +4,8 @@ Response formatter service for SMS Router.
 
 import logging
 import re
-from typing import Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from twilio.twiml.messaging_response import MessagingResponse
 
 logger = logging.getLogger(__name__)
@@ -14,10 +15,12 @@ class ResponseFormatter:
     """Service for formatting responses for SMS delivery."""
 
     def __init__(self):
-        self.max_sms_length = 1600
-        self.max_concatenated_length = 3200
+        self.max_sms_length: int = 1600
+        self.max_concatenated_length: int = 3200
 
-    def format_response(self, agent_response: str, user_info: Dict[str, Any]) -> MessagingResponse:
+    def format_response(
+        self, agent_response: str, user_info: Dict[str, Any]
+    ) -> MessagingResponse:
         """
         Format agent response for SMS delivery.
 
@@ -46,11 +49,11 @@ class ResponseFormatter:
                         response.message(segment)
                     else:
                         # Add continuation indicator
-                        response.message(
-                            f"(continued {i+1}/{len(segments)}) {segment}")
+                        response.message(f"(continued {i+1}/{len(segments)}) {segment}")
 
             logger.info(
-                f"Formatted response for user {user_info['id']}: {len(formatted_text)} chars")
+                f"Formatted response for user {user_info['id']}: {len(formatted_text)} chars"
+            )
             return response
 
         except Exception as e:
@@ -58,7 +61,8 @@ class ResponseFormatter:
             # Fallback to simple response
             fallback_response = MessagingResponse()
             fallback_response.message(
-                "I'm sorry, there was an error processing your request. Please try again.")
+                "I'm sorry, there was an error processing your request. Please try again."
+            )
             return fallback_response
 
     def _format_text(self, text: str) -> str:
@@ -67,18 +71,18 @@ class ResponseFormatter:
             return "No response generated."
 
         # Remove excessive whitespace
-        formatted = re.sub(r'\s+', ' ', text.strip())
+        formatted = re.sub(r"\s+", " ", text.strip())
 
         # Handle common formatting issues
-        formatted = formatted.replace('\n\n', '\n')
-        formatted = formatted.replace('\n', ' ')
+        formatted = formatted.replace("\n\n", "\n")
+        formatted = formatted.replace("\n", " ")
 
         # Remove HTML-like tags if present
-        formatted = re.sub(r'<[^>]+>', '', formatted)
+        formatted = re.sub(r"<[^>]+>", "", formatted)
 
         # Ensure proper sentence endings
-        if not formatted.endswith(('.', '!', '?')):
-            formatted += '.'
+        if not formatted.endswith((".", "!", "?")):
+            formatted += "."
 
         return formatted
 
@@ -87,7 +91,7 @@ class ResponseFormatter:
         if len(message) <= self.max_sms_length:
             return [message]
 
-        segments = []
+        segments: List[str] = []
         remaining = message
 
         while remaining and len(segments) < 10:  # Max 10 segments
@@ -96,8 +100,7 @@ class ResponseFormatter:
                 break
 
             # Find the best split point
-            split_point = self._find_split_point(
-                remaining[:self.max_sms_length])
+            split_point = self._find_split_point(remaining[: self.max_sms_length])
             segment = remaining[:split_point].strip()
             segments.append(segment)
 
@@ -105,7 +108,7 @@ class ResponseFormatter:
 
         # If we still have remaining text, add it as the last segment
         if remaining and len(segments) < 10:
-            segments.append(remaining[:self.max_sms_length])
+            segments.append(remaining[: self.max_sms_length])
 
         return segments
 
@@ -115,7 +118,7 @@ class ResponseFormatter:
             return len(text)
 
         # Try to split at sentence boundaries
-        sentence_endings = ['.', '!', '?']
+        sentence_endings = [".", "!", "?"]
         for char in sentence_endings:
             pos = text.rfind(char)
             if pos > 0 and pos < self.max_sms_length - 10:  # Leave some buffer
@@ -136,7 +139,9 @@ class ResponseFormatter:
         # If we get here, split at the limit
         return self.max_sms_length
 
-    def format_error_response(self, error_message: str, user_info: Optional[Dict[str, Any]] = None) -> MessagingResponse:
+    def format_error_response(
+        self, error_message: str, user_info: Optional[Dict[str, Any]] = None
+    ) -> MessagingResponse:
         """Format error response for SMS delivery."""
         response = MessagingResponse()
 
@@ -195,7 +200,9 @@ class ResponseFormatter:
         # for other messaging channels in the future
         return response
 
-    def add_quick_replies(self, response: MessagingResponse, options: list[str]) -> MessagingResponse:
+    def add_quick_replies(
+        self, response: MessagingResponse, options: list[str]
+    ) -> MessagingResponse:
         """Add quick reply options to response."""
         # Note: Twilio SMS doesn't support quick replies, but this could be used
         # for other messaging channels in the future

@@ -6,10 +6,10 @@ from .base import Base
 
 
 class AgentLog(Base):
-    __tablename__ = 'agent_logs'
+    __tablename__ = "agent_logs"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
+    user_id = Column(Integer, ForeignKey("users.id"))
     user_input = Column(String)
     agent_response = Column(String)
     tool_called = Column(String)

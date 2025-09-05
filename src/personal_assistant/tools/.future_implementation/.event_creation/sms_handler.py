@@ -4,7 +4,6 @@ from typing import Any, Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...llm.llm_client import LLMClient
-
 from .db_operations import EventDatabaseOperations
 from .event_creation_tool import EventCreationTool
 
@@ -30,14 +29,16 @@ class EventCreationSMSHandler:
             # Create the event
             result = await self.event_tool.create_event(user_input, user_id)
 
-            if result['success']:
+            if result["success"]:
                 return self._format_success_response(result)
             else:
-                return self._format_error_response(result['error'])
+                return self._format_error_response(result["error"])
 
         except Exception as e:
             logger.error(f"Error handling event creation SMS: {e}")
-            return self._format_error_response("Sorry, I couldn't create your event. Please try again.")
+            return self._format_error_response(
+                "Sorry, I couldn't create your event. Please try again."
+            )
 
     async def handle_event_modification_sms(self, user_input: str, user_id: int) -> str:
         """Handle event modification via SMS."""
@@ -110,39 +111,67 @@ class EventCreationSMSHandler:
         """Check if the input looks like an event creation request."""
         # Simple keyword-based detection
         event_keywords = [
-            'meeting', 'appointment', 'call', 'conference', 'lunch', 'dinner',
-            'breakfast', 'coffee', 'interview', 'presentation', 'workshop',
-            'training', 'review', 'check-in', 'standup', 'sync'
+            "meeting",
+            "appointment",
+            "call",
+            "conference",
+            "lunch",
+            "dinner",
+            "breakfast",
+            "coffee",
+            "interview",
+            "presentation",
+            "workshop",
+            "training",
+            "review",
+            "check-in",
+            "standup",
+            "sync",
         ]
 
         time_keywords = [
-            'tomorrow', 'today', 'next', 'at', 'pm', 'am', 'morning', 'afternoon',
-            'evening', 'night', 'noon', 'midnight'
+            "tomorrow",
+            "today",
+            "next",
+            "at",
+            "pm",
+            "am",
+            "morning",
+            "afternoon",
+            "evening",
+            "night",
+            "noon",
+            "midnight",
         ]
 
         input_lower = user_input.lower()
 
         # Check for event-related keywords
-        has_event_keyword = any(
-            keyword in input_lower for keyword in event_keywords)
+        has_event_keyword = any(keyword in input_lower for keyword in event_keywords)
 
         # Check for time-related keywords
-        has_time_keyword = any(
-            keyword in input_lower for keyword in time_keywords)
+        has_time_keyword = any(keyword in input_lower for keyword in time_keywords)
 
         # Check for common event creation patterns
-        has_event_pattern = any([
-            'with' in input_lower and any(
-                time_word in input_lower for time_word in ['at', 'pm', 'am']),
-            'meeting' in input_lower and any(time_word in input_lower for time_word in [
-                                             'tomorrow', 'today', 'next']),
-            'call' in input_lower and any(
-                time_word in input_lower for time_word in ['at', 'pm', 'am']),
-        ])
+        has_event_pattern = any(
+            [
+                "with" in input_lower
+                and any(time_word in input_lower for time_word in ["at", "pm", "am"]),
+                "meeting" in input_lower
+                and any(
+                    time_word in input_lower
+                    for time_word in ["tomorrow", "today", "next"]
+                ),
+                "call" in input_lower
+                and any(time_word in input_lower for time_word in ["at", "pm", "am"]),
+            ]
+        )
 
         return has_event_keyword or has_time_keyword or has_event_pattern
 
-    def _parse_modification_request(self, user_input: str) -> tuple[Optional[int], Dict[str, Any]]:
+    def _parse_modification_request(
+        self, user_input: str
+    ) -> tuple[Optional[int], Dict[str, Any]]:
         """Parse event modification request."""
         # Simple parsing - look for event ID and new details
         words = user_input.lower().split()
@@ -151,7 +180,11 @@ class EventCreationSMSHandler:
         updates = {}
 
         for i, word in enumerate(words):
-            if word.isdigit() and i > 0 and words[i-1] in ['event', 'meeting', 'appointment']:
+            if (
+                word.isdigit()
+                and i > 0
+                and words[i - 1] in ["event", "meeting", "appointment"]
+            ):
                 event_id = int(word)
                 break
 
@@ -163,7 +196,11 @@ class EventCreationSMSHandler:
         words = user_input.lower().split()
 
         for i, word in enumerate(words):
-            if word.isdigit() and i > 0 and words[i-1] in ['event', 'meeting', 'appointment']:
+            if (
+                word.isdigit()
+                and i > 0
+                and words[i - 1] in ["event", "meeting", "appointment"]
+            ):
                 return int(word)
 
         return None

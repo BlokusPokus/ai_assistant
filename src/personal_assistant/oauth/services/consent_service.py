@@ -6,15 +6,15 @@ decisions and maintaining an audit trail for compliance purposes.
 """
 
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, insert
 from sqlalchemy.orm import joinedload
 
-from personal_assistant.oauth.models.consent import OAuthConsent
-from personal_assistant.oauth.models.integration import OAuthIntegration
-from personal_assistant.oauth.models.scope import OAuthScope
 from personal_assistant.oauth.exceptions import OAuthConsentError
+from personal_assistant.oauth.models.consent import OAuthConsent
+from personal_assistant.oauth.models.scope import OAuthScope
 
 
 class OAuthConsentService:
@@ -32,7 +32,7 @@ class OAuthConsentService:
         consent_reason: Optional[str] = None,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> OAuthConsent:
         """
         Record user consent for an OAuth scope.
@@ -57,8 +57,12 @@ class OAuthConsentService:
                 scope_id=scope_id,
                 user_id=user_id,
                 consent_status=consent_status,
-                consent_granted_at=datetime.utcnow() if consent_status == "granted" else None,
-                consent_revoked_at=datetime.utcnow() if consent_status == "revoked" else None,
+                consent_granted_at=datetime.utcnow()
+                if consent_status == "granted"
+                else None,
+                consent_revoked_at=datetime.utcnow()
+                if consent_status == "revoked"
+                else None,
                 consent_reason=consent_reason,
                 ip_address=ip_address,
                 user_agent=user_agent,
@@ -80,7 +84,7 @@ class OAuthConsentService:
         db: AsyncSession,
         user_id: int,
         integration_id: Optional[int] = None,
-        status: Optional[str] = None
+        status: Optional[str] = None,
     ) -> List[OAuthConsent]:
         """
         Get user consents with optional filtering.
@@ -100,34 +104,28 @@ class OAuthConsentService:
             query = select(OAuthConsent)
 
             if integration_id:
-                query = query.where(
-                    OAuthConsent.integration_id == integration_id)
+                query = query.where(OAuthConsent.integration_id == integration_id)
 
             if status:
                 # Map status to is_revoked field
                 if status == "revoked":
-                    query = query.where(OAuthConsent.is_revoked == True)
+                    query = query.where(OAuthConsent.is_revoked.is_(True))
                 elif status == "active":
-                    query = query.where(OAuthConsent.is_revoked == False)
+                    query = query.where(OAuthConsent.is_revoked.is_(False))
 
             # Include related data
-            query = query.options(
-                joinedload(OAuthConsent.integration)
-            )
+            query = query.options(joinedload(OAuthConsent.integration))
 
             result = await db.execute(query)
             consents = result.unique().scalars().all()
 
-            return consents
+            return list(consents)
 
         except Exception as e:
             raise OAuthConsentError(f"Failed to retrieve user consents: {e}")
 
     async def get_integration_consents(
-        self,
-        db: AsyncSession,
-        integration_id: int,
-        status: Optional[str] = None
+        self, db: AsyncSession, integration_id: int, status: Optional[str] = None
     ) -> List[OAuthConsent]:
         """
         Get consents for a specific integration.
@@ -142,34 +140,29 @@ class OAuthConsentService:
         """
         try:
             query = select(OAuthConsent).where(
-                OAuthConsent.integration_id == integration_id)
+                OAuthConsent.integration_id == integration_id
+            )
 
             if status:
                 # Map status to is_revoked field
                 if status == "revoked":
-                    query = query.where(OAuthConsent.is_revoked == True)
+                    query = query.where(OAuthConsent.is_revoked.is_(True))
                 elif status == "active":
-                    query = query.where(OAuthConsent.is_revoked == False)
+                    query = query.where(OAuthConsent.is_revoked.is_(False))
 
             # Include related data
-            query = query.options(
-                joinedload(OAuthConsent.integration)
-            )
+            query = query.options(joinedload(OAuthConsent.integration))
 
             result = await db.execute(query)
             consents = result.unique().scalars().all()
 
-            return consents
+            return list(consents)
 
         except Exception as e:
-            raise OAuthConsentError(
-                f"Failed to retrieve integration consents: {e}")
+            raise OAuthConsentError(f"Failed to retrieve integration consents: {e}")
 
     async def revoke_consent(
-        self,
-        db: AsyncSession,
-        consent_id: int,
-        reason: Optional[str] = None
+        self, db: AsyncSession, consent_id: int, reason: Optional[str] = None
     ) -> bool:
         """
         Revoke a user's consent for an OAuth scope.
@@ -183,12 +176,12 @@ class OAuthConsentService:
             True if consent was revoked
         """
         try:
-            query = update(OAuthConsent).where(
-                OAuthConsent.id == consent_id
-            ).values(
-                is_revoked=True,
-                revoked_at=datetime.utcnow(),
-                revoked_reason=reason
+            query = (
+                update(OAuthConsent)
+                .where(OAuthConsent.id == consent_id)
+                .values(
+                    is_revoked=True, revoked_at=datetime.utcnow(), revoked_reason=reason
+                )
             )
 
             await db.execute(query)
@@ -204,7 +197,7 @@ class OAuthConsentService:
         db: AsyncSession,
         user_id: int,
         integration_id: Optional[int] = None,
-        reason: Optional[str] = None
+        reason: Optional[str] = None,
     ) -> int:
         """
         Revoke all consents for a user (or specific integration).
@@ -221,17 +214,16 @@ class OAuthConsentService:
         try:
             query = update(OAuthConsent).where(
                 OAuthConsent.user_id == user_id,
-                OAuthConsent.consent_status == "granted"
+                OAuthConsent.consent_status == "granted",
             )
 
             if integration_id:
-                query = query.where(
-                    OAuthConsent.integration_id == integration_id)
+                query = query.where(OAuthConsent.integration_id == integration_id)
 
             query = query.values(
                 consent_status="revoked",
                 consent_revoked_at=datetime.utcnow(),
-                consent_reason=reason
+                consent_reason=reason,
             )
 
             result = await db.execute(query)
@@ -244,11 +236,7 @@ class OAuthConsentService:
             raise OAuthConsentError(f"Failed to revoke user consents: {e}")
 
     async def check_scope_consent(
-        self,
-        db: AsyncSession,
-        user_id: int,
-        integration_id: int,
-        scope_name: str
+        self, db: AsyncSession, user_id: int, integration_id: int, scope_name: str
     ) -> bool:
         """
         Check if a user has consented to a specific scope.
@@ -278,7 +266,7 @@ class OAuthConsentService:
                 OAuthConsent.user_id == user_id,
                 OAuthConsent.integration_id == integration_id,
                 OAuthConsent.scope_id == scope_id,
-                OAuthConsent.consent_status == "granted"
+                OAuthConsent.consent_status == "granted",
             )
 
             consent_result = await db.execute(consent_query)
@@ -290,9 +278,7 @@ class OAuthConsentService:
             raise OAuthConsentError(f"Failed to check scope consent: {e}")
 
     async def get_consent_summary(
-        self,
-        db: AsyncSession,
-        user_id: int
+        self, db: AsyncSession, user_id: int
     ) -> Dict[str, Any]:
         """
         Get a summary of user's OAuth consents.
@@ -307,12 +293,18 @@ class OAuthConsentService:
         try:
             consents = await self.get_user_consents(db, user_id)
 
-            summary = {
+            summary: dict[str, Any] = {
                 "total_consents": len(consents),
-                "granted_consents": len([c for c in consents if c.consent_status == "granted"]),
-                "denied_consents": len([c for c in consents if c.consent_status == "denied"]),
-                "revoked_consents": len([c for c in consents if c.consent_status == "revoked"]),
-                "integrations": {}
+                "granted_consents": len(
+                    [c for c in consents if c.consent_status == "granted"]
+                ),
+                "denied_consents": len(
+                    [c for c in consents if c.consent_status == "denied"]
+                ),
+                "revoked_consents": len(
+                    [c for c in consents if c.consent_status == "revoked"]
+                ),
+                "integrations": {},
             }
 
             # Group by integration
@@ -323,11 +315,13 @@ class OAuthConsentService:
                         "total_scopes": 0,
                         "granted_scopes": 0,
                         "denied_scopes": 0,
-                        "revoked_scopes": 0
+                        "revoked_scopes": 0,
                     }
 
                 summary["integrations"][integration_id]["total_scopes"] += 1
-                summary["integrations"][integration_id][f"{consent.consent_status}_scopes"] += 1
+                summary["integrations"][integration_id][
+                    f"{consent.consent_status}_scopes"
+                ] += 1
 
             return summary
 

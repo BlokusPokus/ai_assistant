@@ -3,6 +3,7 @@ Tests for ConversationCompressor class.
 """
 
 import pytest
+
 from ..conversation_compressor import ConversationCompressor
 
 
@@ -17,7 +18,7 @@ class TestConversationCompressor:
         """Test that short history doesn't get compressed"""
         short_history = [
             {"role": "user", "content": "Hello"},
-            {"role": "assistant", "content": "Hi there!"}
+            {"role": "assistant", "content": "Hi there!"},
         ]
 
         result = self.compressor.compress_conversation_history(short_history)
@@ -30,11 +31,13 @@ class TestConversationCompressor:
         history = [
             {"role": "user", "content": "Create a note"},
             {"role": "assistant", "content": "I'll help you"},
-            {"role": "tool", "name": "create_note",
-                "content": "Error: validation failed"},
+            {
+                "role": "tool",
+                "name": "create_note",
+                "content": "Error: validation failed",
+            },
             {"role": "assistant", "content": "Let me try again"},
-            {"role": "tool", "name": "create_note",
-                "content": "Success: note created"}
+            {"role": "tool", "name": "create_note", "content": "Success: note created"},
         ]
 
         result = self.compressor.compress_conversation_history(history)
@@ -51,13 +54,18 @@ class TestConversationCompressor:
         """Test filtering of failed attempts after successful ones"""
         history = [
             {"role": "user", "content": "Create a note"},
-            {"role": "tool", "name": "create_note",
-                "content": "Error: validation failed"},
-            {"role": "tool", "name": "create_note",
-                "content": "Success: note created"},
+            {
+                "role": "tool",
+                "name": "create_note",
+                "content": "Error: validation failed",
+            },
+            {"role": "tool", "name": "create_note", "content": "Success: note created"},
             {"role": "user", "content": "Create another note"},
-            {"role": "tool", "name": "create_note",
-                "content": "Error: permission denied"}
+            {
+                "role": "tool",
+                "name": "create_note",
+                "content": "Error: permission denied",
+            },
         ]
 
         result = self.compressor.compress_conversation_history(history)
@@ -72,12 +80,21 @@ class TestConversationCompressor:
 
     def test_error_type_categorization(self):
         """Test error type categorization"""
-        validation_error = {"role": "tool", "name": "test",
-                            "content": "Error: validation failed"}
-        permission_error = {"role": "tool", "name": "test",
-                            "content": "Error: permission denied"}
-        connection_error = {"role": "tool", "name": "test",
-                            "content": "Error: connection timeout"}
+        validation_error = {
+            "role": "tool",
+            "name": "test",
+            "content": "Error: validation failed",
+        }
+        permission_error = {
+            "role": "tool",
+            "name": "test",
+            "content": "Error: permission denied",
+        }
+        connection_error = {
+            "role": "tool",
+            "name": "test",
+            "content": "Error: connection timeout",
+        }
 
         validation_key = self.compressor._create_tool_key(validation_error)
         permission_key = self.compressor._create_tool_key(permission_error)
@@ -93,21 +110,22 @@ class TestConversationCompressor:
             {"role": "user", "content": "Hello"},
             {"role": "assistant", "content": "Hi"},
             {"role": "tool", "name": "test", "content": "Error: failed"},
-            {"role": "tool", "name": "test", "content": "Success"}
+            {"role": "tool", "name": "test", "content": "Success"},
         ]
 
         compressed_history = [
             {"role": "user", "content": "Hello"},
             {"role": "assistant", "content": "Hi"},
-            {"role": "tool", "name": "test", "content": "Success"}
+            {"role": "tool", "name": "test", "content": "Success"},
         ]
 
         stats = self.compressor.get_compression_stats(
-            original_history, compressed_history)
+            original_history, compressed_history
+        )
 
         assert stats["original_length"] == 4
         assert stats["compressed_length"] == 3
-        assert stats["compression_ratio"] == 4/3
+        assert stats["compression_ratio"] == 4 / 3
         assert stats["reduction_percentage"] == 25.0
 
     def test_remove_redundant_assistant_messages(self):
@@ -116,15 +134,19 @@ class TestConversationCompressor:
             {"role": "user", "content": "Create a note"},
             {"role": "assistant", "content": "I'll help you create a note"},
             {"role": "tool", "name": "create_note", "content": "Success"},
-            {"role": "assistant", "content": "I'll help you create a note"},  # Redundant
-            {"role": "user", "content": "Thanks"}
+            {
+                "role": "assistant",
+                "content": "I'll help you create a note",
+            },  # Redundant
+            {"role": "user", "content": "Thanks"},
         ]
 
         result = self.compressor.compress_conversation_history(history)
 
         # Should remove redundant assistant message
         assistant_messages = [
-            item for item in result if item.get("role") == "assistant"]
+            item for item in result if item.get("role") == "assistant"
+        ]
         assert len(assistant_messages) == 1
 
     def test_tool_name_extraction(self):

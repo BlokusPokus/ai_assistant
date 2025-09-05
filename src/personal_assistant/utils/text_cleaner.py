@@ -46,16 +46,15 @@ def clean_unicode_control_chars(text: str) -> str:
 
     # Pattern to match zero-width and control characters
     control_chars_pattern = re.compile(
-        r'[\u200b\u200c\u200d\u200e\u200f\u2060\u2061\u2062\u2063\u2064\u2066\u2067\u2068\u2069\u206a\u206b\u206c\u206d\u206e\u206f]'
+        r"[\u200b\u200c\u200d\u200e\u200f\u2060\u2061\u2062\u2063\u2064\u2066\u2067\u2068\u2069\u206a\u206b\u206c\u206d\u206e\u206f]"
     )
 
     # Remove the control characters
-    cleaned_text = control_chars_pattern.sub('', text)
+    cleaned_text = control_chars_pattern.sub("", text)
 
     # Also remove other control characters (C0 and C1 control codes)
-    cleaned_text = ''.join(
-        char for char in cleaned_text
-        if not unicodedata.category(char).startswith('C')
+    cleaned_text = "".join(
+        char for char in cleaned_text if not unicodedata.category(char).startswith("C")
     )
 
     return cleaned_text
@@ -79,10 +78,10 @@ def clean_text_for_logging(text: str) -> str:
 
     # Also remove other problematic characters for logging
     # Remove null bytes
-    cleaned = cleaned.replace('\x00', '')
+    cleaned = cleaned.replace("\x00", "")
 
     # Remove other control characters that might cause issues
-    cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', cleaned)
+    cleaned = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", cleaned)
 
     # Limit length for logging
     if len(cleaned) > 1000:
@@ -107,28 +106,30 @@ def clean_html_content(html_content: str) -> str:
     import re
 
     # Remove HTML tags
-    clean_text = re.sub(r'<[^>]+>', '', html_content)
+    clean_text = re.sub(r"<[^>]+>", "", html_content)
 
-    # Remove CSS styles
+    # Remove CSS styles (case-insensitive)
     clean_text = re.sub(
-        r'<style[^>]*>.*?</style>', '', clean_text, flags=re.DOTALL)
+        r"<style[^>]*>.*?</style>", "", clean_text, flags=re.DOTALL | re.IGNORECASE
+    )
 
-    # Remove JavaScript
+    # Remove JavaScript (case-insensitive)
     clean_text = re.sub(
-        r'<script[^>]*>.*?</script>', '', clean_text, flags=re.DOTALL)
+        r"<script[^>]*>.*?</script>", "", clean_text, flags=re.DOTALL | re.IGNORECASE
+    )
 
     # Remove HTML entities
-    clean_text = clean_text.replace('&nbsp;', ' ')
-    clean_text = clean_text.replace('&amp;', '&')
-    clean_text = clean_text.replace('&lt;', '<')
-    clean_text = clean_text.replace('&gt;', '>')
-    clean_text = clean_text.replace('&quot;', '"')
+    clean_text = clean_text.replace("&nbsp;", " ")
+    clean_text = clean_text.replace("&amp;", "&")
+    clean_text = clean_text.replace("&lt;", "<")
+    clean_text = clean_text.replace("&gt;", ">")
+    clean_text = clean_text.replace("&quot;", '"')
 
     # Remove Unicode control characters
     clean_text = clean_unicode_control_chars(clean_text)
 
     # Remove extra whitespace and normalize
-    clean_text = re.sub(r'\s+', ' ', clean_text)
+    clean_text = re.sub(r"\s+", " ", clean_text)
     clean_text = clean_text.strip()
 
     # Limit length to prevent context explosion

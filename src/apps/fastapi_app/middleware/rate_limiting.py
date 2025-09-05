@@ -6,8 +6,9 @@ and other sensitive operations to prevent abuse.
 """
 
 import time
-from typing import Dict, Tuple, Optional
-from fastapi import Request, HTTPException, status
+from typing import Optional
+
+from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -22,20 +23,26 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.rate_limits = {
             "login": {
-                "max_attempts": getattr(settings, 'RATE_LIMIT_LOGIN_ATTEMPTS', 5),
-                "window_minutes": getattr(settings, 'RATE_LIMIT_LOGIN_WINDOW_MINUTES', 15),
-                "attempts": {}  # IP -> [(timestamp, count), ...]
+                "max_attempts": getattr(settings, "RATE_LIMIT_LOGIN_ATTEMPTS", 5),
+                "window_minutes": getattr(
+                    settings, "RATE_LIMIT_LOGIN_WINDOW_MINUTES", 15
+                ),
+                "attempts": {},  # IP -> [(timestamp, count), ...]
             },
             "token_refresh": {
-                "max_attempts": getattr(settings, 'RATE_LIMIT_TOKEN_REFRESH_PER_HOUR', 10),
+                "max_attempts": getattr(
+                    settings, "RATE_LIMIT_TOKEN_REFRESH_PER_HOUR", 10
+                ),
                 "window_minutes": 60,
-                "attempts": {}  # user_id -> [(timestamp, count), ...]
+                "attempts": {},  # user_id -> [(timestamp, count), ...]
             },
             "registration": {
-                "max_attempts": getattr(settings, 'RATE_LIMIT_REGISTRATION_PER_HOUR', 3),
+                "max_attempts": getattr(
+                    settings, "RATE_LIMIT_REGISTRATION_PER_HOUR", 3
+                ),
                 "window_minutes": 60,
-                "attempts": {}  # IP -> [(timestamp, count), ...]
-            }
+                "attempts": {},  # IP -> [(timestamp, count), ...]
+            },
         }
 
     async def dispatch(self, request: Request, call_next):
@@ -56,20 +63,24 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     content={
                         "detail": "Too many login attempts. Please try again later.",
-                        "retry_after": self._get_retry_after("login", self._get_client_ip(request))
-                    }
+                        "retry_after": self._get_retry_after(
+                            "login", self._get_client_ip(request)
+                        ),
+                    },
                 )
 
         elif request.url.path == "/api/v1/auth/refresh":
             # For refresh, we need user ID from the request
-            user_id = self._extract_user_id_from_refresh_request(request)
+            user_id = await self._extract_user_id_from_refresh_request(request)
             if user_id and not self._check_rate_limit("token_refresh", str(user_id)):
                 return JSONResponse(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     content={
                         "detail": "Too many token refresh attempts. Please try again later.",
-                        "retry_after": self._get_retry_after("token_refresh", str(user_id))
-                    }
+                        "retry_after": self._get_retry_after(
+                            "token_refresh", str(user_id)
+                        ),
+                    },
                 )
 
         elif request.url.path == "/api/v1/auth/register":
@@ -78,8 +89,10 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     content={
                         "detail": "Too many registration attempts. Please try again later.",
-                        "retry_after": self._get_retry_after("registration", self._get_client_ip(request))
-                    }
+                        "retry_after": self._get_retry_after(
+                            "registration", self._get_client_ip(request)
+                        ),
+                    },
                 )
 
         # Process the request
@@ -87,15 +100,17 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
 
         # Record successful attempts for rate limiting
         if request.url.path == "/api/v1/auth/login" and response.status_code == 200:
-            self._record_successful_attempt(
-                "login", self._get_client_ip(request))
+            self._record_successful_attempt("login", self._get_client_ip(request))
         elif request.url.path == "/api/v1/auth/refresh" and response.status_code == 200:
-            user_id = self._extract_user_id_from_refresh_request(request)
+            user_id = await self._extract_user_id_from_refresh_request(request)
             if user_id:
                 self._record_successful_attempt("token_refresh", str(user_id))
-        elif request.url.path == "/api/v1/auth/register" and response.status_code == 201:
+        elif (
+            request.url.path == "/api/v1/auth/register" and response.status_code == 201
+        ):
             self._record_successful_attempt(
-                "registration", self._get_client_ip(request))
+                "registration", self._get_client_ip(request)
+            )
 
         return response
 
@@ -122,7 +137,9 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
         # Fallback to client host
         return request.client.host if request.client else "unknown"
 
-    def _extract_user_id_from_refresh_request(self, request: Request) -> Optional[int]:
+    async def _extract_user_id_from_refresh_request(
+        self, request: Request
+    ) -> Optional[int]:
         """
         Extract user ID from refresh token request.
 
@@ -134,12 +151,14 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
         """
         try:
             # Try to get user ID from request body
-            body = request.body()
+            body = await request.body()
             if body:
                 import json
+
                 data = json.loads(body)
-                return data.get("user_id")
-        except:
+                return data.get("user_id")  # type: ignore
+        except (json.JSONDecodeError, UnicodeDecodeError, AttributeError):
+            # Ignore JSON parsing errors and missing attributes
             pass
         return None
 
@@ -164,7 +183,8 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
         # Clean old attempts
         if identifier in limit_config["attempts"]:
             limit_config["attempts"][identifier] = [
-                (timestamp, count) for timestamp, count in limit_config["attempts"][identifier]
+                (timestamp, count)
+                for timestamp, count in limit_config["attempts"][identifier]
                 if current_time - timestamp < window_seconds
             ]
 
@@ -172,7 +192,7 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
         recent_attempts = limit_config["attempts"].get(identifier, [])
         total_attempts = sum(count for _, count in recent_attempts)
 
-        return total_attempts < limit_config["max_attempts"]
+        return total_attempts < limit_config["max_attempts"]  # type: ignore
 
     def _record_successful_attempt(self, limit_type: str, identifier: str) -> None:
         """
@@ -191,8 +211,7 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
             self.rate_limits[limit_type]["attempts"][identifier] = []
 
         # Add successful attempt
-        self.rate_limits[limit_type]["attempts"][identifier].append(
-            (current_time, 1))
+        self.rate_limits[limit_type]["attempts"][identifier].append((current_time, 1))
 
     def _get_retry_after(self, limit_type: str, identifier: str) -> int:
         """

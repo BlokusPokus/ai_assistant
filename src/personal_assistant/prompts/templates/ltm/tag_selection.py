@@ -6,6 +6,7 @@ for Long-Term Memory entries from the predefined tag list.
 """
 
 from typing import List
+
 from ....constants.tags import LTM_TAGS, TAG_CATEGORIES
 
 

@@ -209,7 +209,14 @@ class OAuthService {
   /**
    * Get OAuth usage statistics
    */
-  async getUsageStats(provider: OAuthProvider): Promise<any> {
+  async getUsageStats(
+    provider: OAuthProvider
+  ): Promise<{
+    total_requests: number;
+    successful_requests: number;
+    failed_requests: number;
+    last_used: string;
+  }> {
     try {
       const response = await api.get(`${this.baseUrl}/usage/${provider}`);
       return response.data;

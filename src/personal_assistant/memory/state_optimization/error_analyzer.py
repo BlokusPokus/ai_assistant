@@ -9,9 +9,9 @@ This module provides analysis of error patterns in conversation history to:
 """
 
 import logging
-from typing import List, Dict, Any, Optional
-from datetime import datetime
 from collections import defaultdict
+from datetime import datetime
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class ErrorPatternAnalyzer:
             "temporary",
             "retry",
             "async",
-            "network"
+            "network",
         ]
 
         # Error type patterns that are configuration issues
@@ -47,10 +47,12 @@ class ErrorPatternAnalyzer:
             "undefined",
             "not found",
             "permission",
-            "access denied"
+            "access denied",
         ]
 
-    def analyze_error_patterns(self, conversation_history: List[dict]) -> Dict[str, Any]:
+    def analyze_error_patterns(
+        self, conversation_history: List[dict]
+    ) -> Dict[str, Any]:
         """
         Analyze patterns in tool call errors.
 
@@ -61,8 +63,8 @@ class ErrorPatternAnalyzer:
             Dictionary containing error pattern analysis
         """
         error_patterns = defaultdict(list)
-        tool_error_counts = defaultdict(int)
-        error_type_counts = defaultdict(int)
+        tool_error_counts: Dict[str, int] = defaultdict(int)
+        error_type_counts: Dict[str, int] = defaultdict(int)
 
         for item in conversation_history:
             if item.get("role") == "tool":
@@ -88,11 +90,12 @@ class ErrorPatternAnalyzer:
             "error_types": dict(error_type_counts),
             "error_patterns": dict(error_patterns),
             "recommendations": self._generate_recommendations(error_patterns),
-            "analysis_timestamp": datetime.now().isoformat()
+            "analysis_timestamp": datetime.now().isoformat(),
         }
 
         logger.info(
-            f"Error analysis complete: {analysis['total_errors']} errors found across {len(tool_error_counts)} tools")
+            f"Error analysis complete: {analysis['total_errors']} errors found across {len(tool_error_counts)} tools"
+        )
 
         return analysis
 
@@ -118,7 +121,7 @@ class ErrorPatternAnalyzer:
             "is_transient": self._is_transient_error(content),
             "is_configuration": self._is_configuration_error(content),
             "timestamp": datetime.now().isoformat(),
-            "content_length": len(content)
+            "content_length": len(content),
         }
 
     def _categorize_error_type(self, content: str) -> str:
@@ -134,17 +137,32 @@ class ErrorPatternAnalyzer:
         content_lower = content.lower()
 
         # Check for specific error patterns
-        if any(pattern in content_lower for pattern in ["validation", "invalid", "failed validation"]):
+        if any(
+            pattern in content_lower
+            for pattern in ["validation", "invalid", "failed validation"]
+        ):
             return "validation_error"
-        elif any(pattern in content_lower for pattern in ["not found", "undefined", "missing"]):
+        elif any(
+            pattern in content_lower
+            for pattern in ["not found", "undefined", "missing"]
+        ):
             return "not_found_error"
-        elif any(pattern in content_lower for pattern in ["permission", "access denied", "unauthorized"]):
+        elif any(
+            pattern in content_lower
+            for pattern in ["permission", "access denied", "unauthorized"]
+        ):
             return "permission_error"
-        elif any(pattern in content_lower for pattern in ["timeout", "connection", "network"]):
+        elif any(
+            pattern in content_lower for pattern in ["timeout", "connection", "network"]
+        ):
             return "connection_error"
-        elif any(pattern in content_lower for pattern in ["rate limit", "quota", "throttle"]):
+        elif any(
+            pattern in content_lower for pattern in ["rate limit", "quota", "throttle"]
+        ):
             return "rate_limit_error"
-        elif any(pattern in content_lower for pattern in ["async", "await", "coroutine"]):
+        elif any(
+            pattern in content_lower for pattern in ["async", "await", "coroutine"]
+        ):
             return "async_error"
         else:
             return "general_error"
@@ -191,7 +209,9 @@ class ErrorPatternAnalyzer:
             True if error is transient
         """
         content_lower = content.lower()
-        return any(pattern in content_lower for pattern in self.transient_error_patterns)
+        return any(
+            pattern in content_lower for pattern in self.transient_error_patterns
+        )
 
     def _is_configuration_error(self, content: str) -> bool:
         """
@@ -204,9 +224,13 @@ class ErrorPatternAnalyzer:
             True if error is configuration-related
         """
         content_lower = content.lower()
-        return any(pattern in content_lower for pattern in self.configuration_error_patterns)
+        return any(
+            pattern in content_lower for pattern in self.configuration_error_patterns
+        )
 
-    def should_retry_tool(self, tool_name: str, error_content: str, retry_count: int) -> bool:
+    def should_retry_tool(
+        self, tool_name: str, error_content: str, retry_count: int
+    ) -> bool:
         """
         Determine if a tool should be retried based on error patterns.
 
@@ -221,29 +245,32 @@ class ErrorPatternAnalyzer:
         # Don't retry if we've exceeded max attempts
         if retry_count >= self.max_retry_attempts:
             logger.debug(
-                f"Tool {tool_name} exceeded max retry attempts ({retry_count})")
+                f"Tool {tool_name} exceeded max retry attempts ({retry_count})"
+            )
             return False
 
         # Don't retry configuration errors
         if self._is_configuration_error(error_content):
-            logger.debug(
-                f"Tool {tool_name} has configuration error, won't retry")
+            logger.debug(f"Tool {tool_name} has configuration error, won't retry")
             return False
 
         # Retry transient errors
         if self._is_transient_error(error_content):
             logger.debug(
-                f"Tool {tool_name} has transient error, will retry (attempt {retry_count + 1})")
+                f"Tool {tool_name} has transient error, will retry (attempt {retry_count + 1})"
+            )
             return True
 
         # For other errors, retry with exponential backoff
         if retry_count < 2:  # Allow up to 2 retries for general errors
             logger.debug(
-                f"Tool {tool_name} has general error, will retry (attempt {retry_count + 1})")
+                f"Tool {tool_name} has general error, will retry (attempt {retry_count + 1})"
+            )
             return True
 
         logger.debug(
-            f"Tool {tool_name} has general error, won't retry after {retry_count} attempts")
+            f"Tool {tool_name} has general error, won't retry after {retry_count} attempts"
+        )
         return False
 
     def get_retry_delay(self, retry_count: int, error_type: str) -> float:
@@ -257,19 +284,21 @@ class ErrorPatternAnalyzer:
         Returns:
             Delay in seconds before next retry
         """
-        base_delay = 1.0  # 1 second base delay
+        base_delay: float = 1.0  # 1 second base delay
 
         if error_type == "rate_limit_error":
             # Longer delays for rate limit errors
-            return base_delay * (2 ** retry_count) * 2
+            return base_delay * (2**retry_count) * 2  # type: ignore
         elif error_type == "connection_error":
             # Moderate delays for connection errors
-            return base_delay * (2 ** retry_count)
+            return base_delay * (2**retry_count)  # type: ignore
         else:
             # Standard exponential backoff
-            return base_delay * (2 ** retry_count)
+            return base_delay * (2**retry_count)  # type: ignore
 
-    def _generate_recommendations(self, error_patterns: Dict[str, List[Dict]]) -> List[str]:
+    def _generate_recommendations(
+        self, error_patterns: Dict[str, List[Dict]]
+    ) -> List[str]:
         """
         Generate recommendations based on error patterns.
 
@@ -285,21 +314,24 @@ class ErrorPatternAnalyzer:
             if len(errors) > 3:
                 # Tool has many errors
                 error_types = [error.get("error_type") for error in errors]
-                most_common_error = max(
-                    set(error_types), key=error_types.count)
+                most_common_error = max(set(error_types), key=error_types.count)
 
                 if most_common_error == "validation_error":
                     recommendations.append(
-                        f"Tool '{tool_name}' has frequent validation errors. Check input parameters.")
+                        f"Tool '{tool_name}' has frequent validation errors. Check input parameters."
+                    )
                 elif most_common_error == "permission_error":
                     recommendations.append(
-                        f"Tool '{tool_name}' has permission issues. Verify access credentials.")
+                        f"Tool '{tool_name}' has permission issues. Verify access credentials."
+                    )
                 elif most_common_error == "connection_error":
                     recommendations.append(
-                        f"Tool '{tool_name}' has connection issues. Check network connectivity.")
+                        f"Tool '{tool_name}' has connection issues. Check network connectivity."
+                    )
                 else:
                     recommendations.append(
-                        f"Tool '{tool_name}' has {len(errors)} errors. Investigate root cause.")
+                        f"Tool '{tool_name}' has {len(errors)} errors. Investigate root cause."
+                    )
 
         # General recommendations
         if not recommendations:
@@ -325,16 +357,21 @@ class ErrorPatternAnalyzer:
             return "No errors detected in conversation history."
 
         summary_parts = [
-            f"Found {total_errors} errors across {len(tools_with_errors)} tools:"]
+            f"Found {total_errors} errors across {len(tools_with_errors)} tools:"
+        ]
 
         # Tool-specific errors
-        for tool_name, error_count in sorted(tools_with_errors.items(), key=lambda x: x[1], reverse=True):
+        for tool_name, error_count in sorted(
+            tools_with_errors.items(), key=lambda x: x[1], reverse=True
+        ):
             summary_parts.append(f"  - {tool_name}: {error_count} errors")
 
         # Error type breakdown
         if error_types:
             summary_parts.append("\nError types:")
-            for error_type, count in sorted(error_types.items(), key=lambda x: x[1], reverse=True):
+            for error_type, count in sorted(
+                error_types.items(), key=lambda x: x[1], reverse=True
+            ):
                 summary_parts.append(f"  - {error_type}: {count} occurrences")
 
         # Recommendations

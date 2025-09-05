@@ -1,59 +1,65 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Form
-from fastapi.responses import PlainTextResponse
-from typing import Optional
+from typing import AsyncGenerator
+
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import PlainTextResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from personal_assistant.auth.decorators import require_permission
+from personal_assistant.communication.twilio_integration.twilio_client import (
+    TwilioService,
+)
 from personal_assistant.config.settings import settings
+from personal_assistant.core import AgentCore
+from personal_assistant.database.models.users import User
+from personal_assistant.database.session import AsyncSessionLocal
 from personal_assistant.llm.gemini import GeminiLLM
 from personal_assistant.tools import create_tool_registry
-from personal_assistant.communication.twilio_integration.twilio_client import TwilioService
-from personal_assistant.auth.decorators import require_permission
-from personal_assistant.database.session import AsyncSessionLocal
-from personal_assistant.database.models.users import User
-from personal_assistant.core import AgentCore
-from fastapi.responses import Response
+
 router = APIRouter(prefix="/twilio", tags=["twilio"])
 
 # Database dependency
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session."""
-    async with AsyncSessionLocal() as session:
+    from personal_assistant.database.session import _get_session_factory
+
+    session = _get_session_factory()()
+    try:
         yield session
+    finally:
+        await session.close()
+
 
 # Authentication dependency
 
 
 async def get_current_user(
-    request: Request,
-    db: AsyncSession = Depends(get_db)
+    request: Request, db: AsyncSession = Depends(get_db)
 ) -> User:
     """Get current authenticated user."""
-    if not hasattr(request.state, 'authenticated') or not request.state.authenticated:
-        raise HTTPException(
-            status_code=401,
-            detail="Authentication required"
-        )
+    if not hasattr(request.state, "authenticated") or not request.state.authenticated:
+        raise HTTPException(status_code=401, detail="Authentication required")
 
     user_id = request.state.user_id
     user = await db.get(User, user_id)
 
     if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=401, detail="User not found")
 
     return user
+
 
 # Dependency to get TwilioService instance
 
 
 async def get_twilio_service():
     tool_registry = create_tool_registry()
-    agent_core = AgentCore(tools=tool_registry,
-                           llm=GeminiLLM(api_key=settings.GOOGLE_API_KEY, model="gemini-2.0-flash"))
+    agent_core = AgentCore(
+        tools=tool_registry,
+        llm=GeminiLLM(api_key=settings.GOOGLE_API_KEY, model="gemini-2.0-flash"),
+    )
     return TwilioService(agent_core)
 
 
@@ -67,7 +73,7 @@ async def twilio_webhook(
     request: Request,
     Body: str = Form(...),
     From: str = Form(...),
-    twilio_service: TwilioService = Depends(get_twilio_service)
+    twilio_service: TwilioService = Depends(get_twilio_service),
 ):
     """
     Webhook endpoint for receiving SMS messages from Twilio.
@@ -86,7 +92,7 @@ async def send_sms(
     request_obj: Request,
     request: SMSRequest,
     current_user: User = Depends(get_current_user),
-    twilio_service: TwilioService = Depends(get_twilio_service)
+    twilio_service: TwilioService = Depends(get_twilio_service),
 ):
     """
     Endpoint to send SMS messages through Twilio.

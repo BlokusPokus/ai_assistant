@@ -1,18 +1,17 @@
 """
 Collection of tools available to the agent.
 """
-# Configure module logger
-from .planning.llm_planner import LLMPlannerTool
 from ..config.logging_config import get_logger
-
 from .base import Tool, ToolRegistry
 from .calendar.calendar_tool import CalendarTool
 from .emails.email_tool import EmailTool
 from .internet.internet_tool import InternetTool
 from .ltm.ltm_tool import LTMTool
 from .notion_pages.notion_pages_tool import NotionPagesTool
+
+# Configure module logger
+from .planning.llm_planner import LLMPlannerTool
 from .reminders.reminder_tool import ReminderTool
-from .research.research_tool import ResearchTool
 from .youtube.youtube_tool import YouTubeTool
 
 logger = get_logger("tools")
@@ -86,15 +85,15 @@ def create_tool_registry() -> ToolRegistry:
 
 # Export all implemented tools
 __all__ = [
-    'Tool',
-    'ToolRegistry',
-    'CalendarTool',
-    'EmailTool',
-    'NotionPagesTool',
-    'ReminderTool',
-    'InternetTool',
-    'YouTubeTool',
+    "Tool",
+    "ToolRegistry",
+    "CalendarTool",
+    "EmailTool",
+    "NotionPagesTool",
+    "ReminderTool",
+    "InternetTool",
+    "YouTubeTool",
     # 'ResearchTool',
-    'create_tool_registry',
-    'logger'
+    "create_tool_registry",
+    "logger",
 ]

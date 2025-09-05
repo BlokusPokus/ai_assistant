@@ -4,13 +4,12 @@ SMS Analytics Service for usage tracking, cost analysis, and performance monitor
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional, Sequence
+
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, desc
-from sqlalchemy.orm import selectinload
 
 from ..models.sms_models import SMSUsageLog
-from ...database.models.users import User
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +22,7 @@ class SMSAnalyticsService:
         self.db = db_session
 
     async def get_user_usage_summary(
-        self,
-        user_id: int,
-        time_range: str = "30d"
+        self, user_id: int, time_range: str = "30d"
     ) -> Dict[str, Any]:
         """
         Get comprehensive SMS usage summary for a user.
@@ -47,7 +44,7 @@ class SMSAnalyticsService:
                 and_(
                     SMSUsageLog.user_id == user_id,
                     SMSUsageLog.created_at >= start_date,
-                    SMSUsageLog.created_at <= end_date
+                    SMSUsageLog.created_at <= end_date,
                 )
             )
 
@@ -60,26 +57,34 @@ class SMSAnalyticsService:
             # Calculate metrics
             total_messages = len(usage_logs)
             inbound_messages = len(
-                [log for log in usage_logs if log.message_direction == "inbound"])
+                [log for log in usage_logs if log.message_direction == "inbound"]
+            )
             outbound_messages = len(
-                [log for log in usage_logs if log.message_direction == "outbound"])
+                [log for log in usage_logs if log.message_direction == "outbound"]
+            )
 
-            successful_messages = len(
-                [log for log in usage_logs if log.success])
-            success_rate = (successful_messages /
-                            total_messages * 100) if total_messages > 0 else 0
+            successful_messages = len([log for log in usage_logs if log.success])
+            success_rate = (
+                (successful_messages / total_messages * 100)
+                if total_messages > 0
+                else 0
+            )
 
             # Calculate average processing time
             processing_times = [
-                log.processing_time_ms for log in usage_logs if log.processing_time_ms]
-            avg_processing_time = sum(
-                processing_times) / len(processing_times) if processing_times else 0
+                float(log.processing_time_ms)
+                for log in usage_logs
+                if log.processing_time_ms
+            ]
+            avg_processing_time = (
+                sum(processing_times) / len(processing_times) if processing_times else 0
+            )
 
             # Calculate total message length
             total_length = sum(log.message_length for log in usage_logs)
 
             # Get usage patterns by hour
-            usage_patterns = self._calculate_usage_patterns(usage_logs)
+            usage_patterns = self._calculate_usage_patterns(list(usage_logs))
 
             return {
                 "user_id": user_id,
@@ -93,19 +98,16 @@ class SMSAnalyticsService:
                 "usage_patterns": usage_patterns,
                 "period": {
                     "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat()
-                }
+                    "end_date": end_date.isoformat(),
+                },
             }
 
         except Exception as e:
-            logger.error(
-                f"Error getting user usage summary for user {user_id}: {e}")
+            logger.error(f"Error getting user usage summary for user {user_id}: {e}")
             raise
 
     async def get_user_usage_trends(
-        self,
-        user_id: int,
-        time_range: str = "30d"
+        self, user_id: int, time_range: str = "30d"
     ) -> Dict[str, Any]:
         """
         Get usage trends over time for a user.
@@ -122,7 +124,9 @@ class SMSAnalyticsService:
             start_date = self._calculate_start_date(end_date, time_range)
 
             # Get daily usage counts
-            daily_usage = await self._get_daily_usage_counts(user_id, start_date, end_date)
+            daily_usage = await self._get_daily_usage_counts(
+                user_id, start_date, end_date
+            )
 
             # Calculate trends
             trend_analysis = self._analyze_usage_trends(daily_usage)
@@ -134,19 +138,16 @@ class SMSAnalyticsService:
                 "trend_analysis": trend_analysis,
                 "period": {
                     "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat()
-                }
+                    "end_date": end_date.isoformat(),
+                },
             }
 
         except Exception as e:
-            logger.error(
-                f"Error getting user usage trends for user {user_id}: {e}")
+            logger.error(f"Error getting user usage trends for user {user_id}: {e}")
             raise
 
     async def get_user_performance_metrics(
-        self,
-        user_id: int,
-        time_range: str = "30d"
+        self, user_id: int, time_range: str = "30d"
     ) -> Dict[str, Any]:
         """
         Get performance metrics for a user's SMS usage.
@@ -167,7 +168,7 @@ class SMSAnalyticsService:
                 and_(
                     SMSUsageLog.user_id == user_id,
                     SMSUsageLog.created_at >= start_date,
-                    SMSUsageLog.created_at <= end_date
+                    SMSUsageLog.created_at <= end_date,
                 )
             )
 
@@ -179,25 +180,26 @@ class SMSAnalyticsService:
 
             # Calculate performance metrics
             total_messages = len(usage_logs)
-            successful_messages = len(
-                [log for log in usage_logs if log.success])
+            successful_messages = len([log for log in usage_logs if log.success])
             failed_messages = total_messages - successful_messages
 
             # Processing time metrics
             processing_times = [
-                log.processing_time_ms for log in usage_logs if log.processing_time_ms]
-            avg_processing_time = sum(
-                processing_times) / len(processing_times) if processing_times else 0
-            min_processing_time = min(
-                processing_times) if processing_times else 0
-            max_processing_time = max(
-                processing_times) if processing_times else 0
+                float(log.processing_time_ms)
+                for log in usage_logs
+                if log.processing_time_ms
+            ]
+            avg_processing_time = (
+                sum(processing_times) / len(processing_times) if processing_times else 0
+            )
+            min_processing_time = min(processing_times) if processing_times else 0
+            max_processing_time = max(processing_times) if processing_times else 0
 
             # Error analysis
             error_messages = [log for log in usage_logs if not log.success]
-            error_types = {}
+            error_types: Dict[str, int] = {}
             for log in error_messages:
-                error_type = log.error_message or "Unknown"
+                error_type = str(log.error_message) if log.error_message else "Unknown"
                 error_types[error_type] = error_types.get(error_type, 0) + 1
 
             return {
@@ -206,31 +208,32 @@ class SMSAnalyticsService:
                 "total_messages": total_messages,
                 "successful_messages": successful_messages,
                 "failed_messages": failed_messages,
-                "success_rate": round((successful_messages / total_messages * 100), 2) if total_messages > 0 else 0,
+                "success_rate": round((successful_messages / total_messages * 100), 2)
+                if total_messages > 0
+                else 0,
                 "processing_time_metrics": {
                     "average_ms": round(avg_processing_time, 2),
                     "minimum_ms": min_processing_time,
-                    "maximum_ms": max_processing_time
+                    "maximum_ms": max_processing_time,
                 },
                 "error_analysis": {
                     "total_errors": failed_messages,
-                    "error_types": error_types
+                    "error_types": error_types,
                 },
                 "period": {
                     "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat()
-                }
+                    "end_date": end_date.isoformat(),
+                },
             }
 
         except Exception as e:
             logger.error(
-                f"Error getting user performance metrics for user {user_id}: {e}")
+                f"Error getting user performance metrics for user {user_id}: {e}"
+            )
             raise
 
     async def get_user_message_breakdown(
-        self,
-        user_id: int,
-        time_range: str = "30d"
+        self, user_id: int, time_range: str = "30d"
     ) -> Dict[str, Any]:
         """
         Get detailed message breakdown for a user.
@@ -251,7 +254,7 @@ class SMSAnalyticsService:
                 and_(
                     SMSUsageLog.user_id == user_id,
                     SMSUsageLog.created_at >= start_date,
-                    SMSUsageLog.created_at <= end_date
+                    SMSUsageLog.created_at <= end_date,
                 )
             )
 
@@ -263,12 +266,14 @@ class SMSAnalyticsService:
 
             # Analyze message breakdown
             inbound_breakdown = self._analyze_message_direction(
-                usage_logs, "inbound")
+                list(usage_logs), "inbound"
+            )
             outbound_breakdown = self._analyze_message_direction(
-                usage_logs, "outbound")
+                list(usage_logs), "outbound"
+            )
 
             # Message length analysis
-            length_analysis = self._analyze_message_lengths(usage_logs)
+            length_analysis = self._analyze_message_lengths(list(usage_logs))
 
             return {
                 "user_id": user_id,
@@ -279,18 +284,18 @@ class SMSAnalyticsService:
                 "total_messages": len(usage_logs),
                 "period": {
                     "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat()
-                }
+                    "end_date": end_date.isoformat(),
+                },
             }
 
         except Exception as e:
             logger.error(
-                f"Error getting user message breakdown for user {user_id}: {e}")
+                f"Error getting user message breakdown for user {user_id}: {e}"
+            )
             raise
 
     async def get_system_performance_metrics(
-        self,
-        time_range: str = "30d"
+        self, time_range: str = "30d"
     ) -> Dict[str, Any]:
         """
         Get system-wide performance metrics.
@@ -309,7 +314,7 @@ class SMSAnalyticsService:
             query = select(SMSUsageLog).where(
                 and_(
                     SMSUsageLog.created_at >= start_date,
-                    SMSUsageLog.created_at <= end_date
+                    SMSUsageLog.created_at <= end_date,
                 )
             )
 
@@ -326,30 +331,33 @@ class SMSAnalyticsService:
 
             # Processing time metrics
             processing_times = [
-                log.processing_time_ms for log in all_logs if log.processing_time_ms]
-            avg_processing_time = sum(
-                processing_times) / len(processing_times) if processing_times else 0
+                log.processing_time_ms for log in all_logs if log.processing_time_ms
+            ]
+            avg_processing_time = (
+                sum(processing_times) / len(processing_times) if processing_times else 0
+            )
 
             # User activity metrics
             unique_users = len(set(log.user_id for log in all_logs))
 
             # Hourly activity patterns
-            hourly_patterns = self._calculate_hourly_activity_patterns(
-                all_logs)
+            hourly_patterns = self._calculate_hourly_activity_patterns(list(all_logs))
 
             return {
                 "time_range": time_range,
                 "total_messages": total_messages,
                 "successful_messages": successful_messages,
                 "failed_messages": failed_messages,
-                "success_rate": round((successful_messages / total_messages * 100), 2) if total_messages > 0 else 0,
+                "success_rate": round((successful_messages / total_messages * 100), 2)
+                if total_messages > 0
+                else 0,
                 "average_processing_time_ms": round(avg_processing_time, 2),
                 "unique_active_users": unique_users,
                 "hourly_activity_patterns": hourly_patterns,
                 "period": {
                     "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat()
-                }
+                    "end_date": end_date.isoformat(),
+                },
             }
 
         except Exception as e:
@@ -368,7 +376,7 @@ class SMSAnalyticsService:
             sla_thresholds = {
                 "response_time_ms": 1000,  # 1 second
                 "success_rate_percent": 99.5,  # 99.5%
-                "availability_percent": 99.9  # 99.9%
+                "availability_percent": 99.9,  # 99.9%
             }
 
             # Get current metrics (last 24 hours)
@@ -378,7 +386,7 @@ class SMSAnalyticsService:
             query = select(SMSUsageLog).where(
                 and_(
                     SMSUsageLog.created_at >= start_date,
-                    SMSUsageLog.created_at <= end_date
+                    SMSUsageLog.created_at <= end_date,
                 )
             )
 
@@ -391,81 +399,94 @@ class SMSAnalyticsService:
                     "compliance_percentage": 0,
                     "thresholds": sla_thresholds,
                     "current_metrics": {},
-                    "violations": []
+                    "violations": [],
                 }
 
             # Calculate current metrics
             total_messages = len(recent_logs)
-            successful_messages = len(
-                [log for log in recent_logs if log.success])
-            success_rate = (successful_messages /
-                            total_messages * 100) if total_messages > 0 else 0
+            successful_messages = len([log for log in recent_logs if log.success])
+            success_rate = (
+                (successful_messages / total_messages * 100)
+                if total_messages > 0
+                else 0
+            )
 
             processing_times = [
-                log.processing_time_ms for log in recent_logs if log.processing_time_ms]
-            avg_response_time = sum(
-                processing_times) / len(processing_times) if processing_times else 0
+                log.processing_time_ms for log in recent_logs if log.processing_time_ms
+            ]
+            avg_response_time = (
+                sum(processing_times) / len(processing_times) if processing_times else 0
+            )
 
             # Check SLA compliance
             sla_violations = []
-            compliance_score = 0
+            compliance_score = 0.0
 
             if avg_response_time > sla_thresholds["response_time_ms"]:
-                sla_violations.append({
-                    "metric": "response_time",
-                    "threshold": sla_thresholds["response_time_ms"],
-                    "current": round(avg_response_time, 2),
-                    "severity": "high" if avg_response_time > sla_thresholds["response_time_ms"] * 2 else "medium"
-                })
+                sla_violations.append(
+                    {
+                        "metric": "response_time",
+                        "threshold": sla_thresholds["response_time_ms"],
+                        "current": round(avg_response_time, 2),
+                        "severity": "high"
+                        if avg_response_time > sla_thresholds["response_time_ms"] * 2
+                        else "medium",
+                    }
+                )
             else:
                 compliance_score += 33.33
 
             if success_rate < sla_thresholds["success_rate_percent"]:
-                sla_violations.append({
-                    "metric": "success_rate",
-                    "threshold": sla_thresholds["success_rate_percent"],
-                    "current": round(success_rate, 2),
-                    "severity": "high" if success_rate < sla_thresholds["success_rate_percent"] - 5 else "medium"
-                })
+                sla_violations.append(
+                    {
+                        "metric": "success_rate",
+                        "threshold": sla_thresholds["success_rate_percent"],
+                        "current": round(success_rate, 2),
+                        "severity": "high"
+                        if success_rate < sla_thresholds["success_rate_percent"] - 5
+                        else "medium",
+                    }
+                )
             else:
                 compliance_score += 33.33
 
             # Availability calculation (simplified)
             availability = 100.0  # In a real system, this would be calculated from uptime monitoring
             if availability < sla_thresholds["availability_percent"]:
-                sla_violations.append({
-                    "metric": "availability",
-                    "threshold": sla_thresholds["availability_percent"],
-                    "current": availability,
-                    "severity": "high"
-                })
+                sla_violations.append(
+                    {
+                        "metric": "availability",
+                        "threshold": sla_thresholds["availability_percent"],
+                        "current": availability,
+                        "severity": "high",
+                    }
+                )
             else:
                 compliance_score += 33.33
 
             return {
-                "sla_status": "compliant" if compliance_score >= 100 else "non_compliant",
+                "sla_status": "compliant"
+                if compliance_score >= 100
+                else "non_compliant",
                 "compliance_percentage": round(compliance_score, 2),
                 "thresholds": sla_thresholds,
                 "current_metrics": {
                     "response_time_ms": round(avg_response_time, 2),
                     "success_rate_percent": round(success_rate, 2),
-                    "availability_percent": availability
+                    "availability_percent": availability,
                 },
                 "violations": sla_violations,
                 "period": {
                     "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat()
-                }
+                    "end_date": end_date.isoformat(),
+                },
             }
 
         except Exception as e:
             logger.error(f"Error getting SLA compliance status: {e}")
             raise
 
-    async def get_performance_trends(
-        self,
-        time_range: str = "30d"
-    ) -> Dict[str, Any]:
+    async def get_performance_trends(self, time_range: str = "30d") -> Dict[str, Any]:
         """
         Get performance trends over time.
 
@@ -480,11 +501,12 @@ class SMSAnalyticsService:
             start_date = self._calculate_start_date(end_date, time_range)
 
             # Get daily performance data
-            daily_performance = await self._get_daily_performance_data(start_date, end_date)
+            daily_performance = await self._get_daily_performance_data(
+                start_date, end_date
+            )
 
             # Calculate trends
-            trend_analysis = self._analyze_performance_trends(
-                daily_performance)
+            trend_analysis = self._analyze_performance_trends(daily_performance)
 
             return {
                 "time_range": time_range,
@@ -492,8 +514,8 @@ class SMSAnalyticsService:
                 "trend_analysis": trend_analysis,
                 "period": {
                     "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat()
-                }
+                    "end_date": end_date.isoformat(),
+                },
             }
 
         except Exception as e:
@@ -515,34 +537,41 @@ class SMSAnalyticsService:
 
             # Generate alerts for SLA violations
             for violation in sla_status.get("violations", []):
-                alerts.append({
-                    "type": "sla_violation",
-                    "severity": violation["severity"],
-                    "metric": violation["metric"],
-                    "message": f"SLA violation: {violation['metric']} is {violation['current']} (threshold: {violation['threshold']})",
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "actionable": True,
-                    "recommendation": self._get_alert_recommendation(violation)
-                })
+                alerts.append(
+                    {
+                        "type": "sla_violation",
+                        "severity": violation["severity"],
+                        "metric": violation["metric"],
+                        "message": f"SLA violation: {violation['metric']} is {violation['current']} (threshold: {violation['threshold']})",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "actionable": True,
+                        "recommendation": self._get_alert_recommendation(violation),
+                    }
+                )
 
             # Check for performance degradation
             current_metrics = await self.get_system_performance_metrics("24h")
             previous_metrics = await self.get_system_performance_metrics("48h")
 
-            if current_metrics.get("total_messages", 0) > 0 and previous_metrics.get("total_messages", 0) > 0:
+            if (
+                current_metrics.get("total_messages", 0) > 0
+                and previous_metrics.get("total_messages", 0) > 0
+            ):
                 current_success_rate = current_metrics.get("success_rate", 0)
                 previous_success_rate = previous_metrics.get("success_rate", 0)
 
                 if current_success_rate < previous_success_rate - 5:  # 5% degradation
-                    alerts.append({
-                        "type": "performance_degradation",
-                        "severity": "medium",
-                        "metric": "success_rate",
-                        "message": f"Performance degradation detected: success rate dropped from {previous_success_rate}% to {current_success_rate}%",
-                        "timestamp": datetime.utcnow().isoformat(),
-                        "actionable": True,
-                        "recommendation": "Investigate recent system changes or increased load"
-                    })
+                    alerts.append(
+                        {
+                            "type": "performance_degradation",
+                            "severity": "medium",
+                            "metric": "success_rate",
+                            "message": f"Performance degradation detected: success rate dropped from {previous_success_rate}% to {current_success_rate}%",
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "actionable": True,
+                            "recommendation": "Investigate recent system changes or increased load",
+                        }
+                    )
 
             return alerts
 
@@ -564,11 +593,13 @@ class SMSAnalyticsService:
         else:
             return end_date - timedelta(days=30)  # Default to 30 days
 
-    def _calculate_usage_patterns(self, usage_logs: List[SMSUsageLog]) -> Dict[str, Any]:
+    def _calculate_usage_patterns(
+        self, usage_logs: List[SMSUsageLog]
+    ) -> Dict[str, Any]:
         """Calculate usage patterns from usage logs."""
-        hourly_counts = {}
+        hourly_counts: Dict[int, int] = {}
         for log in usage_logs:
-            if log.created_at and hasattr(log.created_at, 'hour'):
+            if log.created_at and hasattr(log.created_at, "hour"):
                 hour = log.created_at.hour
             else:
                 hour = 0
@@ -579,15 +610,16 @@ class SMSAnalyticsService:
 
         return {
             "hourly_distribution": dict(sorted_hours),
-            "peak_hour": max(hourly_counts.items(), key=lambda x: x[1])[0] if hourly_counts else None,
-            "low_activity_hour": min(hourly_counts.items(), key=lambda x: x[1])[0] if hourly_counts else None
+            "peak_hour": max(hourly_counts.items(), key=lambda x: x[1])[0]
+            if hourly_counts
+            else None,
+            "low_activity_hour": min(hourly_counts.items(), key=lambda x: x[1])[0]
+            if hourly_counts
+            else None,
         }
 
     async def _get_daily_usage_counts(
-        self,
-        user_id: int,
-        start_date: datetime,
-        end_date: datetime
+        self, user_id: int, start_date: datetime, end_date: datetime
     ) -> List[Dict[str, Any]]:
         """Get daily usage counts for a user."""
         daily_counts = []
@@ -600,41 +632,48 @@ class SMSAnalyticsService:
             query = select(func.count(SMSUsageLog.id)).where(
                 and_(
                     SMSUsageLog.user_id == user_id,
-                    SMSUsageLog.created_at >= datetime.combine(
-                        current_date, datetime.min.time()),
-                    SMSUsageLog.created_at < datetime.combine(
-                        next_date, datetime.min.time())
+                    SMSUsageLog.created_at
+                    >= datetime.combine(current_date, datetime.min.time()),
+                    SMSUsageLog.created_at
+                    < datetime.combine(next_date, datetime.min.time()),
                 )
             )
 
             result = await self.db.execute(query)
             count = result.scalar() or 0
 
-            daily_counts.append({
-                "date": current_date.isoformat(),
-                "message_count": count
-            })
+            daily_counts.append(
+                {"date": current_date.isoformat(), "message_count": count}
+            )
 
             current_date = next_date
 
         return daily_counts
 
-    def _analyze_usage_trends(self, daily_usage: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _analyze_usage_trends(
+        self, daily_usage: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Analyze usage trends from daily data."""
         if len(daily_usage) < 2:
             return {"trend": "insufficient_data", "change_percentage": 0}
 
         # Calculate trend
-        first_half = daily_usage[:len(daily_usage)//2]
-        second_half = daily_usage[len(daily_usage)//2:]
+        first_half = daily_usage[: len(daily_usage) // 2]
+        second_half = daily_usage[len(daily_usage) // 2 :]
 
-        first_avg = sum(day["message_count"]
-                        for day in first_half) / len(first_half) if first_half else 0
-        second_avg = sum(day["message_count"]
-                         for day in second_half) / len(second_half) if second_half else 0
+        first_avg = (
+            sum(day["message_count"] for day in first_half) / len(first_half)
+            if first_half
+            else 0
+        )
+        second_avg = (
+            sum(day["message_count"] for day in second_half) / len(second_half)
+            if second_half
+            else 0
+        )
 
         if first_avg == 0:
-            change_percentage = 100 if second_avg > 0 else 0
+            change_percentage: float = 100 if second_avg > 0 else 0
         else:
             change_percentage = ((second_avg - first_avg) / first_avg) * 100
 
@@ -649,44 +688,44 @@ class SMSAnalyticsService:
             "trend": trend,
             "change_percentage": round(change_percentage, 2),
             "first_half_average": round(first_avg, 2),
-            "second_half_average": round(second_avg, 2)
+            "second_half_average": round(second_avg, 2),
         }
 
     def _analyze_message_direction(
-        self,
-        usage_logs: List[SMSUsageLog],
-        direction: str
+        self, usage_logs: List[SMSUsageLog], direction: str
     ) -> Dict[str, Any]:
         """Analyze messages for a specific direction."""
         direction_logs = [
-            log for log in usage_logs if log.message_direction == direction]
+            log for log in usage_logs if log.message_direction == direction
+        ]
 
         if not direction_logs:
             return {
                 "total_messages": 0,
                 "success_rate": 0,
                 "average_length": 0,
-                "average_processing_time": 0
+                "average_processing_time": 0,
             }
 
         total = len(direction_logs)
         successful = len([log for log in direction_logs if log.success])
         success_rate = (successful / total * 100) if total > 0 else 0
 
-        lengths = [
-            log.message_length for log in direction_logs if log.message_length]
+        lengths = [log.message_length for log in direction_logs if log.message_length]
         avg_length = sum(lengths) / len(lengths) if lengths else 0
 
         processing_times = [
-            log.processing_time_ms for log in direction_logs if log.processing_time_ms]
-        avg_processing_time = sum(processing_times) / \
-            len(processing_times) if processing_times else 0
+            log.processing_time_ms for log in direction_logs if log.processing_time_ms
+        ]
+        avg_processing_time = (
+            sum(processing_times) / len(processing_times) if processing_times else 0
+        )
 
         return {
             "total_messages": total,
             "success_rate": round(success_rate, 2),
             "average_length": round(avg_length, 2),
-            "average_processing_time": round(avg_processing_time, 2)
+            "average_processing_time": round(avg_processing_time, 2),
         }
 
     def _analyze_message_lengths(self, usage_logs: List[SMSUsageLog]) -> Dict[str, Any]:
@@ -698,31 +737,36 @@ class SMSAnalyticsService:
                 "average_length": 0,
                 "short_messages": 0,
                 "medium_messages": 0,
-                "long_messages": 0
+                "long_messages": 0,
             }
 
         avg_length = sum(lengths) / len(lengths)
 
         # Categorize by length
-        short_messages = len([l for l in lengths if l <= 160])  # Standard SMS
+        short_messages = len(
+            [length for length in lengths if length <= 160]
+        )  # Standard SMS
         medium_messages = len(
-            [l for l in lengths if 160 < l <= 320])  # Multi-part SMS
+            [length for length in lengths if 160 < length <= 320]
+        )  # Multi-part SMS
         # Very long messages
-        long_messages = len([l for l in lengths if l > 320])
+        long_messages = len([length for length in lengths if length > 320])
 
         return {
             "average_length": round(avg_length, 2),
             "short_messages": short_messages,
             "medium_messages": medium_messages,
             "long_messages": long_messages,
-            "total_messages": len(lengths)
+            "total_messages": len(lengths),
         }
 
-    def _calculate_hourly_activity_patterns(self, usage_logs: List[SMSUsageLog]) -> Dict[str, Any]:
+    def _calculate_hourly_activity_patterns(
+        self, usage_logs: List[SMSUsageLog]
+    ) -> Dict[str, Any]:
         """Calculate hourly activity patterns for system-wide usage."""
-        hourly_counts = {}
+        hourly_counts: Dict[int, int] = {}
         for log in usage_logs:
-            if log.created_at and hasattr(log.created_at, 'hour'):
+            if log.created_at and hasattr(log.created_at, "hour"):
                 hour = log.created_at.hour
             else:
                 hour = 0
@@ -733,15 +777,17 @@ class SMSAnalyticsService:
 
         return {
             "hourly_distribution": dict(sorted_hours),
-            "peak_hour": max(hourly_counts.items(), key=lambda x: x[1])[0] if hourly_counts else None,
-            "low_activity_hour": min(hourly_counts.items(), key=lambda x: x[1])[0] if hourly_counts else None,
-            "total_activity": sum(hourly_counts.values())
+            "peak_hour": max(hourly_counts.items(), key=lambda x: x[1])[0]
+            if hourly_counts
+            else None,
+            "low_activity_hour": min(hourly_counts.items(), key=lambda x: x[1])[0]
+            if hourly_counts
+            else None,
+            "total_activity": sum(hourly_counts.values()),
         }
 
     async def _get_daily_performance_data(
-        self,
-        start_date: datetime,
-        end_date: datetime
+        self, start_date: datetime, end_date: datetime
     ) -> List[Dict[str, Any]]:
         """Get daily performance data for the system."""
         daily_data = []
@@ -753,10 +799,10 @@ class SMSAnalyticsService:
             # Get data for this day
             query = select(SMSUsageLog).where(
                 and_(
-                    SMSUsageLog.created_at >= datetime.combine(
-                        current_date, datetime.min.time()),
-                    SMSUsageLog.created_at < datetime.combine(
-                        next_date, datetime.min.time())
+                    SMSUsageLog.created_at
+                    >= datetime.combine(current_date, datetime.min.time()),
+                    SMSUsageLog.created_at
+                    < datetime.combine(next_date, datetime.min.time()),
                 )
             )
 
@@ -769,70 +815,102 @@ class SMSAnalyticsService:
                 success_rate = (successful / total * 100) if total > 0 else 0
 
                 processing_times = [
-                    log.processing_time_ms for log in day_logs if log.processing_time_ms]
-                avg_processing_time = sum(
-                    processing_times) / len(processing_times) if processing_times else 0
+                    log.processing_time_ms for log in day_logs if log.processing_time_ms
+                ]
+                avg_processing_time = (
+                    sum(processing_times) / len(processing_times)
+                    if processing_times
+                    else 0
+                )
 
-                daily_data.append({
-                    "date": current_date.isoformat(),
-                    "total_messages": total,
-                    "success_rate": round(success_rate, 2),
-                    "average_processing_time_ms": round(avg_processing_time, 2)
-                })
+                daily_data.append(
+                    {
+                        "date": current_date.isoformat(),
+                        "total_messages": total,
+                        "success_rate": round(success_rate, 2),
+                        "average_processing_time_ms": round(avg_processing_time, 2),
+                    }
+                )
             else:
-                daily_data.append({
-                    "date": current_date.isoformat(),
-                    "total_messages": 0,
-                    "success_rate": 0,
-                    "average_processing_time_ms": 0
-                })
+                daily_data.append(
+                    {
+                        "date": current_date.isoformat(),
+                        "total_messages": 0,
+                        "success_rate": 0,
+                        "average_processing_time_ms": 0,
+                    }
+                )
 
             current_date = next_date
 
         return daily_data
 
-    def _analyze_performance_trends(self, daily_performance: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _analyze_performance_trends(
+        self, daily_performance: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Analyze performance trends from daily data."""
         if len(daily_performance) < 2:
             return {"trend": "insufficient_data", "change_percentage": 0}
 
         # Calculate trends for success rate and processing time
-        first_half = daily_performance[:len(daily_performance)//2]
-        second_half = daily_performance[len(daily_performance)//2:]
+        first_half = daily_performance[: len(daily_performance) // 2]
+        second_half = daily_performance[len(daily_performance) // 2 :]
 
         # Success rate trend
-        first_success_avg = sum(
-            day["success_rate"] for day in first_half) / len(first_half) if first_half else 0
-        second_success_avg = sum(
-            day["success_rate"] for day in second_half) / len(second_half) if second_half else 0
+        first_success_avg = (
+            sum(day["success_rate"] for day in first_half) / len(first_half)
+            if first_half
+            else 0
+        )
+        second_success_avg = (
+            sum(day["success_rate"] for day in second_half) / len(second_half)
+            if second_half
+            else 0
+        )
 
         if first_success_avg == 0:
-            success_change = 100 if second_success_avg > 0 else 0
+            success_change: float = 100 if second_success_avg > 0 else 0
         else:
             success_change = (
-                (second_success_avg - first_success_avg) / first_success_avg) * 100
+                (second_success_avg - first_success_avg) / first_success_avg
+            ) * 100
 
         # Processing time trend
-        first_time_avg = sum(day["average_processing_time_ms"]
-                             for day in first_half) / len(first_half) if first_half else 0
-        second_time_avg = sum(day["average_processing_time_ms"]
-                              for day in second_half) / len(second_half) if second_half else 0
+        first_time_avg = (
+            sum(day["average_processing_time_ms"] for day in first_half)
+            / len(first_half)
+            if first_half
+            else 0
+        )
+        second_time_avg = (
+            sum(day["average_processing_time_ms"] for day in second_half)
+            / len(second_half)
+            if second_half
+            else 0
+        )
 
         if first_time_avg == 0:
-            time_change = 100 if second_time_avg > 0 else 0
+            time_change: float = 100 if second_time_avg > 0 else 0
         else:
-            time_change = ((second_time_avg - first_time_avg) /
-                           first_time_avg) * 100
+            time_change = ((second_time_avg - first_time_avg) / first_time_avg) * 100
 
         return {
             "success_rate_trend": {
-                "trend": "improving" if success_change > 5 else "degrading" if success_change < -5 else "stable",
-                "change_percentage": round(success_change, 2)
+                "trend": "improving"
+                if success_change > 5
+                else "degrading"
+                if success_change < -5
+                else "stable",
+                "change_percentage": round(success_change, 2),
             },
             "processing_time_trend": {
-                "trend": "improving" if time_change < -5 else "degrading" if time_change > 5 else "stable",
-                "change_percentage": round(time_change, 2)
-            }
+                "trend": "improving"
+                if time_change < -5
+                else "degrading"
+                if time_change > 5
+                else "stable",
+                "change_percentage": round(time_change, 2),
+            },
         }
 
     def _get_alert_recommendation(self, violation: Dict[str, Any]) -> str:
@@ -856,7 +934,9 @@ class SMSAnalyticsService:
             return "Review system metrics and investigate root cause."
 
     # Empty response creators
-    def _create_empty_usage_summary(self, user_id: int, time_range: str) -> Dict[str, Any]:
+    def _create_empty_usage_summary(
+        self, user_id: int, time_range: str
+    ) -> Dict[str, Any]:
         """Create empty usage summary response."""
         return {
             "user_id": user_id,
@@ -870,15 +950,19 @@ class SMSAnalyticsService:
             "usage_patterns": {
                 "hourly_distribution": {},
                 "peak_hour": None,
-                "low_activity_hour": None
+                "low_activity_hour": None,
             },
             "period": {
-                "start_date": self._calculate_start_date(datetime.utcnow(), time_range).isoformat(),
-                "end_date": datetime.utcnow().isoformat()
-            }
+                "start_date": self._calculate_start_date(
+                    datetime.utcnow(), time_range
+                ).isoformat(),
+                "end_date": datetime.utcnow().isoformat(),
+            },
         }
 
-    def _create_empty_performance_metrics(self, user_id: int, time_range: str) -> Dict[str, Any]:
+    def _create_empty_performance_metrics(
+        self, user_id: int, time_range: str
+    ) -> Dict[str, Any]:
         """Create empty performance metrics response."""
         return {
             "user_id": user_id,
@@ -890,19 +974,20 @@ class SMSAnalyticsService:
             "processing_time_metrics": {
                 "average_ms": 0,
                 "minimum_ms": 0,
-                "maximum_ms": 0
+                "maximum_ms": 0,
             },
-            "error_analysis": {
-                "total_errors": 0,
-                "error_types": {}
-            },
+            "error_analysis": {"total_errors": 0, "error_types": {}},
             "period": {
-                "start_date": self._calculate_start_date(datetime.utcnow(), time_range).isoformat(),
-                "end_date": datetime.utcnow().isoformat()
-            }
+                "start_date": self._calculate_start_date(
+                    datetime.utcnow(), time_range
+                ).isoformat(),
+                "end_date": datetime.utcnow().isoformat(),
+            },
         }
 
-    def _create_empty_message_breakdown(self, user_id: int, time_range: str) -> Dict[str, Any]:
+    def _create_empty_message_breakdown(
+        self, user_id: int, time_range: str
+    ) -> Dict[str, Any]:
         """Create empty message breakdown response."""
         return {
             "user_id": user_id,
@@ -911,25 +996,27 @@ class SMSAnalyticsService:
                 "total_messages": 0,
                 "success_rate": 0,
                 "average_length": 0,
-                "average_processing_time": 0
+                "average_processing_time": 0,
             },
             "outbound_breakdown": {
                 "total_messages": 0,
                 "success_rate": 0,
                 "average_length": 0,
-                "average_processing_time": 0
+                "average_processing_time": 0,
             },
             "length_analysis": {
                 "average_length": 0,
                 "short_messages": 0,
                 "medium_messages": 0,
-                "long_messages": 0
+                "long_messages": 0,
             },
             "total_messages": 0,
             "period": {
-                "start_date": self._calculate_start_date(datetime.utcnow(), time_range).isoformat(),
-                "end_date": datetime.utcnow().isoformat()
-            }
+                "start_date": self._calculate_start_date(
+                    datetime.utcnow(), time_range
+                ).isoformat(),
+                "end_date": datetime.utcnow().isoformat(),
+            },
         }
 
     def _create_empty_system_metrics(self, time_range: str) -> Dict[str, Any]:
@@ -946,10 +1033,12 @@ class SMSAnalyticsService:
                 "hourly_distribution": {},
                 "peak_hour": None,
                 "low_activity_hour": None,
-                "total_activity": 0
+                "total_activity": 0,
             },
             "period": {
-                "start_date": self._calculate_start_date(datetime.utcnow(), time_range).isoformat(),
-                "end_date": datetime.utcnow().isoformat()
-            }
+                "start_date": self._calculate_start_date(
+                    datetime.utcnow(), time_range
+                ).isoformat(),
+                "end_date": datetime.utcnow().isoformat(),
+            },
         }

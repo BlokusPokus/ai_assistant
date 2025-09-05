@@ -12,7 +12,9 @@ from typing import Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 
-def load_tool_guidelines(guidelines_path: str, guidelines_cache: Dict[str, str] = None) -> Dict[str, str]:
+def load_tool_guidelines(
+    guidelines_path: str, guidelines_cache: Dict[str, str] | None = None
+) -> Dict[str, str]:
     """Load available tool guidelines from the guidelines directory."""
     if guidelines_cache:
         return guidelines_cache
@@ -23,18 +25,19 @@ def load_tool_guidelines(guidelines_path: str, guidelines_cache: Dict[str, str] 
         # Look for guideline files in the tools directory
         for root, dirs, files in os.walk(guidelines_path):
             for file in files:
-                if file.endswith('_guidelines.md'):
-                    tool_name = file.replace('_guidelines.md', '')
+                if file.endswith("_guidelines.md"):
+                    tool_name = file.replace("_guidelines.md", "")
                     file_path = os.path.join(root, file)
 
                     try:
-                        with open(file_path, 'r', encoding='utf-8') as f:
+                        with open(file_path, "r", encoding="utf-8") as f:
                             content = f.read()
                             guidelines[tool_name] = content
                             logger.info(f"Loaded guidelines for {tool_name}")
                     except Exception as e:
                         logger.warning(
-                            f"Could not load guidelines for {tool_name}: {e}")
+                            f"Could not load guidelines for {tool_name}: {e}"
+                        )
 
         return guidelines
 
@@ -43,21 +46,49 @@ def load_tool_guidelines(guidelines_path: str, guidelines_cache: Dict[str, str] 
         return {}
 
 
-def identify_relevant_tools_fallback(user_request: str, available_tools: Optional[str] = None) -> List[str]:
+def identify_relevant_tools_fallback(
+    user_request: str, available_tools: Optional[str] = None
+) -> List[str]:
     """Fallback tool identification using pattern matching when LLM is not available."""
     request_lower = user_request.lower()
     relevant_tools = []
 
     # Basic tool detection patterns (fallback only)
     tool_patterns = {
-        'notion_notes': ['note', 'notes', 'notion', 'meeting', 'project', 'research', 'create', 'update', 'search'],
-        'codebase_search': ['code', 'search', 'find', 'explore', 'understand', 'how does', 'where is'],
-        'read_file': ['read', 'file', 'content', 'show me', 'display'],
-        'edit_file': ['edit', 'modify', 'change', 'update', 'create file', 'write'],
-        'grep_search': ['grep', 'find text', 'search text', 'pattern', 'occurrence'],
-        'run_terminal_cmd': ['run', 'execute', 'command', 'install', 'build', 'test', 'terminal'],
-        'list_dir': ['list', 'directory', 'folder', 'explore', 'navigate'],
-        'file_search': ['find file', 'locate', 'file name', 'search file']
+        "notion_notes": [
+            "note",
+            "notes",
+            "notion",
+            "meeting",
+            "project",
+            "research",
+            "create",
+            "update",
+            "search",
+        ],
+        "codebase_search": [
+            "code",
+            "search",
+            "find",
+            "explore",
+            "understand",
+            "how does",
+            "where is",
+        ],
+        "read_file": ["read", "file", "content", "show me", "display"],
+        "edit_file": ["edit", "modify", "change", "update", "create file", "write"],
+        "grep_search": ["grep", "find text", "search text", "pattern", "occurrence"],
+        "run_terminal_cmd": [
+            "run",
+            "execute",
+            "command",
+            "install",
+            "build",
+            "test",
+            "terminal",
+        ],
+        "list_dir": ["list", "directory", "folder", "explore", "navigate"],
+        "file_search": ["find file", "locate", "file name", "search file"],
     }
 
     # Check which tools match the request
@@ -67,14 +98,17 @@ def identify_relevant_tools_fallback(user_request: str, available_tools: Optiona
 
     # If available_tools is specified, filter to only include those
     if available_tools:
-        available_list = [tool.strip() for tool in available_tools.split(',')]
-        relevant_tools = [
-            tool for tool in relevant_tools if tool in available_list]
+        available_list = [tool.strip() for tool in available_tools.split(",")]
+        relevant_tools = [tool for tool in relevant_tools if tool in available_list]
 
     return relevant_tools
 
 
-def build_tool_identification_prompt(user_request: str, available_tools: Optional[str] = None, available_guidelines: List[str] = None) -> str:
+def build_tool_identification_prompt(
+    user_request: str,
+    available_tools: Optional[str] = None,
+    available_guidelines: List[str] | None = None,
+) -> str:
     """Build the prompt for LLM tool identification."""
     prompt = f"""
 You are an expert tool selection specialist. Your job is to analyze a user request and identify which tools would be most relevant and useful for completing the task.
@@ -137,17 +171,23 @@ def parse_tool_identification_response(response: str) -> List[str]:
         response_clean = response.strip().lower()
 
         # Remove common prefixes/suffixes
-        response_clean = response_clean.replace('tools:', '').replace(
-            'relevant tools:', '').replace('tools needed:', '')
-        response_clean = response_clean.replace(
-            'tools required:', '').replace('tools:', '').replace('tools', '')
+        response_clean = (
+            response_clean.replace("tools:", "")
+            .replace("relevant tools:", "")
+            .replace("tools needed:", "")
+        )
+        response_clean = (
+            response_clean.replace("tools required:", "")
+            .replace("tools:", "")
+            .replace("tools", "")
+        )
 
         # Split by common separators
-        if ',' in response_clean:
-            tools = [tool.strip() for tool in response_clean.split(',')]
-        elif ' and ' in response_clean:
-            tools = [tool.strip() for tool in response_clean.split(' and ')]
-        elif ' ' in response_clean:
+        if "," in response_clean:
+            tools = [tool.strip() for tool in response_clean.split(",")]
+        elif " and " in response_clean:
+            tools = [tool.strip() for tool in response_clean.split(" and ")]
+        elif " " in response_clean:
             tools = [tool.strip() for tool in response_clean.split()]
         else:
             tools = [response_clean]
@@ -155,7 +195,7 @@ def parse_tool_identification_response(response: str) -> List[str]:
         # Clean up tool names and filter valid ones
         valid_tools = []
         for tool in tools:
-            tool_clean = tool.strip().replace('_', '').replace('-', '')
+            tool_clean = tool.strip().replace("_", "").replace("-", "")
             if tool_clean and len(tool_clean) > 2:  # Basic validation
                 valid_tools.append(tool_clean)
 
@@ -166,7 +206,9 @@ def parse_tool_identification_response(response: str) -> List[str]:
         return []
 
 
-def extract_relevant_guidelines(tool_names: List[str], guidelines: Dict[str, str], max_length: int = 1000) -> str:
+def extract_relevant_guidelines(
+    tool_names: List[str], guidelines: Dict[str, str], max_length: int = 1000
+) -> str:
     """Extract relevant sections from tool guidelines."""
     relevant_sections = []
 
@@ -178,35 +220,37 @@ def extract_relevant_guidelines(tool_names: List[str], guidelines: Dict[str, str
             sections = []
 
             # Look for overview section
-            overview_start = content.find('## 🎯 Overview')
+            overview_start = content.find("## 🎯 Overview")
             if overview_start != -1:
-                overview_end = content.find('##', overview_start + 1)
+                overview_end = content.find("##", overview_start + 1)
                 if overview_end == -1:
                     overview_end = len(content)
                 overview = content[overview_start:overview_end].strip()
                 sections.append(
-                    f"### {tool_name.replace('_', ' ').title()} Guidelines:\n{overview}")
+                    f"### {tool_name.replace('_', ' ').title()} Guidelines:\n{overview}"
+                )
 
             # Look for when to use section
-            when_to_use_start = content.find('## 🚀 When to Use This Tool')
+            when_to_use_start = content.find("## 🚀 When to Use This Tool")
             if when_to_use_start != -1:
-                when_to_use_end = content.find('##', when_to_use_start + 1)
+                when_to_use_end = content.find("##", when_to_use_start + 1)
                 if when_to_use_end == -1:
                     when_to_use_end = len(content)
-                when_to_use = content[when_to_use_start:when_to_use_end].strip(
-                )
+                when_to_use = content[when_to_use_start:when_to_use_end].strip()
                 sections.append(
-                    f"**When to use {tool_name.replace('_', ' ').title()}:**\n{when_to_use}")
+                    f"**When to use {tool_name.replace('_', ' ').title()}:**\n{when_to_use}"
+                )
 
             # Look for examples section
-            examples_start = content.find('## 🎨 Note Templates & Use Cases')
+            examples_start = content.find("## 🎨 Note Templates & Use Cases")
             if examples_start != -1:
-                examples_end = content.find('##', examples_start + 1)
+                examples_end = content.find("##", examples_start + 1)
                 if examples_end == -1:
                     examples_end = len(content)
                 examples = content[examples_start:examples_end].strip()
                 sections.append(
-                    f"**Examples for {tool_name.replace('_', ' ').title()}:**\n{examples}")
+                    f"**Examples for {tool_name.replace('_', ' ').title()}:**\n{examples}"
+                )
 
             if sections:
                 tool_guidelines = "\n\n".join(sections)
@@ -227,8 +271,8 @@ def build_planning_prompt(
     user_context: Optional[str],
     planning_style: str,
     tool_guidelines: str = "",
-    relevant_tools: List[str] = None,
-    style_instructions: str = ""
+    relevant_tools: Optional[List[str]] = None,
+    style_instructions: str = "",
 ) -> str:
     """Build the prompt for LLM planning with tool guidelines."""
 
@@ -332,7 +376,7 @@ def get_style_instructions(planning_style: str) -> str:
 - Include encouragement and celebration of progress
 - Suggest natural break points and rewards
 - Use simple, concrete language
-"""
+""",
     }
 
     return styles.get(planning_style, styles["adhd_friendly"])
@@ -393,7 +437,7 @@ def build_enhanced_planning_prompt(
     relevant_tools: List[str],
     tool_guidelines: str,
     planning_style: str,
-    style_instructions: str
+    style_instructions: str,
 ) -> str:
     """Build enhanced prompt with tool details and guidelines."""
     enhanced_prompt = f"""
@@ -458,19 +502,21 @@ def get_planning_summary(plan: str) -> str:
     """Extract a summary of the plan for quick reference."""
     try:
         # Extract step numbers and titles
-        lines = plan.split('\n')
+        lines = plan.split("\n")
         summary_lines = []
 
         for line in lines:
-            if line.strip().startswith('### Step') or line.strip().startswith('## 🎯'):
+            if line.strip().startswith("### Step") or line.strip().startswith("## 🎯"):
                 summary_lines.append(line.strip())
-            elif line.strip().startswith('- **') and 'Time estimate' in line:
+            elif line.strip().startswith("- **") and "Time estimate" in line:
                 summary_lines.append(line.strip())
 
         if summary_lines:
             return "## 📋 Plan Summary:\n" + "\n".join(summary_lines)
         else:
-            return "## 📋 Plan Summary:\nPlan created successfully. Follow the steps above."
+            return (
+                "## 📋 Plan Summary:\nPlan created successfully. Follow the steps above."
+            )
 
     except Exception as e:
         logger.error(f"Error creating plan summary: {e}")
@@ -481,7 +527,7 @@ def format_tool_info_for_prompt(tool_schemas: Dict) -> str:
     """Format tool information for inclusion in planning prompts."""
     tools_info = []
     for name, info in tool_schemas.items():
-        description = info.get('description', 'No description available')
+        description = info.get("description", "No description available")
         # Truncate long descriptions
         if len(description) > 100:
             description = description[:100] + "..."

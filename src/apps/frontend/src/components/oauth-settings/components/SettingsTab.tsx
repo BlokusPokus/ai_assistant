@@ -1,10 +1,12 @@
-import React, { useState } from "react";
-import { useOAuthSettingsStore } from "../../../stores/oauthSettingsStore";
-import type { OAuthSettings } from "../../../services/oauthSettingsService";
+import React, { useState } from 'react';
+import { useOAuthSettingsStore } from '../../../stores/oauthSettingsStore';
+import type { OAuthSettings } from '../../../services/oauthSettingsService';
 
 export const SettingsTab: React.FC = () => {
   const { settings, loading, updateSettings } = useOAuthSettingsStore();
-  const [localSettings, setLocalSettings] = useState<OAuthSettings | null>(null);
+  const [localSettings, setLocalSettings] = useState<OAuthSettings | null>(
+    null
+  );
   const [isEditing, setIsEditing] = useState(false);
 
   React.useEffect(() => {
@@ -13,7 +15,10 @@ export const SettingsTab: React.FC = () => {
     }
   }, [settings, localSettings]);
 
-  const handleSettingChange = (key: keyof OAuthSettings, value: any) => {
+  const handleSettingChange = (
+    key: keyof OAuthSettings,
+    value: string | number | boolean
+  ) => {
     if (localSettings) {
       setLocalSettings({
         ...localSettings,
@@ -25,7 +30,7 @@ export const SettingsTab: React.FC = () => {
   const handleNestedSettingChange = (
     parentKey: keyof OAuthSettings,
     childKey: string,
-    value: any
+    value: string | number | boolean
   ) => {
     if (localSettings) {
       setLocalSettings({
@@ -117,8 +122,8 @@ export const SettingsTab: React.FC = () => {
               <input
                 type="checkbox"
                 checked={localSettings.autoRefreshTokens}
-                onChange={(e) =>
-                  handleSettingChange("autoRefreshTokens", e.target.checked)
+                onChange={e =>
+                  handleSettingChange('autoRefreshTokens', e.target.checked)
                 }
                 disabled={!isEditing}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
@@ -131,8 +136,11 @@ export const SettingsTab: React.FC = () => {
               <input
                 type="number"
                 value={localSettings.refreshThreshold}
-                onChange={(e) =>
-                  handleSettingChange("refreshThreshold", parseInt(e.target.value))
+                onChange={e =>
+                  handleSettingChange(
+                    'refreshThreshold',
+                    parseInt(e.target.value)
+                  )
                 }
                 disabled={!isEditing}
                 min="1"
@@ -166,10 +174,10 @@ export const SettingsTab: React.FC = () => {
               <input
                 type="checkbox"
                 checked={localSettings.notifications.tokenExpiry}
-                onChange={(e) =>
+                onChange={e =>
                   handleNestedSettingChange(
-                    "notifications",
-                    "tokenExpiry",
+                    'notifications',
+                    'tokenExpiry',
                     e.target.checked
                   )
                 }
@@ -189,10 +197,10 @@ export const SettingsTab: React.FC = () => {
               <input
                 type="checkbox"
                 checked={localSettings.notifications.syncFailures}
-                onChange={(e) =>
+                onChange={e =>
                   handleNestedSettingChange(
-                    "notifications",
-                    "syncFailures",
+                    'notifications',
+                    'syncFailures',
                     e.target.checked
                   )
                 }
@@ -212,10 +220,10 @@ export const SettingsTab: React.FC = () => {
               <input
                 type="checkbox"
                 checked={localSettings.notifications.securityAlerts}
-                onChange={(e) =>
+                onChange={e =>
                   handleNestedSettingChange(
-                    "notifications",
-                    "securityAlerts",
+                    'notifications',
+                    'securityAlerts',
                     e.target.checked
                   )
                 }
@@ -240,16 +248,17 @@ export const SettingsTab: React.FC = () => {
                   Require re-authentication for revocation
                 </label>
                 <p className="text-sm text-gray-500">
-                  Require password confirmation before revoking OAuth integrations
+                  Require password confirmation before revoking OAuth
+                  integrations
                 </p>
               </div>
               <input
                 type="checkbox"
                 checked={localSettings.security.requireReauthForRevoke}
-                onChange={(e) =>
+                onChange={e =>
                   handleNestedSettingChange(
-                    "security",
-                    "requireReauthForRevoke",
+                    'security',
+                    'requireReauthForRevoke',
                     e.target.checked
                   )
                 }
@@ -264,10 +273,10 @@ export const SettingsTab: React.FC = () => {
               <input
                 type="number"
                 value={localSettings.security.auditLogRetention}
-                onChange={(e) =>
+                onChange={e =>
                   handleNestedSettingChange(
-                    "security",
-                    "auditLogRetention",
+                    'security',
+                    'auditLogRetention',
                     parseInt(e.target.value)
                   )
                 }

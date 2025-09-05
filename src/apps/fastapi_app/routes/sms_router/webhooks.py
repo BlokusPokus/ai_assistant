@@ -2,12 +2,14 @@
 Webhook routes for SMS Router Service.
 """
 
-from fastapi import APIRouter, Request, Form, HTTPException, Depends
-from fastapi.responses import Response
-from twilio.twiml.messaging_response import MessagingResponse
 import logging
 
-from personal_assistant.sms_router.middleware.webhook_validation import validate_twilio_webhook
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import Response
+
+from personal_assistant.sms_router.middleware.webhook_validation import (
+    validate_twilio_webhook,
+)
 from personal_assistant.sms_router.services.routing_engine import SMSRoutingEngine
 
 logger = logging.getLogger(__name__)
@@ -21,7 +23,7 @@ async def twilio_sms_webhook(
     From: str = Form(...),
     To: str = Form(...),
     MessageSid: str = Form(...),
-    routing_engine: SMSRoutingEngine = Depends()
+    routing_engine: SMSRoutingEngine = Depends(),
 ):
     """
     Handle incoming SMS webhook from Twilio.
@@ -36,8 +38,8 @@ async def twilio_sms_webhook(
     try:
         # Validate webhook (optional security measure)
         if not validate_twilio_webhook(request):
-            logger.warning(
-                f"Invalid webhook request from {request.client.host}")
+            client_host = request.client.host if request.client else "unknown"
+            logger.warning(f"Invalid webhook request from {client_host}")
             raise HTTPException(status_code=400, detail="Invalid webhook")
 
         logger.info(f"Processing SMS from {From}: {Body[:50]}...")
@@ -46,10 +48,7 @@ async def twilio_sms_webhook(
         response = await routing_engine.route_sms(From, Body, MessageSid)
 
         # Return TwiML response
-        return Response(
-            content=str(response),
-            media_type="application/xml"
-        )
+        return Response(content=str(response), media_type="application/xml")
 
     except HTTPException:
         raise
@@ -59,9 +58,7 @@ async def twilio_sms_webhook(
 
 
 @router.get("/health")
-async def webhook_health_check(
-    routing_engine: SMSRoutingEngine = Depends()
-):
+async def webhook_health_check(routing_engine: SMSRoutingEngine = Depends()):
     """Health check endpoint for SMS Router webhook service."""
     try:
         health_status = await routing_engine.health_check()
@@ -72,9 +69,7 @@ async def webhook_health_check(
 
 
 @router.get("/stats")
-async def webhook_stats(
-    routing_engine: SMSRoutingEngine = Depends()
-):
+async def webhook_stats(routing_engine: SMSRoutingEngine = Depends()):
     """Get routing engine statistics."""
     try:
         stats = await routing_engine.get_routing_stats()

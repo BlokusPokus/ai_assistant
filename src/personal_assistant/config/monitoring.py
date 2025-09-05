@@ -9,10 +9,12 @@ This module provides:
 """
 
 import logging
-from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
-from fastapi import APIRouter, HTTPException, Depends
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
+
 from personal_assistant.config.database import db_config
 from personal_assistant.config.settings import settings
 from personal_assistant.monitoring import get_metrics_service
@@ -35,6 +37,7 @@ class HealthMonitor:
         """Get comprehensive database health status."""
         try:
             health_data = await db_config.check_health()
+            health_data = dict(health_data) if health_data else {}
 
             # Add timestamp
             health_data["timestamp"] = datetime.now().isoformat()
@@ -47,15 +50,14 @@ class HealthMonitor:
                 response_time = health_data.get("response_time", 0)
 
                 # Update database health metrics
-                metrics_service.database_health_status.set(
-                    1 if is_healthy else 0)
+                metrics_service.database_health_status.set(1 if is_healthy else 0)
                 if response_time:
                     metrics_service.database_response_time_seconds.observe(
-                        response_time)
+                        response_time
+                    )
 
             except Exception as metrics_error:
-                logger.warning(
-                    f"Failed to update Prometheus metrics: {metrics_error}")
+                logger.warning(f"Failed to update Prometheus metrics: {metrics_error}")
 
             # Store in history
             self._add_to_history(health_data)
@@ -68,7 +70,7 @@ class HealthMonitor:
                 "status": "error",
                 "service": "database",
                 "error": str(e),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
     async def get_pool_status(self) -> Dict[str, Any]:
@@ -80,13 +82,14 @@ class HealthMonitor:
             # Update Prometheus metrics
             try:
                 metrics_service = get_metrics_service()
-                metrics_service.database_connections_active.set(
-                    pool_stats.checked_out)
+                metrics_service.database_connections_active.set(pool_stats.checked_out)
                 metrics_service.database_connection_pool_utilization.set(
-                    pool_stats.utilization_percentage)
+                    pool_stats.utilization_percentage
+                )
             except Exception as metrics_error:
                 logger.warning(
-                    f"Failed to update Prometheus pool metrics: {metrics_error}")
+                    f"Failed to update Prometheus pool metrics: {metrics_error}"
+                )
 
             return {
                 "pool_statistics": {
@@ -98,11 +101,11 @@ class HealthMonitor:
                     "invalid": pool_stats.invalid,
                     "total_connections": pool_stats.total_connections,
                     "utilization_percentage": pool_stats.utilization_percentage,
-                    "last_updated": pool_stats.last_updated.isoformat()
+                    "last_updated": pool_stats.last_updated.isoformat(),
                 },
                 "performance_metrics": performance_metrics,
                 "timestamp": datetime.now().isoformat(),
-                "service": "database_pool"
+                "service": "database_pool",
             }
 
         except Exception as e:
@@ -111,24 +114,27 @@ class HealthMonitor:
                 "status": "error",
                 "service": "database_pool",
                 "error": str(e),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
     async def get_performance_metrics(self) -> Dict[str, Any]:
         """Get comprehensive performance metrics."""
         try:
             performance_data = await db_config.get_performance_metrics()
+            performance_data = dict(performance_data) if performance_data else {}
 
             # Add additional metrics
-            performance_data.update({
-                "timestamp": datetime.now().isoformat(),
-                "service": "database_performance",
-                "system_info": {
-                    "environment": settings.ENVIRONMENT,
-                    "debug_mode": settings.DEBUG,
-                    "log_level": settings.LOG_LEVEL
+            performance_data.update(
+                {
+                    "timestamp": datetime.now().isoformat(),
+                    "service": "database_performance",
+                    "system_info": {
+                        "environment": settings.ENVIRONMENT,
+                        "debug_mode": settings.DEBUG,
+                        "log_level": settings.LOG_LEVEL,
+                    },
                 }
-            })
+            )
 
             return performance_data
 
@@ -138,7 +144,7 @@ class HealthMonitor:
                 "status": "error",
                 "service": "database_performance",
                 "error": str(e),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
     async def get_overall_health(self) -> Dict[str, Any]:
@@ -164,11 +170,11 @@ class HealthMonitor:
             try:
                 metrics_service = get_metrics_service()
                 is_healthy = overall_status == "healthy"
-                metrics_service.application_health_status.set(
-                    1 if is_healthy else 0)
+                metrics_service.application_health_status.set(1 if is_healthy else 0)
             except Exception as metrics_error:
                 logger.warning(
-                    f"Failed to update Prometheus application health metrics: {metrics_error}")
+                    f"Failed to update Prometheus application health metrics: {metrics_error}"
+                )
 
             overall_health = {
                 "status": overall_status,
@@ -177,18 +183,26 @@ class HealthMonitor:
                     "database": {
                         "status": db_health.get("status", "unknown"),
                         "response_time": db_health.get("response_time"),
-                        "last_check": db_health.get("last_check")
+                        "last_check": db_health.get("last_check"),
                     },
                     "connection_pool": {
-                        "status": "healthy" if pool_status.get("status") != "error" else "unhealthy",
-                        "utilization": pool_status.get("pool_statistics", {}).get("utilization_percentage", 0)
-                    }
+                        "status": "healthy"
+                        if pool_status.get("status") != "error"
+                        else "unhealthy",
+                        "utilization": pool_status.get("pool_statistics", {}).get(
+                            "utilization_percentage", 0
+                        ),
+                    },
                 },
                 "performance_summary": {
                     "database_response_time": db_health.get("response_time"),
-                    "pool_utilization": pool_status.get("pool_statistics", {}).get("utilization_percentage", 0),
-                    "slow_query_threshold": performance.get("thresholds", {}).get("slow_query_threshold")
-                }
+                    "pool_utilization": pool_status.get("pool_statistics", {}).get(
+                        "utilization_percentage", 0
+                    ),
+                    "slow_query_threshold": performance.get("thresholds", {}).get(
+                        "slow_query_threshold"
+                    ),
+                },
             }
 
             return overall_health
@@ -198,7 +212,7 @@ class HealthMonitor:
             return {
                 "status": "error",
                 "error": str(e),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
     def _add_to_history(self, health_data: Dict[str, Any]):
@@ -207,14 +221,15 @@ class HealthMonitor:
 
         # Keep only recent history
         if len(self.health_history) > self.max_history_size:
-            self.health_history = self.health_history[-self.max_history_size:]
+            self.health_history = self.health_history[-self.max_history_size :]
 
     def get_health_history(self, hours: int = 24) -> list:
         """Get health history for the specified number of hours."""
         cutoff_time = datetime.now() - timedelta(hours=hours)
 
         return [
-            entry for entry in self.health_history
+            entry
+            for entry in self.health_history
             if datetime.fromisoformat(entry["timestamp"]) > cutoff_time
         ]
 
@@ -244,9 +259,9 @@ async def database_health():
             content={
                 "status": "error",
                 "error": str(e),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             },
-            status_code=500
+            status_code=500,
         )
 
 
@@ -267,9 +282,9 @@ async def database_pool_status():
             content={
                 "status": "error",
                 "error": str(e),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             },
-            status_code=500
+            status_code=500,
         )
 
 
@@ -290,9 +305,9 @@ async def database_performance():
             content={
                 "status": "error",
                 "error": str(e),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             },
-            status_code=500
+            status_code=500,
         )
 
 
@@ -316,9 +331,9 @@ async def overall_health():
             content={
                 "status": "error",
                 "error": str(e),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             },
-            status_code=500
+            status_code=500,
         )
 
 
@@ -328,7 +343,8 @@ async def health_history(hours: int = 24):
     try:
         if hours < 1 or hours > 168:  # Max 1 week
             raise HTTPException(
-                status_code=400, detail="Hours must be between 1 and 168")
+                status_code=400, detail="Hours must be between 1 and 168"
+            )
 
         history = health_monitor.get_health_history(hours)
 
@@ -336,7 +352,7 @@ async def health_history(hours: int = 24):
             "history": history,
             "hours_requested": hours,
             "records_returned": len(history),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
     except Exception as e:
@@ -345,7 +361,7 @@ async def health_history(hours: int = 24):
             content={
                 "status": "error",
                 "error": str(e),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             },
-            status_code=500
+            status_code=500,
         )

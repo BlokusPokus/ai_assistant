@@ -6,14 +6,22 @@ which scopes are granted to each integration.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, JSON
-from sqlalchemy.orm import relationship
+
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Integer,
+    String,
+    Text,
+)
 
 from personal_assistant.database.models.base import Base
 
 
 class OAuthScope(Base):
-    __tablename__ = 'oauth_scopes'
+    __tablename__ = "oauth_scopes"
 
     id = Column(Integer, primary_key=True)
     # google, microsoft, notion, youtube
@@ -31,8 +39,7 @@ class OAuthScope(Base):
     # Provider-specific metadata
     provider_metadata = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow,
-                        onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def __repr__(self):
         return f"<OAuthScope(id={self.id}, provider='{self.provider}', scope_name='{self.scope_name}', is_active={self.is_active})>"

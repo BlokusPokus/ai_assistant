@@ -17,15 +17,15 @@ export interface UserProfileUpdateRequest {
 
 export interface UserPreferences {
   user_id: number;
-  preferences: Record<string, any>;
-  settings: Record<string, any>;
+  preferences: Record<string, string | number | boolean>;
+  settings: Record<string, string | number | boolean>;
   created_at: string;
   updated_at: string;
 }
 
 export interface UserPreferencesUpdateRequest {
-  preferences?: Record<string, any>;
-  settings?: Record<string, any>;
+  preferences?: Record<string, string | number | boolean>;
+  settings?: Record<string, string | number | boolean>;
 }
 
 export interface SecuritySettings {

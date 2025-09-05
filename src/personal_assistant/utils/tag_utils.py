@@ -5,8 +5,9 @@ This module provides utility functions for working with tags, including
 validation, normalization, and tag-based queries.
 """
 
-from typing import List, Dict, Set, Optional
-from ..constants.tags import LTM_TAGS, validate_tags, get_tag_suggestions
+from typing import Dict, List
+
+from ..constants.tags import get_tag_suggestions, validate_tags
 
 
 def normalize_tag(tag: str) -> str:
@@ -30,7 +31,8 @@ def normalize_tag(tag: str) -> str:
 
     # Remove special characters except underscores and hyphens
     import re
-    normalized = re.sub(r'[^a-z0-9_-]', '', normalized)
+
+    normalized = re.sub(r"[^a-z0-9_-]", "", normalized)
 
     return normalized
 
@@ -109,7 +111,7 @@ def build_tag_query(tags: List[str], operator: str = "OR") -> Dict:
     return {
         "tags": valid_tags,
         "operator": operator.upper(),
-        "invalid_tags": invalid_tags
+        "invalid_tags": invalid_tags,
     }
 
 
@@ -172,13 +174,12 @@ def validate_and_suggest_tags(tags: List[str], content: str = "") -> Dict:
         Dictionary with validation results and suggestions
     """
     if not tags:
-        suggestions = suggest_tags_for_content(
-            content) if content else ["general"]
+        suggestions = suggest_tags_for_content(content) if content else ["general"]
         return {
             "valid_tags": [],
             "invalid_tags": [],
             "suggestions": suggestions,
-            "needs_suggestions": True
+            "needs_suggestions": True,
         }
 
     normalized_tags = normalize_tags(tags)
@@ -188,7 +189,7 @@ def validate_and_suggest_tags(tags: List[str], content: str = "") -> Dict:
         "valid_tags": valid_tags,
         "invalid_tags": invalid_tags,
         "suggestions": [],
-        "needs_suggestions": False
+        "needs_suggestions": False,
     }
 
     # If we have invalid tags, provide suggestions
@@ -215,5 +216,5 @@ def get_tag_statistics(user_id: int) -> Dict:
         "total_memories": 0,
         "tag_counts": {},
         "most_used_tags": [],
-        "recent_tags": []
+        "recent_tags": [],
     }

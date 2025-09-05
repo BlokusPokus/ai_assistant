@@ -1,10 +1,16 @@
 import React from 'react';
 import { ResponsiveContainer } from '../components/ui';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input } from '../components/ui';
-import { useAnimation, useIsMobile } from '../hooks/useAnimation';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
+} from '../components/ui';
+import { useIsMobile } from '../hooks/useAnimation';
 
 const DesignSystemPage: React.FC = () => {
-  const isVisible = useAnimation(100);
   const isMobile = useIsMobile();
 
   return (
@@ -16,8 +22,8 @@ const DesignSystemPage: React.FC = () => {
             Design System Showcase
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Explore our new UI components with frosted glass aesthetics, 
-            modern typography, and enhanced user experience.
+            Explore our new UI components with frosted glass aesthetics, modern
+            typography, and enhanced user experience.
           </p>
         </div>
 
@@ -59,19 +65,27 @@ const DesignSystemPage: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h1 className="text-5xl font-bold text-primary">Heading 1 (5xl)</h1>
+              <h1 className="text-5xl font-bold text-primary">
+                Heading 1 (5xl)
+              </h1>
               <p className="text-sm text-gray-500">48px / 3rem</p>
             </div>
             <div>
-              <h2 className="text-4xl font-bold text-primary">Heading 2 (4xl)</h2>
+              <h2 className="text-4xl font-bold text-primary">
+                Heading 2 (4xl)
+              </h2>
               <p className="text-sm text-gray-500">36px / 2.25rem</p>
             </div>
             <div>
-              <h3 className="text-3xl font-semibold text-primary">Heading 3 (3xl)</h3>
+              <h3 className="text-3xl font-semibold text-primary">
+                Heading 3 (3xl)
+              </h3>
               <p className="text-sm text-gray-500">30px / 1.875rem</p>
             </div>
             <div>
-              <h4 className="text-2xl font-semibold text-primary">Heading 4 (2xl)</h4>
+              <h4 className="text-2xl font-semibold text-primary">
+                Heading 4 (2xl)
+              </h4>
               <p className="text-sm text-gray-500">24px / 1.5rem</p>
             </div>
             <div>
@@ -135,35 +149,32 @@ const DesignSystemPage: React.FC = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <Input 
-                  label="Basic Input"
-                  placeholder="Enter your text here"
-                />
-                <Input 
+                <Input label="Basic Input" placeholder="Enter your text here" />
+                <Input
                   label="Input with Left Icon"
                   placeholder="Search..."
                   leftIcon={<span>🔍</span>}
                 />
-                <Input 
+                <Input
                   label="Input with Error"
                   placeholder="This input has an error"
                   error="This field is required"
                 />
               </div>
               <div className="space-y-4">
-                <Input 
+                <Input
                   label="Email Input"
                   type="email"
                   placeholder="Enter your email"
                   leftIcon={<span>📧</span>}
                 />
-                <Input 
+                <Input
                   label="Password Input"
                   type="password"
                   placeholder="Enter your password"
                   leftIcon={<span>🔒</span>}
                 />
-                <Input 
+                <Input
                   label="Disabled Input"
                   placeholder="This input is disabled"
                   disabled
@@ -181,7 +192,8 @@ const DesignSystemPage: React.FC = () => {
           <CardContent>
             <div className="text-center">
               <p className="text-lg mb-4">
-                Current breakpoint: <span className="font-semibold text-accent">
+                Current breakpoint:{' '}
+                <span className="font-semibold text-accent">
                   {isMobile ? 'Mobile' : 'Desktop'}
                 </span>
               </p>
@@ -247,15 +259,11 @@ const DesignSystemPage: React.FC = () => {
               </div>
               <div className="glass glass-hover p-6 rounded-2xl text-center transition-all duration-300">
                 <h4 className="font-semibold mb-2">Interactive Glass</h4>
-                <p className="text-sm text-gray-600">
-                  Hover to see the effect
-                </p>
+                <p className="text-sm text-gray-600">Hover to see the effect</p>
               </div>
               <div className="glass p-6 rounded-2xl text-center">
                 <h4 className="font-semibold mb-2">Depth Effect</h4>
-                <p className="text-sm text-gray-600">
-                  Layered with shadows
-                </p>
+                <p className="text-sm text-gray-600">Layered with shadows</p>
               </div>
             </div>
           </CardContent>

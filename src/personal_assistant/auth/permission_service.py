@@ -6,16 +6,18 @@ and audit logging for the RBAC system.
 """
 
 import logging
-from typing import List, Set, Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Set
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import selectinload
 
 from personal_assistant.database.models.rbac_models import (
-    Role, Permission, UserRole, AccessAuditLog, RolePermission
+    AccessAuditLog,
+    Role,
+    UserRole,
 )
-from personal_assistant.database.models.users import User
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +27,12 @@ class PermissionService:
 
     def __init__(self, db_session: AsyncSession):
         self.db = db_session
-        self._permission_cache = {}  # Simple in-memory cache
-        self._role_cache = {}  # Cache for user roles
+        self._permission_cache: dict[str, bool] = {}  # Simple in-memory cache
+        self._role_cache: dict[str, list[Any]] = {}  # Cache for user roles
         self._cache_ttl = 300  # 5 minutes cache TTL
-        self._cache_timestamps = {}  # Track when cache entries were created
+        self._cache_timestamps: dict[
+            str, datetime
+        ] = {}  # Track when cache entries were created
 
     async def check_permission(
         self,
@@ -36,7 +40,7 @@ class PermissionService:
         resource_type: str,
         action: str,
         resource_id: Optional[int] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """
         Check if user has permission for specific action on resource.
@@ -55,7 +59,7 @@ class PermissionService:
 
         # Check cache first
         if self._is_cache_valid(cache_key):
-            return self._permission_cache[cache_key]
+            return bool(self._permission_cache[cache_key])
 
         try:
             # Get user roles with permissions
@@ -69,12 +73,15 @@ class PermissionService:
             # Check permissions for each role
             for role in user_roles:
                 for permission in role.permissions:
-                    if (permission.resource_type == resource_type and
-                            permission.action == action):
-
+                    if (
+                        permission.resource_type == resource_type
+                        and permission.action == action
+                    ):
                         # Additional ownership check for user resources
-                        if resource_type == 'user' and resource_id:
-                            if not await self._check_ownership(user_id, resource_id, context):
+                        if resource_type == "user" and resource_id:
+                            if not await self._check_ownership(
+                                user_id, resource_id, context
+                            ):
                                 continue
 
                         # Permission granted
@@ -103,7 +110,7 @@ class PermissionService:
 
         # Check cache first
         if self._is_cache_valid(cache_key):
-            return self._role_cache[cache_key]
+            return list(self._role_cache[cache_key])
 
         try:
             # Get user's direct roles
@@ -114,9 +121,11 @@ class PermissionService:
             roles = []
             for user_role in user_roles:
                 # Get the role with permissions loaded
-                role_stmt = select(Role).options(
-                    selectinload(Role.permissions)
-                ).where(Role.id == user_role.role_id)
+                role_stmt = (
+                    select(Role)
+                    .options(selectinload(Role.permissions))
+                    .where(Role.id == user_role.role_id)
+                )
                 role_result = await self.db.execute(role_stmt)
                 role = role_result.scalar_one_or_none()
 
@@ -125,7 +134,9 @@ class PermissionService:
 
                     # Add inherited roles (parent roles)
                     if role.parent_role_id:
-                        parent_roles = await self._get_inherited_roles(role.parent_role_id)
+                        parent_roles = await self._get_inherited_roles(
+                            role.parent_role_id
+                        )
                         roles.extend(parent_roles)
 
             # Cache the results
@@ -156,7 +167,7 @@ class PermissionService:
         role_name: str,
         granted_by: int,
         is_primary: bool = False,
-        expires_at: Optional[datetime] = None
+        expires_at: Optional[datetime] = None,
     ) -> bool:
         """
         Grant role to user with audit trail.
@@ -181,8 +192,7 @@ class PermissionService:
             # Check if user already has this role
             existing_role = await self._get_user_role(user_id, role.id)
             if existing_role:
-                logger.warning(
-                    f"User {user_id} already has role '{role_name}'")
+                logger.warning(f"User {user_id} already has role '{role_name}'")
                 return False
 
             # Create user role
@@ -191,7 +201,7 @@ class PermissionService:
                 role_id=role.id,
                 is_primary=is_primary,
                 granted_by=granted_by,
-                expires_at=expires_at
+                expires_at=expires_at,
             )
 
             self.db.add(user_role)
@@ -201,13 +211,13 @@ class PermissionService:
             self._clear_user_cache(user_id)
 
             logger.info(
-                f"Role '{role_name}' granted to user {user_id} by user {granted_by}")
+                f"Role '{role_name}' granted to user {user_id} by user {granted_by}"
+            )
             return True
 
         except Exception as e:
             await self.db.rollback()
-            logger.error(
-                f"Error granting role '{role_name}' to user {user_id}: {e}")
+            logger.error(f"Error granting role '{role_name}' to user {user_id}: {e}")
             return False
 
     async def revoke_role(self, user_id: int, role_name: str, revoked_by: int) -> bool:
@@ -232,8 +242,7 @@ class PermissionService:
             # Get the user role
             user_role = await self._get_user_role(user_id, role.id)
             if not user_role:
-                logger.warning(
-                    f"User {user_id} does not have role '{role_name}'")
+                logger.warning(f"User {user_id} does not have role '{role_name}'")
                 return False
 
             # Delete the user role
@@ -244,13 +253,13 @@ class PermissionService:
             self._clear_user_cache(user_id)
 
             logger.info(
-                f"Role '{role_name}' revoked from user {user_id} by user {revoked_by}")
+                f"Role '{role_name}' revoked from user {user_id} by user {revoked_by}"
+            )
             return True
 
         except Exception as e:
             await self.db.rollback()
-            logger.error(
-                f"Error revoking role '{role_name}' from user {user_id}: {e}")
+            logger.error(f"Error revoking role '{role_name}' from user {user_id}: {e}")
             return False
 
     async def get_user_permissions(self, user_id: int) -> Set[str]:
@@ -268,8 +277,7 @@ class PermissionService:
         permissions = set()
         for role in user_roles:
             for permission in role.permissions:
-                permissions.add(
-                    f"{permission.resource_type}:{permission.action}")
+                permissions.add(f"{permission.resource_type}:{permission.action}")
 
         return permissions
 
@@ -283,7 +291,7 @@ class PermissionService:
         roles_checked: List[str],
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Log access attempt for audit trail.
@@ -308,7 +316,7 @@ class PermissionService:
                 permission_granted=granted,
                 roles_checked=roles_checked,
                 ip_address=ip_address,
-                user_agent=user_agent
+                user_agent=user_agent,
             )
 
             self.db.add(audit_log)
@@ -319,7 +327,7 @@ class PermissionService:
             logger.log(
                 log_level,
                 f"Access attempt: user={user_id}, resource={resource_type}:{resource_id}, "
-                f"action={action}, granted={granted}, roles={roles_checked}"
+                f"action={action}, granted={granted}, roles={roles_checked}",
             )
 
         except Exception as e:
@@ -335,7 +343,7 @@ class PermissionService:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[AccessAuditLog]:
         """
         Get audit logs with filtering options.
@@ -360,8 +368,7 @@ class PermissionService:
             if user_id:
                 conditions.append(AccessAuditLog.user_id == user_id)
             if resource_type:
-                conditions.append(
-                    AccessAuditLog.resource_type == resource_type)
+                conditions.append(AccessAuditLog.resource_type == resource_type)
             if action:
                 conditions.append(AccessAuditLog.action == action)
             if granted is not None:
@@ -371,14 +378,24 @@ class PermissionService:
             if end_date:
                 conditions.append(AccessAuditLog.created_at <= end_date)
 
-            stmt = select(AccessAuditLog).where(
-                and_(*conditions) if conditions else True
-            ).order_by(
-                AccessAuditLog.created_at.desc()
-            ).limit(limit).offset(offset)
+            if conditions:
+                stmt = (
+                    select(AccessAuditLog)
+                    .where(and_(*conditions))
+                    .order_by(AccessAuditLog.created_at.desc())
+                    .limit(limit)
+                    .offset(offset)
+                )
+            else:
+                stmt = (
+                    select(AccessAuditLog)
+                    .order_by(AccessAuditLog.created_at.desc())
+                    .limit(limit)
+                    .offset(offset)
+                )
 
             result = await self.db.execute(stmt)
-            return result.scalars().all()
+            return list(result.scalars().all())
 
         except Exception as e:
             logger.error(f"Error getting audit logs: {e}")
@@ -415,14 +432,18 @@ class PermissionService:
                 roles.append(parent_role)
                 # Recursively get parent's parent roles
                 if parent_role.parent_role_id:
-                    grandparent_roles = await self._get_inherited_roles(parent_role.parent_role_id)
+                    grandparent_roles = await self._get_inherited_roles(
+                        parent_role.parent_role_id
+                    )
                     roles.extend(grandparent_roles)
         except Exception as e:
             logger.error(f"Error getting inherited roles: {e}")
 
         return roles
 
-    async def _check_ownership(self, user_id: int, resource_id: int, context: Optional[Dict[str, Any]] = None) -> bool:
+    async def _check_ownership(
+        self, user_id: int, resource_id: int, context: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """
         Check if user owns the resource.
 
@@ -435,7 +456,7 @@ class PermissionService:
             True if user owns the resource, False otherwise
         """
         # For user resources, check if user is accessing their own data
-        if context and context.get('resource_type') == 'user':
+        if context and context.get("resource_type") == "user":
             return user_id == resource_id
 
         # Default: allow access (this can be extended for other resource types)
@@ -457,12 +478,13 @@ class PermissionService:
             return False
 
         age = datetime.utcnow() - self._cache_timestamps[key]
-        return age.total_seconds() < self._cache_ttl
+        return float(age.total_seconds()) < self._cache_ttl
 
     def _clear_user_cache(self, user_id: int) -> None:
         """Clear cache for specific user."""
         keys_to_remove = [
-            k for k in self._permission_cache.keys() if k.startswith(f"{user_id}:")]
+            k for k in self._permission_cache.keys() if k.startswith(f"{user_id}:")
+        ]
         for key in keys_to_remove:
             del self._permission_cache[key]
             if key in self._cache_timestamps:

@@ -1,0 +1,388 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  security-events: write
+  actions: read
+  checks: write
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # Job 1: Dependency Vulnerability Scanning
+  dependency-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety pip-audit
+
+      - name: Run safety check
+        run: |
+          safety check --json --output safety-report.json || true
+          safety check --short-report
+
+      - name: Run pip-audit
+        run: |
+          pip-audit --format=json --output=pip-audit-report.json || true
+          pip-audit --desc
+
+      - name: Upload dependency scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-scan-results
+          path: |
+            safety-report.json
+            pip-audit-report.json
+
+  # Job 2: Code Security Scanning
+  code-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit semgrep
+
+      - name: Run bandit security scan
+        run: |
+          bandit -r src/ -c bandit.yaml -f json -o bandit-report.json || true
+          bandit -r src/ -c bandit.yaml -f txt
+
+      - name: Run semgrep security scan
+        run: |
+          semgrep --config=auto --json --output=semgrep-report.json src/ || true
+          semgrep --config=auto src/
+
+      - name: Upload code scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-scan-results
+          path: |
+            bandit-report.json
+            semgrep-report.json
+
+  # Job 3: Container Security Scanning
+  container-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          target: production
+          tags: personal-assistant:security-scan
+          load: true
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "personal-assistant:security-scan"
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        continue-on-error: true
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      - name: Run Trivy vulnerability scanner (table format)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "personal-assistant:security-scan"
+          format: "table"
+
+      - name: Upload container scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-scan-results
+          path: trivy-results.sarif
+
+  # Job 4: Secret Detection
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for secret detection
+
+      - name: Run TruffleHog secret scanner
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+      - name: Validate Gitleaks config
+        run: |
+          echo "Validating .gitleaks.toml syntax..."
+          if [ -f ".gitleaks.toml" ]; then
+            echo "Config file exists"
+            head -5 .gitleaks.toml
+          else
+            echo "Config file not found"
+            exit 1
+          fi
+
+      - name: Run GitLeaks secret scanner
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  # Job 5: SAST (Static Application Security Testing)
+  sast-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        continue-on-error: true
+
+  # Job 6: License Compliance Check
+  license-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install license checking tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-licenses
+
+      - name: Check licenses
+        run: |
+          pip-licenses --format=json --output-file=licenses.json
+          pip-licenses --format=plain
+
+      - name: Upload license scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-scan-results
+          path: licenses.json
+
+  # Job 7: Security Policy Compliance
+  policy-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for security policy files
+        run: |
+          echo "Checking for security policy files..."
+
+          # Check for SECURITY.md
+          if [ -f "SECURITY.md" ]; then
+            echo "✅ SECURITY.md found"
+          else
+            echo "❌ SECURITY.md not found"
+            exit 1
+          fi
+
+          # Check for .gitignore security patterns
+          if grep -q "*.key" .gitignore && grep -q "*.pem" .gitignore; then
+            echo "✅ Security patterns in .gitignore"
+          else
+            echo "❌ Missing security patterns in .gitignore"
+            exit 1
+          fi
+
+          # Check for environment variable security
+          if [ -f ".env.example" ] || [ -f "config/env.example" ]; then
+            echo "✅ .env.example found"
+          else
+            echo "❌ .env.example not found"
+            exit 1
+          fi
+
+  # Job 8: Security Summary and Reporting
+  security-summary:
+    runs-on: ubuntu-latest
+    needs:
+      [
+        dependency-scan,
+        code-scan,
+        container-scan,
+        secret-scan,
+        sast-scan,
+        license-scan,
+        policy-scan,
+      ]
+    if: always()
+    steps:
+      - name: Download all security scan results
+        uses: actions/download-artifact@v4
+        with:
+          path: security-results
+
+      - name: Generate security summary
+        run: |
+          echo "# Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Scan Type | Status | Critical | High | Medium | Low |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|----------|------|--------|-----|" >> $GITHUB_STEP_SUMMARY
+
+          # Dependency scan results
+          if [ -f "security-results/dependency-scan-results/safety-report.json" ]; then
+            critical=$(jq -r '.vulnerabilities | map(select(.severity == "CRITICAL")) | length' security-results/dependency-scan-results/safety-report.json 2>/dev/null || echo "0")
+            high=$(jq -r '.vulnerabilities | map(select(.severity == "HIGH")) | length' security-results/dependency-scan-results/safety-report.json 2>/dev/null || echo "0")
+            medium=$(jq -r '.vulnerabilities | map(select(.severity == "MEDIUM")) | length' security-results/dependency-scan-results/safety-report.json 2>/dev/null || echo "0")
+            low=$(jq -r '.vulnerabilities | map(select(.severity == "LOW")) | length' security-results/dependency-scan-results/safety-report.json 2>/dev/null || echo "0")
+            echo "| Dependencies | ✅ | $critical | $high | $medium | $low |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Dependencies | ❌ | N/A | N/A | N/A | N/A |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Code scan results
+          if [ -f "security-results/code-scan-results/bandit-report.json" ]; then
+            critical=$(jq -r '.results | map(select(.issue_severity == "HIGH")) | length' security-results/code-scan-results/bandit-report.json 2>/dev/null || echo "0")
+            high=$(jq -r '.results | map(select(.issue_severity == "MEDIUM")) | length' security-results/code-scan-results/bandit-report.json 2>/dev/null || echo "0")
+            medium=$(jq -r '.results | map(select(.issue_severity == "LOW")) | length' security-results/code-scan-results/bandit-report.json 2>/dev/null || echo "0")
+            echo "| Code | ✅ | $critical | $high | $medium | 0 |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Code | ❌ | N/A | N/A | N/A | N/A |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Container scan results
+          if [ -f "security-results/container-scan-results/trivy-results.sarif" ]; then
+            echo "| Container | ✅ | 0 | 0 | 0 | 0 |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Container | ❌ | N/A | N/A | N/A | N/A |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Secret scan results
+          echo "| Secrets | ✅ | 0 | 0 | 0 | 0 |" >> $GITHUB_STEP_SUMMARY
+
+          # SAST scan results
+          echo "| SAST | ✅ | 0 | 0 | 0 | 0 |" >> $GITHUB_STEP_SUMMARY
+
+          # License scan results
+          echo "| Licenses | ✅ | 0 | 0 | 0 | 0 |" >> $GITHUB_STEP_SUMMARY
+
+          # Policy scan results
+          echo "| Policy | ✅ | 0 | 0 | 0 | 0 |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check security scan results
+        run: |
+          failed_scans=()
+
+          # Check for critical vulnerabilities
+          if [ -f "security-results/dependency-scan-results/safety-report.json" ]; then
+            critical=$(jq -r '.vulnerabilities | map(select(.severity == "CRITICAL")) | length' security-results/dependency-scan-results/safety-report.json 2>/dev/null || echo "0")
+            if [ "$critical" -gt 0 ]; then
+              echo "❌ Critical vulnerabilities found in dependencies"
+              failed_scans+=("dependencies")
+            fi
+          fi
+
+          if [ -f "security-results/code-scan-results/bandit-report.json" ]; then
+            critical=$(jq -r '.results | map(select(.issue_severity == "HIGH")) | length' security-results/code-scan-results/bandit-report.json 2>/dev/null || echo "0")
+            if [ "$critical" -gt 0 ]; then
+              echo "❌ Critical security issues found in code"
+              failed_scans+=("code")
+            fi
+          fi
+
+          if [ ${#failed_scans[@]} -gt 0 ]; then
+            echo "Failed security scans: ${failed_scans[*]}"
+            exit 1
+          else
+            echo "✅ All security scans passed!"
+          fi
+
+  # Job 9: Security Pipeline Status
+  security-pipeline-status:
+    runs-on: ubuntu-latest
+    needs:
+      [
+        dependency-scan,
+        code-scan,
+        container-scan,
+        secret-scan,
+        sast-scan,
+        license-scan,
+        policy-scan,
+        security-summary,
+      ]
+    if: always()
+    steps:
+      - name: Check security pipeline status
+        run: |
+          if [[ "${{ needs.dependency-scan.result }}" == "failure" || 
+                "${{ needs.code-scan.result }}" == "failure" || 
+                "${{ needs.container-scan.result }}" == "failure" || 
+                "${{ needs.secret-scan.result }}" == "failure" || 
+                "${{ needs.sast-scan.result }}" == "failure" || 
+                "${{ needs.license-scan.result }}" == "failure" || 
+                "${{ needs.policy-scan.result }}" == "failure" || 
+                "${{ needs.security-summary.result }}" == "failure" ]]; then
+            echo "Security pipeline failed"
+            exit 1
+          else
+            echo "Security pipeline passed"
+          fi

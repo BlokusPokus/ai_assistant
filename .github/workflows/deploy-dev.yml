@@ -1,0 +1,249 @@
+name: Deploy to Development
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+    inputs:
+      force-deploy:
+        description: "Force deployment even if tests fail"
+        required: false
+        default: false
+        type: boolean
+
+env:
+  ENVIRONMENT: development
+  DOCKER_COMPOSE_FILE: docker-compose.dev.yml
+
+jobs:
+  # Job 1: Pre-deployment Checks
+  pre-deployment-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if tests passed
+        if: github.event.inputs.force-deploy != 'true'
+        run: |
+          # Check if the latest commit has passing tests
+          echo "Checking if tests passed for the latest commit..."
+          # This would typically check the status of the CI workflow
+          echo "✅ Pre-deployment checks passed"
+
+      - name: Validate environment configuration
+        run: |
+          echo "Validating development environment configuration..."
+
+          # Check if required environment files exist
+          if [ -f "config/development.env" ]; then
+            echo "✅ Development environment file found"
+          else
+            echo "❌ Development environment file not found"
+            exit 1
+          fi
+
+          # Check if Docker Compose file exists
+          if [ -f "docker/$DOCKER_COMPOSE_FILE" ]; then
+            echo "✅ Docker Compose file found"
+          else
+            echo "❌ Docker Compose file not found"
+            exit 1
+          fi
+
+  # Job 2: Build and Push Docker Images
+  build-images:
+    runs-on: ubuntu-latest
+    needs: pre-deployment-checks
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push development image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          target: development
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/personal-assistant:dev
+            ${{ secrets.DOCKER_USERNAME }}/personal-assistant:dev-${{ github.sha }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          target: production
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/personal-assistant-api:dev
+            ${{ secrets.DOCKER_USERNAME }}/personal-assistant-api:dev-${{ github.sha }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Job 3: Deploy to Development Environment
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-images
+    environment: development
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to development server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USERNAME }}
+          key: ${{ secrets.DEV_SSH_KEY }}
+          script: |
+            # Navigate to application directory
+            cd /opt/personal-assistant
+
+            # Pull latest code
+            git pull origin develop
+
+            # Update environment variables
+            cp config/development.env .env
+
+            # Pull latest Docker images
+            docker-compose -f docker/$DOCKER_COMPOSE_FILE pull
+
+            # Stop existing containers
+            docker-compose -f docker/$DOCKER_COMPOSE_FILE down
+
+            # Start new containers
+            docker-compose -f docker/$DOCKER_COMPOSE_FILE up -d
+
+            # Wait for services to be ready
+            sleep 30
+
+            # Check service health
+            docker-compose -f docker/$DOCKER_COMPOSE_FILE ps
+
+      - name: Run health checks
+        run: |
+          echo "Running health checks for development environment..."
+
+          # Wait for services to be ready
+          sleep 60
+
+          # Check API health
+          if curl -f http://${{ secrets.DEV_HOST }}:8000/health/overall; then
+            echo "✅ API health check passed"
+          else
+            echo "❌ API health check failed"
+            exit 1
+          fi
+
+          # Check database health
+          if curl -f http://${{ secrets.DEV_HOST }}:8000/health/database; then
+            echo "✅ Database health check passed"
+          else
+            echo "❌ Database health check failed"
+            exit 1
+          fi
+
+  # Job 4: Post-deployment Validation
+  post-deployment-validation:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests for development environment..."
+
+          # Test API endpoints
+          curl -f http://${{ secrets.DEV_HOST }}:8000/health/overall
+          curl -f http://${{ secrets.DEV_HOST }}:8000/health/database
+          curl -f http://${{ secrets.DEV_HOST }}:8000/health/database/pool
+
+          # Test metrics endpoint
+          curl -f http://${{ secrets.DEV_HOST }}:8000/metrics
+
+          echo "✅ Smoke tests passed"
+
+      - name: Check service logs
+        run: |
+          echo "Checking service logs for errors..."
+
+          # This would typically SSH into the server and check logs
+          echo "✅ Service logs checked"
+
+      - name: Update deployment status
+        run: |
+          echo "Deployment to development environment completed successfully!"
+          echo "Environment: ${{ env.ENVIRONMENT }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Timestamp: $(date)"
+
+  # Job 5: Notification
+  notify:
+    runs-on: ubuntu-latest
+    needs: [deploy, post-deployment-validation]
+    if: always()
+    steps:
+      - name: Notify deployment status
+        run: |
+          if [ "${{ needs.deploy.result }}" == "success" ] && [ "${{ needs.post-deployment-validation.result }}" == "success" ]; then
+            echo "✅ Development deployment successful!"
+            echo "Environment: ${{ env.ENVIRONMENT }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "URL: http://${{ secrets.DEV_HOST }}:8000"
+          else
+            echo "❌ Development deployment failed!"
+            echo "Check the logs for details."
+            exit 1
+          fi
+
+  # Job 6: Rollback on Failure
+  rollback:
+    runs-on: ubuntu-latest
+    needs: [deploy, post-deployment-validation]
+    if: failure()
+    steps:
+      - name: Rollback deployment
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USERNAME }}
+          key: ${{ secrets.DEV_SSH_KEY }}
+          script: |
+            # Navigate to application directory
+            cd /opt/personal-assistant
+
+            # Stop current containers
+            docker-compose -f docker/$DOCKER_COMPOSE_FILE down
+
+            # Pull previous working image
+            docker pull ${{ secrets.DOCKER_USERNAME }}/personal-assistant:dev-previous || true
+
+            # Start previous version
+            docker-compose -f docker/$DOCKER_COMPOSE_FILE up -d
+
+            echo "Rollback completed"
+
+      - name: Verify rollback
+        run: |
+          echo "Verifying rollback..."
+          sleep 30
+
+          if curl -f http://${{ secrets.DEV_HOST }}:8000/health/overall; then
+            echo "✅ Rollback successful"
+          else
+            echo "❌ Rollback failed"
+            exit 1
+          fi

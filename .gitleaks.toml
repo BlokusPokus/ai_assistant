@@ -1,0 +1,8 @@
+# Gitleaks configuration with proper regex patterns
+[allowlist]
+description = "Allowlist for test files"
+paths = [
+    "tests/.*\\.py$",
+    ".*test_.*\\.py$",
+    ".*_test\\.py$"
+]

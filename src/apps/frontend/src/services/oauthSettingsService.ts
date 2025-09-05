@@ -1,9 +1,5 @@
 import api from './api';
-import type {
-  OAuthProvider,
-  OAuthIntegration,
-  OAuthProviderConfig,
-} from '@/types/oauth';
+import type { OAuthProviderConfig } from '@/types/oauth';
 
 // Enhanced OAuth types for settings management
 export interface OAuthSettings {
@@ -30,7 +26,7 @@ export interface OAuthIntegrationEnhanced {
   created_at: string;
   last_sync_at?: string;
   expires_at?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean>;
 }
 
 export interface OAuthAnalytics {
@@ -67,7 +63,7 @@ export interface OAuthAuditLog {
   action: string;
   provider: string;
   integration_id?: number;
-  details: Record<string, any>;
+  details: Record<string, string | number | boolean>;
   ip_address?: string;
   user_agent?: string;
 }
@@ -111,20 +107,37 @@ export class OAuthSettingsService {
         `/oauth/integrations/${integrationId}/refresh`
       );
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to refresh OAuth tokens:', error);
 
       // Provide helpful error messages for common issues
       if (
-        error.response?.status === 503 &&
-        error.response?.data?.detail?.includes(
-          'OAuth credentials not configured'
-        )
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'status' in error.response &&
+        error.response.status === 503 &&
+        'data' in error.response &&
+        error.response.data &&
+        typeof error.response.data === 'object' &&
+        'detail' in error.response.data &&
+        typeof error.response.data.detail === 'string' &&
+        error.response.data.detail.includes('OAuth credentials not configured')
       ) {
         throw new Error(
           'OAuth service is not fully configured. Please contact your administrator to set up OAuth provider credentials.'
         );
-      } else if (error.response?.status === 400) {
+      } else if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'status' in error.response &&
+        error.response.status === 400
+      ) {
         throw new Error(
           'Failed to refresh tokens. The integration may have expired or been revoked.'
         );
@@ -167,7 +180,20 @@ export class OAuthSettingsService {
     }
   }
 
-  async getStatus(): Promise<any> {
+  async getStatus(): Promise<{
+    integrations: {
+      total_integrations: number;
+      active_integrations: number;
+      pending_integrations: number;
+      inactive_integrations: number;
+      providers: string[];
+    };
+    consents: {
+      total_consents: number;
+      active_consents: number;
+      expired_consents: number;
+    };
+  }> {
     try {
       const response = await api.get('/oauth/status');
       return response.data;
@@ -177,7 +203,10 @@ export class OAuthSettingsService {
     }
   }
 
-  async syncIntegrations(): Promise<{ message: string; results: any }> {
+  async syncIntegrations(): Promise<{
+    message: string;
+    results: { success: number; failed: number; errors: string[] };
+  }> {
     try {
       const response = await api.post('/oauth/integrations/sync');
       return response.data;
@@ -212,7 +241,7 @@ export class OAuthSettingsService {
     console.log('Updating OAuth settings:', settings);
   }
 
-  async getAnalytics(timeRange: string = '7d'): Promise<OAuthAnalytics> {
+  async getAnalytics(): Promise<OAuthAnalytics> {
     try {
       // Use existing status endpoint and enhance with time-based data
       const status = await this.getStatus();
@@ -246,7 +275,7 @@ export class OAuthSettingsService {
     }
   }
 
-  async getAuditLogs(filters: AuditFilters = {}): Promise<OAuthAuditLog[]> {
+  async getAuditLogs(): Promise<OAuthAuditLog[]> {
     // For now, return mock audit data
     // In the future, this would come from an audit endpoint
     return [

@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Card, CardHeader, CardTitle, CardContent, Select } from '@/components/ui';
+import {
+  Button,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  Select,
+} from '@/components/ui';
 import { useProfileStore } from '@/stores/profileStore';
 import { Bell, Globe, Moon, Save, Edit, X } from 'lucide-react';
 
@@ -46,7 +53,11 @@ const SettingsForm: React.FC = () => {
     }
   }, [preferences]);
 
-  const handleInputChange = (section: string, field: string, value: any) => {
+  const handleInputChange = (
+    section: string,
+    field: string,
+    value: string | number | boolean
+  ) => {
     setFormData(prev => {
       const sectionData = prev[section as keyof typeof prev];
       if (typeof sectionData === 'object' && sectionData !== null) {
@@ -62,7 +73,10 @@ const SettingsForm: React.FC = () => {
     });
   };
 
-  const handleSimpleChange = (field: string, value: any) => {
+  const handleSimpleChange = (
+    field: string,
+    value: string | number | boolean
+  ) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -170,7 +184,7 @@ const SettingsForm: React.FC = () => {
                 label="Theme"
                 options={themeOptions}
                 value={formData.theme}
-                onChange={(value) => handleSimpleChange('theme', value)}
+                onChange={value => handleSimpleChange('theme', value)}
                 disabled={!isEditing}
                 placeholder="Select a theme"
               />
@@ -178,7 +192,7 @@ const SettingsForm: React.FC = () => {
                 label="Language"
                 options={languageOptions}
                 value={formData.language}
-                onChange={(value) => handleSimpleChange('language', value)}
+                onChange={value => handleSimpleChange('language', value)}
                 disabled={!isEditing}
                 placeholder="Select a language"
               />
@@ -201,13 +215,20 @@ const SettingsForm: React.FC = () => {
                     type="checkbox"
                     id="email-notifications"
                     checked={formData.notifications.email}
-                    onChange={(e) =>
-                      handleInputChange('notifications', 'email', e.target.checked)
+                    onChange={e =>
+                      handleInputChange(
+                        'notifications',
+                        'email',
+                        e.target.checked
+                      )
                     }
                     disabled={!isEditing}
                     className="w-5 h-5 text-accent bg-white border-gray-300 rounded-lg focus:ring-accent focus:ring-2 focus:ring-offset-2"
                   />
-                  <label htmlFor="email-notifications" className="text-sm text-gray-600">
+                  <label
+                    htmlFor="email-notifications"
+                    className="text-sm text-gray-600"
+                  >
                     Receive email notifications
                   </label>
                 </div>
@@ -222,13 +243,20 @@ const SettingsForm: React.FC = () => {
                     type="checkbox"
                     id="sms-notifications"
                     checked={formData.notifications.sms}
-                    onChange={(e) =>
-                      handleInputChange('notifications', 'sms', e.target.checked)
+                    onChange={e =>
+                      handleInputChange(
+                        'notifications',
+                        'sms',
+                        e.target.checked
+                      )
                     }
                     disabled={!isEditing}
                     className="w-5 h-5 text-accent bg-white border-gray-300 rounded-lg focus:ring-accent focus:ring-2 focus:ring-offset-2"
                   />
-                  <label htmlFor="sms-notifications" className="text-sm text-gray-600">
+                  <label
+                    htmlFor="sms-notifications"
+                    className="text-sm text-gray-600"
+                  >
                     Receive SMS notifications
                   </label>
                 </div>
@@ -243,13 +271,20 @@ const SettingsForm: React.FC = () => {
                     type="checkbox"
                     id="push-notifications"
                     checked={formData.notifications.push}
-                    onChange={(e) =>
-                      handleInputChange('notifications', 'push', e.target.checked)
+                    onChange={e =>
+                      handleInputChange(
+                        'notifications',
+                        'push',
+                        e.target.checked
+                      )
                     }
                     disabled={!isEditing}
                     className="w-5 h-5 text-accent bg-white border-gray-300 rounded-lg focus:ring-accent focus:ring-2 focus:ring-offset-2"
                   />
-                  <label htmlFor="push-notifications" className="text-sm text-gray-600">
+                  <label
+                    htmlFor="push-notifications"
+                    className="text-sm text-gray-600"
+                  >
                     Receive push notifications
                   </label>
                 </div>
@@ -268,7 +303,7 @@ const SettingsForm: React.FC = () => {
                 label="Profile Visibility"
                 options={visibilityOptions}
                 value={formData.privacy.profile_visibility}
-                onChange={(value) =>
+                onChange={value =>
                   handleInputChange('privacy', 'profile_visibility', value)
                 }
                 disabled={!isEditing}
@@ -278,7 +313,7 @@ const SettingsForm: React.FC = () => {
                 label="Activity Visibility"
                 options={visibilityOptions}
                 value={formData.privacy.activity_visibility}
-                onChange={(value) =>
+                onChange={value =>
                   handleInputChange('privacy', 'activity_visibility', value)
                 }
                 disabled={!isEditing}

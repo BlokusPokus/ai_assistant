@@ -2,44 +2,38 @@
 Internet Tool for web search, news, weather, and content processing.
 """
 import logging
-from typing import Any, Dict, List, Optional
 
-from ...config.settings import settings
 from ..base import Tool
-from .internet_internal import (
-    check_rate_limit,
-    validate_safe_search,
-    validate_max_results,
-    validate_language_code,
-    validate_query,
-    validate_topic,
-    format_web_search_results,
-    # format_image_search_results,
-    format_news_articles_response,
-    format_wikipedia_response,
-
-    process_duckduckgo_text_results,
-    # process_duckduckgo_image_results,
-    validate_news_parameters,
-    # validate_image_search_parameters
-)
 
 # Import internet-specific error handling
 from .internet_error_handler import InternetErrorHandler
+from .internet_internal import (  # format_image_search_results,; process_duckduckgo_image_results,; validate_image_search_parameters
+    check_rate_limit,
+    format_news_articles_response,
+    format_web_search_results,
+    format_wikipedia_response,
+    process_duckduckgo_text_results,
+    validate_language_code,
+    validate_max_results,
+    validate_news_parameters,
+    validate_query,
+    validate_safe_search,
+    validate_topic,
+)
 
 logger = logging.getLogger(__name__)
 
 # Import DuckDuckGo search library (try both names)
 try:
     from ddgs import DDGS
+
     DUCKDUCKGO_AVAILABLE = True
     USE_DDGS = True
     logger.info("Using ddgs library")
 except ImportError:
     DUCKDUCKGO_AVAILABLE = False
     USE_DDGS = False
-    logger.warning(
-        "ddgs library not available. Install with: pip install ddgs")
+    logger.warning("ddgs library not available. Install with: pip install ddgs")
 
 
 class InternetTool:
@@ -58,15 +52,15 @@ class InternetTool:
 
         # Initialize DuckDuckGo search client
         self._ddgs = None
-        logger.info(f"🔧 Attempting to initialize DuckDuckGo client...")
+        logger.info("🔧 Attempting to initialize DuckDuckGo client...")
         if DUCKDUCKGO_AVAILABLE:
             try:
-                logger.info(f"🔧 Initializing DuckDuckGo client for text search...")
+                logger.info("🔧 Initializing DuckDuckGo client for text search...")
                 self._ddgs = DDGS()
-                logger.info(f"✅ DuckDuckGo text search client initialized successfully")
+                logger.info("✅ DuckDuckGo text search client initialized successfully")
 
                 # Image search functionality has been disabled
-                logger.info(f"ℹ️ Image search functionality disabled")
+                logger.info("ℹ️ Image search functionality disabled")
 
             except Exception as e:
                 logger.error(f"💥 Failed to initialize DuckDuckGo client: {e}")
@@ -74,8 +68,9 @@ class InternetTool:
                 logger.error(f"💥 Error details: {str(e)}")
 
                 # Log additional error context
-                if hasattr(e, '__traceback__'):
+                if hasattr(e, "__traceback__"):
                     import traceback
+
                     logger.error(f"💥 Full traceback: {traceback.format_exc()}")
 
                 self._ddgs = None
@@ -86,19 +81,16 @@ class InternetTool:
             func=self.web_search,
             description="Search the web for information using DuckDuckGo",
             parameters={
-                "query": {
-                    "type": "string",
-                    "description": "Search query (required)"
-                },
+                "query": {"type": "string", "description": "Search query (required)"},
                 "max_results": {
                     "type": "integer",
-                    "description": "Maximum number of results (default: 5)"
+                    "description": "Maximum number of results (default: 5)",
                 },
                 "safe_search": {
                     "type": "string",
-                    "description": "Safe search level: strict, moderate, off (default: moderate)"
-                }
-            }
+                    "description": "Safe search level: strict, moderate, off (default: moderate)",
+                },
+            },
         )
 
         # self.get_news_articles_tool = Tool(
@@ -163,32 +155,43 @@ class InternetTool:
 
     def __iter__(self):
         """Makes the class iterable to return all tools"""
-        return iter([
-            self.web_search_tool,
-            # self.get_news_articles_tool,
-            # self.get_wikipedia_tool,
-            # self.search_images_tool
-        ])
+        return iter(
+            [
+                self.web_search_tool,
+                # self.get_news_articles_tool,
+                # self.get_wikipedia_tool,
+                # self.search_images_tool
+            ]
+        )
 
-    async def web_search(self, query: str, max_results: int = 5, safe_search: str = "moderate") -> str:
+    async def web_search(
+        self, query: str, max_results: int = 5, safe_search: str = "moderate"
+    ) -> str:
         """Search the web using DuckDuckGo"""
         try:
             # Validate parameters using internal functions
             is_valid, error_msg = validate_query(query)
             if not is_valid:
-                return InternetErrorHandler.handle_internet_error(
+                error_response = InternetErrorHandler.handle_internet_error(
                     ValueError(error_msg),
                     "web_search",
-                    {"query": query, "max_results": max_results,
-                        "safe_search": safe_search}
+                    {
+                        "query": query,
+                        "max_results": max_results,
+                        "safe_search": safe_search,
+                    },
                 )
+                return str(error_response)
 
             logger.debug(
-                f"Before validation - max_results: {max_results} (type: {type(max_results)})")
+                f"Before validation - max_results: {max_results} (type: {type(max_results)})"
+            )
             max_results = validate_max_results(
-                max_results, min_val=1, max_val=20, default=5)
+                max_results, min_val=1, max_val=20, default=5
+            )
             logger.debug(
-                f"After validation - max_results: {max_results} (type: {type(max_results)})")
+                f"After validation - max_results: {max_results} (type: {type(max_results)})"
+            )
             safe_search = validate_safe_search(safe_search)
 
             # Check rate limits
@@ -196,39 +199,60 @@ class InternetTool:
             self._last_request_time = new_time
 
             logger.info(
-                f"Web search requested for: {query} (max: {max_results}, safe: {safe_search})")
+                f"Web search requested for: {query} (max: {max_results}, safe: {safe_search})"
+            )
 
             # Check if DuckDuckGo is available
             if not DUCKDUCKGO_AVAILABLE or not self._ddgs:
-                return InternetErrorHandler.handle_internet_error(
+                error_response = InternetErrorHandler.handle_internet_error(
                     Exception("DuckDuckGo search is not available"),
                     "web_search",
-                    {"query": query, "max_results": max_results,
-                        "safe_search": safe_search}
+                    {
+                        "query": query,
+                        "max_results": max_results,
+                        "safe_search": safe_search,
+                    },
                 )
+                return str(error_response)
 
             # Perform the search
             try:
                 # Ensure max_results is definitely an int
-                assert isinstance(
-                    max_results, int), f"max_results must be int, got {type(max_results)}: {max_results}"
+                if not isinstance(max_results, int):
+                    raise ValueError(
+                        f"max_results must be int, got {type(max_results)}: {max_results}"
+                    )
                 search_results = process_duckduckgo_text_results(
-                    self._ddgs, query, max_results, USE_DDGS)
+                    self._ddgs, query, max_results, USE_DDGS
+                )
 
                 return format_web_search_results(query, search_results, safe_search)
 
             except Exception as search_error:
                 logger.error(f"DuckDuckGo search error: {search_error}")
-                return InternetErrorHandler.handle_internet_error(
+                error_response = InternetErrorHandler.handle_internet_error(
                     search_error,
                     "web_search",
-                    {"query": query, "max_results": max_results,
-                        "safe_search": safe_search}
+                    {
+                        "query": query,
+                        "max_results": max_results,
+                        "safe_search": safe_search,
+                    },
                 )
+                return str(error_response)
 
         except Exception as e:
             logger.error(f"Error in web search: {e}")
-            return InternetErrorHandler.handle_internet_error(e, "web_search", {"query": query, "max_results": max_results, "safe_search": safe_search})
+            error_response = InternetErrorHandler.handle_internet_error(
+                e,
+                "web_search",
+                {
+                    "query": query,
+                    "max_results": max_results,
+                    "safe_search": safe_search,
+                },
+            )
+            return str(error_response)
 
     # async def get_news_articles(self, category: Optional[str] = None, topic: Optional[str] = None, max_articles: int = 5) -> str:
     #     """Get current news articles by category or topic"""

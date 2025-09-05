@@ -9,14 +9,13 @@ This module handles AI-specific background tasks including:
 
 import asyncio
 import logging
-import os
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
-
-from ..celery_app import app
+from typing import Any, Dict, List, Optional
 
 # Import the existing AI scheduler components
 from ...tools.ai_scheduler.ai_task_manager import AITaskManager
+from ..celery_app import app
+
 # from ...tools.ai_scheduler.notification_service import NotificationService  # Commented out - file issues
 # from ...tools.ai_scheduler.task_executor import TaskExecutor  # Commented out - file issues
 
@@ -76,12 +75,12 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
 
         if not due_tasks:
             return {
-                'task_id': task_id,
-                'status': 'success',
-                'tasks_processed': 0,
-                'tasks_failed': 0,
-                'message': 'No due tasks found',
-                'timestamp': datetime.utcnow().isoformat()
+                "task_id": task_id,
+                "status": "success",
+                "tasks_processed": 0,
+                "tasks_failed": 0,
+                "message": "No due tasks found",
+                "timestamp": datetime.utcnow().isoformat(),
             }
 
         processed_tasks = 0
@@ -90,26 +89,24 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
 
         for task in due_tasks:
             try:
-                logger.info(
-                    f"Processing AI task: {task.title} (ID: {task.id})")
+                logger.info(f"Processing AI task: {task.title} (ID: {task.id})")
 
                 # Mark task as processing
                 await task_manager.update_task_status(
-                    task_id=task.id,
-                    status='processing',
-                    last_run_at=datetime.utcnow()
+                    task_id=int(task.id),
+                    status="processing",
+                    last_run_at=datetime.utcnow(),
                 )
 
                 # Execute the task
                 # execution_result = await task_executor.execute_task(task) # Commented out - file issues
-                execution_result = {}  # Placeholder for now
+                execution_result: Dict[str, Any] = {}  # Placeholder for now
 
                 # Mark task as completed
                 await task_manager.update_task_status(
-                    task_id=task.id,
-                    status='completed',
+                    task_id=int(task.id),
+                    status="completed",
                     last_run_at=datetime.utcnow(),
-                    result_data=execution_result
                 )
 
                 # Send notification if configured
@@ -119,18 +116,21 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
                 #     ) # Commented out - file issues
 
                 processed_tasks += 1
-                results.append({
-                    'success': True,
-                    'message': 'Task executed successfully',
-                    'task_id': task.id,
-                    'task_title': task.title,
-                    'task_type': task.task_type,
-                    'execution_time': datetime.utcnow().isoformat(),
-                    'ai_response': execution_result.get('ai_response', 'No response')
-                })
+                results.append(
+                    {
+                        "success": True,
+                        "message": "Task executed successfully",
+                        "task_id": task.id,
+                        "task_title": task.title,
+                        "task_type": task.task_type,
+                        "execution_time": datetime.utcnow().isoformat(),
+                        "ai_response": execution_result.get(
+                            "ai_response", "No response"
+                        ),
+                    }
+                )
 
-                logger.info(
-                    f"Successfully processed AI task: {task.title}")
+                logger.info(f"Successfully processed AI task: {task.title}")
 
             except Exception as e:
                 logger.error(f"Failed to process AI task {task.id}: {e}")
@@ -138,38 +138,39 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
 
                 # Mark task as failed
                 await task_manager.update_task_status(
-                    task_id=task.id,
-                    status='failed',
+                    task_id=int(task.id),
+                    status="failed",
                     last_run_at=datetime.utcnow(),
-                    error_message=str(e)
                 )
 
-                results.append({
-                    'success': False,
-                    'message': f'Task execution failed: {str(e)}',
-                    'task_id': task.id,
-                    'task_title': task.title,
-                    'task_type': task.task_type,
-                    'execution_time': datetime.utcnow().isoformat(),
-                    'error': str(e)
-                })
+                results.append(
+                    {
+                        "success": False,
+                        "message": f"Task execution failed: {str(e)}",
+                        "task_id": task.id,
+                        "task_title": task.title,
+                        "task_type": task.task_type,
+                        "execution_time": datetime.utcnow().isoformat(),
+                        "error": str(e),
+                    }
+                )
 
         return {
-            'task_id': task_id,
-            'status': 'success',
-            'tasks_processed': processed_tasks,
-            'tasks_failed': failed_tasks,
-            'results': results,
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "success",
+            "tasks_processed": processed_tasks,
+            "tasks_failed": failed_tasks,
+            "results": results,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
     except Exception as e:
         logger.error(f"Error in AI task processing: {e}")
         return {
-            'task_id': task_id,
-            'status': 'error',
-            'message': f'AI task processing failed: {str(e)}',
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "error",
+            "message": f"AI task processing failed: {str(e)}",
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
 
@@ -179,8 +180,8 @@ def create_ai_reminder(
     user_id: int,
     title: str,
     remind_at: str,
-    description: str = None,
-    notification_channels: List[str] = None
+    description: Optional[str] = None,
+    notification_channels: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Create a new AI reminder task.
@@ -201,6 +202,7 @@ def create_ai_reminder(
     try:
         # Use asyncio.run() with proper event loop handling
         import nest_asyncio
+
         nest_asyncio.apply()
 
         # Get or create event loop
@@ -211,19 +213,21 @@ def create_ai_reminder(
             asyncio.set_event_loop(loop)
 
         # Run the async function
-        result = loop.run_until_complete(_create_ai_reminder_async(
-            user_id, title, remind_at, description, notification_channels
-        ))
-        result['task_id'] = task_id
+        result = loop.run_until_complete(
+            _create_ai_reminder_async(
+                user_id, title, remind_at, description, notification_channels
+            )
+        )
+        result["task_id"] = task_id
         return result
 
     except Exception as e:
         logger.error(f"Error creating AI reminder: {e}")
         return {
-            'task_id': task_id,
-            'status': 'failed',
-            'error': str(e),
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "failed",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
 
@@ -231,8 +235,8 @@ async def _create_ai_reminder_async(
     user_id: int,
     title: str,
     remind_at: str,
-    description: str = None,
-    notification_channels: List[str] = None
+    description: Optional[str] = None,
+    notification_channels: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Async implementation of AI reminder creation."""
     task_manager = AITaskManager()
@@ -247,25 +251,25 @@ async def _create_ai_reminder_async(
             title=title,
             remind_at=remind_datetime,
             description=description,
-            notification_channels=notification_channels or ['sms']
+            notification_channels=notification_channels or ["sms"],
         )
 
         logger.info(f"Created AI reminder: {task.title} (ID: {task.id})")
 
         return {
-            'status': 'success',
-            'task_id': task.id,
-            'title': task.title,
-            'remind_at': task.next_run_at.isoformat() if task.next_run_at else None,
-            'timestamp': datetime.utcnow().isoformat()
+            "status": "success",
+            "task_id": task.id,
+            "title": task.title,
+            "remind_at": task.next_run_at.isoformat() if task.next_run_at else None,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
     except Exception as e:
         logger.error(f"Error creating AI reminder: {e}")
         return {
-            'status': 'failed',
-            'error': str(e),
-            'timestamp': datetime.utcnow().isoformat()
+            "status": "failed",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
 
@@ -276,9 +280,9 @@ def create_periodic_ai_task(
     title: str,
     schedule_type: str,
     schedule_config: Dict[str, Any],
-    description: str = None,
-    ai_context: str = None,
-    notification_channels: List[str] = None
+    description: Optional[str] = None,
+    ai_context: Optional[str] = None,
+    notification_channels: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Create a new periodic AI task.
@@ -301,6 +305,7 @@ def create_periodic_ai_task(
     try:
         # Use asyncio.run() with proper event loop handling
         import nest_asyncio
+
         nest_asyncio.apply()
 
         # Get or create event loop
@@ -311,19 +316,27 @@ def create_periodic_ai_task(
             asyncio.set_event_loop(loop)
 
         # Run the async function
-        result = loop.run_until_complete(_create_periodic_ai_task_async(
-            user_id, title, schedule_type, schedule_config, description, ai_context, notification_channels
-        ))
-        result['task_id'] = task_id
+        result = loop.run_until_complete(
+            _create_periodic_ai_task_async(
+                user_id,
+                title,
+                schedule_type,
+                schedule_config,
+                description,
+                ai_context,
+                notification_channels,
+            )
+        )
+        result["task_id"] = task_id
         return result
 
     except Exception as e:
         logger.error(f"Error creating periodic AI task: {e}")
         return {
-            'task_id': task_id,
-            'status': 'failed',
-            'error': str(e),
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "failed",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
 
@@ -332,9 +345,9 @@ async def _create_periodic_ai_task_async(
     title: str,
     schedule_type: str,
     schedule_config: Dict[str, Any],
-    description: str = None,
-    ai_context: str = None,
-    notification_channels: List[str] = None
+    description: Optional[str] = None,
+    ai_context: Optional[str] = None,
+    notification_channels: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Async implementation of periodic AI task creation."""
     task_manager = AITaskManager()
@@ -348,26 +361,26 @@ async def _create_periodic_ai_task_async(
             schedule_config=schedule_config,
             description=description,
             ai_context=ai_context,
-            notification_channels=notification_channels or ['sms']
+            notification_channels=notification_channels or ["sms"],
         )
 
         logger.info(f"Created periodic AI task: {task.title} (ID: {task.id})")
 
         return {
-            'status': 'success',
-            'task_id': task.id,
-            'title': task.title,
-            'schedule_type': schedule_type,
-            'next_run_at': task.next_run_at.isoformat() if task.next_run_at else None,
-            'timestamp': datetime.utcnow().isoformat()
+            "status": "success",
+            "task_id": task.id,
+            "title": task.title,
+            "schedule_type": schedule_type,
+            "next_run_at": task.next_run_at.isoformat() if task.next_run_at else None,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
     except Exception as e:
         logger.error(f"Error creating periodic AI task: {e}")
         return {
-            'status': 'failed',
-            'error': str(e),
-            'timestamp': datetime.utcnow().isoformat()
+            "status": "failed",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
 
@@ -385,6 +398,7 @@ def test_scheduler_connection(self) -> Dict[str, Any]:
     try:
         # Use asyncio.run() with proper event loop handling
         import nest_asyncio
+
         nest_asyncio.apply()
 
         # Get or create event loop
@@ -401,10 +415,10 @@ def test_scheduler_connection(self) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Scheduler connection test failed: {e}")
         return {
-            'task_id': task_id,
-            'status': 'error',
-            'message': f'Scheduler connection test failed: {str(e)}',
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "error",
+            "message": f"Scheduler connection test failed: {str(e)}",
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
 
@@ -412,14 +426,14 @@ async def _test_scheduler_connection_async() -> Dict[str, Any]:
     """Async implementation of connection testing."""
     # Test database connection
     task_manager = AITaskManager()
-    test_result = await task_manager.test_connection()
+    test_result = await task_manager.test_connection()  # type: ignore
 
     return {
-        'task_id': None,  # Will be set by caller
-        'status': 'success',
-        'test_result': test_result,
-        'message': 'Scheduler connection test successful',
-        'timestamp': datetime.utcnow().isoformat()
+        "task_id": None,  # Will be set by caller
+        "status": "success",
+        "test_result": test_result,
+        "message": "Scheduler connection test successful",
+        "timestamp": datetime.utcnow().isoformat(),
     }
 
 
@@ -437,6 +451,7 @@ def cleanup_old_logs(self) -> Dict[str, Any]:
     try:
         # Use asyncio.run() with proper event loop handling
         import nest_asyncio
+
         nest_asyncio.apply()
 
         # Get or create event loop
@@ -461,12 +476,12 @@ async def _cleanup_old_logs_async() -> Dict[str, Any]:
 
     # Clean up old logs (older than 30 days)
     cleanup_date = datetime.utcnow() - timedelta(days=30)
-    cleaned_count = await task_manager.cleanup_old_logs(cleanup_date)
+    cleaned_count = await task_manager.cleanup_old_logs(cleanup_date)  # type: ignore
 
     return {
-        'task_id': None,  # Will be set by caller
-        'status': 'success',
-        'cleaned_logs': cleaned_count,
-        'message': f'Cleaned up {cleaned_count} old logs',
-        'timestamp': datetime.utcnow().isoformat()
+        "task_id": None,  # Will be set by caller
+        "status": "success",
+        "cleaned_logs": cleaned_count,
+        "message": f"Cleaned up {cleaned_count} old logs",
+        "timestamp": datetime.utcnow().isoformat(),
     }

@@ -5,9 +5,10 @@ This service provides secure password hashing and verification using bcrypt
 with configurable salt rounds and password validation.
 """
 
-import bcrypt
 import re
 from typing import Tuple
+
+import bcrypt
 from fastapi import HTTPException, status
 
 
@@ -40,11 +41,11 @@ class PasswordService:
         self._validate_password(password)
 
         # Convert password to bytes and hash
-        password_bytes = password.encode('utf-8')
+        password_bytes = password.encode("utf-8")
         salt = bcrypt.gensalt(rounds=self.salt_rounds)
         hashed = bcrypt.hashpw(password_bytes, salt)
 
-        return hashed.decode('utf-8')
+        return hashed.decode("utf-8")
 
     def verify_password(self, password: str, hashed_password: str) -> bool:
         """
@@ -58,8 +59,8 @@ class PasswordService:
             True if password matches, False otherwise
         """
         try:
-            password_bytes = password.encode('utf-8')
-            hashed_bytes = hashed_password.encode('utf-8')
+            password_bytes = password.encode("utf-8")
+            hashed_bytes = hashed_password.encode("utf-8")
             return bcrypt.checkpw(password_bytes, hashed_bytes)
         except Exception:
             # If there's any error in verification, return False
@@ -81,35 +82,35 @@ class PasswordService:
         if len(password) < 8:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password must be at least 8 characters long"
+                detail="Password must be at least 8 characters long",
             )
 
         # Check for at least one uppercase letter
-        if not re.search(r'[A-Z]', password):
+        if not re.search(r"[A-Z]", password):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password must contain at least one uppercase letter"
+                detail="Password must contain at least one uppercase letter",
             )
 
         # Check for at least one lowercase letter
-        if not re.search(r'[a-z]', password):
+        if not re.search(r"[a-z]", password):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password must contain at least one lowercase letter"
+                detail="Password must contain at least one lowercase letter",
             )
 
         # Check for at least one digit
-        if not re.search(r'\d', password):
+        if not re.search(r"\d", password):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password must contain at least one digit"
+                detail="Password must contain at least one digit",
             )
 
         # Check for at least one special character
         if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password must contain at least one special character"
+                detail="Password must contain at least one special character",
             )
 
         return True
@@ -125,7 +126,6 @@ class PasswordService:
             Tuple of (score, description) where score is 0-100
         """
         score = 0
-        feedback = []
 
         # Length score (max 25 points)
         if len(password) >= 8:
@@ -136,11 +136,11 @@ class PasswordService:
             score += 5
 
         # Character variety score (max 50 points)
-        if re.search(r'[A-Z]', password):
+        if re.search(r"[A-Z]", password):
             score += 10
-        if re.search(r'[a-z]', password):
+        if re.search(r"[a-z]", password):
             score += 10
-        if re.search(r'\d', password):
+        if re.search(r"\d", password):
             score += 10
         if re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
             score += 10
@@ -150,7 +150,7 @@ class PasswordService:
         # Complexity score (max 25 points)
         if len(set(password)) >= len(password) * 0.8:  # 80% unique characters
             score += 15
-        if not re.search(r'(.)\1{2,}', password):  # No repeated characters
+        if not re.search(r"(.)\1{2,}", password):  # No repeated characters
             score += 10
 
         # Determine strength level

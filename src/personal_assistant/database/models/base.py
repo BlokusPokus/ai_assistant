@@ -1,10 +1,12 @@
+from typing import Any
+
 from sqlalchemy import Column, DateTime, Integer, func
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 
 Base = declarative_base()
 
 
-class BaseModel(Base):
+class BaseModel(Base):  # type: ignore
     __abstract__ = True
 
     id = Column(Integer, primary_key=True, index=True)
@@ -15,3 +17,7 @@ class BaseModel(Base):
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+    def to_dict(self):
+        """Alias for as_dict for backward compatibility."""
+        return self.as_dict()

@@ -5,12 +5,14 @@ This module provides Pydantic models for LTM memory API requests and responses.
 """
 
 from datetime import datetime
-from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class LTMMemoryResponse(BaseModel):
     """Response model for LTM memory information."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -41,66 +43,76 @@ class LTMMemoryResponse(BaseModel):
 
 class LTMMemoryCreateRequest(BaseModel):
     """Request model for creating a new LTM memory."""
-    content: str = Field(..., min_length=1, max_length=10000,
-                         description="Memory content")
-    tags: List[str] = Field(default_factory=list,
-                            description="Tags for categorization")
+
+    content: str = Field(
+        ..., min_length=1, max_length=10000, description="Memory content"
+    )
+    tags: List[str] = Field(default_factory=list, description="Tags for categorization")
     memory_type: Optional[str] = Field(
-        None, max_length=50, description="Type of memory")
-    category: Optional[str] = Field(
-        None, max_length=100, description="Memory category")
+        None, max_length=50, description="Type of memory"
+    )
+    category: Optional[str] = Field(None, max_length=100, description="Memory category")
     importance_score: int = Field(
-        default=1, ge=1, le=10, description="Importance score (1-10)")
+        default=1, ge=1, le=10, description="Importance score (1-10)"
+    )
     confidence_score: float = Field(
-        default=1.0, ge=0.0, le=1.0, description="Confidence score (0.0-1.0)")
+        default=1.0, ge=0.0, le=1.0, description="Confidence score (0.0-1.0)"
+    )
     context: Optional[str] = Field(None, description="Context information")
     context_data: Optional[Dict[str, Any]] = Field(
-        None, description="Structured context data")
-    source_type: Optional[str] = Field(
-        None, max_length=50, description="Source type")
+        None, description="Structured context data"
+    )
+    source_type: Optional[str] = Field(None, max_length=50, description="Source type")
     source_id: Optional[str] = Field(
-        None, max_length=100, description="Source identifier")
-    created_by: str = Field(default="user", max_length=50,
-                            description="Who created this memory")
+        None, max_length=100, description="Source identifier"
+    )
+    created_by: str = Field(
+        default="user", max_length=50, description="Who created this memory"
+    )
     related_memory_ids: Optional[List[int]] = Field(
-        None, description="Related memory IDs")
-    parent_memory_id: Optional[int] = Field(
-        None, description="Parent memory ID")
+        None, description="Related memory IDs"
+    )
+    parent_memory_id: Optional[int] = Field(None, description="Parent memory ID")
     memory_metadata: Optional[Dict[str, Any]] = Field(
-        None, description="Additional metadata")
+        None, description="Additional metadata"
+    )
 
 
 class LTMMemoryUpdateRequest(BaseModel):
     """Request model for updating an LTM memory."""
+
     content: Optional[str] = Field(
-        None, min_length=1, max_length=10000, description="Memory content")
-    tags: Optional[List[str]] = Field(
-        None, description="Tags for categorization")
+        None, min_length=1, max_length=10000, description="Memory content"
+    )
+    tags: Optional[List[str]] = Field(None, description="Tags for categorization")
     memory_type: Optional[str] = Field(
-        None, max_length=50, description="Type of memory")
-    category: Optional[str] = Field(
-        None, max_length=100, description="Memory category")
+        None, max_length=50, description="Type of memory"
+    )
+    category: Optional[str] = Field(None, max_length=100, description="Memory category")
     importance_score: Optional[int] = Field(
-        None, ge=1, le=10, description="Importance score (1-10)")
+        None, ge=1, le=10, description="Importance score (1-10)"
+    )
     confidence_score: Optional[float] = Field(
-        None, ge=0.0, le=1.0, description="Confidence score (0.0-1.0)")
+        None, ge=0.0, le=1.0, description="Confidence score (0.0-1.0)"
+    )
     context: Optional[str] = Field(None, description="Context information")
     context_data: Optional[Dict[str, Any]] = Field(
-        None, description="Structured context data")
+        None, description="Structured context data"
+    )
     related_memory_ids: Optional[List[int]] = Field(
-        None, description="Related memory IDs")
-    parent_memory_id: Optional[int] = Field(
-        None, description="Parent memory ID")
+        None, description="Related memory IDs"
+    )
+    parent_memory_id: Optional[int] = Field(None, description="Parent memory ID")
     memory_metadata: Optional[Dict[str, Any]] = Field(
-        None, description="Additional metadata")
-    is_archived: Optional[bool] = Field(
-        None, description="Whether memory is archived")
-    archive_reason: Optional[str] = Field(
-        None, description="Reason for archiving")
+        None, description="Additional metadata"
+    )
+    is_archived: Optional[bool] = Field(None, description="Whether memory is archived")
+    archive_reason: Optional[str] = Field(None, description="Reason for archiving")
 
 
 class LTMMemoryListResponse(BaseModel):
     """Response model for LTM memory list."""
+
     memories: List[LTMMemoryResponse]
     total: int
     skip: int
@@ -109,24 +121,27 @@ class LTMMemoryListResponse(BaseModel):
 
 class LTMMemorySearchRequest(BaseModel):
     """Request model for searching LTM memories."""
+
     query: Optional[str] = Field(None, description="Search query")
     tags: Optional[List[str]] = Field(None, description="Filter by tags")
-    memory_type: Optional[str] = Field(
-        None, description="Filter by memory type")
+    memory_type: Optional[str] = Field(None, description="Filter by memory type")
     category: Optional[str] = Field(None, description="Filter by category")
     min_importance: Optional[int] = Field(
-        None, ge=1, le=10, description="Minimum importance score")
+        None, ge=1, le=10, description="Minimum importance score"
+    )
     max_importance: Optional[int] = Field(
-        None, ge=1, le=10, description="Maximum importance score")
-    is_archived: Optional[bool] = Field(
-        None, description="Filter by archived status")
+        None, ge=1, le=10, description="Maximum importance score"
+    )
+    is_archived: Optional[bool] = Field(None, description="Filter by archived status")
     skip: int = Field(default=0, ge=0, description="Number of records to skip")
-    limit: int = Field(default=50, ge=1, le=100,
-                       description="Maximum number of records to return")
+    limit: int = Field(
+        default=50, ge=1, le=100, description="Maximum number of records to return"
+    )
 
 
 class LTMContextResponse(BaseModel):
     """Response model for LTM context information."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -140,6 +155,7 @@ class LTMContextResponse(BaseModel):
 
 class LTMMemoryTagResponse(BaseModel):
     """Response model for LTM memory tag information."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -155,6 +171,7 @@ class LTMMemoryTagResponse(BaseModel):
 
 class LTMMemoryAccessResponse(BaseModel):
     """Response model for LTM memory access information."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int

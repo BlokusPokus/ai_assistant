@@ -6,16 +6,17 @@ complex scheduling patterns beyond simple cron schedules.
 """
 
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Set
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
 
 class TaskStatus(Enum):
     """Task execution status."""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -26,6 +27,7 @@ class TaskStatus(Enum):
 
 class DependencyType(Enum):
     """Types of task dependencies."""
+
     REQUIRES = "requires"  # Task must complete successfully
     REQUIRES_ANY = "requires_any"  # At least one dependency must complete
     OPTIONAL = "optional"  # Task can run even if dependency fails
@@ -35,8 +37,9 @@ class DependencyType(Enum):
 @dataclass
 class TaskDependency:
     """Represents a task dependency relationship."""
+
     task_id: str
-    depends_on: List[str]
+    depends_on: List[str] | None
     dependency_type: DependencyType = DependencyType.REQUIRES
     condition: Optional[str] = None
     timeout: Optional[timedelta] = None
@@ -47,6 +50,7 @@ class TaskDependency:
 @dataclass
 class TaskExecution:
     """Represents a task execution instance."""
+
     task_id: str
     task_name: str
     status: TaskStatus
@@ -72,8 +76,7 @@ class DependencyScheduler:
         try:
             # Validate dependency
             if not dependency.task_id or not dependency.task_id.strip():
-                self.logger.error(
-                    "Invalid dependency: task_id cannot be empty")
+                self.logger.error("Invalid dependency: task_id cannot be empty")
                 return False
 
             # Allow empty depends_on for tasks with no dependencies
@@ -83,7 +86,8 @@ class DependencyScheduler:
             # Check for circular dependencies
             if self._would_create_circle(dependency):
                 self.logger.error(
-                    f"Circular dependency detected for task: {dependency.task_id}")
+                    f"Circular dependency detected for task: {dependency.task_id}"
+                )
                 return False
 
             # Add dependency
@@ -94,15 +98,12 @@ class DependencyScheduler:
                 if dep_task_id not in self.dependencies:
                     # Create a dependency entry for the dependent task
                     dep_dependency = TaskDependency(
-                        task_id=dep_task_id,
-                        depends_on=[]  # No dependencies
+                        task_id=dep_task_id, depends_on=[]  # No dependencies
                     )
                     self.dependencies[dep_task_id] = dep_dependency
-                    self.logger.debug(
-                        f"Auto-added dependency for task: {dep_task_id}")
+                    self.logger.debug(f"Auto-added dependency for task: {dep_task_id}")
 
-            self.logger.info(
-                f"Added dependency for task {dependency.task_id}")
+            self.logger.info(f"Added dependency for task {dependency.task_id}")
 
             # Update execution graph
             self._update_execution_graph()
@@ -157,8 +158,7 @@ class DependencyScheduler:
 
             # Check for cycles
             if len(execution_order) != len(self.execution_graph):
-                self.logger.warning(
-                    "Circular dependency detected in execution graph")
+                self.logger.warning("Circular dependency detected in execution graph")
                 return []
 
             return execution_order
@@ -180,14 +180,15 @@ class DependencyScheduler:
 
             # Check each dependency
             for dep_task_id in dependency.depends_on:
-                if not self._is_dependency_satisfied(dep_task_id, dependency.dependency_type):
+                if not self._is_dependency_satisfied(
+                    dep_task_id, dependency.dependency_type
+                ):
                     return False
 
             return True
 
         except Exception as e:
-            self.logger.error(
-                f"Error checking dependencies for {task_id}: {e}")
+            self.logger.error(f"Error checking dependencies for {task_id}: {e}")
             return False
 
     def can_execute_task(self, task_id: str) -> bool:
@@ -206,14 +207,15 @@ class DependencyScheduler:
             # Check conditional execution
             if task_id in self.dependencies:
                 dependency = self.dependencies[task_id]
-                if dependency.condition and not self._evaluate_condition(dependency.condition):
+                if dependency.condition and not self._evaluate_condition(
+                    dependency.condition
+                ):
                     return False
 
             return True
 
         except Exception as e:
-            self.logger.error(
-                f"Error checking if task can execute {task_id}: {e}")
+            self.logger.error(f"Error checking if task can execute {task_id}: {e}")
             return False
 
     def start_task_execution(self, task_id: str, task_name: str) -> bool:
@@ -227,19 +229,20 @@ class DependencyScheduler:
                 task_name=task_name,
                 status=TaskStatus.RUNNING,
                 start_time=datetime.utcnow(),
-                dependencies_met=True
+                dependencies_met=True,
             )
 
             self.task_executions[task_id] = execution
-            self.logger.info(
-                f"Started task execution: {task_id} ({task_name})")
+            self.logger.info(f"Started task execution: {task_id} ({task_name})")
             return True
 
         except Exception as e:
             self.logger.error(f"Error starting task execution {task_id}: {e}")
             return False
 
-    def complete_task_execution(self, task_id: str, success: bool = True, error: Optional[str] = None) -> bool:
+    def complete_task_execution(
+        self, task_id: str, success: bool = True, error: Optional[str] = None
+    ) -> bool:
         """Complete a task execution."""
         try:
             if task_id not in self.task_executions:
@@ -255,12 +258,12 @@ class DependencyScheduler:
             del self.task_executions[task_id]
 
             self.logger.info(
-                f"Completed task execution: {task_id} - {execution.status}")
+                f"Completed task execution: {task_id} - {execution.status}"
+            )
             return True
 
         except Exception as e:
-            self.logger.error(
-                f"Error completing task execution {task_id}: {e}")
+            self.logger.error(f"Error completing task execution {task_id}: {e}")
             return False
 
     def get_ready_tasks(self) -> List[str]:
@@ -309,12 +312,26 @@ class DependencyScheduler:
         """Get a summary of all task executions."""
         try:
             summary = {
-                'total_tasks': len(self.dependencies),
-                'running_tasks': len([t for t in self.task_executions.values() if t.status == TaskStatus.RUNNING]),
-                'completed_tasks': len([t for t in self.execution_history if t.status == TaskStatus.COMPLETED]),
-                'failed_tasks': len([t for t in self.execution_history if t.status == TaskStatus.FAILED]),
-                'ready_tasks': len(self.get_ready_tasks()),
-                'execution_order': self.get_execution_order()
+                "total_tasks": len(self.dependencies),
+                "running_tasks": len(
+                    [
+                        t
+                        for t in self.task_executions.values()
+                        if t.status == TaskStatus.RUNNING
+                    ]
+                ),
+                "completed_tasks": len(
+                    [
+                        t
+                        for t in self.execution_history
+                        if t.status == TaskStatus.COMPLETED
+                    ]
+                ),
+                "failed_tasks": len(
+                    [t for t in self.execution_history if t.status == TaskStatus.FAILED]
+                ),
+                "ready_tasks": len(self.get_ready_tasks()),
+                "execution_order": self.get_execution_order(),
             }
             return summary
 
@@ -349,11 +366,11 @@ class DependencyScheduler:
             temp_deps[dependency.task_id] = dependency
 
             # Create temporary graph
-            temp_graph = {}
+            temp_graph: Dict[str, Set[str]] = {}
             for task_id, dep in temp_deps.items():
                 if task_id not in temp_graph:
                     temp_graph[task_id] = set()
-                for dep_task_id in dep.depends_on:
+                for dep_task_id in dep.depends_on or []:
                     if dep_task_id not in temp_graph:
                         temp_graph[dep_task_id] = set()
                     temp_graph[dep_task_id].add(task_id)
@@ -387,7 +404,9 @@ class DependencyScheduler:
             self.logger.error(f"Error checking for circular dependency: {e}")
             return True  # Assume circular to be safe
 
-    def _is_dependency_satisfied(self, dep_task_id: str, dependency_type: DependencyType) -> bool:
+    def _is_dependency_satisfied(
+        self, dep_task_id: str, dependency_type: DependencyType
+    ) -> bool:
         """Check if a specific dependency is satisfied."""
         try:
             dep_status = self.get_task_status(dep_task_id)
@@ -396,7 +415,11 @@ class DependencyScheduler:
                 return dep_status == TaskStatus.COMPLETED
 
             elif dependency_type == DependencyType.OPTIONAL:
-                return dep_status in [TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.SKIPPED]
+                return dep_status in [
+                    TaskStatus.COMPLETED,
+                    TaskStatus.FAILED,
+                    TaskStatus.SKIPPED,
+                ]
 
             elif dependency_type == DependencyType.REQUIRES_ANY:
                 # This would need to be handled at the task level
@@ -405,7 +428,7 @@ class DependencyScheduler:
             elif dependency_type == DependencyType.CONDITIONAL:
                 return dep_status == TaskStatus.COMPLETED
 
-            return False
+            # All DependencyType enum values are handled above
 
         except Exception as e:
             self.logger.error(f"Error checking dependency satisfaction: {e}")
@@ -440,14 +463,14 @@ class DependencyScheduler:
             original_count = len(self.execution_history)
 
             self.execution_history = [
-                execution for execution in self.execution_history
+                execution
+                for execution in self.execution_history
                 if execution.end_time and execution.end_time > cutoff_time
             ]
 
             cleaned_count = original_count - len(self.execution_history)
             if cleaned_count > 0:
-                self.logger.info(
-                    f"Cleaned up {cleaned_count} old execution records")
+                self.logger.info(f"Cleaned up {cleaned_count} old execution records")
 
         except Exception as e:
             self.logger.error(f"Error cleaning up old executions: {e}")

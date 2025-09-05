@@ -9,8 +9,8 @@ This module handles system maintenance tasks including:
 """
 
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from datetime import datetime
+from typing import Any, Dict
 
 from ..celery_app import app
 
@@ -35,11 +35,11 @@ def optimize_database(self) -> Dict[str, Any]:
         # TODO: Implement database optimization logic
 
         result = {
-            'task_id': task_id,
-            'status': 'success',
-            'tables_optimized': 0,
-            'indexes_updated': 0,
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "success",
+            "tables_optimized": 0,
+            "indexes_updated": 0,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         logger.info(f"Database optimization completed: {result}")
@@ -67,10 +67,10 @@ def cleanup_old_sessions(self) -> Dict[str, Any]:
         # TODO: Implement session cleanup logic
 
         result = {
-            'task_id': task_id,
-            'status': 'success',
-            'sessions_cleaned': 0,
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "success",
+            "sessions_cleaned": 0,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         logger.info(f"Session cleanup completed: {result}")
@@ -98,11 +98,11 @@ def cleanup_old_logs(self) -> Dict[str, Any]:
         # TODO: Implement log cleanup logic
 
         result = {
-            'task_id': task_id,
-            'status': 'success',
-            'logs_cleaned': 0,
-            'size_cleaned_bytes': 0,
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "success",
+            "logs_cleaned": 0,
+            "size_cleaned_bytes": 0,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         logger.info(f"Log cleanup completed: {result}")
@@ -131,12 +131,12 @@ def system_health_check(self) -> Dict[str, Any]:
         # TODO: Implement system health check logic
 
         result = {
-            'task_id': task_id,
-            'status': 'success',
-            'database_healthy': True,
-            'redis_healthy': True,
-            'external_services_healthy': True,
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "success",
+            "database_healthy": True,
+            "redis_healthy": True,
+            "external_services_healthy": True,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         logger.info(f"System health check completed: {result}")
@@ -164,11 +164,11 @@ def cleanup_expired_cache(self) -> Dict[str, Any]:
         # TODO: Implement cache cleanup logic
 
         result = {
-            'task_id': task_id,
-            'status': 'success',
-            'cache_entries_cleaned': 0,
-            'memory_freed_bytes': 0,
-            'timestamp': datetime.utcnow().isoformat()
+            "task_id": task_id,
+            "status": "success",
+            "cache_entries_cleaned": 0,
+            "memory_freed_bytes": 0,
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         logger.info(f"Cache cleanup completed: {result}")

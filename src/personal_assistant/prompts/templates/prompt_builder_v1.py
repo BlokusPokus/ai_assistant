@@ -8,7 +8,7 @@ Injects into Gemini calls.
 
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
 
 from ...config.logging_config import get_logger
 from ...tools.base import ToolRegistry
@@ -18,8 +18,7 @@ logger = get_logger("llm")
 
 
 class PromptBuilder:
-
-    def __init__(self, tool_registry: 'ToolRegistry'):
+    def __init__(self, tool_registry: "ToolRegistry"):
         """
         Initialize the prompt builder with a tool registry.
 
@@ -195,8 +194,7 @@ Progress: {state.step_count} steps completed
             elif entry["role"] == "assistant":
                 formatted.append(f"🤖 Assistant: {entry['content']}")
             elif entry["role"] == "tool":
-                formatted.append(
-                    f"🛠 Tool ({entry['name']}): {entry['content']}")
+                formatted.append(f"🛠 Tool ({entry['name']}): {entry['content']}")
 
         return "\n".join(formatted)
 
@@ -208,8 +206,7 @@ Progress: {state.step_count} steps completed
         else:
             tool_descriptions = []
             for name, info in tool_schema.items():
-                description = info.get(
-                    'description', 'No description available')
+                description = info.get("description", "No description available")
                 # Use original description instead of simplified
                 tool_descriptions.append(f"• {name}: {description}")
             return "\n".join(tool_descriptions)
@@ -256,15 +253,17 @@ Progress: {state.step_count} steps completed
                     note_topic = "Master the Interview"
                 # Extract note ID from tool results or assistant responses
                 match = re.search(
-                    r'note with ID: ([a-f0-9\-]+)', str(state.last_tool_result))
+                    r"note with ID: ([a-f0-9\-]+)", str(state.last_tool_result)
+                )
                 if match:
                     note_id = match.group(1)
                 elif "note_id" in str(entry["content"]):
                     match = re.search(
-                        r'note with ID \'([a-f0-9\-]+)\'', entry["content"])
+                        r"note with ID \'([a-f0-9\-]+)\'", entry["content"]
+                    )
                     if match:
                         note_id = match.group(1)
-        return {"note_id": note_id, "note_topic": note_topic}
+        return {"note_id": note_id or "", "note_topic": note_topic or ""}
 
     def _identify_priority_tasks(self, state: AgentState) -> str:
         """Identify priority tasks based on current state."""
@@ -279,9 +278,14 @@ Progress: {state.step_count} steps completed
     def _identify_urgent_tasks(self, state: AgentState) -> str:
         """Identify urgent tasks."""
         note_context = self._validate_note_context(state)
-        if "schedule" in state.user_input.lower() or "meeting" in state.user_input.lower():
+        if (
+            "schedule" in state.user_input.lower()
+            or "meeting" in state.user_input.lower()
+        ):
             return "Scheduling and time-sensitive tasks"
-        elif "email" in state.user_input.lower() or "message" in state.user_input.lower():
+        elif (
+            "email" in state.user_input.lower() or "message" in state.user_input.lower()
+        ):
             return "Communication tasks"
         else:
             return f"Current user request: {note_context['note_topic']}"
@@ -376,7 +380,6 @@ Progress: {state.step_count} steps completed
         # Add context summary if we have more items
         if len(memory_context) > max_context_items:
             remaining = len(memory_context) - max_context_items
-            formatted.append(
-                f"📋 ... and {remaining} more context items (summarized)")
+            formatted.append(f"📋 ... and {remaining} more context items (summarized)")
 
         return "\n".join(formatted)

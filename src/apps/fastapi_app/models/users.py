@@ -5,12 +5,14 @@ This module provides Pydantic models for user management API requests and respon
 """
 
 from datetime import datetime
-from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, EmailStr, validator, ConfigDict
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr, validator
 
 
 class UserResponse(BaseModel):
     """Response model for user information (admin view with all fields)."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -35,6 +37,7 @@ class UserResponse(BaseModel):
 
 class UserPublicResponse(BaseModel):
     """Public response model for user information (no sensitive data)."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -50,32 +53,32 @@ class UserPublicResponse(BaseModel):
 
 class UserUpdateRequest(BaseModel):
     """Request model for updating user profile."""
+
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None
     phone_number: Optional[str] = None
 
-    @validator('email')
+    @validator("email")
     def validate_email(cls, v):
         if v is not None:
             # Basic email validation is handled by EmailStr
             pass
         return v
 
-    @validator('phone_number')
+    @validator("phone_number")
     def validate_phone_number(cls, v):
         if v is not None:
             # Basic phone number validation - remove spaces and dashes
-            v = v.replace(' ', '').replace(
-                '-', '').replace('(', '').replace(')', '')
-            if not v.startswith('+') and not v.isdigit():
+            v = v.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+            if not v.startswith("+") and not v.isdigit():
                 raise ValueError(
-                    "Phone number must start with + or contain only digits")
+                    "Phone number must start with + or contain only digits"
+                )
             if len(v) < 10 or len(v) > 15:
-                raise ValueError(
-                    "Phone number must be between 10 and 15 characters")
+                raise ValueError("Phone number must be between 10 and 15 characters")
         return v
 
-    @validator('full_name')
+    @validator("full_name")
     def validate_full_name(cls, v):
         if v is not None:
             if len(v.strip()) == 0:
@@ -87,6 +90,7 @@ class UserUpdateRequest(BaseModel):
 
 class UserPreferencesResponse(BaseModel):
     """Response model for user preferences."""
+
     user_id: int
     preferences: Dict[str, Any]
     settings: Dict[str, Any]
@@ -96,10 +100,11 @@ class UserPreferencesResponse(BaseModel):
 
 class UserPreferencesUpdateRequest(BaseModel):
     """Request model for updating user preferences."""
+
     preferences: Optional[Dict[str, Any]] = None
     settings: Optional[Dict[str, Any]] = None
 
-    @validator('preferences', 'settings')
+    @validator("preferences", "settings")
     def validate_dict_values(cls, v):
         if v is not None:
             if not isinstance(v, dict):
@@ -114,17 +119,22 @@ class UserPreferencesUpdateRequest(BaseModel):
                         # Recursively validate nested structures
                         if isinstance(value, list):
                             for item in value:
-                                if not isinstance(item, (str, int, float, bool, type(None))):
+                                if not isinstance(
+                                    item, (str, int, float, bool, type(None))
+                                ):
                                     raise ValueError(
-                                        f"Invalid value type in list: {type(item)}")
+                                        f"Invalid value type in list: {type(item)}"
+                                    )
                         else:  # dict
                             for k, val in value.items():
                                 if not isinstance(k, str):
+                                    raise ValueError("All nested keys must be strings")
+                                if not isinstance(
+                                    val, (str, int, float, bool, type(None))
+                                ):
                                     raise ValueError(
-                                        "All nested keys must be strings")
-                                if not isinstance(val, (str, int, float, bool, type(None))):
-                                    raise ValueError(
-                                        f"Invalid nested value type: {type(val)}")
+                                        f"Invalid nested value type: {type(val)}"
+                                    )
                     else:
                         raise ValueError(f"Invalid value type: {type(value)}")
         return v
@@ -132,6 +142,7 @@ class UserPreferencesUpdateRequest(BaseModel):
 
 class UserListResponse(BaseModel):
     """Response model for user list."""
+
     users: List[UserResponse]
     total: int
     skip: int
@@ -140,6 +151,7 @@ class UserListResponse(BaseModel):
 
 class UserCreateRequest(BaseModel):
     """Request model for creating a new user (admin only)."""
+
     email: EmailStr
     phone_number: Optional[str] = None
     full_name: str
@@ -147,7 +159,7 @@ class UserCreateRequest(BaseModel):
     is_active: bool = True
     is_verified: bool = False
 
-    @validator('password')
+    @validator("password")
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters long")
@@ -155,21 +167,20 @@ class UserCreateRequest(BaseModel):
             raise ValueError("Password too long (max 128 characters)")
         return v
 
-    @validator('phone_number')
+    @validator("phone_number")
     def validate_phone_number(cls, v):
         if v is not None:
             # Basic phone number validation - remove spaces and dashes
-            v = v.replace(' ', '').replace(
-                '-', '').replace('(', '').replace(')', '')
-            if not v.startswith('+') and not v.isdigit():
+            v = v.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+            if not v.startswith("+") and not v.isdigit():
                 raise ValueError(
-                    "Phone number must start with + or contain only digits")
+                    "Phone number must start with + or contain only digits"
+                )
             if len(v) < 10 or len(v) > 15:
-                raise ValueError(
-                    "Phone number must be between 10 and 15 characters")
+                raise ValueError("Phone number must be between 10 and 15 characters")
         return v
 
-    @validator('full_name')
+    @validator("full_name")
     def validate_full_name(cls, v):
         if len(v.strip()) == 0:
             raise ValueError("Full name cannot be empty")
@@ -180,5 +191,6 @@ class UserCreateRequest(BaseModel):
 
 class UserDeleteRequest(BaseModel):
     """Request model for deactivating a user."""
+
     deactivate_reason: Optional[str] = None
     transfer_data_to: Optional[int] = None  # User ID to transfer data to

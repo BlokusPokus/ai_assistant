@@ -6,27 +6,28 @@ for each OAuth integration. Tokens are encrypted at rest for security.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from personal_assistant.database.models.base import Base
 
 
 class OAuthToken(Base):
-    __tablename__ = 'oauth_tokens'
+    __tablename__ = "oauth_tokens"
 
     id = Column(Integer, primary_key=True)
-    integration_id = Column(Integer, ForeignKey(
-        'oauth_integrations.id'), nullable=False)
+    integration_id = Column(
+        Integer, ForeignKey("oauth_integrations.id"), nullable=False
+    )
     access_token = Column(Text, nullable=False)  # Access token value
     refresh_token = Column(Text, nullable=True)  # Refresh token value
     # access_token, refresh_token, id_token
-    token_type = Column(String(20), nullable=False, default='Bearer')
+    token_type = Column(String(20), nullable=False, default="Bearer")
     expires_at = Column(DateTime, nullable=False)  # Token expiration time
     scope = Column(Text, nullable=True)  # Token scope (singular, matches DB)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow,
-                        onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_used_at = Column(DateTime, nullable=True)  # Last time token was used
     usage_count = Column(Integer, default=0)  # Number of times token was used
 

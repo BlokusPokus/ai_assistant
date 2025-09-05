@@ -3,9 +3,8 @@ Cache manager for SMS Router Service.
 """
 
 import logging
-import json
-from typing import Any, Optional
 from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +19,9 @@ class CacheManager:
         Args:
             default_ttl: Default time-to-live in seconds (1 hour)
         """
-        self.cache = {}
+        self.cache: Dict[str, Any] = {}
         self.default_ttl = default_ttl
-        self.timestamps = {}
+        self.timestamps: Dict[str, datetime] = {}
 
     async def get(self, key: str) -> Optional[Any]:
         """
@@ -61,8 +60,10 @@ class CacheManager:
         """
         try:
             # Validate key
-            if key is None:
-                logger.error("Cannot cache with None key")
+            if key is None or not isinstance(key, str) or not key.strip():
+                logger.warning(
+                    "Invalid cache key: key cannot be None, empty, or non-string"
+                )
                 return False
 
             ttl = ttl or self.default_ttl
@@ -127,30 +128,23 @@ class CacheManager:
             Dictionary with cache statistics
         """
         now = datetime.now()
-        expired_keys = [
-            key for key, expiry in self.timestamps.items()
-            if now > expiry
-        ]
+        expired_keys = [key for key, expiry in self.timestamps.items() if now > expiry]
 
         return {
-            'total_keys': len(self.cache),
-            'expired_keys': len(expired_keys),
-            'active_keys': len(self.cache) - len(expired_keys),
-            'default_ttl': self.default_ttl
+            "total_keys": len(self.cache),
+            "expired_keys": len(expired_keys),
+            "active_keys": len(self.cache) - len(expired_keys),
+            "default_ttl": self.default_ttl,
         }
 
     def _cleanup_expired(self):
         """Remove expired entries from cache."""
         now = datetime.now()
-        expired_keys = [
-            key for key, expiry in self.timestamps.items()
-            if now > expiry
-        ]
+        expired_keys = [key for key, expiry in self.timestamps.items() if now > expiry]
 
         for key in expired_keys:
             del self.cache[key]
             del self.timestamps[key]
 
         if expired_keys:
-            logger.debug(
-                f"Cleaned up {len(expired_keys)} expired cache entries")
+            logger.debug(f"Cleaned up {len(expired_keys)} expired cache entries")

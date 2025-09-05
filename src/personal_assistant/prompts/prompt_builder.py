@@ -6,9 +6,7 @@ Builds agent prompts from memory, recent actions, tools, and user input.
 Injects into Gemini calls.
 """
 
-import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 
 from ..config.logging_config import get_logger
 from ..tools.base import ToolRegistry
@@ -31,7 +29,7 @@ class PromptBuilder:
     - ADHD-optimized user experience
     """
 
-    def __init__(self, tool_registry: 'ToolRegistry'):
+    def __init__(self, tool_registry: "ToolRegistry"):
         """
         Initialize the prompt builder with a tool registry.
 

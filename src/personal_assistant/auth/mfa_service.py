@@ -8,13 +8,15 @@ This service provides:
 - Device trust management
 """
 
+import base64
+import secrets
+from datetime import datetime, timedelta
+from io import BytesIO
+from typing import Any, Dict, List, Optional
+
 import pyotp
 import qrcode
-import secrets
-import base64
-from io import BytesIO
-from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta
+
 from personal_assistant.config.settings import settings
 
 
@@ -61,8 +63,7 @@ class MFAService:
 
         # Generate provisioning URI for authenticator apps
         provisioning_uri = totp.provisioning_uri(
-            name=user_email,
-            issuer_name=self.issuer
+            name=user_email, issuer_name=self.issuer
         )
 
         # Generate QR code
@@ -70,7 +71,7 @@ class MFAService:
             version=1,
             box_size=10,
             border=5,
-            error_correction=qrcode.constants.ERROR_CORRECT_L
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
         )
         qr.add_data(provisioning_uri)
         qr.make(fit=True)
@@ -80,12 +81,14 @@ class MFAService:
 
         # Convert to base64
         buffer = BytesIO()
-        img.save(buffer, format='PNG')
+        img.save(buffer, "PNG")
         img_str = base64.b64encode(buffer.getvalue()).decode()
 
         return f"data:image/png;base64,{img_str}"
 
-    def verify_totp(self, secret: str, token: str, window: Optional[int] = None) -> bool:
+    def verify_totp(
+        self, secret: str, token: str, window: Optional[int] = None
+    ) -> bool:
         """
         Verify TOTP token with configurable window.
 
@@ -120,13 +123,16 @@ class MFAService:
         for _ in range(count):
             # Generate 8-character alphanumeric codes
             # Using only uppercase letters and numbers for better readability
-            code = ''.join(secrets.choice(
-                'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') for _ in range(8))
+            code = "".join(
+                secrets.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") for _ in range(8)
+            )
             codes.append(code)
 
         return codes
 
-    def verify_backup_code(self, user_id: int, code: str, stored_codes: List[str]) -> bool:
+    def verify_backup_code(
+        self, user_id: int, code: str, stored_codes: List[str]
+    ) -> bool:
         """
         Verify and consume a backup code.
 
@@ -170,10 +176,13 @@ class MFAService:
 
         # Use a hash of the device string for consistency
         import hashlib
-        hash_object = hashlib.md5(device_string.encode())
+
+        hash_object = hashlib.sha256(device_string.encode())
         return hash_object.hexdigest()[:16]  # Return first 16 characters
 
-    def is_device_trusted(self, device_hash: str, trusted_devices: List[Dict[str, Any]]) -> bool:
+    def is_device_trusted(
+        self, device_hash: str, trusted_devices: List[Dict[str, Any]]
+    ) -> bool:
         """
         Check if a device is trusted.
 
@@ -190,16 +199,21 @@ class MFAService:
         now = datetime.utcnow()
 
         for device in trusted_devices:
-            if device.get('hash') == device_hash:
+            if device.get("hash") == device_hash:
                 # Check if trust hasn't expired
-                trust_expires = datetime.fromisoformat(
-                    device.get('trusted_until'))
+                trusted_until = device.get("trusted_until")
+                if trusted_until:
+                    trust_expires = datetime.fromisoformat(trusted_until)
+                else:
+                    continue
                 if now < trust_expires:
                     return True
 
         return False
 
-    def add_trusted_device(self, device_info: Dict[str, Any], trusted_devices: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def add_trusted_device(
+        self, device_info: Dict[str, Any], trusted_devices: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """
         Add a device to trusted devices list.
 
@@ -211,25 +225,28 @@ class MFAService:
             Updated list of trusted devices
         """
         device_hash = self.generate_device_hash(device_info)
-        trust_expires = (datetime.utcnow() +
-                         timedelta(days=self.trusted_device_days)).isoformat()
+        trust_expires = (
+            datetime.utcnow() + timedelta(days=self.trusted_device_days)
+        ).isoformat()
 
         # Create trusted device record
         trusted_device = {
-            'hash': device_hash,
-            'device_info': device_info,
-            'trusted_at': datetime.utcnow().isoformat(),
-            'trusted_until': trust_expires
+            "hash": device_hash,
+            "device_info": device_info,
+            "trusted_at": datetime.utcnow().isoformat(),
+            "trusted_until": trust_expires,
         }
 
         # Check if device is already trusted
-        existing_hashes = [d.get('hash') for d in trusted_devices]
+        existing_hashes = [d.get("hash") for d in trusted_devices]
         if device_hash not in existing_hashes:
             trusted_devices.append(trusted_device)
 
         return trusted_devices
 
-    def remove_trusted_device(self, device_hash: str, trusted_devices: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def remove_trusted_device(
+        self, device_hash: str, trusted_devices: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """
         Remove a device from trusted devices list.
 
@@ -240,9 +257,11 @@ class MFAService:
         Returns:
             Updated list of trusted devices
         """
-        return [d for d in trusted_devices if d.get('hash') != device_hash]
+        return [d for d in trusted_devices if d.get("hash") != device_hash]
 
-    def cleanup_expired_trusted_devices(self, trusted_devices: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def cleanup_expired_trusted_devices(
+        self, trusted_devices: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """
         Remove expired trusted devices.
 
@@ -256,8 +275,10 @@ class MFAService:
         active_devices = []
 
         for device in trusted_devices:
-            trust_expires = datetime.fromisoformat(device.get('trusted_until'))
-            if now < trust_expires:
-                active_devices.append(device)
+            trusted_until = device.get("trusted_until")
+            if trusted_until:
+                trust_expires = datetime.fromisoformat(trusted_until)
+                if now < trust_expires:
+                    active_devices.append(device)
 
         return active_devices

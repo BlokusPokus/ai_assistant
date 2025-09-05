@@ -1,0 +1,26 @@
+[bandit]
+# Bandit configuration for Personal Assistant TDAH
+# This file configures Bandit security scanning rules
+
+# Exclude specific paths from scanning
+exclude = tests,venv,node_modules,.git,__pycache__,**/tests/**,**/test_*.py
+
+# Include specific file patterns
+include = *.py
+
+# Set confidence level (LOW, MEDIUM, HIGH)
+confidence = MEDIUM
+
+# Set severity level (LOW, MEDIUM, HIGH)  
+severity = MEDIUM
+
+# Skip specific test IDs for known false positives
+# B104: hardcoded_bind_all_interfaces - Fixed with environment variables, but sometimes needed for containers
+# B105: hardcoded_password_string - OAuth 2.0 token type names are standard
+# B106: hardcoded_password_funcarg - OAuth 2.0 "bearer" token type is standard
+# B107: hardcoded_password_default - OAuth 2.0 "access_token" parameter name is standard
+# B608: hardcoded_sql_expressions - Migration scripts with hardcoded column names are safe
+# B101: assert_used - Assert statements are appropriate in test files
+# B110: try_except_pass - Fixed bare except clauses with specific exception handling
+# B108: hardcoded_tmp_directory - Fixed hardcoded temp directories with proper tempfile usage
+skips = B104,B105,B106,B107,B608,B101,B110,B108

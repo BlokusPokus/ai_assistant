@@ -2,7 +2,7 @@
 FastAPI application routes.
 """
 
-from . import twilio, auth, mfa, sessions, rbac, users, oauth, sms_router, analytics
+from . import analytics, auth, mfa, oauth, rbac, sessions, sms_router, twilio, users
 
 __all__ = [
     "twilio",
@@ -13,5 +13,5 @@ __all__ = [
     "users",
     "oauth",
     "sms_router",
-    "analytics"
+    "analytics",
 ]

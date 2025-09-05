@@ -23,7 +23,7 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy requirements and install Python dependencies
-COPY ../requirements.txt .
+COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
@@ -55,8 +55,8 @@ COPY --from=builder /opt/venv /opt/venv
 WORKDIR /app
 
 # Copy application code
-COPY ../src/ ./src/
-COPY ../config/ ./config/
+COPY src/ ./src/
+COPY config/ ./config/
 
 # Set proper permissions
 RUN chown -R appuser:appuser /app

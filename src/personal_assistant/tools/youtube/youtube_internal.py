@@ -21,8 +21,8 @@ def extract_video_id(video_input: str) -> str:
 
     # Handle different YouTube URL formats
     patterns = [
-        r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/|youtube\.com/v/)([a-zA-Z0-9_-]{11})',
-        r'^([a-zA-Z0-9_-]{11})$'  # Direct video ID
+        r"(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/|youtube\.com/v/)([a-zA-Z0-9_-]{11})",
+        r"^([a-zA-Z0-9_-]{11})$",  # Direct video ID
     ]
 
     for pattern in patterns:
@@ -43,8 +43,8 @@ def extract_channel_id(channel_input: str) -> str:
 
     # Handle different YouTube channel URL formats
     patterns = [
-        r'(?:youtube\.com/channel/|youtube\.com/c/|youtube\.com/user/|youtube\.com/@)([a-zA-Z0-9_-]+)',
-        r'^([a-zA-Z0-9_-]+)$'  # Direct channel ID/username
+        r"(?:youtube\.com/channel/|youtube\.com/c/|youtube\.com/user/|youtube\.com/@)([a-zA-Z0-9_-]+)",
+        r"^([a-zA-Z0-9_-]+)$",  # Direct channel ID/username
     ]
 
     for pattern in patterns:
@@ -64,8 +64,8 @@ def extract_playlist_id(playlist_input: str) -> str:
 
     # Handle different YouTube playlist URL formats
     patterns = [
-        r'(?:youtube\.com/playlist\?list=|youtube\.com/watch\?v=.*&list=)([a-zA-Z0-9_-]+)',
-        r'^([a-zA-Z0-9_-]+)$'  # Direct playlist ID
+        r"(?:youtube\.com/playlist\?list=|youtube\.com/watch\?v=.*&list=)([a-zA-Z0-9_-]+)",
+        r"^([a-zA-Z0-9_-]+)$",  # Direct playlist ID
     ]
 
     for pattern in patterns:
@@ -89,8 +89,7 @@ def validate_format(format_type: str) -> str:
     """Validate and normalize output format"""
     valid_formats = ["text", "json", "srt"]
     if format_type not in valid_formats:
-        logger.warning(
-            f"Invalid format: {format_type}, defaulting to text")
+        logger.warning(f"Invalid format: {format_type}, defaulting to text")
         return "text"
     return format_type
 
@@ -101,7 +100,7 @@ def format_duration(duration: str) -> str:
         return "Unknown"
 
     # Parse ISO 8601 duration (PT1H2M3S)
-    match = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration)
+    match = re.match(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", duration)
     if match:
         hours, minutes, seconds = match.groups()
         hours = int(hours) if hours else 0
@@ -137,37 +136,42 @@ def format_view_count(view_count: str) -> str:
         return view_count
 
 
-def build_search_parameters(query: str, max_results: int, video_duration: Optional[str] = None, upload_date: Optional[str] = None) -> dict:
+def build_search_parameters(
+    query: str,
+    max_results: int,
+    video_duration: Optional[str] = None,
+    upload_date: Optional[str] = None,
+) -> dict:
     """Build search parameters for YouTube API search"""
     search_params = {
-        'part': 'snippet',
-        'q': query,
-        'type': 'video',
-        'maxResults': min(max_results, 50),
-        'order': 'relevance'
+        "part": "snippet",
+        "q": query,
+        "type": "video",
+        "maxResults": min(max_results, 50),
+        "order": "relevance",
     }
 
     # Add duration filter
     if video_duration:
         duration_map = {
-            'short': 'short',      # < 4 minutes
-            'medium': 'medium',    # 4-20 minutes
-            'long': 'long'         # > 20 minutes
+            "short": "short",  # < 4 minutes
+            "medium": "medium",  # 4-20 minutes
+            "long": "long",  # > 20 minutes
         }
         if video_duration in duration_map:
-            search_params['videoDuration'] = duration_map[video_duration]
+            search_params["videoDuration"] = duration_map[video_duration]
 
     # Add date filter
     if upload_date:
         date_map = {
-            'hour': 'thisHour',
-            'today': 'today',
-            'week': 'thisWeek',
-            'month': 'thisMonth',
-            'year': 'thisYear'
+            "hour": "thisHour",
+            "today": "today",
+            "week": "thisWeek",
+            "month": "thisMonth",
+            "year": "thisYear",
         }
         if upload_date in date_map:
-            search_params['publishedAfter'] = date_map[upload_date]
+            search_params["publishedAfter"] = date_map[upload_date]
 
     return search_params
 

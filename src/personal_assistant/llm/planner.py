@@ -8,13 +8,13 @@ LLM planner step. Decides whether to respond, call a tool, or reflect.
 from typing import Any, Union
 
 from ..config.logging_config import get_logger
-from .llm_client import LLMClient
+
 # from ..prompts.prompt_builder import PromptBuilder  # No longer needed - using custom prompt builders
 from ..tools.base import ToolRegistry
+from ..types.messages import FinalAnswer, ToolCall
 from ..types.state import AgentState
 from ..utils.text_cleaner import clean_text_for_logging
-
-from ..types.messages import FinalAnswer, ToolCall
+from .llm_client import LLMClient
 
 # Configure module logger
 logger = get_logger("llm")
@@ -29,7 +29,9 @@ class LLMPlanner:
     # ------------------------
     # Initialization
     # ------------------------
-    def __init__(self, llm_client: LLMClient, tool_registry: 'ToolRegistry', prompt_builder=None):
+    def __init__(
+        self, llm_client: LLMClient, tool_registry: "ToolRegistry", prompt_builder=None
+    ):
         """
         Initialize the LLM-based planner.
 
@@ -48,6 +50,7 @@ class LLMPlanner:
         else:
             # Auto-create EnhancedPromptBuilder for everyone
             from ..prompts.enhanced_prompt_builder import EnhancedPromptBuilder
+
             self.prompt_builder = EnhancedPromptBuilder(tool_registry)
             logger.info("✅ Auto-created EnhancedPromptBuilder with metadata")
 
@@ -58,7 +61,7 @@ class LLMPlanner:
     # ------------------------
     # Core Planning Logic
     # ------------------------
-    def choose_action(self, state: 'AgentState') -> Union[ToolCall, FinalAnswer]:
+    def choose_action(self, state: "AgentState") -> Union[ToolCall, FinalAnswer]:
         """
         Choose next action based on current agent state.
 
@@ -72,14 +75,13 @@ class LLMPlanner:
 
         # Build prompt
         logger.debug("Building prompt from state")
-        logger.info(
-            f"Using prompt builder: {type(self.prompt_builder).__name__}")
+        logger.info(f"Using prompt builder: {type(self.prompt_builder).__name__}")
 
         # Show exactly which class we're calling
+        logger.info(f"Prompt builder class: {self.prompt_builder.__class__.__name__}")
         logger.info(
-            f"Prompt builder class: {self.prompt_builder.__class__.__name__}")
-        logger.info(
-            f"Prompt builder module: {self.prompt_builder.__class__.__module__}")
+            f"Prompt builder module: {self.prompt_builder.__class__.__module__}"
+        )
 
         prompt = self.prompt_builder.build(state)
         logger.debug(f"Built prompt of length: {len(prompt)}")
@@ -88,11 +90,13 @@ class LLMPlanner:
         if "ENHANCED TOOL GUIDANCE" in prompt:
             logger.info("✅ Enhanced prompt with metadata was built!")
             logger.info(
-                f"Metadata section found: {prompt.count('ENHANCED TOOL GUIDANCE')} times")
+                f"Metadata section found: {prompt.count('ENHANCED TOOL GUIDANCE')} times"
+            )
         else:
             logger.info("⚠️ Basic prompt without metadata was built")
             logger.warning(
-                "Expected enhanced prompt but got basic one - check metadata system")
+                "Expected enhanced prompt but got basic one - check metadata system"
+            )
 
         # Get available tools schema
         logger.debug("Fetching tool schema")
@@ -101,7 +105,7 @@ class LLMPlanner:
 
         # Get LLM response
         logger.info("=== REQUESTING COMPLETION FROM LLM ===")
-        response = self.llm_client.complete(prompt, functions)
+        response = self.llm_client.complete(prompt, list(functions.values()))
 
         # Clean response before logging
         clean_response = clean_text_for_logging(str(response))
@@ -122,12 +126,12 @@ class LLMPlanner:
             clean_output = clean_text_for_logging(action.output)
             logger.debug(f"FinalAnswer content: {clean_output}")
 
-        return action
+        return action  # type: ignore
 
     # ------------------------
     # Fallback Handling
     # ------------------------
-    def force_finish(self, state: 'AgentState') -> str:
+    def force_finish(self, state: "AgentState") -> str:
         """
         Forces the agent to finish after hitting loop limit.
 
@@ -149,7 +153,9 @@ class LLMPlanner:
         clean_response = clean_text_for_logging(str(response))
         logger.debug(f"Received force finish response: {clean_response}")
 
-        final_message = f"I need to wrap up now. {self.llm_client.parse_response(response).output}"
+        final_message = (
+            f"I need to wrap up now. {self.llm_client.parse_response(response).output}"
+        )
         logger.info(f"Force finish message: {final_message}")
         return final_message
 

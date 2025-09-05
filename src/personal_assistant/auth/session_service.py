@@ -10,9 +10,11 @@ This service provides:
 
 import json
 import secrets
-from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
 import redis.asyncio as redis
+
 from personal_assistant.config.settings import settings
 
 
@@ -58,28 +60,26 @@ class SessionService:
 
         # Create session data
         session_data = {
-            'user_id': user_id,
-            'device_info': device_info,
-            'created_at': datetime.utcnow().isoformat(),
-            'last_accessed': datetime.utcnow().isoformat(),
-            'expires_at': (datetime.utcnow() + timedelta(hours=self.session_expiry_hours)).isoformat(),
-            'is_active': True,
-            'session_type': 'web'  # Can be 'web', 'mobile', 'api', etc.
+            "user_id": user_id,
+            "device_info": device_info,
+            "created_at": datetime.utcnow().isoformat(),
+            "last_accessed": datetime.utcnow().isoformat(),
+            "expires_at": (
+                datetime.utcnow() + timedelta(hours=self.session_expiry_hours)
+            ).isoformat(),
+            "is_active": True,
+            "session_type": "web",  # Can be 'web', 'mobile', 'api', etc.
         }
 
         # Store in Redis with TTL
         session_key = f"{self.session_prefix}{session_id}"
         ttl_seconds = self.session_expiry_hours * 3600
 
-        await self.redis.setex(
-            session_key,
-            ttl_seconds,
-            json.dumps(session_data)
-        )
+        await self.redis.setex(session_key, ttl_seconds, json.dumps(session_data))
 
         # Track user sessions
         user_sessions_key = f"{self.user_sessions_prefix}{user_id}"
-        await self.redis.sadd(user_sessions_key, session_id)
+        await self.redis.sadd(user_sessions_key, session_id)  # type: ignore
         await self.redis.expire(user_sessions_key, ttl_seconds)
 
         return session_id
@@ -108,22 +108,18 @@ class SessionService:
             return None
 
         # Check if expired
-        if datetime.fromisoformat(session['expires_at']) < datetime.utcnow():
+        if datetime.fromisoformat(session["expires_at"]) < datetime.utcnow():
             await self.invalidate_session(session_id)
             return None
 
         # Update last accessed time
-        session['last_accessed'] = datetime.utcnow().isoformat()
+        session["last_accessed"] = datetime.utcnow().isoformat()
 
         # Refresh TTL
         ttl_seconds = self.session_expiry_hours * 3600
-        await self.redis.setex(
-            session_key,
-            ttl_seconds,
-            json.dumps(session)
-        )
+        await self.redis.setex(session_key, ttl_seconds, json.dumps(session))
 
-        return session
+        return session  # type: ignore
 
     async def update_session(self, session_id: str, data: Dict[str, Any]) -> bool:
         """
@@ -149,15 +145,11 @@ class SessionService:
 
         # Update session data
         session.update(data)
-        session['last_accessed'] = datetime.utcnow().isoformat()
+        session["last_accessed"] = datetime.utcnow().isoformat()
 
         # Refresh TTL
         ttl_seconds = self.session_expiry_hours * 3600
-        await self.redis.setex(
-            session_key,
-            ttl_seconds,
-            json.dumps(session)
-        )
+        await self.redis.setex(session_key, ttl_seconds, json.dumps(session))
 
         return True
 
@@ -179,7 +171,7 @@ class SessionService:
 
         try:
             session = json.loads(session_data)
-            user_id = session['user_id']
+            user_id = session["user_id"]
         except (json.JSONDecodeError, KeyError):
             # Invalid session data, just remove it
             await self.redis.delete(session_key)
@@ -190,7 +182,7 @@ class SessionService:
 
         # Remove from user sessions
         user_sessions_key = f"{self.user_sessions_prefix}{user_id}"
-        await self.redis.srem(user_sessions_key, session_id)
+        await self.redis.srem(user_sessions_key, session_id)  # type: ignore
 
         return True
 
@@ -205,7 +197,7 @@ class SessionService:
             List of active sessions
         """
         user_sessions_key = f"{self.user_sessions_prefix}{user_id}"
-        session_ids = await self.redis.smembers(user_sessions_key)
+        session_ids = await self.redis.smembers(user_sessions_key)  # type: ignore
 
         sessions = []
         for session_id in session_ids:
@@ -226,9 +218,11 @@ class SessionService:
             True if can create new session, False otherwise
         """
         current_sessions = await self.get_user_sessions(user_id)
-        return len(current_sessions) < self.max_concurrent_sessions
+        return bool(len(current_sessions) < self.max_concurrent_sessions)
 
-    async def invalidate_user_sessions(self, user_id: int, exclude_session_id: Optional[str] = None) -> int:
+    async def invalidate_user_sessions(
+        self, user_id: int, exclude_session_id: Optional[str] = None
+    ) -> int:
         """
         Invalidate all sessions for a user (e.g., on password change).
 
@@ -240,7 +234,7 @@ class SessionService:
             Number of sessions invalidated
         """
         user_sessions_key = f"{self.user_sessions_prefix}{user_id}"
-        session_ids = await self.redis.smembers(user_sessions_key)
+        session_ids = await self.redis.smembers(user_sessions_key)  # type: ignore
 
         invalidated_count = 0
 
@@ -280,28 +274,30 @@ class SessionService:
 
         if not sessions:
             return {
-                'total_sessions': 0,
-                'active_sessions': 0,
-                'can_create_new': True,
-                'oldest_session': None,
-                'newest_session': None
+                "total_sessions": 0,
+                "active_sessions": 0,
+                "can_create_new": True,
+                "oldest_session": None,
+                "newest_session": None,
             }
 
         # Calculate statistics
-        active_sessions = [s for s in sessions if s.get('is_active', False)]
-        oldest_session = min(sessions, key=lambda x: x['created_at'])
-        newest_session = max(sessions, key=lambda x: x['last_accessed'])
+        active_sessions = [s for s in sessions if s.get("is_active", False)]
+        oldest_session = min(sessions, key=lambda x: x["created_at"])
+        newest_session = max(sessions, key=lambda x: x["last_accessed"])
 
         return {
-            'total_sessions': len(sessions),
-            'active_sessions': len(active_sessions),
-            'can_create_new': len(sessions) < self.max_concurrent_sessions,
-            'oldest_session': oldest_session['created_at'],
-            'newest_session': newest_session['last_accessed'],
-            'sessions_remaining': max(0, self.max_concurrent_sessions - len(sessions))
+            "total_sessions": len(sessions),
+            "active_sessions": len(active_sessions),
+            "can_create_new": len(sessions) < self.max_concurrent_sessions,
+            "oldest_session": oldest_session["created_at"],
+            "newest_session": newest_session["last_accessed"],
+            "sessions_remaining": max(0, self.max_concurrent_sessions - len(sessions)),
         }
 
-    async def extend_session(self, session_id: str, hours: Optional[int] = None) -> bool:
+    async def extend_session(
+        self, session_id: str, hours: Optional[int] = None
+    ) -> bool:
         """
         Extend session expiration time.
 
@@ -328,25 +324,23 @@ class SessionService:
 
         # Extend expiration
         new_expiry = datetime.utcnow() + timedelta(hours=hours)
-        session['expires_at'] = new_expiry.isoformat()
-        session['last_accessed'] = datetime.utcnow().isoformat()
+        session["expires_at"] = new_expiry.isoformat()
+        session["last_accessed"] = datetime.utcnow().isoformat()
 
         # Update with new TTL
         ttl_seconds = hours * 3600
-        await self.redis.setex(
-            session_key,
-            ttl_seconds,
-            json.dumps(session)
-        )
+        await self.redis.setex(session_key, ttl_seconds, json.dumps(session))
 
         # Update user sessions TTL
-        user_id = session['user_id']
+        user_id = session["user_id"]
         user_sessions_key = f"{self.user_sessions_prefix}{user_id}"
         await self.redis.expire(user_sessions_key, ttl_seconds)
 
         return True
 
-    async def get_session_by_device(self, user_id: int, device_hash: str) -> Optional[Dict[str, Any]]:
+    async def get_session_by_device(
+        self, user_id: int, device_hash: str
+    ) -> Optional[Dict[str, Any]]:
         """
         Find session by device hash for a user.
 
@@ -360,8 +354,8 @@ class SessionService:
         sessions = await self.get_user_sessions(user_id)
 
         for session in sessions:
-            device_info = session.get('device_info', {})
-            if device_info.get('device_hash') == device_hash:
+            device_info = session.get("device_info", {})
+            if device_info.get("device_hash") == device_hash:
                 return session
 
         return None

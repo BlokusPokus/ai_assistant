@@ -7,12 +7,14 @@ role-based access control (RBAC).
 
 import logging
 from functools import wraps
-from typing import Optional, Callable, Any, Dict
-from fastapi import HTTPException, status, Request, Depends
+from typing import Callable
+
+from fastapi import HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .permission_service import PermissionService
 from personal_assistant.database.session import AsyncSessionLocal
+
+from .permission_service import PermissionService
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,7 @@ def require_permission(resource_type: str, action: str):
     Returns:
         Decorator function
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -41,14 +44,17 @@ def require_permission(resource_type: str, action: str):
             if not request:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Request object not found"
+                    detail="Request object not found",
                 )
 
             # Check if user is authenticated
-            if not hasattr(request.state, 'authenticated') or not request.state.authenticated:
+            if (
+                not hasattr(request.state, "authenticated")
+                or not request.state.authenticated
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required"
+                    detail="Authentication required",
                 )
 
             user_id = request.state.user_id
@@ -72,9 +78,7 @@ def require_permission(resource_type: str, action: str):
 
                 # Check permission
                 has_permission = await permission_service.check_permission(
-                    user_id=user_id,
-                    resource_type=resource_type,
-                    action=action
+                    user_id=user_id, resource_type=resource_type, action=action
                 )
 
                 # Log access attempt
@@ -85,13 +89,13 @@ def require_permission(resource_type: str, action: str):
                     granted=has_permission,
                     roles_checked=await permission_service.get_user_roles(user_id),
                     ip_address=request.client.host if request.client else None,
-                    user_agent=request.headers.get("user-agent")
+                    user_agent=request.headers.get("user-agent"),
                 )
 
                 if not has_permission:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail=f"Insufficient permissions. Required: {resource_type}:{action}"
+                        detail=f"Insufficient permissions. Required: {resource_type}:{action}",
                     )
             finally:
                 # Only close if we created the session
@@ -102,6 +106,7 @@ def require_permission(resource_type: str, action: str):
             return await func(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
@@ -115,6 +120,7 @@ def require_role(role_name: str):
     Returns:
         Decorator function
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -128,14 +134,17 @@ def require_role(role_name: str):
             if not request:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Request object not found"
+                    detail="Request object not found",
                 )
 
             # Check if user is authenticated
-            if not hasattr(request.state, 'authenticated') or not request.state.authenticated:
+            if (
+                not hasattr(request.state, "authenticated")
+                or not request.state.authenticated
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required"
+                    detail="Authentication required",
                 )
 
             user_id = request.state.user_id
@@ -159,8 +168,7 @@ def require_role(role_name: str):
 
                 # Check role
                 has_role = await permission_service.has_role(
-                    user_id=user_id,
-                    role_name=role_name
+                    user_id=user_id, role_name=role_name
                 )
 
                 # Log access attempt
@@ -171,13 +179,13 @@ def require_role(role_name: str):
                     granted=has_role,
                     roles_checked=[role_name],
                     ip_address=request.client.host if request.client else None,
-                    user_agent=request.headers.get("user-agent")
+                    user_agent=request.headers.get("user-agent"),
                 )
 
                 if not has_role:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail=f"Role required: {role_name}"
+                        detail=f"Role required: {role_name}",
                     )
             finally:
                 # Only close if we created the session
@@ -188,6 +196,7 @@ def require_role(role_name: str):
             return await func(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
@@ -203,6 +212,7 @@ def require_ownership(resource_type: str, action: str, resource_id_param: str = 
     Returns:
         Decorator function
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -216,14 +226,17 @@ def require_ownership(resource_type: str, action: str, resource_id_param: str = 
             if not request:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Request object not found"
+                    detail="Request object not found",
                 )
 
             # Check if user is authenticated
-            if not hasattr(request.state, 'authenticated') or not request.state.authenticated:
+            if (
+                not hasattr(request.state, "authenticated")
+                or not request.state.authenticated
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required"
+                    detail="Authentication required",
                 )
 
             user_id = request.state.user_id
@@ -233,7 +246,7 @@ def require_ownership(resource_type: str, action: str, resource_id_param: str = 
             if not resource_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Resource ID parameter '{resource_id_param}' not found"
+                    detail=f"Resource ID parameter '{resource_id_param}' not found",
                 )
 
             # Get database session and check ownership
@@ -246,7 +259,7 @@ def require_ownership(resource_type: str, action: str, resource_id_param: str = 
                     user_id=user_id,
                     resource_type=resource_type,
                     action=action,
-                    resource_id=resource_id
+                    resource_id=resource_id,
                 )
 
                 # Log access attempt
@@ -258,13 +271,13 @@ def require_ownership(resource_type: str, action: str, resource_id_param: str = 
                     granted=has_permission,
                     roles_checked=await permission_service.get_user_roles(user_id),
                     ip_address=request.client.host if request.client else None,
-                    user_agent=request.headers.get("user-agent")
+                    user_agent=request.headers.get("user-agent"),
                 )
 
                 if not has_permission:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail=f"Insufficient permissions or ownership: {resource_type}:{action}"
+                        detail=f"Insufficient permissions or ownership: {resource_type}:{action}",
                     )
             finally:
                 await db.close()
@@ -273,6 +286,7 @@ def require_ownership(resource_type: str, action: str, resource_id_param: str = 
             return await func(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
@@ -286,6 +300,7 @@ def require_any_role(*role_names: str):
     Returns:
         Decorator function
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -299,14 +314,17 @@ def require_any_role(*role_names: str):
             if not request:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Request object not found"
+                    detail="Request object not found",
                 )
 
             # Check if user is authenticated
-            if not hasattr(request.state, 'authenticated') or not request.state.authenticated:
+            if (
+                not hasattr(request.state, "authenticated")
+                or not request.state.authenticated
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required"
+                    detail="Authentication required",
                 )
 
             user_id = request.state.user_id
@@ -333,13 +351,13 @@ def require_any_role(*role_names: str):
                     granted=has_any_role,
                     roles_checked=roles_checked,
                     ip_address=request.client.host if request.client else None,
-                    user_agent=request.headers.get("user-agent")
+                    user_agent=request.headers.get("user-agent"),
                 )
 
                 if not has_any_role:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail=f"One of these roles required: {', '.join(role_names)}"
+                        detail=f"One of these roles required: {', '.join(role_names)}",
                     )
             finally:
                 await db.close()
@@ -348,58 +366,60 @@ def require_any_role(*role_names: str):
             return await func(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
 # Convenience decorators for common permission patterns
 def require_user_permission(action: str):
     """Require permission on user resources."""
-    return require_permission('user', action)
+    return require_permission("user", action)
 
 
 def require_memory_permission(action: str):
     """Require permission on memory resources."""
-    return require_permission('memory', action)
+    return require_permission("memory", action)
 
 
 def require_task_permission(action: str):
     """Require permission on task resources."""
-    return require_permission('task', action)
+    return require_permission("task", action)
 
 
 def require_note_permission(action: str):
     """Require permission on note resources."""
-    return require_permission('note', action)
+    return require_permission("note", action)
 
 
 def require_event_permission(action: str):
     """Require permission on event resources."""
-    return require_permission('event', action)
+    return require_permission("event", action)
 
 
 def require_system_permission(action: str):
     """Require permission on system resources."""
-    return require_permission('system', action)
+    return require_permission("system", action)
 
 
 def require_rbac_permission(action: str):
     """Require permission on RBAC resources."""
-    return require_permission('rbac', action)
+    return require_permission("rbac", action)
 
 
 # Convenience decorators for common role patterns
 def require_admin():
     """Require administrator role."""
-    return require_role('administrator')
+    return require_role("administrator")
 
 
 def require_premium():
     """Require premium or administrator role."""
-    return require_any_role('premium', 'administrator')
+    return require_any_role("premium", "administrator")
 
 
 def require_authenticated():
     """Require any authenticated user (no specific role)."""
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -413,18 +433,22 @@ def require_authenticated():
             if not request:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Request object not found"
+                    detail="Request object not found",
                 )
 
             # Check if user is authenticated
-            if not hasattr(request.state, 'authenticated') or not request.state.authenticated:
+            if (
+                not hasattr(request.state, "authenticated")
+                or not request.state.authenticated
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required"
+                    detail="Authentication required",
                 )
 
             # User is authenticated, proceed
             return await func(*args, **kwargs)
 
         return wrapper
+
     return decorator

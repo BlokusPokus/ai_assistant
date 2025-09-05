@@ -5,11 +5,11 @@ This module provides enhanced metadata for tools to improve AI understanding,
 tool selection, and parameter suggestions.
 """
 
-from typing import Dict, List, Optional, Any, Union
-from dataclasses import dataclass, field
-from enum import Enum
 import json
+from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 from ...config.logging_config import get_logger
 
@@ -18,6 +18,7 @@ logger = get_logger("tools.metadata")
 
 class ToolComplexity(Enum):
     """Tool complexity levels for AI understanding."""
+
     SIMPLE = "simple"
     MODERATE = "moderate"
     COMPLEX = "complex"
@@ -25,6 +26,7 @@ class ToolComplexity(Enum):
 
 class ToolCategory(Enum):
     """Tool categories for organization and AI selection."""
+
     COMMUNICATION = "communication"
     PRODUCTIVITY = "productivity"
     INFORMATION = "information"
@@ -35,6 +37,7 @@ class ToolCategory(Enum):
 @dataclass
 class ToolUseCase:
     """Represents a specific use case for a tool."""
+
     name: str
     description: str
     example_request: str
@@ -48,6 +51,7 @@ class ToolUseCase:
 @dataclass
 class ToolExample:
     """Represents a concrete example of tool usage."""
+
     description: str
     user_request: str
     parameters: Dict[str, Any]
@@ -110,7 +114,7 @@ class ToolMetadata:
                     "expected_outcome": uc.expected_outcome,
                     "success_indicators": uc.success_indicators,
                     "failure_modes": uc.failure_modes,
-                    "prerequisites": uc.prerequisites
+                    "prerequisites": uc.prerequisites,
                 }
                 for uc in self.use_cases
             ],
@@ -120,7 +124,7 @@ class ToolMetadata:
                     "user_request": ex.user_request,
                     "parameters": ex.parameters,
                     "expected_result": ex.expected_result,
-                    "notes": ex.notes
+                    "notes": ex.notes,
                 }
                 for ex in self.examples
             ],
@@ -138,7 +142,7 @@ class ToolMetadata:
             "best_practices": self.best_practices,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
-            "metadata_version": self.metadata_version
+            "metadata_version": self.metadata_version,
         }
 
     def to_json(self) -> str:
@@ -158,8 +162,7 @@ class ToolMetadata:
         """Add a new use case to the tool."""
         self.use_cases.append(use_case)
         self.updated_at = datetime.now()
-        logger.info(
-            f"Added use case '{use_case.name}' to tool: {self.tool_name}")
+        logger.info(f"Added use case '{use_case.name}' to tool: {self.tool_name}")
 
     def add_example(self, example: ToolExample):
         """Add a new example to the tool."""
@@ -179,7 +182,7 @@ class ToolMetadata:
                 {
                     "description": ex.description,
                     "user_request": ex.user_request,
-                    "parameters": ex.parameters
+                    "parameters": ex.parameters,
                 }
                 for ex in self.examples
             ],
@@ -187,7 +190,7 @@ class ToolMetadata:
             "related_tools": self.related_tools,
             "ai_instructions": self.ai_instructions,
             "parameter_guidance": self.parameter_guidance,
-            "best_practices": self.best_practices
+            "best_practices": self.best_practices,
         }
 
 
@@ -217,12 +220,17 @@ class ToolMetadataManager:
     def get_tools_by_category(self, category: ToolCategory) -> List[ToolMetadata]:
         """Get all tools in a specific category."""
         tool_names = self.category_index.get(category, [])
-        return [self.metadata_store[name] for name in tool_names if name in self.metadata_store]
+        return [
+            self.metadata_store[name]
+            for name in tool_names
+            if name in self.metadata_store
+        ]
 
     def get_tools_by_complexity(self, complexity: ToolComplexity) -> List[ToolMetadata]:
         """Get all tools with a specific complexity level."""
         return [
-            metadata for metadata in self.metadata_store.values()
+            metadata
+            for metadata in self.metadata_store.values()
             if metadata.complexity == complexity
         ]
 
@@ -244,8 +252,10 @@ class ToolMetadataManager:
 
             # Search in use cases
             for use_case in metadata.use_cases:
-                if (query_lower in use_case.name.lower() or
-                        query_lower in use_case.description.lower()):
+                if (
+                    query_lower in use_case.name.lower()
+                    or query_lower in use_case.description.lower()
+                ):
                     results.append(metadata)
                     break
 
@@ -267,12 +277,13 @@ class ToolMetadataManager:
             tools_to_export = list(self.metadata_store.keys())
         else:
             tools_to_export = [
-                name for name in tool_names if name in self.metadata_store]
+                name for name in tool_names if name in self.metadata_store
+            ]
 
-        export_data = {
+        export_data: dict[str, Any] = {
             "export_timestamp": datetime.now().isoformat(),
             "metadata_version": "1.0.0",
-            "tools": {}
+            "tools": {},
         }
 
         for tool_name in tools_to_export:
@@ -298,7 +309,7 @@ class ToolMetadataManager:
                         expected_outcome=uc_data["expected_outcome"],
                         success_indicators=uc_data["success_indicators"],
                         failure_modes=uc_data["failure_modes"],
-                        prerequisites=uc_data.get("prerequisites", [])
+                        prerequisites=uc_data.get("prerequisites", []),
                     )
                     use_cases.append(use_case)
 
@@ -310,7 +321,7 @@ class ToolMetadataManager:
                         user_request=ex_data["user_request"],
                         parameters=ex_data["parameters"],
                         expected_result=ex_data["expected_result"],
-                        notes=ex_data.get("notes")
+                        notes=ex_data.get("notes"),
                     )
                     examples.append(example)
 
@@ -319,26 +330,22 @@ class ToolMetadataManager:
                     tool_name=tool_data["tool_name"],
                     tool_version=tool_data.get("tool_version", "1.0.0"),
                     description=tool_data.get("description", ""),
-                    category=ToolCategory(tool_data.get(
-                        "category", "productivity")),
-                    complexity=ToolComplexity(
-                        tool_data.get("complexity", "simple")),
+                    category=ToolCategory(tool_data.get("category", "productivity")),
+                    complexity=ToolComplexity(tool_data.get("complexity", "simple")),
                     use_cases=use_cases,
                     examples=examples,
                     prerequisites=tool_data.get("prerequisites", []),
                     related_tools=tool_data.get("related_tools", []),
-                    complementary_tools=tool_data.get(
-                        "complementary_tools", []),
+                    complementary_tools=tool_data.get("complementary_tools", []),
                     conflicting_tools=tool_data.get("conflicting_tools", []),
-                    execution_time=tool_data.get(
-                        "execution_time", "1-5 seconds"),
+                    execution_time=tool_data.get("execution_time", "1-5 seconds"),
                     success_rate=tool_data.get("success_rate", 0.95),
                     rate_limits=tool_data.get("rate_limits"),
                     retry_strategy=tool_data.get("retry_strategy"),
                     ai_instructions=tool_data.get("ai_instructions", ""),
                     parameter_guidance=tool_data.get("parameter_guidance", {}),
                     common_mistakes=tool_data.get("common_mistakes", []),
-                    best_practices=tool_data.get("best_practices", [])
+                    best_practices=tool_data.get("best_practices", []),
                 )
 
                 self.register_tool_metadata(metadata)
@@ -346,21 +353,22 @@ class ToolMetadataManager:
 
             except Exception as e:
                 self.logger.error(
-                    f"Failed to import metadata for tool {tool_name}: {e}")
+                    f"Failed to import metadata for tool {tool_name}: {e}"
+                )
 
         return imported_tools
 
     def get_metadata_summary(self) -> Dict[str, Any]:
         """Get a summary of all registered metadata."""
         total_tools = len(self.metadata_store)
-        category_counts = {cat.value: len(
-            tools) for cat, tools in self.category_index.items()}
-        complexity_counts = {}
+        category_counts = {
+            cat.value: len(tools) for cat, tools in self.category_index.items()
+        }
+        complexity_counts: dict[str, int] = {}
 
         for metadata in self.metadata_store.values():
             complexity = metadata.complexity.value
-            complexity_counts[complexity] = complexity_counts.get(
-                complexity, 0) + 1
+            complexity_counts[complexity] = complexity_counts.get(complexity, 0) + 1
 
         return {
             "total_tools": total_tools,
@@ -368,6 +376,6 @@ class ToolMetadataManager:
             "complexity_distribution": complexity_counts,
             "last_updated": max(
                 [metadata.updated_at for metadata in self.metadata_store.values()],
-                default=datetime.now()
-            ).isoformat()
+                default=datetime.now(),
+            ).isoformat(),
         }

@@ -1,42 +1,46 @@
 # Database models
-from .base import Base
-from .users import User
-from .auth_tokens import AuthToken
-from .ltm_memory import LTMMemory
-from .ltm_context import LTMContext
-from .ltm_memory_relationship import LTMMemoryRelationship
-from .ltm_memory_access import LTMMemoryAccess
-from .ltm_memory_tag import LTMMemoryTag
-from .event_processing_log import EventProcessingLog
+# SMS Router models - import after User to avoid circular imports
+from personal_assistant.sms_router.models import (
+    SMSRouterConfig,
+    SMSUsageLog,
+    UserPhoneMapping,
+)
+
 from .ai_tasks import AITask
-from .task_results import TaskResult
-from .grocery_items import GroceryItem
-from .grocery_analysis import GroceryAnalysis
-from .grocery_deals import GroceryDeal
-from .expenses import Expense
-from .expense_category import ExpenseCategory
-from .notes import Note
-from .note_sync_log import NoteSyncLog
-from .events import Event
-from .event_creation_logs import EventCreationLog
-from .tasks import Task
-from .reminders import Reminder
-from .recurrence_patterns import RecurrencePattern
-from .user_settings import UserSetting
-
-# New MFA and Session Management models
-from .mfa_models import MFAConfiguration, UserSession, SecurityEvent
-
-# RBAC models
-from .rbac_models import Role, Permission, RolePermission, UserRole, AccessAuditLog
+from .auth_tokens import AuthToken
+from .base import Base
+from .conversation_message import ConversationMessage
 
 # New Conversation Schema models
 from .conversation_state import ConversationState
-from .conversation_message import ConversationMessage
+from .event_creation_logs import EventCreationLog
+from .event_processing_log import EventProcessingLog
+from .events import Event
+from .expense_category import ExpenseCategory
+from .expenses import Expense
+from .grocery_analysis import GroceryAnalysis
+from .grocery_deals import GroceryDeal
+from .grocery_items import GroceryItem
+from .ltm_context import LTMContext
+from .ltm_memory import LTMMemory
+from .ltm_memory_access import LTMMemoryAccess
+from .ltm_memory_relationship import LTMMemoryRelationship
+from .ltm_memory_tag import LTMMemoryTag
 from .memory_context_item import MemoryContextItem
 
-# SMS Router models - import after User to avoid circular imports
-from personal_assistant.sms_router.models import SMSRouterConfig, SMSUsageLog, UserPhoneMapping
+# New MFA and Session Management models
+from .mfa_models import MFAConfiguration, SecurityEvent, UserSession
+from .note_sync_log import NoteSyncLog
+from .notes import Note
+
+# RBAC models
+from .rbac_models import AccessAuditLog, Permission, Role, RolePermission, UserRole
+from .recurrence_patterns import RecurrencePattern
+from .reminders import Reminder
+from .task_results import TaskResult
+from .tasks import Task
+from .user_settings import UserSetting
+from .users import User
 
 # OAuth models - imported separately when needed to avoid circular imports
 # from personal_assistant.oauth.models import (

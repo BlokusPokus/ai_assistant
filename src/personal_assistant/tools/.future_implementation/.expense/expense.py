@@ -24,20 +24,14 @@ ExpenseAddTool = Tool(
     func=add_expense,
     description="Add a new expense",
     parameters={
-        "amount": {
-            "type": "number",
-            "description": "Expense amount"
-        },
-        "category": {
-            "type": "string",
-            "description": "Expense category"
-        },
+        "amount": {"type": "number", "description": "Expense amount"},
+        "category": {"type": "string", "description": "Expense category"},
         "description": {
             "type": "string",
             "description": "Optional expense description",
-            "optional": True
-        }
-    }
+            "optional": True,
+        },
+    },
 )
 
 BudgetSummaryTool = Tool(
@@ -48,7 +42,7 @@ BudgetSummaryTool = Tool(
         "category": {
             "type": "string",
             "description": "Optional category to filter by",
-            "optional": True
+            "optional": True,
         }
-    }
+    },
 )

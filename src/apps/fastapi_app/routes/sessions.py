@@ -8,18 +8,17 @@ This module provides endpoints for:
 - Device tracking and security
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import HTTPBearer
+from typing import Any, AsyncGenerator, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional, Dict, Any
 
-from personal_assistant.database.session import AsyncSessionLocal
-from personal_assistant.database.models.users import User
-from personal_assistant.database.models.mfa_models import SecurityEvent
+from personal_assistant.auth.decorators import require_permission
 from personal_assistant.auth.session_service import SessionService
-from personal_assistant.auth.decorators import require_permission, require_ownership
 from personal_assistant.config.redis import get_async_session_redis
+from personal_assistant.database.models.mfa_models import SecurityEvent
+from personal_assistant.database.models.users import User
 
 # Create router
 router = APIRouter(prefix="/api/v1/sessions", tags=["Sessions"])
@@ -29,6 +28,7 @@ router = APIRouter(prefix="/api/v1/sessions", tags=["Sessions"])
 
 class SessionInfo(BaseModel):
     """Session information model."""
+
     session_id: str
     device_info: Optional[Dict[str, Any]]
     ip_address: Optional[str]
@@ -42,6 +42,7 @@ class SessionInfo(BaseModel):
 
 class SessionStats(BaseModel):
     """Session statistics model."""
+
     total_sessions: int
     active_sessions: int
     can_create_new: bool
@@ -52,33 +53,38 @@ class SessionStats(BaseModel):
 
 class InvalidateSessionRequest(BaseModel):
     """Request model for invalidating a session."""
+
     session_id: str
 
 
 class InvalidateAllSessionsRequest(BaseModel):
     """Request model for invalidating all user sessions."""
+
     exclude_current: bool = True
+
 
 # Dependencies
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session."""
-    async with AsyncSessionLocal() as session:
+    from personal_assistant.database.session import _get_session_factory
+
+    session = _get_session_factory()()
+    try:
         yield session
+    finally:
+        await session.close()
 
 
 async def get_current_user(
-    request: Request,
-    db: AsyncSession = Depends(get_db)
+    request: Request, db: AsyncSession = Depends(get_db)
 ) -> User:
     """Get current authenticated user."""
-    # This would be implemented with your existing JWT authentication
-    # For now, we'll use a placeholder
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="JWT authentication not yet integrated with session management"
-    )
+    # Import the existing get_current_user from auth module
+    from apps.fastapi_app.routes.auth import get_current_user as auth_get_current_user
+
+    return await auth_get_current_user(request, db)
 
 
 async def get_session_service() -> SessionService:
@@ -87,7 +93,7 @@ async def get_session_service() -> SessionService:
     if not redis_client:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Session service unavailable"
+            detail="Session service unavailable",
         )
     return SessionService(redis_client)
 
@@ -97,34 +103,34 @@ async def get_session_service() -> SessionService:
 async def get_user_sessions(
     request: Request,
     current_user: User = Depends(get_current_user),
-    session_service: SessionService = Depends(get_session_service)
+    session_service: SessionService = Depends(get_session_service),
 ):
     """Get all active sessions for the current user."""
     try:
-        sessions = await session_service.get_user_sessions(str(current_user.id))
+        sessions = await session_service.get_user_sessions(int(current_user.id))
 
         # Filter sensitive information and format response
         session_list = []
         for session in sessions:
             # Create safe device info
-            device_info = session.get('device_info', {})
+            device_info = session.get("device_info", {})
             safe_device_info = {
-                'browser': device_info.get('browser'),
-                'os': device_info.get('os'),
-                'device': device_info.get('device'),
-                'platform': device_info.get('platform')
+                "browser": device_info.get("browser"),
+                "os": device_info.get("os"),
+                "device": device_info.get("device"),
+                "platform": device_info.get("platform"),
             }
 
             session_info = SessionInfo(
-                session_id=session['session_id'],
+                session_id=session["session_id"],
                 device_info=safe_device_info,
-                ip_address=session.get('ip_address'),
-                user_agent=session.get('user_agent'),
-                created_at=session['created_at'],
-                last_accessed=session['last_accessed'],
-                expires_at=session['expires_at'],
-                is_active=session.get('is_active', True),
-                session_type=session.get('session_type', 'web')
+                ip_address=session.get("ip_address"),
+                user_agent=session.get("user_agent"),
+                created_at=session["created_at"],
+                last_accessed=session["last_accessed"],
+                expires_at=session["expires_at"],
+                is_active=session.get("is_active", True),
+                session_type=session.get("session_type", "web"),
             )
             session_list.append(session_info)
 
@@ -133,7 +139,7 @@ async def get_user_sessions(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get sessions: {str(e)}"
+            detail=f"Failed to get sessions: {str(e)}",
         )
 
 
@@ -141,17 +147,17 @@ async def get_user_sessions(
 async def get_session_stats(
     request: Request,
     current_user: User = Depends(get_current_user),
-    session_service: SessionService = Depends(get_session_service)
+    session_service: SessionService = Depends(get_session_service),
 ):
     """Get session statistics for the current user."""
     try:
-        stats = await session_service.get_session_stats(str(current_user.id))
+        stats = await session_service.get_session_stats(int(current_user.id))
         return SessionStats(**stats)
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get session stats: {str(e)}"
+            detail=f"Failed to get session stats: {str(e)}",
         )
 
 
@@ -162,16 +168,15 @@ async def invalidate_session(
     request: Request,
     current_user: User = Depends(get_current_user),
     session_service: SessionService = Depends(get_session_service),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Invalidate a specific session."""
     try:
         # Get session to verify ownership
         session = await session_service.get_session(session_id)
-        if not session or session['user_id'] != str(current_user.id):
+        if not session or session["user_id"] != int(current_user.id):
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Session not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
             )
 
         # Invalidate session
@@ -185,11 +190,11 @@ async def invalidate_session(
                 event_data={
                     "session_id": session_id,
                     "method": "manual",
-                    "device_info": session.get('device_info')
+                    "device_info": session.get("device_info"),
                 },
                 ip_address=request.client.host if request.client else None,
                 user_agent=request.headers.get("user-agent"),
-                severity="info"
+                severity="info",
             )
             db.add(security_event)
             await db.commit()
@@ -198,7 +203,7 @@ async def invalidate_session(
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to invalidate session"
+                detail="Failed to invalidate session",
             )
 
     except HTTPException:
@@ -207,32 +212,28 @@ async def invalidate_session(
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to invalidate session: {str(e)}"
+            detail=f"Failed to invalidate session: {str(e)}",
         )
 
 
 @router.post("/invalidate-all")
 async def invalidate_all_sessions(
-    request: InvalidateAllSessionsRequest,
+    request_data: InvalidateAllSessionsRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
     session_service: SessionService = Depends(get_session_service),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Invalidate all sessions for the current user (except current if specified)."""
     try:
         # Get current session ID from request headers or context
         # For now, we'll invalidate all sessions
-        current_session_id = None  # TODO: Extract from JWT or request context
+        # TODO: Extract current session ID from JWT or request context
 
-        if request.exclude_current and current_session_id:
-            invalidated_count = await session_service.invalidate_user_sessions(
-                str(current_user.id),
-                exclude_session_id=current_session_id
-            )
-        else:
-            invalidated_count = await session_service.invalidate_user_sessions(
-                str(current_user.id)
-            )
+        # Since we don't have current session ID, we always invalidate all sessions
+        invalidated_count = await session_service.invalidate_user_sessions(
+            int(current_user.id)
+        )
 
         # Log security event
         security_event = SecurityEvent(
@@ -240,25 +241,25 @@ async def invalidate_all_sessions(
             event_type="all_sessions_invalidated",
             event_data={
                 "invalidated_count": invalidated_count,
-                "exclude_current": request.exclude_current
+                "exclude_current": request_data.exclude_current,
             },
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
-            severity="warning"
+            severity="warning",
         )
         db.add(security_event)
         await db.commit()
 
         return {
             "message": f"Invalidated {invalidated_count} sessions successfully",
-            "invalidated_count": invalidated_count
+            "invalidated_count": invalidated_count,
         }
 
     except Exception as e:
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to invalidate sessions: {str(e)}"
+            detail=f"Failed to invalidate sessions: {str(e)}",
         )
 
 
@@ -269,16 +270,15 @@ async def extend_session(
     current_user: User = Depends(get_current_user),
     session_service: SessionService = Depends(get_session_service),
     db: AsyncSession = Depends(get_db),
-    hours: Optional[int] = None
+    hours: Optional[int] = None,
 ):
     """Extend session expiration time."""
     try:
         # Get session to verify ownership
         session = await session_service.get_session(session_id)
-        if not session or session['user_id'] != str(current_user.id):
+        if not session or session["user_id"] != int(current_user.id):
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Session not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
             )
 
         # Extend session
@@ -292,11 +292,11 @@ async def extend_session(
                 event_data={
                     "session_id": session_id,
                     "extension_hours": hours,
-                    "new_expiry": session.get('expires_at')
+                    "new_expiry": session.get("expires_at"),
                 },
                 ip_address=request.client.host if request.client else None,
                 user_agent=request.headers.get("user-agent"),
-                severity="info"
+                severity="info",
             )
             db.add(security_event)
             await db.commit()
@@ -305,7 +305,7 @@ async def extend_session(
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to extend session"
+                detail="Failed to extend session",
             )
 
     except HTTPException:
@@ -314,13 +314,13 @@ async def extend_session(
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to extend session: {str(e)}"
+            detail=f"Failed to extend session: {str(e)}",
         )
 
 
 @router.get("/health")
 async def check_session_service_health(
-    session_service: SessionService = Depends(get_session_service)
+    session_service: SessionService = Depends(get_session_service),
 ):
     """Check session service health."""
     try:
@@ -331,11 +331,11 @@ async def check_session_service_health(
         return {
             "status": "healthy",
             "service": "session_management",
-            "redis": "connected"
+            "redis": "connected",
         }
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Session service unhealthy: {str(e)}"
+            detail=f"Session service unhealthy: {str(e)}",
         )

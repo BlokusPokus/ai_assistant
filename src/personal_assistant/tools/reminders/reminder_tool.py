@@ -7,8 +7,8 @@ AI tasks and reminders that can be executed by the AI assistant.
 
 import logging
 
-from ..base import Tool
 from ..ai_scheduler.ai_task_manager import AITaskManager
+from ..base import Tool
 
 logger = logging.getLogger(__name__)
 
@@ -29,30 +29,30 @@ class ReminderTool:
                 "properties": {
                     "text": {
                         "type": "string",
-                        "description": "Reminder text or task description"
+                        "description": "Reminder text or task description",
                     },
                     "time": {
                         "type": "string",
-                        "description": "When to execute the reminder in ISO format (YYYY-MM-DDTHH:MM:SS) or relative time (e.g., 'in 1 hour', 'tomorrow at 9am')"
+                        "description": "When to execute the reminder in ISO format (YYYY-MM-DDTHH:MM:SS) or relative time (e.g., 'in 1 hour', 'tomorrow at 9am')",
                     },
                     "channel": {
                         "type": "string",
                         "enum": ["sms", "email", "push"],
-                        "description": "Notification channel for the reminder (default: sms)"
+                        "description": "Notification channel for the reminder (default: sms)",
                     },
                     "task_type": {
                         "type": "string",
                         "enum": ["reminder", "automated_task", "periodic_task"],
-                        "description": "Type of task to create (default: reminder)"
+                        "description": "Type of task to create (default: reminder)",
                     },
                     "schedule_type": {
                         "type": "string",
                         "enum": ["once", "daily", "weekly", "monthly", "custom"],
-                        "description": "How often the task should repeat (default: once)"
-                    }
+                        "description": "How often the task should repeat (default: once)",
+                    },
                 },
-                "required": ["text", "time"]
-            }
+                "required": ["text", "time"],
+            },
         )
 
         self.list_reminders_tool = Tool(
@@ -65,10 +65,10 @@ class ReminderTool:
                     "status": {
                         "type": "string",
                         "enum": ["active", "completed", "cancelled", "all"],
-                        "description": "Status filter for listing reminders (default: active)"
+                        "description": "Status filter for listing reminders (default: active)",
                     }
-                }
-            }
+                },
+            },
         )
 
         self.delete_reminder_tool = Tool(
@@ -80,11 +80,11 @@ class ReminderTool:
                 "properties": {
                     "reminder_id": {
                         "type": "integer",
-                        "description": "ID of the reminder to delete"
+                        "description": "ID of the reminder to delete",
                     }
                 },
-                "required": ["reminder_id"]
-            }
+                "required": ["reminder_id"],
+            },
         )
 
         self.update_reminder_tool = Tool(
@@ -96,34 +96,28 @@ class ReminderTool:
                 "properties": {
                     "reminder_id": {
                         "type": "integer",
-                        "description": "ID of the reminder to update"
+                        "description": "ID of the reminder to update",
                     },
-                    "text": {
-                        "type": "string",
-                        "description": "New reminder text"
-                    },
-                    "time": {
-                        "type": "string",
-                        "description": "New execution time"
-                    },
+                    "text": {"type": "string", "description": "New reminder text"},
+                    "time": {"type": "string", "description": "New execution time"},
                     "channel": {
                         "type": "string",
                         "enum": ["sms", "email", "push"],
-                        "description": "New notification channel"
+                        "description": "New notification channel",
                     },
                     "task_type": {
                         "type": "string",
                         "enum": ["reminder", "automated_task", "periodic_task"],
-                        "description": "New task type"
+                        "description": "New task type",
                     },
                     "schedule_type": {
                         "type": "string",
                         "enum": ["once", "daily", "weekly", "monthly", "custom"],
-                        "description": "New schedule type"
-                    }
+                        "description": "New schedule type",
+                    },
                 },
-                "required": ["reminder_id"]
-            }
+                "required": ["reminder_id"],
+            },
         )
 
     async def create_reminder(self, **kwargs) -> str:
@@ -131,8 +125,8 @@ class ReminderTool:
         text = kwargs.get("text")
         time = kwargs.get("time")
         channel = kwargs.get("channel", "sms")
-        task_type = kwargs.get("task_type", "reminder")
-        schedule_type = kwargs.get("schedule_type", "once")
+        kwargs.get("task_type", "reminder")
+        kwargs.get("schedule_type", "once")
         user_id = kwargs.get("user_id", 126)
 
         if not text:
@@ -142,12 +136,9 @@ class ReminderTool:
 
         try:
             result = await self.task_manager.create_reminder_with_validation(
-                text=text,
-                time=time,
-                channel=channel,
-                user_id=user_id
+                text=text, time=time, channel=channel, user_id=user_id
             )
-            return result.get('message', 'Reminder created successfully')
+            return result.get("message", "Reminder created successfully")  # type: ignore
         except Exception as e:
             return f"Error creating reminder: {str(e)}"
 
@@ -158,7 +149,7 @@ class ReminderTool:
 
         try:
             result = await self.task_manager.list_user_reminders(status, user_id)
-            return result.get('message', 'No reminders found')
+            return result.get("message", "No reminders found")  # type: ignore
         except Exception as e:
             return f"Error listing reminders: {str(e)}"
 
@@ -172,7 +163,7 @@ class ReminderTool:
 
         try:
             result = await self.task_manager.delete_user_reminder(reminder_id, user_id)
-            return result.get('message', 'Reminder deleted successfully')
+            return result.get("message", "Reminder deleted successfully")  # type: ignore
         except Exception as e:
             return f"Error deleting reminder: {str(e)}"
 
@@ -201,8 +192,10 @@ class ReminderTool:
             return "Error: No update fields provided. Available fields: text, time, channel, task_type, schedule_type"
 
         try:
-            result = await self.task_manager.update_task(reminder_id, user_id, update_data)
-            return result.get('message', 'Reminder updated successfully')
+            result = await self.task_manager.update_task(
+                reminder_id, user_id, update_data
+            )
+            return result.get("message", "Reminder updated successfully")  # type: ignore
         except Exception as e:
             return f"Error updating reminder: {str(e)}"
 

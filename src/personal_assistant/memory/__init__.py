@@ -10,7 +10,4 @@ from .context_utils import apply_context_limits, truncate_context_blocks
 
 logger = get_logger("memory")
 
-__all__ = [
-    "apply_context_limits",
-    "truncate_context_blocks"
-]
+__all__ = ["apply_context_limits", "truncate_context_blocks"]

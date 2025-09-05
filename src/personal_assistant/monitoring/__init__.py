@@ -12,10 +12,10 @@ Key Components:
 - System resource monitoring
 """
 
-from .prometheus_metrics import PrometheusMetricsService, metrics_service, get_metrics_service
+from .prometheus_metrics import (
+    PrometheusMetricsService,
+    get_metrics_service,
+    metrics_service,
+)
 
-__all__ = [
-    "PrometheusMetricsService",
-    "metrics_service",
-    "get_metrics_service"
-]
+__all__ = ["PrometheusMetricsService", "metrics_service", "get_metrics_service"]

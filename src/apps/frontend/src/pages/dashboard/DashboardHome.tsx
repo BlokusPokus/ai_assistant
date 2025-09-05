@@ -7,7 +7,6 @@ import { useOAuthStore } from '@/stores/oauthStore';
 import SMSAnalyticsWidget from '@/components/dashboard/SMSAnalyticsWidget';
 import PhoneNumberRegistrationWidget from '@/components/dashboard/PhoneNumberRegistrationWidget';
 import {
-  Brain,
   MessageSquare,
   Calendar,
   FileText,

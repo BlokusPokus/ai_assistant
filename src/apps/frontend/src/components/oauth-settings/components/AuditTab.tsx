@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useOAuthSettingsStore } from '../../../stores/oauthSettingsStore';
-import type { AuditFilters } from "../../../services/oauthSettingsService";
+import type { AuditFilters } from '../../../services/oauthSettingsService';
 import { Select } from '@/components/ui';
 
 export const AuditTab: React.FC = () => {
   const { auditLogs, loading, loadAuditLogs, exportData } =
     useOAuthSettingsStore();
   const [filters, setFilters] = useState<AuditFilters>({});
-  const [exportFormat, setExportFormat] = useState<"csv" | "json">("csv");
+  const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv');
 
   const handleExport = async () => {
     try {
@@ -15,23 +15,23 @@ export const AuditTab: React.FC = () => {
 
       // Create and download file
       const blob = new Blob([data], {
-        type: exportFormat === "csv" ? "text/csv" : "application/json",
+        type: exportFormat === 'csv' ? 'text/csv' : 'application/json',
       });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       a.download = `oauth-audit-${
-        new Date().toISOString().split("T")[0]
+        new Date().toISOString().split('T')[0]
       }.${exportFormat}`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Export failed:", error);
+      console.error('Export failed:', error);
     }
   };
 
   const handleFilterChange = (key: keyof AuditFilters, value: string) => {
-    setFilters((prev) => ({
+    setFilters(prev => ({
       ...prev,
       [key]: value || undefined,
     }));
@@ -69,8 +69,8 @@ export const AuditTab: React.FC = () => {
               </label>
               <input
                 type="date"
-                value={filters.dateFrom || ""}
-                onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
+                value={filters.dateFrom || ''}
+                onChange={e => handleFilterChange('dateFrom', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -80,8 +80,8 @@ export const AuditTab: React.FC = () => {
               </label>
               <input
                 type="date"
-                value={filters.dateTo || ""}
-                onChange={(e) => handleFilterChange("dateTo", e.target.value)}
+                value={filters.dateTo || ''}
+                onChange={e => handleFilterChange('dateTo', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -90,14 +90,14 @@ export const AuditTab: React.FC = () => {
                 Provider
               </label>
               <Select
-                value={filters.provider || ""}
-                onChange={(value) => handleFilterChange("provider", value)}
+                value={filters.provider || ''}
+                onChange={value => handleFilterChange('provider', value)}
                 options={[
-                  { value: "", label: "All Providers" },
-                  { value: "google", label: "Google" },
-                  { value: "microsoft", label: "Microsoft" },
-                  { value: "notion", label: "Notion" },
-                  { value: "youtube", label: "YouTube" }
+                  { value: '', label: 'All Providers' },
+                  { value: 'google', label: 'Google' },
+                  { value: 'microsoft', label: 'Microsoft' },
+                  { value: 'notion', label: 'Notion' },
+                  { value: 'youtube', label: 'YouTube' },
                 ]}
                 placeholder="Select provider"
               />
@@ -107,14 +107,20 @@ export const AuditTab: React.FC = () => {
                 Action
               </label>
               <Select
-                value={filters.action || ""}
-                onChange={(value) => handleFilterChange("action", value)}
+                value={filters.action || ''}
+                onChange={value => handleFilterChange('action', value)}
                 options={[
-                  { value: "", label: "All Actions" },
-                  { value: "integration_created", label: "Integration Created" },
-                  { value: "tokens_refreshed", label: "Tokens Refreshed" },
-                  { value: "integration_revoked", label: "Integration Revoked" },
-                  { value: "scopes_updated", label: "Scopes Updated" }
+                  { value: '', label: 'All Actions' },
+                  {
+                    value: 'integration_created',
+                    label: 'Integration Created',
+                  },
+                  { value: 'tokens_refreshed', label: 'Tokens Refreshed' },
+                  {
+                    value: 'integration_revoked',
+                    label: 'Integration Revoked',
+                  },
+                  { value: 'scopes_updated', label: 'Scopes Updated' },
                 ]}
                 placeholder="Select action"
               />
@@ -147,10 +153,10 @@ export const AuditTab: React.FC = () => {
             <div className="flex items-center space-x-3">
               <Select
                 value={exportFormat}
-                onChange={(value) => setExportFormat(value as "csv" | "json")}
+                onChange={value => setExportFormat(value as 'csv' | 'json')}
                 options={[
-                  { value: "csv", label: "CSV" },
-                  { value: "json", label: "JSON" }
+                  { value: 'csv', label: 'CSV' },
+                  { value: 'json', label: 'JSON' },
                 ]}
                 placeholder="Select format"
                 className="w-32"
@@ -199,14 +205,14 @@ export const AuditTab: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {auditLogs.map((log) => (
+              {auditLogs.map(log => (
                 <tr key={log.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(log.timestamp).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {log.action.replace(/_/g, " ")}
+                      {log.action.replace(/_/g, ' ')}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
@@ -218,7 +224,7 @@ export const AuditTab: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {log.ip_address || "N/A"}
+                    {log.ip_address || 'N/A'}
                   </td>
                 </tr>
               ))}

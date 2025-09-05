@@ -5,8 +5,7 @@ This module provides utilities for logging various types of metrics including
 context injection, performance, and error metrics.
 """
 
-import logging
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from ..config.logging_config import get_logger
 
@@ -28,7 +27,8 @@ class MetricsLogger:
         try:
             # Calculate content statistics
             total_content_length = sum(
-                len(block.get("content", "")) for block in memory_blocks)
+                len(block.get("content", "")) for block in memory_blocks
+            )
             ltm_blocks = [b for b in memory_blocks if b.get("source") == "ltm"]
             rag_blocks = [b for b in memory_blocks if b.get("source") == "rag"]
 
@@ -37,20 +37,26 @@ class MetricsLogger:
             logger.debug(f"  - Total blocks: {len(memory_blocks)}")
             logger.debug(f"  - LTM blocks: {len(ltm_blocks)}")
             logger.debug(f"  - RAG blocks: {len(rag_blocks)}")
+            logger.debug(f"  - Total content length: {total_content_length} characters")
             logger.debug(
-                f"  - Total content length: {total_content_length} characters")
-            logger.debug(
-                f"  - Final memory context size: {len(agent_state.memory_context)}")
+                f"  - Final memory context size: {len(agent_state.memory_context)}"
+            )
 
             # Log content previews for debugging
             if ltm_blocks:
-                ltm_preview = ltm_blocks[0]["content"][:100] + "..." if len(
-                    ltm_blocks[0]["content"]) > 100 else ltm_blocks[0]["content"]
+                ltm_preview = (
+                    ltm_blocks[0]["content"][:100] + "..."
+                    if len(ltm_blocks[0]["content"]) > 100
+                    else ltm_blocks[0]["content"]
+                )
                 logger.debug(f"  - LTM content preview: {ltm_preview}")
 
             if rag_blocks:
-                rag_preview = rag_blocks[0]["content"][:100] + "..." if len(
-                    rag_blocks[0]["content"]) > 100 else rag_blocks[0]["content"]
+                rag_preview = (
+                    rag_blocks[0]["content"][:100] + "..."
+                    if len(rag_blocks[0]["content"]) > 100
+                    else rag_blocks[0]["content"]
+                )
                 logger.debug(f"  - RAG content preview: {rag_preview}")
 
         except Exception as e:
@@ -92,7 +98,8 @@ class MetricsLogger:
         """
         try:
             logger.error(
-                f"Error metrics - {context}: {type(error).__name__}: {str(error)}")
+                f"Error metrics - {context}: {type(error).__name__}: {str(error)}"
+            )
 
             # Log additional error context if provided
             for key, value in kwargs.items():
