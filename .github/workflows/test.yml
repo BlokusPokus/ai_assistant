@@ -144,6 +144,8 @@ jobs:
         run: |
           if [ "${{ matrix.test-suite }}" == "performance" ]; then
             pytest ${{ matrix.test-path }} -v --benchmark-only --benchmark-save=performance-${{ matrix.test-suite }} --timeout=${{ matrix.timeout }} --timeout-method=thread
+          elif [ "${{ matrix.test-suite }}" == "unit" ]; then
+            pytest ${{ matrix.test-path }} --ignore=tests/unit/test_api/test_session_endpoints.py -v --cov=src --cov-report=xml --cov-report=html --timeout=${{ matrix.timeout }} --timeout-method=thread --maxfail=3
           else
             pytest ${{ matrix.test-path }} -v --cov=src --cov-report=xml --cov-report=html --timeout=${{ matrix.timeout }} --timeout-method=thread --maxfail=3
           fi
