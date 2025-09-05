@@ -144,7 +144,7 @@ jobs:
           pytest tests/unit/ tests/test_auth/ tests/tools/ --ignore=tests/unit/test_api/test_session_endpoints.py -v --cov=src --cov-report=xml --cov-report=html --timeout=300 --timeout-method=thread
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: ./coverage.xml
           flags: unit-tests
@@ -213,7 +213,7 @@ jobs:
           pytest tests/unit/test_integration/ tests/test_sms_router/ -v --cov=src --cov-report=xml --cov-report=html --timeout=600 --timeout-method=thread
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: ./coverage.xml
           flags: integration-tests
@@ -282,7 +282,7 @@ jobs:
           pytest tests/unit/test_e2e/ tests/unit/test_database/test_user_model.py tests/unit/test_api/test_user_endpoints.py tests/completed_tasks/ -v --cov=src --cov-report=xml --cov-report=html --timeout=1200 --timeout-method=thread
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: ./coverage.xml
           flags: e2e-tests
