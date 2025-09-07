@@ -8,7 +8,7 @@ and enforces loop limits.
 """
 
 import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from ..config.logging_config import get_logger
 from ..config.settings import settings
@@ -84,9 +84,9 @@ class AgentRunner:
 
     async def set_context(
         self,
-        agent_state: AgentState | None,
-        rag_context: Optional[List[dict]] | Any = None,
-        ltm_context: Optional[str] | Any = None,
+        agent_state: AgentState,
+        rag_context: Optional[List[dict]] = None,
+        ltm_context: Optional[str] = None,
     ) -> None:
         """
         Inject LTM and RAG context into AgentState's memory_context with limits.
@@ -358,6 +358,9 @@ class AgentRunner:
             action = self.planner.choose_action(state)
             logger.debug(f"=== PLANNER RETURNED ACTION: {type(action).__name__} ===")
             logger.debug(f"Chosen action: {action}")
+            logger.debug(f"Action type: {type(action)}")
+            logger.debug(f"Is ToolCall: {isinstance(action, ToolCall)}")
+            logger.debug(f"Is FinalAnswer: {isinstance(action, FinalAnswer)}")
 
             if isinstance(action, FinalAnswer):
                 logger.debug("Got final answer")
@@ -383,14 +386,15 @@ class AgentRunner:
                     # Update state (this already adds the tool result to conversation history)
                     logger.debug("=== UPDATING STATE WITH TOOL RESULT ===")
                     state.add_tool_result(action, result)
-                    state.conversation_history.append(
-                        {"role": "assistant", "content": result}
-                    )
+
 
                     logger.debug(f"Updated state: {state}")
                 except Exception as e:
                     logger.error(f"Tool execution error: {str(e)}")
                     return f"Error executing tool {action.name}: {str(e)}", state
+            else:
+                logger.warning(f"Unknown action type: {type(action)} - {action}")
+                logger.warning("This action will be ignored and the loop will continue")
 
         logger.warning("Loop limit reached, forcing finish.")
         forced_response = self.planner.force_finish(state)

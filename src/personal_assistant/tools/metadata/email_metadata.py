@@ -189,7 +189,7 @@ def create_email_tool_metadata() -> ToolMetadata:
                 "destination_folder": "Archive",
             },
             expected_result="Email successfully moved from Inbox to Archive with confirmation message",
-            notes="Useful for organizing inbox by archiving read or processed emails",
+            notes="Useful for organizing inbox by archiving read or processed emails. IMPORTANT: Get email_id from read_emails response first!",
         ),
         ToolExample(
             description="Move email to Junk folder",
@@ -238,7 +238,16 @@ def create_email_tool_metadata() -> ToolMetadata:
             "For sending: use 'to_recipients' as comma-separated string, 'subject' as string, 'body' as string. "
             "For reading: use 'count' and 'batch_size' parameters. "
             "For searching: use 'query', 'count', 'date_from', 'date_to', 'folder' parameters. "
-            "For organizing: use 'email_id' and 'destination_folder' parameters."
+            "For organizing: use 'email_id' and 'destination_folder' parameters. "
+            "CRITICAL WORKFLOW: When asked to move/delete/reply to 'most recent email': "
+            "1. Call read_emails ONCE to get the email list with IDs (🆔 ID: xyz) "
+            "2. Extract the email_id from the response "
+            "3. Use that email_id directly in move_email/delete_email/get_email_content "
+            "4. DO NOT call read_emails again - you already have the email_id!"
+            "\n\nTASK COMPLETION: ALWAYS check conversation history first! "
+            "If you already moved/deleted/sent an email, provide FinalAnswer immediately. "
+            "Look for '✅ Successfully moved email' or similar success messages. "
+            "NEVER repeat completed actions!"
         ),
         parameter_guidance={
             "to_recipients": "CRITICAL: Use 'to_recipients' (not 'to') - Comma-separated list of valid email addresses",
@@ -257,6 +266,8 @@ def create_email_tool_metadata() -> ToolMetadata:
             "Moving emails to wrong folders",
             "Using invalid folder names",
             "Moving emails without user confirmation",
+            "Calling read_emails multiple times when you already have the email_id",
+            "Not extracting email_id from read_emails response before using move_email/delete_email",
         ],
         best_practices=[
             "Always include a clear subject line",
@@ -267,6 +278,8 @@ def create_email_tool_metadata() -> ToolMetadata:
             "Confirm folder destination before moving emails",
             "Use standard folder names (Archive, Junk, Deleted Items)",
             "Verify email ID before moving to prevent errors",
+            "Extract email_id from read_emails response and reuse it for move_email/delete_email",
+            "Call read_emails only once when you need the email_id for subsequent operations",
         ],
     )
 

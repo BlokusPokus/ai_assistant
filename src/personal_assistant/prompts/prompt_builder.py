@@ -97,6 +97,9 @@ class PromptBuilder:
 • NEVER stop mid-task unless you need clarification on options
 • NEVER make assumptions about code or system behavior
 • NEVER use tools for simple greetings or basic questions that don't require information
+• NEVER retry tools that have failed with errors - stop and explain the issue to the user
+• NEVER call tools when the task is already completed - check conversation history first
+• NEVER repeat the same action multiple times - if you already moved an email, don't move it again
 
 🔄 SMART PATTERN USAGE:
 • Use ITERATIVE SEARCH PATTERN ONLY when you need to gather information
@@ -213,6 +216,22 @@ WHEN TO USE:
 • Don't forget to handle tool errors gracefully
 • Don't skip the iterative search pattern - it's mandatory for effective information gathering
 • Don't ignore tool chaining - complex tasks require coordinated tool usage
+
+🚨 CRITICAL ERROR HANDLING RULES:
+• When you see "❌ TOOL_NAME ERROR" in conversation history, STOP retrying that tool
+• Tool errors indicate the tool cannot complete the requested action
+• Instead of retrying, explain the error to the user and suggest alternatives
+• Common error types: validation_error, permission_error, resource_error, connection_error
+• If a tool fails, try a different approach or ask the user for clarification
+• NEVER retry the same failed tool multiple times - this causes infinite loops
+
+🎯 TASK COMPLETION RECOGNITION:
+• ALWAYS check conversation history before calling tools
+• If you already completed the requested action, provide FinalAnswer immediately
+• Look for success messages like "✅ Successfully moved email" or "✅ Successfully sent email"
+• If the task is done, explain what was accomplished instead of repeating it
+• Common completion indicators: "Successfully moved", "Successfully sent", "Successfully created", "Successfully deleted"
+• NEVER call tools when the user's request is already fulfilled
 """
 
     def _build_reasoning_framework(self) -> str:
@@ -605,4 +624,33 @@ Situation: User asks "What should I do next?"
 ✅ No loose ends or incomplete actions
 ✅ Appropriate response method chosen (direct vs. tool-based)
 ✅ Patterns applied only when needed for complex tasks
+✅ Task completion recognized - no redundant tool calls
+
+📧 EMAIL TASK COMPLETION EXAMPLES:
+
+<example>
+Situation: User asks "Move my most recent email to archive"
+Conversation History: "✅ Successfully moved email 'Crypto portfolio update' from 'Inbox' to 'Archive'"
+
+<decision>
+1. ANALYZE: User requested email move to archive
+2. CHECK HISTORY: Already moved "Crypto portfolio update" to Archive
+3. COMPLETION: Task is done, provide FinalAnswer
+4. RESPONSE: "I've already moved your most recent email 'Crypto portfolio update' to the Archive folder."
+5. NO TOOLS: Don't call read_emails or move_email again
+</decision>
+</example>
+
+<example>
+Situation: User asks "Send email to John about meeting"
+Conversation History: "✅ Successfully sent email to john@company.com about 'Meeting Tomorrow'"
+
+<decision>
+1. ANALYZE: User requested email send to John
+2. CHECK HISTORY: Already sent email to John about meeting
+3. COMPLETION: Task is done, provide FinalAnswer
+4. RESPONSE: "I've already sent the email to John about the meeting tomorrow."
+5. NO TOOLS: Don't call send_email again
+</decision>
+</example>
 """

@@ -92,7 +92,7 @@ class Settings(BaseSettings):
 
     # Application settings
     DEBUG: bool = True
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str = "DEBUG"
     ENVIRONMENT: str = "development"
 
     # Conversation management settings
@@ -113,11 +113,11 @@ class Settings(BaseSettings):
     CORRELATION_ID_HEADER: str = "X-Correlation-ID"
 
     # Module-specific log levels
-    CORE_LOG_LEVEL: str = "INFO"
+    CORE_LOG_LEVEL: str = "DEBUG"
     LLM_LOG_LEVEL: str = "INFO"
     MEMORY_LOG_LEVEL: str = "INFO"
     RAG_LOG_LEVEL: str = "INFO"
-    TOOLS_LOG_LEVEL: str = "INFO"
+    TOOLS_LOG_LEVEL: str = "DEBUG"
     TYPES_LOG_LEVEL: str = "INFO"
 
     # Logging override environment variables (optional)

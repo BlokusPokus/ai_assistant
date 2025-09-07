@@ -210,7 +210,19 @@ class PromptHelpers:
                 formatted.append(f"🤖 Assistant: {entry['content']}")
             elif entry["role"] == "tool":
                 tool_name = entry.get("name", "Unknown Tool")
-                formatted.append(f"🛠 {tool_name}: {entry['content']}")
+                content = entry['content']
+                
+                # Check if this is a tool error response
+                if isinstance(content, dict) and content.get("error"):
+                    error_type = content.get("error_type", "unknown")
+                    error_message = content.get("error_message", "Unknown error")
+                    llm_instructions = content.get("llm_instructions", "")
+                    
+                    formatted.append(f"❌ {tool_name} ERROR ({error_type}): {error_message}")
+                    if llm_instructions:
+                        formatted.append(f"   💡 Instructions: {llm_instructions}")
+                else:
+                    formatted.append(f"🛠 {tool_name}: {content}")
             elif entry["role"] == "memory":
                 # Handle memory role entries (tool execution results)
                 source = entry.get("source", "unknown")
