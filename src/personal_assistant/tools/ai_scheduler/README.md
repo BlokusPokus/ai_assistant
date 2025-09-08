@@ -1,258 +1,256 @@
-<!-- # Calendar Scheduler Implementation
+# AI Scheduler Package
 
-This module implements a database-first calendar scheduler that runs every 10 minutes to check for upcoming events and trigger intelligent agent responses.
+A comprehensive AI task management system with clear separation of concerns across different functional areas.
 
-## Overview
-
-The scheduler follows a database-first approach, meaning it queries the local database for upcoming events instead of relying on external APIs. This provides better performance, offline capability, and simplified testing.
-
-## Architecture
+## 📁 Package Structure
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Celery Beat   │    │  Celery Worker  │    │   Agent Core    │
-│   (Scheduler)   │───▶│   (Processor)   │───▶│   (AI Agent)    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Redis Queue   │    │   Database      │    │   Event Log     │
-│   (Message      │    │   (Events)      │    │   (Processing   │
-│    Broker)      │    │                 │    │    History)     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+ai_scheduler/
+├── core/                           # Core business logic
+│   ├── __init__.py
+│   ├── task_manager.py            # AITaskManager - Database operations
+│   ├── scheduler.py               # TaskScheduler - Main orchestrator
+│   └── executor.py                # TaskExecutor - Task execution logic
+│
+├── evaluation/                     # AI evaluation components
+│   ├── __init__.py
+│   ├── evaluator.py               # AIEventEvaluator - AI-powered evaluation
+│   ├── context_builder.py         # EventContext, EventContextBuilder
+│   └── task_evaluator.py          # TaskEvaluator - Task-specific evaluation
+│
+├── notifications/                  # Notification system
+│   ├── __init__.py
+│   └── service.py                 # NotificationService - SMS, email, in-app
+│
+├── utils/                         # Utility functions and helpers
+│   ├── __init__.py
+│   └── helpers.py                 # Convenience functions (set_reminder, etc.)
+│
+├── __init__.py                    # Main package exports
+└── README.md                      # This documentation
 ```
 
-## Components
+## 🎯 Core Components
 
-### 1. Database Models
+### **core/** - Core Business Logic
 
-- **Event Model** (`database/models/events.py`): Extended with processing status fields
-- **EventProcessingLog Model** (`database/models/event_processing_log.py`): Tracks processing history
+#### `task_manager.py` - AITaskManager
+- **Purpose**: Central database operations for AI tasks
+- **Key Functions**:
+  - `create_task()` - Create new AI tasks
+  - `get_due_tasks()` - Retrieve tasks ready for execution
+  - `update_task()` - Update task properties
+  - `delete_task()` - Remove tasks
+  - `create_reminder_with_validation()` - Create reminders with validation
 
-### 2. Celery Configuration
+#### `scheduler.py` - TaskScheduler
+- **Purpose**: Main orchestrator for the AI task system
+- **Key Functions**:
+  - `start_worker()` - Start Celery workers
+  - `start_beat()` - Start periodic scheduling
+  - `get_status()` - System health monitoring
+  - `get_task_statistics()` - Performance metrics
 
-- **celery_config.py**: Configures Celery with Redis as message broker
-- **tasks.py**: Defines background tasks for event processing
-- **db_queries.py**: Database query functions for event management
+#### `executor.py` - TaskExecutor
+- **Purpose**: Execute AI tasks using the AI assistant
+- **Key Functions**:
+  - `execute_task()` - Run individual tasks
+  - `handle_task_completion()` - Process task results
 
-### 3. Scheduler
+### **evaluation/** - AI Evaluation Components
 
-- **scheduler.py**: Main scheduler class and entry points
-- **test_scheduler.py**: Test script for verification
+#### `evaluator.py` - AIEventEvaluator
+- **Purpose**: AI-powered evaluation of calendar events
+- **Key Functions**:
+  - `evaluate_event()` - Determine if events need attention
+  - `analyze_recurrence_pattern()` - Understand recurring patterns
+  - `suggest_actions_for_event()` - Generate action recommendations
 
-## Features
+#### `context_builder.py` - EventContext & EventContextBuilder
+- **Purpose**: Build rich context for AI evaluation
+- **Key Functions**:
+  - `build_event_context()` - Create comprehensive event context
+  - `create_ai_context()` - Format context for AI processing
 
-### Core Functionality
+#### `task_evaluator.py` - TaskEvaluator
+- **Purpose**: Evaluate individual tasks for processing
+- **Key Functions**:
+  - `evaluate_task()` - Assess task readiness
+  - `should_process_task()` - Decision logic for task processing
 
-- **Cron Job**: Runs every 10 minutes via Celery Beat
-- **Database Queries**: Direct SQL queries for upcoming events
-- **Background Processing**: Celery worker handles event processing
-- **Agent Integration**: Triggers AgentCore for intelligent responses
-- **Error Handling**: Graceful failure handling with retries
-- **Status Tracking**: Comprehensive event processing status tracking
+### **notifications/** - Notification System
 
-### Event Processing Workflow
+#### `service.py` - NotificationService
+- **Purpose**: Handle all notification types
+- **Key Functions**:
+  - `send_notification()` - Send SMS, email, or in-app notifications
+  - `format_message()` - Format messages for different channels
 
-1. **Query Events**: Find upcoming events in next 2 hours (configurable)
-2. **Mark Processing**: Update event status to 'processing'
-3. **Agent Processing**: Trigger AgentCore with event context
-4. **Status Update**: Mark as 'completed' or 'failed' based on result
-5. **Logging**: Track all processing attempts in EventProcessingLog
+### **utils/** - Utility Functions
 
-### Status Management
+#### `helpers.py` - Convenience Functions
+- **Purpose**: Easy-to-use functions for common operations
+- **Key Functions**:
+  - `set_reminder()` - Quick reminder creation
+  - `list_reminders()` - List user reminders
+  - `delete_reminder()` - Remove reminders
 
-Events can have the following statuses:
+## 🚀 Usage Examples
 
-- `pending`: Ready for processing
-- `processing`: Currently being processed
-- `completed`: Successfully processed
-- `failed`: Processing failed (will retry after 1 hour)
+### Basic Task Management
 
-## Configuration
+```python
+from personal_assistant.tools.ai_scheduler import AITaskManager
+
+# Create a task manager
+task_manager = AITaskManager()
+
+# Create a new task
+task = await task_manager.create_task(
+    user_id=126,
+    title="Meeting reminder",
+    description="Don't forget the team meeting",
+    task_type="reminder",
+    schedule_type="once",
+    schedule_config={"run_at": "2025-09-08 10:00:00"},
+    next_run_at=datetime(2025, 9, 8, 10, 0),
+    notification_channels=["sms"]
+)
+```
+
+### Using the Scheduler
+
+```python
+from personal_assistant.tools.ai_scheduler import TaskScheduler
+
+# Create and start the scheduler
+scheduler = TaskScheduler()
+scheduler.start_worker()  # Start background workers
+scheduler.start_beat()    # Start periodic scheduling
+
+# Check system status
+status = scheduler.get_status()
+print(f"Scheduler status: {status['status']}")
+```
+
+### Quick Reminder Operations
+
+```python
+from personal_assistant.tools.ai_scheduler import set_reminder, list_reminders
+
+# Set a quick reminder
+await set_reminder("Call mom", "in 1 hour", "sms", user_id=126)
+
+# List active reminders
+reminders = await list_reminders("active", user_id=126)
+print(reminders)
+```
+
+### AI Event Evaluation
+
+```python
+from personal_assistant.tools.ai_scheduler import AIEventEvaluator
+
+# Create evaluator with agent core
+evaluator = AIEventEvaluator(agent_core)
+
+# Evaluate an event
+result = await evaluator.evaluate_event(event)
+if result['should_process']:
+    print(f"Event needs attention: {result['reason']}")
+```
+
+## 🔧 Configuration
 
 ### Environment Variables
 
 ```bash
-# Redis Configuration
+# Database
+DATABASE_URL=postgresql://user:pass@localhost/db
+
+# Redis (for Celery)
 REDIS_URL=redis://localhost:6379
 CELERY_BROKER_URL=redis://localhost:6379
 CELERY_RESULT_BACKEND=redis://localhost:6379
 
-# Scheduler Configuration
+# Scheduler
 SCHEDULER_CHECK_INTERVAL=10  # minutes
 EVENT_TIME_WINDOW=2  # hours to look ahead
 ```
 
-### Database Schema
+## 📊 System Architecture
 
-The Event model has been extended with these fields:
-
-```sql
-ALTER TABLE events ADD COLUMN handled_at TIMESTAMP;
-ALTER TABLE events ADD COLUMN processing_status VARCHAR(20) DEFAULT 'pending';
-ALTER TABLE events ADD COLUMN agent_response TEXT;
-ALTER TABLE events ADD COLUMN last_checked TIMESTAMP;
+```mermaid
+graph TD
+    A[TaskScheduler] --> B[AITaskManager]
+    A --> C[Celery Workers]
+    A --> D[Beat Scheduler]
+    
+    B --> E[Database]
+    C --> F[TaskExecutor]
+    F --> G[AI Assistant]
+    
+    H[AIEventEvaluator] --> I[EventContextBuilder]
+    H --> J[AgentCore]
+    
+    K[NotificationService] --> L[SMS]
+    K --> M[Email]
+    K --> N[In-App]
 ```
 
-## Usage
+## 🧪 Testing
 
-### Installation
-
-1. Install dependencies:
+### Run Tests
 
 ```bash
-pip install -r requirements.txt
+# Test the scheduler
+python -m personal_assistant.tools.ai_scheduler.core.scheduler test
+
+# Test task creation
+python -c "
+import asyncio
+from personal_assistant.tools.ai_scheduler import AITaskManager
+async def test():
+    manager = AITaskManager()
+    result = await manager.create_task(...)
+    print(result)
+asyncio.run(test())
+"
 ```
 
-2. Install Redis (macOS):
+## 🔄 Migration from Old Structure
 
-```bash
-brew install redis
-brew services start redis
-```
+The package has been reorganized for better clarity:
 
-### Running the Scheduler
+- **Old**: `ai_task_manager.py` → **New**: `core/task_manager.py`
+- **Old**: `task_scheduler.py` → **New**: `core/scheduler.py`
+- **Old**: `ai_evaluator.py` → **New**: `evaluation/evaluator.py`
+- **Old**: `notification_service.py` → **New**: `notifications/service.py`
 
-#### Option 1: Using the startup script
+All imports have been updated to use the new structure.
 
-```bash
-# Install dependencies
-./scripts/start_calendar_scheduler.sh install
+## 📈 Benefits of New Structure
 
-# Run tests
-./scripts/start_calendar_scheduler.sh test
+1. **Clear Separation of Concerns** - Each folder has a specific purpose
+2. **Better Maintainability** - Easier to find and modify specific functionality
+3. **Improved Scalability** - Easy to add new components in appropriate folders
+4. **Cleaner Imports** - More intuitive import paths
+5. **Better Documentation** - Clear structure makes it easier to understand
+6. **Reduced Coupling** - Components are more loosely coupled
 
-# Start the scheduler
-./scripts/start_calendar_scheduler.sh start
-```
+## 🚨 Breaking Changes
 
-#### Option 2: Manual startup
+- Import paths have changed (see migration guide above)
+- Some convenience functions moved to `utils/` folder
+- Dead code removed (`ai_task_scheduler.py`)
 
-```bash
-# Terminal 1: Start Celery worker
-cd agent_core/tools/ai_calendar
-python scheduler.py worker
+## 🤝 Contributing
 
-# Terminal 2: Start Celery beat scheduler
-cd agent_core/tools/ai_calendar
-python scheduler.py beat
-```
+When adding new components:
 
-#### Option 3: Using Celery directly
+1. **Core logic** → `core/` folder
+2. **AI evaluation** → `evaluation/` folder  
+3. **Notifications** → `notifications/` folder
+4. **Utilities** → `utils/` folder
 
-```bash
-# Start worker
-celery -A agent_core.tools.ai_calendar.celery_config worker --loglevel=info
-
-# Start beat scheduler
-celery -A agent_core.tools.ai_calendar.celery_config beat --loglevel=info
-```
-
-### Testing
-
-Run the test script to verify the implementation:
-
-```bash
-python agent_core/tools/ai_calendar/test_scheduler.py
-```
-
-## Database Queries
-
-### Key Query Functions
-
-- `get_upcoming_events(hours_ahead=2)`: Find events in next N hours
-- `mark_event_processing(event_id)`: Mark event as processing
-- `mark_event_completed(event_id, response)`: Mark event as completed
-- `mark_event_failed(event_id, error)`: Mark event as failed
-- `reset_failed_events()`: Reset old failed events for retry
-
-### Example Query
-
-```python
-# Get upcoming events
-events = await get_upcoming_events(hours_ahead=2)
-
-# Process each event
-for event in events:
-    await mark_event_processing(event.id)
-    # ... process with agent ...
-    await mark_event_completed(event.id, agent_response)
-```
-
-## Monitoring
-
-### Logs
-
-The scheduler provides comprehensive logging:
-
-- Task execution logs
-- Database operation logs
-- Error and retry logs
-- Agent processing logs
-
-### Status Tracking
-
-- Event processing status in database
-- Processing history in EventProcessingLog
-- Task execution statistics
-- Error tracking and retry counts
-
-## Error Handling
-
-### Retry Logic
-
-- Failed tasks are retried up to 3 times
-- Exponential backoff between retries
-- Failed events are reset after 1 hour for manual retry
-
-### Graceful Degradation
-
-- Database connection errors are handled gracefully
-- Agent processing failures don't stop the scheduler
-- Individual event failures don't affect other events
-
-## Benefits of Database-First Approach
-
-1. **Performance**: Direct database queries are faster than API calls
-2. **Reliability**: No dependency on external API availability
-3. **Offline Capability**: System works without internet connection
-4. **Testing**: Easy to test with local database data
-5. **Control**: Full control over event data and processing logic
-
-## Future Enhancements
-
-1. **Event Filtering**: Add NLP-based event filtering
-2. **Notification System**: Integrate with SMS/email notifications
-3. **Advanced Scheduling**: Support for different event types and priorities
-4. **Metrics Dashboard**: Web interface for monitoring scheduler status
-5. **Event Templates**: Predefined responses for common event types
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Redis Connection**: Ensure Redis is running
-2. **Database Connection**: Check database URL and credentials
-3. **AgentCore Import**: Verify AgentCore is properly configured
-4. **Async/Await**: Ensure proper async handling in Celery tasks
-
-### Debug Mode
-
-Enable debug logging:
-
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
-```
-
-### Manual Testing
-
-Test individual components:
-
-```bash
-# Test database queries
-python -c "import asyncio; from agent_core.tools.ai_calendar.db_queries import get_upcoming_events; print(asyncio.run(get_upcoming_events()))"
-
-# Test scheduler configuration
-python -c "from agent_core.tools.ai_calendar.scheduler import create_scheduler; print(create_scheduler().get_status())"
-``` -->
+Update the appropriate `__init__.py` file to export new components.

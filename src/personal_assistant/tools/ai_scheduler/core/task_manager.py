@@ -220,6 +220,110 @@ class AITaskManager:
                 await session.rollback()
                 return False
 
+    async def update_task(
+        self,
+        task_id: int,
+        user_id: int,
+        update_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Update a task with the provided data.
+
+        Args:
+            task_id: Task ID to update
+            user_id: User ID (for security)
+            update_data: Dictionary with fields to update
+
+        Returns:
+            Dict with success status and response message
+        """
+        async with AsyncSessionLocal() as session:
+            try:
+                # Find the task and verify ownership
+                result = await session.execute(
+                    select(AITask).where(
+                        and_(AITask.id == task_id, AITask.user_id == user_id)
+                    )
+                )
+                task = result.scalar_one_or_none()
+
+                if not task:
+                    return {
+                        "success": False,
+                        "message": f"❌ Task {task_id} not found or you don't have permission to update it"
+                    }
+
+                # Update fields based on update_data
+                updated_fields = []
+                
+                if "title" in update_data:
+                    task.title = update_data["title"]
+                    updated_fields.append("title")
+                
+                if "description" in update_data:
+                    task.description = update_data["description"]
+                    updated_fields.append("description")
+                
+                if "task_type" in update_data:
+                    task.task_type = update_data["task_type"]
+                    updated_fields.append("task_type")
+                
+                if "schedule_type" in update_data:
+                    task.schedule_type = update_data["schedule_type"]
+                    updated_fields.append("schedule_type")
+                
+                if "schedule_config" in update_data:
+                    # Serialize schedule config if it contains datetime objects
+                    serialized_config = self._serialize_schedule_config(update_data["schedule_config"])
+                    task.schedule_config = serialized_config
+                    updated_fields.append("schedule_config")
+                
+                if "next_run_at" in update_data:
+                    # Handle both datetime objects and string inputs
+                    next_run = update_data["next_run_at"]
+                    if isinstance(next_run, str):
+                        # Use the time parsing logic from ReminderInternal
+                        from ...reminders.reminder_internal import ReminderInternal
+                        parsed_time = ReminderInternal.parse_time_string(next_run)
+                        if parsed_time is None:
+                            return {
+                                "success": False,
+                                "message": f"❌ Invalid time format for next_run_at: {next_run}. Please use ISO format (YYYY-MM-DDTHH:MM:SS) or relative time (e.g., 'in 1 hour', 'tomorrow at 9am')"
+                            }
+                        next_run = parsed_time
+                    task.next_run_at = next_run
+                    updated_fields.append("next_run_at")
+                
+                if "notification_channels" in update_data:
+                    task.notification_channels = update_data["notification_channels"]
+                    updated_fields.append("notification_channels")
+                
+                if "ai_context" in update_data:
+                    task.ai_context = update_data["ai_context"]
+                    updated_fields.append("ai_context")
+
+                if not updated_fields:
+                    return {
+                        "success": False,
+                        "message": "❌ No valid fields provided for update"
+                    }
+
+                await session.commit()
+                self.logger.info(f"Updated task {task_id} fields: {', '.join(updated_fields)}")
+                
+                return {
+                    "success": True,
+                    "message": f"✅ Task {task_id} updated successfully. Updated fields: {', '.join(updated_fields)}"
+                }
+
+            except Exception as e:
+                self.logger.error(f"Error updating task: {e}")
+                await session.rollback()
+                return {
+                    "success": False,
+                    "message": f"❌ Error updating task: {str(e)}"
+                }
+
     async def delete_task(self, task_id: int, user_id: int) -> bool:
         """
         Delete a task.
@@ -352,37 +456,6 @@ class AITaskManager:
             self.logger.error(f"Error calculating next run time: {e}")
             return None
 
-    async def create_reminder(
-        self,
-        user_id: int,
-        title: str,
-        remind_at: datetime,
-        description: Optional[str] = None,
-        notification_channels: Optional[List[str]] = None,
-    ) -> AITask:
-        """
-        Create a simple reminder.
-
-        Args:
-            user_id: User ID
-            title: Reminder title
-            remind_at: When to send the reminder
-            description: Reminder description
-            notification_channels: Notification channels
-
-        Returns:
-            Created reminder task
-        """
-        return await self.create_task(
-            user_id=user_id,
-            title=title,
-            description=description,
-            task_type="reminder",
-            schedule_type="once",
-            schedule_config={"run_at": remind_at},
-            next_run_at=remind_at,
-            notification_channels=notification_channels or ["sms"],
-        )
 
     async def create_periodic_task(
         self,
@@ -453,11 +526,14 @@ class AITaskManager:
             user_id = validation_result["user_id"]
 
             # Create the reminder task
-            task = await self.create_reminder(
+            task = await self.create_task(
                 user_id=user_id,
                 title=text,
-                remind_at=remind_at,
                 description=text,
+                task_type="reminder",
+                schedule_type="once",
+                schedule_config={"run_at": remind_at},
+                next_run_at=remind_at,
                 notification_channels=[channel],
             )
 
@@ -471,97 +547,7 @@ class AITaskManager:
             self.logger.error(f"Error setting reminder: {e}")
             return {"success": False, "message": f"❌ Error setting reminder: {str(e)}"}
 
-    async def list_user_reminders(
-        self, status: Optional[str] = "active", user_id: int = 126
-    ) -> Dict[str, Any]:
-        """
-        List user reminders with formatting.
 
-        Args:
-            status: Filter by status (active, completed, failed, paused)
-            user_id: User ID
-
-        Returns:
-            Dict with success status and formatted response
-        """
-        try:
-            # Validate status
-            if status and status not in ["active", "completed", "failed", "paused"]:
-                return {
-                    "success": False,
-                    "message": f"❌ Error: Invalid status '{status}'. Valid statuses are: active, completed, failed, paused",
-                }
-
-            # Get user's reminder tasks
-            tasks = await self.get_user_tasks(
-                user_id=user_id, status=status, task_type="reminder", limit=50
-            )
-
-            if not tasks:
-                return {"success": True, "message": f"No {status} reminders found."}
-
-            # Format the response
-            result = self._format_reminder_list_header(status or "all", len(tasks))
-            for task in tasks:
-                result += self._format_reminder_item(task)
-
-            return {"success": True, "message": result}
-
-        except Exception as e:
-            self.logger.error(f"Error listing reminders: {e}")
-            return {"success": False, "message": f"❌ Error listing reminders: {str(e)}"}
-
-    async def delete_user_reminder(
-        self, reminder_id: int, user_id: int = 126
-    ) -> Dict[str, Any]:
-        """
-        Delete a user reminder with validation.
-
-        Args:
-            reminder_id: Reminder ID to delete
-            user_id: User ID
-
-        Returns:
-            Dict with success status and response message
-        """
-        try:
-            # Validate reminder_id
-            try:
-                reminder_id = int(reminder_id)
-            except (ValueError, TypeError):
-                return {
-                    "success": False,
-                    "message": f"❌ Error: reminder_id must be a valid integer, got '{reminder_id}'",
-                }
-
-            # Check if the reminder exists and belongs to the user
-            user_tasks = await self.get_user_tasks(
-                user_id=user_id, task_type="reminder", limit=100
-            )
-
-            if not any(task.id == reminder_id for task in user_tasks):
-                return {
-                    "success": False,
-                    "message": f"❌ Reminder {reminder_id} not found or you don't have permission to delete it",
-                }
-
-            # Delete the task
-            success = await self.delete_task(reminder_id, user_id)
-
-            if success:
-                return {
-                    "success": True,
-                    "message": f"✅ Reminder {reminder_id} deleted successfully",
-                }
-            else:
-                return {
-                    "success": False,
-                    "message": f"❌ Failed to delete reminder {reminder_id}",
-                }
-
-        except Exception as e:
-            self.logger.error(f"Error deleting reminder: {e}")
-            return {"success": False, "message": f"❌ Error deleting reminder: {str(e)}"}
 
     # Private validation and formatting methods
     def _validate_reminder_inputs(

@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict
 
-from .ai_task_manager import AITaskManager
+from .task_manager import AITaskManager
 
 # Note: Task execution functions have been migrated to workers system
 # from .ai_task_scheduler import (
@@ -18,7 +18,7 @@ from .ai_task_manager import AITaskManager
 # )
 # Import the new workers Celery app
 try:
-    from ...workers.celery_app import app
+    from ....workers.celery_app import app
 except ImportError:
     # Fallback if workers system is not available
     app = None
@@ -188,11 +188,15 @@ class TaskScheduler:
         """
         try:
             # Create a test reminder
-            test_task = await self.task_manager.create_reminder(
+            remind_at = datetime.utcnow() + timedelta(minutes=2)
+            test_task = await self.task_manager.create_task(
                 user_id=126,
                 title="Test AI Task",
-                remind_at=datetime.utcnow() + timedelta(minutes=2),
                 description="This is a test AI task for debugging",
+                task_type="reminder",
+                schedule_type="once",
+                schedule_config={"run_at": remind_at},
+                next_run_at=remind_at,
                 notification_channels=["sms"],
             )
 

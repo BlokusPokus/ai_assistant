@@ -1,3 +1,4 @@
+import logging
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -79,6 +80,11 @@ async def twilio_webhook(
     Webhook endpoint for receiving SMS messages from Twilio.
     Returns TwiML response.
     """
+    logger = logging.getLogger(__name__)
+    logger.info(f"🚨 BASIC TWILIO WEBHOOK CALLED! From: {From}, Body: {Body}")
+    logger.info(f"🚨 Request headers: {dict(request.headers)}")
+    logger.info(f"🚨 Request client: {request.client}")
+    
     try:
         response = await twilio_service.handle_sms_webhook(Body, From)
         return Response(content=str(response), media_type="application/xml")

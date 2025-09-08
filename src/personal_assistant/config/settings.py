@@ -116,7 +116,7 @@ class Settings(BaseSettings):
     CORE_LOG_LEVEL: str = "DEBUG"
     LLM_LOG_LEVEL: str = "INFO"
     MEMORY_LOG_LEVEL: str = "INFO"
-    RAG_LOG_LEVEL: str = "INFO"
+    RAG_LOG_LEVEL: str = "WARNING"
     TOOLS_LOG_LEVEL: str = "DEBUG"
     TYPES_LOG_LEVEL: str = "INFO"
 
@@ -130,6 +130,10 @@ class Settings(BaseSettings):
     PA_RAG_LOG_LEVEL: Optional[str] = None
     PA_TOOLS_LOG_LEVEL: Optional[str] = None
     PA_TYPES_LOG_LEVEL: Optional[str] = None
+    
+    # Embedding logging control
+    PA_EMBEDDING_LOG_LEVEL: Optional[str] = None  # Control embedding log verbosity
+    PA_EMBEDDING_FILTER: Optional[str] = None  # Enable/disable embedding noise filter
 
     # Celery settings
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"

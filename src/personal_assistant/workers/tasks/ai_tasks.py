@@ -13,11 +13,11 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 # Import the existing AI scheduler components
-from ...tools.ai_scheduler.ai_task_manager import AITaskManager
+from ...tools.ai_scheduler.core.task_manager import AITaskManager
 from ..celery_app import app
 
-# from ...tools.ai_scheduler.notification_service import NotificationService  # Commented out - file issues
-# from ...tools.ai_scheduler.task_executor import TaskExecutor  # Commented out - file issues
+from ...tools.ai_scheduler.notifications.service import NotificationService
+from ...tools.ai_scheduler.core.executor import TaskExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,8 @@ def process_due_ai_tasks(self) -> Dict[str, Any]:
     4. Updates task status and schedules next run if recurring
     """
     task_id = self.request.id
-    logger.info(f"Starting process_due_ai_tasks task {task_id}")
+    logger.info(f"🔍 BREAKPOINT 1: Starting process_due_ai_tasks task {task_id}")
+    print(f"🔍 BREAKPOINT 1: Starting process_due_ai_tasks task {task_id}")
 
     try:
         # Use asyncio.run() with proper event loop handling
@@ -51,7 +52,9 @@ def process_due_ai_tasks(self) -> Dict[str, Any]:
             asyncio.set_event_loop(loop)
 
         # Run the async function
+        print("🔍 BREAKPOINT 2: About to call _process_due_ai_tasks_async")
         result = loop.run_until_complete(_process_due_ai_tasks_async(task_id))
+        print(f"🔍 BREAKPOINT 3: _process_due_ai_tasks_async completed, result: {result}")
         return result
 
     except Exception as e:
@@ -64,14 +67,16 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
     """
     Async implementation of the AI task processing logic.
     """
+    print("🔍 BREAKPOINT 4: Entering _process_due_ai_tasks_async")
     task_manager = AITaskManager()
-    # notification_service = NotificationService() # Commented out - file issues
-    # task_executor = TaskExecutor() # Commented out - file issues
+    notification_service = NotificationService()
+    task_executor = TaskExecutor()
 
     try:
         # Get due tasks
         due_tasks = await task_manager.get_due_tasks(limit=50)
-        logger.info(f"Found {len(due_tasks)} due AI tasks")
+        logger.info(f"🔍 BREAKPOINT 5: Found {len(due_tasks)} due AI tasks")
+        print(f"🔍 BREAKPOINT 5: Found {len(due_tasks)} due AI tasks")
 
         if not due_tasks:
             return {
@@ -89,7 +94,8 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
 
         for task in due_tasks:
             try:
-                logger.info(f"Processing AI task: {task.title} (ID: {task.id})")
+                logger.info(f"🔍 BREAKPOINT 6: Processing AI task: {task.title} (ID: {task.id})")
+                print(f"🔍 BREAKPOINT 6: Processing AI task: {task.title} (ID: {task.id})")
 
                 # Mark task as processing
                 await task_manager.update_task_status(
@@ -99,8 +105,9 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
                 )
 
                 # Execute the task
-                # execution_result = await task_executor.execute_task(task) # Commented out - file issues
-                execution_result: Dict[str, Any] = {}  # Placeholder for now
+                print("🔍 BREAKPOINT 7: About to call TaskExecutor.execute_task")
+                execution_result = await task_executor.execute_task(task)
+                print(f"🔍 BREAKPOINT 8: TaskExecutor.execute_task completed, result: {execution_result}")
 
                 # Mark task as completed
                 await task_manager.update_task_status(
@@ -110,10 +117,14 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
                 )
 
                 # Send notification if configured
-                # if task.notification_enabled: # Commented out - file issues
-                #     await notification_service.send_task_completion_notification( # Commented out - file issues
-                #         task, execution_result # Commented out - file issues
-                #     ) # Commented out - file issues
+                if task.should_notify():
+                    print(f"🔍 BREAKPOINT 9: About to send SMS notification")
+                    await notification_service.send_task_completion_notification(
+                        task, execution_result
+                    )
+                    print(f"🔍 BREAKPOINT 10: SMS notification sent")
+                else:
+                    print(f"🔍 BREAKPOINT 9: Task should_notify() returned False, skipping SMS")
 
                 processed_tasks += 1
                 results.append(

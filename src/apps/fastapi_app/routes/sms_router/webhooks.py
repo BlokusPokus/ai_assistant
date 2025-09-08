@@ -35,6 +35,10 @@ async def twilio_sms_webhook(
         MessageSid: Twilio message SID
         routing_engine: SMS routing engine instance
     """
+    logger.info(f"🚨 SMS WEBHOOK CALLED! From: {From}, To: {To}, Body: {Body}, MessageSid: {MessageSid}")
+    logger.info(f"🚨 Request headers: {dict(request.headers)}")
+    logger.info(f"🚨 Request client: {request.client}")
+    
     try:
         # Validate webhook (optional security measure)
         if not validate_twilio_webhook(request):

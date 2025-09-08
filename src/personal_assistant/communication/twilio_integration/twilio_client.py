@@ -81,7 +81,9 @@ class TwilioService:
 
                 # Process message with existing logic for registered users
                 if self.agent is None:
+                    logger.error("Agent is None, cannot process message")
                     return self._create_helpful_guidance_response(from_number)
+                
                 result = await self.agent.run(message, user_info["id"])
                 logger.info(f"Generated response: '{result}'")
                 response.message(result)
@@ -170,13 +172,13 @@ class TwilioService:
             Exception: For other unexpected errors
         """
         try:
-            twilio_message = self.client.messages.create(
+            message = self.client.messages.create(
                 body=message, from_=self.from_number, to=to
             )
 
-            logger.info(f"Message sent successfully. SID: {twilio_message.sid}")
-            logger.info(f"Message status: {twilio_message.status}")
-            return twilio_message.sid  # type: ignore
+            logger.info(f"Message sent successfully. SID: {message.sid}")
+            logger.info(f"Message status: {message.status}")
+            return message.sid
 
         except TwilioRestException as e:
             logger.error(f"Twilio error: {e.code} - {e.msg}")
@@ -211,7 +213,7 @@ class TwilioService:
             )
 
             logger.info(f"Verification SMS sent successfully. SID: {message.sid}")
-            return message.sid  # type: ignore
+            return message.sid
 
         except TwilioRestException as e:
             logger.error(f"Twilio error sending verification SMS: {e.code} - {e.msg}")

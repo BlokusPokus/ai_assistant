@@ -6,9 +6,11 @@ AI tasks and reminders that can be executed by the AI assistant.
 """
 
 import logging
+from typing import Any, Dict, Optional
 
-from ..ai_scheduler.ai_task_manager import AITaskManager
+from ..ai_scheduler.core.task_manager import AITaskManager
 from ..base import Tool
+from .reminder_internal import ReminderInternal
 
 logger = logging.getLogger(__name__)
 
@@ -121,24 +123,54 @@ class ReminderTool:
         )
 
     async def create_reminder(self, **kwargs) -> str:
-        """Create a new reminder."""
+        """Create a new reminder or periodic task."""
         text = kwargs.get("text")
         time = kwargs.get("time")
         channel = kwargs.get("channel", "sms")
-        kwargs.get("task_type", "reminder")
-        kwargs.get("schedule_type", "once")
+        task_type = kwargs.get("task_type", "reminder")
+        schedule_type = kwargs.get("schedule_type", "once")
         user_id = kwargs.get("user_id", 126)
 
-        if not text:
-            return "Error: 'text' parameter is required for creating reminders"
-        if not time:
-            return "Error: 'time' parameter is required for creating reminders"
+        # Validate inputs
+        is_valid, error_msg = ReminderInternal.validate_reminder_inputs(text, time)
+        if not is_valid:
+            return error_msg
 
         try:
-            result = await self.task_manager.create_reminder_with_validation(
-                text=text, time=time, channel=channel, user_id=user_id
-            )
-            return result.get("message", "Reminder created successfully")  # type: ignore
+            # For one-time reminders, use the existing validation function
+            if schedule_type == "once" and task_type == "reminder":
+                result = await self.task_manager.create_reminder_with_validation(
+                    text=text, time=time, channel=channel, user_id=user_id
+                )
+                return result.get("message", "Reminder created successfully")  # type: ignore
+            
+            # For periodic tasks, create directly using create_task
+            else:
+                # Parse time for periodic tasks
+                remind_at = ReminderInternal.parse_time_string(time)
+                if remind_at is None:
+                    return f"❌ Error: Invalid time format '{time}'. Please use ISO format (YYYY-MM-DDTHH:MM:SS) or relative time (e.g., 'in 1 hour', 'tomorrow at 9am')"
+                
+                # Create schedule config based on schedule_type
+                schedule_config = ReminderInternal.create_schedule_config(schedule_type, remind_at)
+                
+                # Calculate next run time
+                next_run_at = await self.task_manager.calculate_next_run(schedule_type, schedule_config)
+                
+                # Create the task
+                task = await self.task_manager.create_task(
+                    user_id=user_id,
+                    title=text,
+                    description=text,
+                    task_type=task_type,
+                    schedule_type=schedule_type,
+                    schedule_config=schedule_config,
+                    next_run_at=next_run_at,
+                    notification_channels=[channel],
+                )
+                
+                return ReminderInternal.format_task_creation_response(task_type, text, task.id, schedule_type)
+                
         except Exception as e:
             return f"Error creating reminder: {str(e)}"
 
@@ -148,8 +180,25 @@ class ReminderTool:
         user_id = kwargs.get("user_id", 126)
 
         try:
-            result = await self.task_manager.list_user_reminders(status, user_id)
-            return result.get("message", "No reminders found")  # type: ignore
+            # Validate status
+            is_valid, error_msg = ReminderInternal.validate_status(status)
+            if not is_valid:
+                return error_msg
+
+            # Get user's reminder tasks directly
+            tasks = await self.task_manager.get_user_tasks(
+                user_id=user_id, status=status, task_type="reminder", limit=50
+            )
+
+            if not tasks:
+                return f"No {status} reminders found."
+
+            # Format the response
+            result = ReminderInternal.format_reminder_list_header(status or "all", len(tasks))
+            for task in tasks:
+                result += ReminderInternal.format_reminder_item(task)
+
+            return result
         except Exception as e:
             return f"Error listing reminders: {str(e)}"
 
@@ -158,46 +207,51 @@ class ReminderTool:
         reminder_id = kwargs.get("reminder_id")
         user_id = kwargs.get("user_id", 126)
 
-        if not reminder_id:
-            return "Error: 'reminder_id' parameter is required for deleting reminders"
+        # Validate reminder_id
+        is_valid, parsed_id, error_msg = ReminderInternal.validate_reminder_id(reminder_id)
+        if not is_valid:
+            return error_msg
 
         try:
-            result = await self.task_manager.delete_user_reminder(reminder_id, user_id)
-            return result.get("message", "Reminder deleted successfully")  # type: ignore
+            # Check if the reminder exists and belongs to the user
+            user_tasks = await self.task_manager.get_user_tasks(
+                user_id=user_id, task_type="reminder", limit=100
+            )
+
+            if not ReminderInternal.check_reminder_ownership(parsed_id, user_tasks):
+                return f"❌ Reminder {parsed_id} not found or you don't have permission to delete it"
+
+            # Delete the task directly
+            success = await self.task_manager.delete_task(parsed_id, user_id)
+            return ReminderInternal.format_deletion_response(parsed_id, success)
+
         except Exception as e:
-            return f"Error deleting reminder: {str(e)}"
+            return f"❌ Error deleting reminder: {str(e)}"
 
     async def update_reminder(self, **kwargs) -> str:
         """Update a reminder."""
         reminder_id = kwargs.get("reminder_id")
         user_id = kwargs.get("user_id", 126)
 
-        if not reminder_id:
-            return "Error: 'reminder_id' parameter is required for updating reminders"
+        # Validate reminder_id
+        is_valid, parsed_id, error_msg = ReminderInternal.validate_reminder_id(reminder_id)
+        if not is_valid:
+            return error_msg
 
         # Extract update fields
-        update_data = {}
-        if "text" in kwargs:
-            update_data["title"] = kwargs["text"]
-        if "time" in kwargs:
-            update_data["next_run_at"] = kwargs["time"]
-        if "channel" in kwargs:
-            update_data["notification_channels"] = [kwargs["channel"]]
-        if "task_type" in kwargs:
-            update_data["task_type"] = kwargs["task_type"]
-        if "schedule_type" in kwargs:
-            update_data["schedule_type"] = kwargs["schedule_type"]
+        update_data = ReminderInternal.build_update_data(**kwargs)
 
         if not update_data:
             return "Error: No update fields provided. Available fields: text, time, channel, task_type, schedule_type"
 
         try:
             result = await self.task_manager.update_task(
-                reminder_id, user_id, update_data
+                parsed_id, user_id, update_data
             )
             return result.get("message", "Reminder updated successfully")  # type: ignore
         except Exception as e:
             return f"Error updating reminder: {str(e)}"
+
 
     def __iter__(self):
         """Iterate over available reminder tools."""

@@ -50,15 +50,44 @@ class EnhancedPromptBuilder:
                 create_email_ai_enhancements,
                 create_email_tool_metadata,
             )
+            from ..tools.metadata.ai_task_metadata import (
+                create_ai_task_ai_enhancements,
+                create_ai_task_metadata,
+            )
+            from ..tools.metadata.internet_metadata import (
+                create_internet_ai_enhancements,
+                create_internet_tool_metadata,
+            )
+            from ..tools.metadata.note_metadata import (
+                create_note_ai_enhancements,
+                create_note_tool_metadata,
+            )
 
             # Register email tool metadata
             email_metadata = create_email_tool_metadata()
             self.metadata_manager.register_tool_metadata(email_metadata)
-
-            # Register email tool AI enhancements
             create_email_ai_enhancements(self.enhancement_manager)
 
-            logger.info("Enhanced prompt builder initialized with tool metadata")
+            # Register AI task scheduler tool metadata
+            ai_task_metadata = create_ai_task_metadata()
+            self.metadata_manager.register_tool_metadata(ai_task_metadata)
+            # AI task enhancements returns a manager, so we need to merge it
+            ai_task_enhancements = create_ai_task_ai_enhancements()
+            # Merge the enhancements into our main manager
+            for enhancement in ai_task_enhancements.enhancements.values():
+                self.enhancement_manager.register_enhancement(enhancement)
+
+            # Register internet tool metadata
+            internet_metadata = create_internet_tool_metadata()
+            self.metadata_manager.register_tool_metadata(internet_metadata)
+            create_internet_ai_enhancements(self.enhancement_manager)
+
+            # Register note tool metadata
+            note_metadata = create_note_tool_metadata()
+            self.metadata_manager.register_tool_metadata(note_metadata)
+            create_note_ai_enhancements(self.enhancement_manager)
+
+            logger.info("Enhanced prompt builder initialized with all tool metadata")
 
         except Exception as e:
             logger.warning(f"Failed to initialize tool metadata: {e}")
@@ -166,19 +195,19 @@ class EnhancedPromptBuilder:
             word in input_lower
             for word in ["research", "search", "find", "look up", "investigate"]
         ):
-            required_tools.append("internet_tool")
+            required_tools.append("internet_tools")
 
         # Note-taking tasks
         if any(
             word in input_lower for word in ["note", "write down", "document", "save"]
         ):
-            required_tools.append("notion_tool")
+            required_tools.append("note_tool")
 
         # Planning tasks
         if any(
             word in input_lower for word in ["plan", "organize", "coordinate", "manage"]
         ):
-            required_tools.append("ai_scheduler_tool")
+            required_tools.append("ai_task_scheduler")
 
         logger.debug(
             f"Analyzed tool requirements: {required_tools} for input: {user_input[:50]}..."
