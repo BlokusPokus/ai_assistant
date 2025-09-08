@@ -28,7 +28,7 @@ def get_notion_client() -> Client:
     return _notion_client
 
 
-async def ensure_main_page_exists(
+def ensure_main_page_exists(
     client: Client, main_page_id: Optional[str] = None
 ) -> str:
     """Ensure the main table of contents page exists, create if it doesn't"""
@@ -37,7 +37,7 @@ async def ensure_main_page_exists(
 
     try:
         # Search for existing main page
-        response = await client.search(
+        response = client.search(
             query="Table of Contents", filter={"property": "object", "value": "page"}
         )
 
@@ -54,7 +54,7 @@ async def ensure_main_page_exists(
                 return found_main_page_id  # type: ignore
 
         # Create main page if it doesn't exist
-        main_page = await client.pages.create(
+        main_page = client.pages.create(
             parent={"type": "page_id", "page_id": settings.NOTION_ROOT_PAGE_ID},
             properties={
                 "title": [{"type": "text", "text": {"content": "Table of Contents"}}]
