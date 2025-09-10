@@ -58,14 +58,14 @@ class CalendarTool:
         self.create_calendar_event_tool = Tool(
             name="create_calendar_event",
             func=self.create_calendar_event,
-            description="Create a new calendar event or reminder",
+            description="Create a new calendar event or reminder. Use 'subject' for the event title, 'start_time' for when it starts, and 'duration' for how long it lasts (in minutes).",
             parameters={
-                "subject": {"type": "string", "description": "Title of the event"},
+                "subject": {"type": "string", "description": "Event title/subject (use this parameter name, not 'title')"},
                 "start_time": {
                     "type": "string",
-                    "description": "Start time in YYYY-MM-DD HH:MM format (e.g., 2024-01-15 14:30)",
+                    "description": "Start time in YYYY-MM-DD HH:MM or YYYY-MM-DDTHH:MM format (e.g., '2024-01-15 14:30' or '2024-01-15T14:30'). Use this parameter name, not 'time' or 'date'.",
                 },
-                "duration": {"type": "integer", "description": "Duration in minutes"},
+                "duration": {"type": "integer", "description": "Duration in minutes (use this parameter name, not 'end_time')"},
                 "location": {"type": "string", "description": "Location of the event"},
                 "attendees": {
                     "type": "string",
@@ -77,11 +77,11 @@ class CalendarTool:
         self.delete_calendar_event_tool = Tool(
             name="delete_calendar_event",
             func=self.delete_calendar_event,
-            description="Delete a calendar event by its ID",
+            description="Delete a specific calendar event by its ID. Use this to delete individual events. The response will clearly indicate which event was deleted by name/subject to help you track progress.",
             parameters={
                 "event_id": {
                     "type": "string",
-                    "description": "The ID of the event to delete",
+                    "description": "The ID of the specific event to delete (get this from view_calendar_events first)",
                 }
             },
         )
@@ -377,15 +377,42 @@ class CalendarTool:
 
             headers = build_calendar_headers(self._access_token)
 
+            # First, get event details before deletion for better response
+            event_details = None
+            try:
+                async with httpx.AsyncClient() as client:
+                    get_response = await client.get(
+                        f"{self.ms_graph_url}/me/events/{event_id}", headers=headers
+                    )
+                    if get_response.status_code == 200:
+                        event_data = get_response.json()
+                        event_details = {
+                            "subject": event_data.get("subject", "Untitled Event"),
+                            "start": event_data.get("start", {}).get("dateTime", "Unknown"),
+                            "location": event_data.get("location", {}).get("displayName", "No location")
+                        }
+            except Exception:
+                # If we can't get event details, continue with deletion anyway
+                pass
+
+            # Now delete the event
             async with httpx.AsyncClient() as client:
                 response = await client.delete(
                     f"{self.ms_graph_url}/me/events/{event_id}", headers=headers
                 )
 
                 if response.status_code == 204:  # No content on successful deletion
-                    return format_success_response(
-                        f"Successfully deleted event with ID: {event_id}"
-                    )
+                    # Create a more informative success message
+                    if event_details:
+                        message = f"✅ Successfully deleted event: '{event_details['subject']}'"
+                        message += f"\n📅 Start time: {event_details['start']}"
+                        if event_details['location'] != "No location":
+                            message += f"\n📍 Location: {event_details['location']}"
+                        message += f"\n🆔 Event ID: {event_id[:20]}..."
+                    else:
+                        message = f"✅ Successfully deleted event with ID: {event_id[:20]}..."
+                    
+                    return format_success_response(message, {"deleted_event": event_details})
                 elif response.status_code == 404:
                     return handle_event_not_found(event_id)
                 else:

@@ -9,6 +9,5 @@ __version__ = "0.1.0"
 __author__ = "Personal Assistant Team"
 
 from .core.agent import AgentCore
-from .core.runner import AgentRunner
 
-__all__ = ["AgentCore", "AgentRunner"]
+__all__ = ["AgentCore"]

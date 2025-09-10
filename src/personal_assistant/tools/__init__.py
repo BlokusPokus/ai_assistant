@@ -41,10 +41,10 @@ def create_tool_registry() -> ToolRegistry:
     #     registry.register(tool)
 
     # Register Notion pages tools (new page-based note system)
-    notion_pages_tool = NotionPagesTool()
-    for tool in notion_pages_tool:
-        tool.set_category("NotionPages")
-        registry.register(tool)
+    # notion_pages_tool = NotionPagesTool()
+    # for tool in notion_pages_tool:
+    #     tool.set_category("NotionPages")
+    #     registry.register(tool)
 
     # Register enhanced notes tools (AI-powered note management)
     enhanced_notes_tool = EnhancedNotesTool()

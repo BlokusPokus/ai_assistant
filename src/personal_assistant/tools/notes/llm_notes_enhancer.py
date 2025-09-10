@@ -9,8 +9,7 @@ This module provides specialized LLM capabilities for:
 """
 
 import json
-import logging
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -38,6 +37,7 @@ class EnhancedNote:
     """Enhanced note with LLM-processed content"""
     original_content: str
     enhanced_content: str
+    enhanced_title: str
     note_type: NoteType
     suggested_tags: List[str]
     key_topics: List[str]
@@ -75,7 +75,9 @@ Please analyze and provide ALL of the following in a single JSON response:
 5. Structure Suggestions: How to better organize this content (2-3 suggestions)
 6. Smart Tags: Generate 3-5 relevant tags for organization and searchability
 7. Enhanced Content: Improve the content structure and formatting while preserving meaning
-8. Confidence Score: Rate your analysis confidence (0.0-1.0)
+   IMPORTANT: Keep enhanced_content under 2000 characters for Notion compatibility
+8. Enhanced Title: Generate a clear, descriptive title for this note (if no title provided, create one)
+9. Confidence Score: Rate your analysis confidence (0.0-1.0)
 
 Consider the note type when enhancing content:
 - Meeting notes: Include date, attendees, discussion points, action items
@@ -93,44 +95,56 @@ Return ONLY valid JSON in this exact format:
     "structure_suggestions": ["suggestion1", "suggestion2"],
     "smart_tags": ["tag1", "tag2", "tag3"],
     "enhanced_content": "improved content with better structure",
+    "enhanced_title": "clear, descriptive title for the note",
     "confidence_score": 0.85
 }}
 """,
-            
-            "note_type_classification": """
-Classify the following note content into one of these types:
-- meeting: Meeting notes, discussions, decisions
-- project: Project planning, documentation, progress
-- personal: Personal thoughts, plans, memories
-- research: Research findings, analysis, sources
-- learning: Educational content, tutorials, study notes
-- task: Task lists, to-dos, reminders
-- idea: Brainstorming, creative ideas, concepts
-- journal: Daily logs, reflections, experiences
+            "existing_note_enhancement": """
+You are a specialized note improvement AI. You are enhancing an EXISTING note that the user has already created. Your job is to improve what's already there, not create something new.
 
-Content: {content}
-Title: {title}
+EXISTING Note Content: {content}
+EXISTING Note Title: {title}
 
-Return only the classification type (lowercase).
-""",
-            
-            "tag_generation": """
-You are a tag generation AI. Based on the note content and analysis, generate 3-5 relevant tags.
+IMPORTANT: This is an existing note that needs improvement. Focus on:
+- Preserving the original meaning and intent
+- Improving structure and organization
+- Adding missing context or details
+- Enhancing readability and clarity
+- Making it more actionable and useful
 
-Content: {content}
-Title: {title}
-Note Type: {note_type}
-Key Topics: {key_topics}
+SPECIAL CASE: If the note is empty or has minimal content (like a placeholder), treat it as a fresh start and create comprehensive, well-structured content based on the title and any existing context.
 
-Consider:
-- Main topics and themes
-- Note type and purpose
-- Key people or projects mentioned
-- Time sensitivity or priority
-- Category or domain
+Please analyze and provide ALL of the following in a single JSON response:
 
-Generate tags that will help with organization and searchability. Return as a JSON array:
-["tag1", "tag2", "tag3"]
+1. Note Type: Choose from meeting, project, personal, research, learning, task, idea, journal, or unknown
+2. Key Topics: List 3-5 main subjects or themes from the existing content
+3. Action Items: Extract any tasks, follow-ups, or action items mentioned (preserve existing ones)
+4. Important Details: List 3-5 critical pieces of information from the existing content
+5. Structure Suggestions: How to better organize this existing content (2-3 specific suggestions)
+6. Smart Tags: Generate 3-5 relevant tags for organization and searchability
+7. Enhanced Content: Improve the existing content structure and formatting while preserving ALL original meaning
+   - Keep the same core information but make it clearer and better organized
+   - Add missing context or details that would be helpful
+   - Improve formatting and structure
+   - For empty notes: Create comprehensive, well-structured content based on the title
+   - IMPORTANT: Keep enhanced_content under 2000 characters for Notion compatibility
+8. Enhanced Title: Improve the existing title to be more descriptive and clear
+9. Confidence Score: Rate your analysis confidence (0.0-1.0)
+
+Focus on IMPROVING what exists rather than creating something new. The user wants their existing note to be better, not replaced.
+
+Return ONLY valid JSON in this exact format:
+{{
+    "note_type": "string",
+    "key_topics": ["topic1", "topic2"],
+    "action_items": ["action1", "action2"],
+    "important_details": ["detail1", "detail2"],
+    "structure_suggestions": ["suggestion1", "suggestion2"],
+    "smart_tags": ["tag1", "tag2", "tag3"],
+    "enhanced_content": "improved existing content with better structure",
+    "enhanced_title": "improved, descriptive title for the existing note",
+    "confidence_score": 0.85
+}}
 """
         }
     
@@ -164,38 +178,17 @@ Generate tags that will help with organization and searchability. Return as a JS
             response = await self._get_llm_response(prompt)
             
             # Parse the comprehensive response
-            # Handle cases where response might be wrapped in code blocks
-            if "```json" in response:
-                # Extract JSON from code block
-                start = response.find("```json") + 7
-                end = response.find("```", start)
-                json_str = response[start:end].strip()
-            else:
-                json_str = response.strip()
+            analysis = self._parse_llm_json_response(response)
             
-            # Clean up any special characters that might break JSON parsing
-            json_str = json_str.replace('\u4fac', '')  # Remove problematic unicode characters
-            
-            analysis = json.loads(json_str)
-            
-            # Map string response to enum
-            type_mapping = {
-                "meeting": NoteType.MEETING,
-                "project": NoteType.PROJECT,
-                "personal": NoteType.PERSONAL,
-                "research": NoteType.RESEARCH,
-                "learning": NoteType.LEARNING,
-                "task": NoteType.TASK,
-                "idea": NoteType.IDEA,
-                "journal": NoteType.JOURNAL
-            }
-            
-            note_type_enum = type_mapping.get(analysis.get("note_type", "unknown"), NoteType.UNKNOWN)
+            # Convert string note type to enum
+            note_type_str = analysis.get("note_type", "unknown").lower()
+            note_type_enum = getattr(NoteType, note_type_str.upper(), NoteType.UNKNOWN)
             
             # Create enhanced note object
             enhanced_note = EnhancedNote(
                 original_content=content,
                 enhanced_content=analysis.get("enhanced_content", content),
+                enhanced_title=analysis.get("enhanced_title", title or "Untitled"),
                 note_type=note_type_enum,
                 suggested_tags=analysis.get("smart_tags", []),
                 key_topics=analysis.get("key_topics", []),
@@ -214,6 +207,7 @@ Generate tags that will help with organization and searchability. Return as a JS
             return EnhancedNote(
                 original_content=content,
                 enhanced_content=content,
+                enhanced_title=title or "Untitled",
                 note_type=NoteType.UNKNOWN,
                 suggested_tags=[],
                 key_topics=[],
@@ -223,63 +217,106 @@ Generate tags that will help with organization and searchability. Return as a JS
                 confidence_score=0.0
             )
     
-    async def detect_note_type(self, content: str, title: str = None) -> NoteType:
-        """Detect the type of note based on content analysis"""
+    async def enhance_existing_note_content(
+        self, 
+        content: str, 
+        title: str = None,
+        note_type: Optional[NoteType] = None
+    ) -> EnhancedNote:
+        """
+        Enhance existing note content using specialized LLM analysis for existing notes
+        
+        Args:
+            content: Original existing note content
+            title: Note title (optional)
+            note_type: Pre-determined note type (optional)
+            
+        Returns:
+            EnhancedNote with all processed information
+        """
         try:
-            prompt = self.prompts["note_type_classification"].format(
+            self.logger.info(f"Enhancing existing note content: {title or 'Untitled'}")
+            
+            # Use existing note enhancement prompt
+            prompt = self.prompts["existing_note_enhancement"].format(
                 content=content,
                 title=title or "Untitled"
             )
             
+            # Single LLM call that does everything
             response = await self._get_llm_response(prompt)
-            note_type_str = response.strip().lower()
             
-            # Map string response to enum
-            type_mapping = {
-                "meeting": NoteType.MEETING,
-                "project": NoteType.PROJECT,
-                "personal": NoteType.PERSONAL,
-                "research": NoteType.RESEARCH,
-                "learning": NoteType.LEARNING,
-                "task": NoteType.TASK,
-                "idea": NoteType.IDEA,
-                "journal": NoteType.JOURNAL
-            }
+            # Parse the comprehensive response
+            analysis = self._parse_llm_json_response(response)
             
-            return type_mapping.get(note_type_str, NoteType.UNKNOWN)
+            # Convert string note type to enum
+            note_type_str = analysis.get("note_type", "unknown").lower()
+            note_type_enum = getattr(NoteType, note_type_str.upper(), NoteType.UNKNOWN)
             
-        except Exception as e:
-            self.logger.error(f"Error detecting note type: {e}")
-            return NoteType.UNKNOWN
-    
-    async def generate_smart_tags(
-        self, 
-        content: str, 
-        title: str = None,
-        note_type: NoteType = None,
-        key_topics: List[str] = None
-    ) -> List[str]:
-        """Generate intelligent tags based on content analysis"""
-        try:
-            prompt = self.prompts["tag_generation"].format(
-                content=content,
-                title=title or "Untitled",
-                note_type=note_type.value if note_type else "unknown",
-                key_topics=", ".join(key_topics) if key_topics else "none"
+            # Create enhanced note object
+            enhanced_note = EnhancedNote(
+                original_content=content,
+                enhanced_content=analysis.get("enhanced_content", content),
+                enhanced_title=analysis.get("enhanced_title", title or "Untitled"),
+                note_type=note_type_enum,
+                suggested_tags=analysis.get("smart_tags", []),
+                key_topics=analysis.get("key_topics", []),
+                action_items=analysis.get("action_items", []),
+                important_details=analysis.get("important_details", []),
+                structure_suggestions=analysis.get("structure_suggestions", []),
+                confidence_score=analysis.get("confidence_score", 0.0)
             )
             
-            response = await self._get_llm_response(prompt)
-            tags = json.loads(response)
+            self.logger.info(f"Successfully enhanced existing note: {title or 'Untitled'}")
+            return enhanced_note
             
-            # Validate and clean tags
-            if isinstance(tags, list):
-                return [tag.strip().lower() for tag in tags if tag.strip()]
-            else:
-                return []
-                
         except Exception as e:
-            self.logger.error(f"Error generating tags: {e}")
-            return []
+            self.logger.error(f"Error enhancing existing note content: {e}")
+            # Return basic enhanced note on error
+            return EnhancedNote(
+                original_content=content,
+                enhanced_content=content,
+                enhanced_title=title or "Untitled",
+                note_type=NoteType.UNKNOWN,
+                suggested_tags=[],
+                key_topics=[],
+                action_items=[],
+                important_details=[],
+                structure_suggestions=[],
+                confidence_score=0.0
+            )
+    
+    def _parse_llm_json_response(self, response: str) -> dict:
+        """Parse JSON response from LLM, handling code blocks and special characters"""
+        try:
+            # Handle cases where response might be wrapped in code blocks
+            if "```json" in response:
+                # Extract JSON from code block
+                start = response.find("```json") + 7
+                end = response.find("```", start)
+                json_str = response[start:end].strip()
+            else:
+                json_str = response.strip()
+            
+            # Clean up any special characters that might break JSON parsing
+            json_str = json_str.replace('\u4fac', '')  # Remove problematic unicode characters
+            
+            return json.loads(json_str)
+            
+        except Exception as e:
+            self.logger.error(f"Error parsing LLM JSON response: {e}")
+            # Return empty analysis structure as fallback
+            return {
+                "note_type": "unknown",
+                "key_topics": [],
+                "action_items": [],
+                "important_details": [],
+                "structure_suggestions": [],
+                "smart_tags": [],
+                "enhanced_content": "",
+                "enhanced_title": "",
+                "confidence_score": 0.0
+            }
     
     async def _get_llm_response(self, prompt: str) -> str:
         """Get response from LLM with error handling"""

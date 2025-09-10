@@ -93,45 +93,6 @@ class InternetTool:
             },
         )
 
-        # self.get_news_articles_tool = Tool(
-        #     name="get_news_articles",
-        #     func=self.get_news_articles,
-        #     description="Get current news articles by category or topic",
-        #     parameters={
-        #         "category": {
-        #             "type": "string",
-        #             "description": "News category: business, technology, sports, etc. (optional)"
-        #         },
-        #         "topic": {
-        #             "type": "string",
-        #             "description": "Specific topic to search for (optional)"
-        #         },
-        #         "max_articles": {
-        #             "type": "integer",
-        #             "description": "Maximum number of articles (default: 5)"
-        #         }
-        #     }
-        # )
-
-        # self.get_wikipedia_tool = Tool(
-        #     name="get_wikipedia",
-        #     func=self.get_wikipedia,
-        #     description="Search Wikipedia for information on a topic",
-        #     parameters={
-        #         "topic": {
-        #             "type": "string",
-        #             "description": "Topic to search for (required)"
-        #         },
-        #         "language": {
-        #             "type": "string",
-        #             "description": "Language code (default: en)"
-        #         },
-        #         "summary_only": {
-        #             "type": "boolean",
-        #             "description": "Return only summary (default: true)"
-        #         }
-        #     }
-        # )
 
         # self.search_images_tool = Tool(
         #     name="search_images",
@@ -254,57 +215,7 @@ class InternetTool:
             )
             return str(error_response)
 
-    # async def get_news_articles(self, category: Optional[str] = None, topic: Optional[str] = None, max_articles: int = 5) -> str:
-    #     """Get current news articles by category or topic"""
-    #     try:
-    #         # Validate parameters using internal functions
-    #         max_articles = validate_news_parameters(max_articles)
-
-    #         logger.info(
-    #             f"News articles request - Category: {category}, Topic: {topic}, Max: {max_articles}")
-
-    #         # Check rate limits
-    #         is_valid, new_time = check_rate_limit(self._last_request_time)
-    #         self._last_request_time = new_time
-
-    #         # TODO: Implement News API integration
-    #         # For now, return a placeholder response
-    #         return format_news_articles_response(category, topic, max_articles)
-
-    #     except Exception as e:
-    #         logger.error(f"Error getting news articles: {e}")
-    #         return InternetErrorHandler.handle_internet_error(e, "get_news_articles", {"category": category, "topic": topic, "max_articles": max_articles})
-
-    # async def get_wikipedia(self, topic: str, language: str = "en", summary_only: bool = True) -> str:
-    #     """Search Wikipedia for information on a topic"""
-    #     try:
-    #         # Validate parameters using internal functions
-    #         is_valid, error_msg = validate_topic(topic)
-    #         if not is_valid:
-    #             return InternetErrorHandler.handle_internet_error(
-    #                 ValueError(error_msg),
-    #                 "get_wikipedia",
-    #                 {"topic": topic, "language": language,
-    #                     "summary_only": summary_only}
-    #             )
-
-    #         language = validate_language_code(language)
-
-    #         logger.info(
-    #             f"Wikipedia request - Topic: {topic}, Language: {language}, Summary: {summary_only}")
-
-    #         # Check rate limits
-    #         is_valid, new_time = check_rate_limit(self._last_request_time)
-    #         self._last_request_time = new_time
-
-    #         # TODO: Implement Wikipedia API integration
-    #         # For now, return a placeholder response
-    #         return format_wikipedia_response(topic, language, summary_only)
-
-    #     except Exception as e:
-    #         logger.error(f"Error getting Wikipedia info: {e}")
-    #         return InternetErrorHandler.handle_internet_error(e, "get_wikipedia", {"topic": topic, "language": language, "summary_only": summary_only})
-
+  
     # async def search_images(self, query: str, max_results: int = 10, safe_search: str = "strict") -> str:
     #     """Search for images on the web using DuckDuckGo"""
     #     try:

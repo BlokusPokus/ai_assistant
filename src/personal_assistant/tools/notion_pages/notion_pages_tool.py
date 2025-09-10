@@ -43,22 +43,26 @@ class NotionPagesTool:
             func=self.create_note_page,
             description="Create a new note page under the main table of contents page",
             parameters={
-                "title": {
-                    "type": "string",
-                    "description": "Title of the note page (required)",
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "Title of the note page (required)",
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Content of the note page (required)",
+                    },
+                    "tags": {
+                        "type": "string",
+                        "description": "Comma-separated tags for categorization (optional)",
+                    },
+                    "category": {
+                        "type": "string",
+                        "description": "Category for organizing the note (optional)",
+                    },
                 },
-                "content": {
-                    "type": "string",
-                    "description": "Content of the note page (required)",
-                },
-                "tags": {
-                    "type": "string",
-                    "description": "Comma-separated tags for categorization (optional)",
-                },
-                "category": {
-                    "type": "string",
-                    "description": "Category for organizing the note (optional)",
-                },
+                "required": ["title", "content"]
             },
         )
 
@@ -67,10 +71,14 @@ class NotionPagesTool:
             func=self.read_note_page,
             description="Read note content and properties by page ID or title",
             parameters={
-                "page_identifier": {
-                    "type": "string",
-                    "description": "Page ID or page title to read (required)",
-                }
+                "type": "object",
+                "properties": {
+                    "page_identifier": {
+                        "type": "string",
+                        "description": "Page ID or page title to read (required)",
+                    }
+                },
+                "required": ["page_identifier"]
             },
         )
 
@@ -79,26 +87,30 @@ class NotionPagesTool:
             func=self.update_note_page,
             description="Update note content and properties by page ID",
             parameters={
-                "page_id": {
-                    "type": "string",
-                    "description": "Page ID to update (required)",
+                "type": "object",
+                "properties": {
+                    "page_id": {
+                        "type": "string",
+                        "description": "Page ID to update (required)",
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "New content for the note page (optional)",
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "New title for the note page (optional)",
+                    },
+                    "tags": {
+                        "type": "string",
+                        "description": "New comma-separated tags (optional)",
+                    },
+                    "category": {
+                        "type": "string",
+                        "description": "New category (optional)",
+                    },
                 },
-                "content": {
-                    "type": "string",
-                    "description": "New content for the note page (optional)",
-                },
-                "title": {
-                    "type": "string",
-                    "description": "New title for the note page (optional)",
-                },
-                "tags": {
-                    "type": "string",
-                    "description": "New comma-separated tags (optional)",
-                },
-                "category": {
-                    "type": "string",
-                    "description": "New category (optional)",
-                },
+                "required": ["page_id"]
             },
         )
 
@@ -107,10 +119,14 @@ class NotionPagesTool:
             func=self.delete_note_page,
             description="Delete a note page by page ID",
             parameters={
-                "page_id": {
-                    "type": "string",
-                    "description": "Page ID to delete (required)",
-                }
+                "type": "object",
+                "properties": {
+                    "page_id": {
+                        "type": "string",
+                        "description": "Page ID to delete (required)",
+                    }
+                },
+                "required": ["page_id"]
             },
         )
 
@@ -119,15 +135,19 @@ class NotionPagesTool:
             func=self.search_notes,
             description="Search across all note pages by content, title, or metadata",
             parameters={
-                "query": {"type": "string", "description": "Search query (required)"},
-                "category": {
-                    "type": "string",
-                    "description": "Filter by category (optional)",
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Search query (required)"},
+                    "category": {
+                        "type": "string",
+                        "description": "Filter by category (optional)",
+                    },
+                    "tags": {
+                        "type": "string",
+                        "description": "Filter by comma-separated tags (optional)",
+                    },
                 },
-                "tags": {
-                    "type": "string",
-                    "description": "Filter by comma-separated tags (optional)",
-                },
+                "required": ["query"]
             },
         )
 
@@ -135,7 +155,11 @@ class NotionPagesTool:
             name="get_table_of_contents",
             func=self.get_table_of_contents,
             description="Get the current table of contents from the main page",
-            parameters={},
+            parameters={
+                "type": "object",
+                "properties": {},
+                "required": []
+            },
         )
 
         self.create_link_tool = Tool(
@@ -143,14 +167,18 @@ class NotionPagesTool:
             func=self.create_link,
             description="Create a link between two pages using Obsidian-style syntax",
             parameters={
-                "source_page_id": {
-                    "type": "string",
-                    "description": "Page ID of the source page (required)",
+                "type": "object",
+                "properties": {
+                    "source_page_id": {
+                        "type": "string",
+                        "description": "Page ID of the source page (required)",
+                    },
+                    "target_page_title": {
+                        "type": "string",
+                        "description": "Title of the target page to link to (required)",
+                    },
                 },
-                "target_page_title": {
-                    "type": "string",
-                    "description": "Title of the target page to link to (required)",
-                },
+                "required": ["source_page_id", "target_page_title"]
             },
         )
 
@@ -159,10 +187,14 @@ class NotionPagesTool:
             func=self.get_backlinks,
             description="Get all pages that link to the specified page",
             parameters={
-                "page_id": {
-                    "type": "string",
-                    "description": "Page ID to find backlinks for (required)",
-                }
+                "type": "object",
+                "properties": {
+                    "page_id": {
+                        "type": "string",
+                        "description": "Page ID to find backlinks for (required)",
+                    }
+                },
+                "required": ["page_id"]
             },
         )
 
@@ -349,10 +381,16 @@ class NotionPagesTool:
 
             # Update content if provided
             if content:
-                # Clear existing content
+                # Clear existing content (skip archived blocks)
                 blocks = self.client.blocks.children.list(page_id)
                 for block in blocks.get("results", []):
-                    self.client.blocks.delete(block["id"])
+                    try:
+                        # Check if block is archived before trying to delete
+                        if not block.get("archived", False):
+                            self.client.blocks.delete(block["id"])
+                    except Exception as e:
+                        self.logger.warning(f"Could not delete block {block['id']}: {e}")
+                        # Continue with other blocks even if one fails
 
                 # Add new content
                 self.client.blocks.children.append(

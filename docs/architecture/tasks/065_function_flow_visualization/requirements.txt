@@ -1,0 +1,12 @@
+# Function Flow Visualization Tool Requirements
+
+# Core dependencies
+graphviz>=0.20.0
+
+# Development dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# Optional dependencies for enhanced functionality
+matplotlib>=3.5.0
+networkx>=2.8.0

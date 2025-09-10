@@ -277,8 +277,16 @@ class LTMTool:
                         "LTM tool received 'body' parameter - this suggests the LLM may be confusing it with a note creation tool"
                     )
 
-            # Parse tags from comma-separated string
-            tag_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
+            # Parse tags - handle both string and list inputs
+            if isinstance(tags, str):
+                tag_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
+            elif isinstance(tags, (list, tuple)):
+                tag_list = [str(tag).strip() for tag in tags if str(tag).strip()]
+            elif hasattr(tags, '__iter__'):  # Handle RepeatedComposite and other iterables
+                tag_list = [str(tag).strip() for tag in tags if str(tag).strip()]
+            else:
+                # Fallback: convert to string and split
+                tag_list = [str(tags).strip()] if str(tags).strip() else []
 
             # Validate tags against allowed list
             valid_tags, invalid_tags = validate_tags(tag_list)

@@ -22,7 +22,7 @@ class AgentIntegrationService:
             # Reuse existing Agent Core setup
             self.tool_registry = create_tool_registry()
             self.llm = GeminiLLM(
-                api_key=settings.GOOGLE_API_KEY, model="gemini-2.5-flash"
+                api_key=settings.GOOGLE_API_KEY, model=settings.GEMINI_MODEL
             )
             self.agent_core = AgentCore(tools=self.tool_registry, llm=self.llm)
 

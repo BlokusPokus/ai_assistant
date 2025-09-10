@@ -59,7 +59,7 @@ async def get_twilio_service():
     tool_registry = create_tool_registry()
     agent_core = AgentCore(
         tools=tool_registry,
-        llm=GeminiLLM(api_key=settings.GOOGLE_API_KEY, model="gemini-2.5-flash"),
+        llm=GeminiLLM(api_key=settings.GOOGLE_API_KEY, model=settings.GEMINI_MODEL),
     )
     return TwilioService(agent_core)
 

@@ -2,19 +2,16 @@
 Main AgentCore class that orchestrates memory, tools, LLM, and AgentRunner functionality.
 """
 
+import asyncio
 import os
 import time
 
 from personal_assistant.prompts.enhanced_prompt_builder import EnhancedPromptBuilder
 
 from ..config.logging_config import get_logger
+from ..config.settings import settings
 from ..llm.gemini import GeminiLLM
 from ..llm.planner import LLMPlanner
-from ..memory.conversation_manager import (
-    create_new_conversation,
-    get_conversation_id,
-    should_resume_conversation,
-)
 from ..memory.ltm_optimization import (
     DynamicContextManager,
     EnhancedLTMConfig,
@@ -23,14 +20,10 @@ from ..memory.ltm_optimization import (
     SmartLTMRetriever,
 )
 from ..memory.storage_integration import StorageIntegrationManager
-from ..rag.retriever import query_knowledge_base
 from ..tools import ToolRegistry
-from ..tools.ltm.ltm_manager import get_ltm_context_with_tags
-from ..types.state import AgentState
 from .error_handler import AgentErrorHandler
-from .exceptions import ConversationError, ValidationError
-from .logging_utils import log_agent_operation, log_performance_metrics
-from .runner import AgentRunner
+from .logging_utils import log_agent_operation
+from .services import ContextService, ConversationService, BackgroundService, ContextInjectionService, ToolExecutionService, AgentLoopService
 
 logger = get_logger("core")
 
@@ -47,45 +40,55 @@ class AgentCore:
         self.tools = tools or ToolRegistry()
 
         api_key = os.getenv("GEMINI_API_KEY")
-        llm = llm or GeminiLLM(api_key=api_key, model="gemini-2.5-flash")
-        self.llm = llm
+        self.llm = llm or GeminiLLM(api_key=api_key, model=settings.GEMINI_MODEL)
 
         enhanced_prompt_builder = EnhancedPromptBuilder(self.tools)
 
         self.planner = LLMPlanner(
             self.llm, self.tools, prompt_builder=enhanced_prompt_builder
         )
-        self.runner = AgentRunner(self.tools, self.planner)
 
-        try:
-            # Initialize enhanced LTM configuration
-            self.ltm_config = EnhancedLTMConfig()
+        # Initialize LTM components with graceful fallback
+        self._initialize_ltm_components(llm)
 
-            # Initialize enhanced LTM components
-            self.ltm_learning_manager = LTMLearningManager(
-                config=self.ltm_config, llm=llm
-            )
-            self.ltm_retriever = SmartLTMRetriever(config=self.ltm_config)
-            self.context_manager = DynamicContextManager(config=self.ltm_config)
-            self.lifecycle_manager = EnhancedMemoryLifecycleManager(
-                config=self.ltm_config
-            )
-
-            logger.info("Enhanced LTM optimization components initialized successfully")
-        except Exception as e:
-            logger.warning(f"Failed to initialize enhanced LTM optimization: {e}")
-            self.ltm_learning_manager = None
-            self.ltm_retriever = None
-            self.context_manager = None
-            self.lifecycle_manager = None
-
-        # Initialize storage integration manager for new normalized storage
+        # Initialize storage integration manager
         self.storage_manager = StorageIntegrationManager()
         logger.info("Storage integration manager initialized successfully")
+
+        # Initialize services
+        self._initialize_services()
 
         # Initialize error handler
         self.error_handler = AgentErrorHandler(logger)
         logger.info("Error handler initialized successfully")
+
+    def _initialize_services(self):
+        """Initialize all service components."""
+        # Initialize context service
+        self.context_service = ContextService(
+            ltm_retriever=self.ltm_retriever,
+            context_manager=self.context_manager
+        )
+        
+        # Initialize conversation service
+        self.conversation_service = ConversationService(self.storage_manager)
+        
+        # Initialize background service
+        self.background_service = BackgroundService(
+            storage_manager=self.storage_manager,
+            ltm_learning_manager=self.ltm_learning_manager,
+            lifecycle_manager=self.lifecycle_manager
+        )
+        
+        # Initialize runner services (merged from AgentRunner)
+        self.context_injection_service = ContextInjectionService()
+        self.tool_execution_service = ToolExecutionService(self.tools)
+        self.agent_loop_service = AgentLoopService(self.planner, self.tool_execution_service)
+        
+        # Current state for agent loop execution
+        self.current_state = None
+        
+        logger.info("All services initialized successfully")
 
     async def run(self, user_input: str, user_id: int) -> str:
         """
@@ -99,223 +102,40 @@ class AgentCore:
             str: Agent's response
 
         Raises:
-            ValidationError: If user_input or user_id is invalid
             ConversationError: If conversation management fails
             AgentExecutionError: If agent execution fails
             AgentMemoryError: If memory operations fail
         """
-        # Input validation
-        if not user_input or not user_input.strip():
-            raise ValidationError(
-                "User input cannot be empty", "user_input", user_input
-            )
-
-        if not isinstance(user_id, int) or user_id <= 0:
-            raise ValidationError(
-                f"Invalid user_id: {user_id}. Must be a positive integer.",
-                "user_id",
-                str(user_id),
-            )
-
         start_time = time.time()
         log_agent_operation(
             logger, user_id, "agent_run_start", {"input_length": len(user_input)}
         )
 
         try:
-            conversation_id = await get_conversation_id(user_id)
-
-            if conversation_id is None:
-                conversation_id = await create_new_conversation(user_id)
-                if conversation_id is None:
-                    raise ConversationError(
-                        f"Failed to create new conversation for user {user_id}", user_id
-                    )
-                agent_state = AgentState(user_input=user_input)
-
-            else:
-                last_timestamp = await self.storage_manager.get_conversation_timestamp(
-                    user_id, conversation_id
-                )
-
-                resume_conversation = should_resume_conversation(last_timestamp)
-                logger.info(f"Resume decision: {resume_conversation}")
-
-                if resume_conversation:
-                    logger.info("Resuming existing conversation")
-                    agent_state = await self.storage_manager.load_state(
-                        conversation_id, user_id
-                    )
-                    if agent_state is None:
-                        logger.warning(
-                            "Failed to load existing conversation state, creating new conversation"
-                        )
-                        conversation_id = await create_new_conversation(user_id)
-                        if conversation_id is None:
-                            raise ConversationError(
-                                f"Failed to create new conversation for user {user_id}",
-                                user_id,
-                            )
-                        agent_state = AgentState(user_input=user_input)
-                    else:
-                        agent_state.user_input = user_input
-                else:
-                    logger.info("Creating new conversation - previous one too old")
-                    conversation_id = await create_new_conversation(user_id)
-                    if conversation_id is None:
-                        raise ConversationError(
-                            f"Failed to create new conversation for user {user_id}",
-                            user_id,
-                        )
-
-                    agent_state = AgentState(user_input=user_input)
-
-            agent_state.reset_for_new_message(user_input)
-
-            try:
-                # Use enhanced LTM retriever with state coordination
-                if self.ltm_retriever:
-                    # Get relevant memories with state context
-                    relevant_memories = await self.ltm_retriever.get_relevant_memories(
-                        user_id=user_id,
-                        context=user_input,
-                        state_context=agent_state,
-                        query_complexity="medium",  # Default complexity
-                    )
-
-                    # Use dynamic context manager to optimize context with state
-                    if self.context_manager and relevant_memories:
-                        ltm_context = (
-                            await self.context_manager.optimize_context_with_state(
-                                memories=relevant_memories,
-                                user_input=user_input,
-                                state_context=agent_state,
-                                focus_areas=agent_state.focus
-                                if hasattr(agent_state, "focus")
-                                else None,
-                                query_complexity="medium",
-                            )
-                        )
-                    else:
-                        # Fallback to simple context formatting
-                        ltm_context = "\n".join(
-                            [mem.get("content", "") for mem in relevant_memories[:5]]
-                        )
-                else:
-                    # Fallback to legacy LTM context retrieval
-                    ltm_context = await get_ltm_context_with_tags(
-                        None,
-                        logger,
-                        user_id,
-                        user_input,
-                        list(agent_state.focus)
-                        if hasattr(agent_state, "focus") and agent_state.focus
-                        else None,
-                    )
-            except Exception as e:
-                logger.warning(
-                    f"Failed to get enhanced LTM context for user {user_id}: {e}"
-                )
-                # Fallback to legacy method
-                try:
-                    ltm_context = await get_ltm_context_with_tags(
-                        None,
-                        logger,
-                        user_id,
-                        user_input,
-                        list(agent_state.focus)
-                        if hasattr(agent_state, "focus") and agent_state.focus
-                        else None,
-                    )
-                except Exception as fallback_e:
-                    logger.warning(
-                        f"Fallback LTM context retrieval also failed: {fallback_e}"
-                    )
-                    ltm_context = None
-
-            try:
-                rag_context = await query_knowledge_base(user_id, user_input)
-            except Exception as e:
-                logger.warning(f"Failed to get RAG context for user {user_id}: {e}")
-                rag_context = []
-
-            await self.runner.set_context(agent_state, rag_context, ltm_context)
-
-            response, updated_state = await self.runner.execute_agent_loop(user_input)
-            response = str(response)  # Ensure response is a string
-
-            try:
-                await self.storage_manager.save_state(
-                    conversation_id, updated_state, user_id
-                )
-            except Exception as e:
-                logger.error(f"Failed to save state for user {user_id}: {e}")
-                # Continue execution even if state saving fails
-
-            if self.ltm_learning_manager:
-                try:
-                    # Perform comprehensive LTM optimization
-                    await self.ltm_learning_manager.optimize_after_interaction(
-                        user_id, user_input, response, updated_state
-                    )
-
-                    # Handle explicit memory requests if any
-                    if self.ltm_learning_manager.is_memory_request(user_input):
-                        await self.ltm_learning_manager.handle_explicit_memory_request(
-                            user_id,
-                            user_input,
-                            response,
-                            f"Conversation {conversation_id}",
-                        )
-                except Exception as e:
-                    logger.warning(f"LTM optimization failed for user {user_id}: {e}")
-                    # Continue execution even if LTM optimization fails
-
-            # Perform memory lifecycle management with state coordination
-            if self.lifecycle_manager:
-                try:
-                    # Run lifecycle management with state context
-                    lifecycle_results = (
-                        await self.lifecycle_manager.manage_memory_lifecycle_with_state(
-                            user_id, updated_state
-                        )
-                    )
-                    logger.info(
-                        f"Memory lifecycle management completed for user {user_id}: {lifecycle_results}"
-                    )
-                except Exception as e:
-                    logger.warning(
-                        f"Memory lifecycle management failed for user {user_id}: {e}"
-                    )
-                    # Continue execution even if lifecycle management fails
-
-            try:
-                await self.storage_manager.log_agent_interaction(
-                    user_id=user_id,  # user_id is already an integer
-                    user_input=updated_state.user_input,
-                    agent_response=response,
-                    tool_called=None,
-                    tool_output=str(updated_state.last_tool_result)
-                    if updated_state.last_tool_result
-                    else None,
-                    memory_used=None,
-                )
-            except Exception as e:
-                logger.warning(
-                    f"Failed to log agent interaction for user {user_id}: {e}"
-                )
-                # Continue execution even if logging fails
-
-            # Log performance metrics
-            duration = time.time() - start_time
-            log_performance_metrics(
-                logger,
-                user_id,
-                "agent_run_complete",
-                duration,
-                True,
-                {"response_length": len(response) if response else 0},
+            # 1. Get conversation context and agent state
+            conversation_id, agent_state = await self.conversation_service.get_conversation_context(
+                user_id, user_input
             )
+
+            # 2. Get enhanced context (LTM + RAG)
+            context_data = await self.context_service.get_enhanced_context(
+                user_id, user_input, agent_state
+            )
+
+            # 3. Set context for agent execution
+            await self._set_context(
+                agent_state, 
+                context_data["rag_context"], 
+                context_data["ltm_context"]
+            )
+
+            # 4. Execute agent loop
+            response, updated_state = await self._execute_agent_loop(user_input)
+
+            # 5. Start background processing (non-blocking)
+            asyncio.create_task(self.background_service.process_async(
+                user_id, user_input, response, updated_state, conversation_id, start_time
+            ))
 
             return response
 
@@ -323,62 +143,62 @@ class AgentCore:
             error_response = await self.error_handler.handle_error(
                 e, user_id, start_time
             )
-            return str(error_response)
+            return error_response
 
+    async def _set_context(
+        self,
+        agent_state,
+        rag_context=None,
+        ltm_context=None,
+    ):
+        """
+        Inject LTM and RAG context into AgentState's memory_context with limits.
 
-# Make this file runnable as a script
-if __name__ == "__main__":
-    import asyncio
+        Args:
+            agent_state: The active state object
+            rag_context: List of semantic documents from RAG
+            ltm_context: Long-term memory context string
+        """
+        # Store the current state for use in _execute_agent_loop()
+        self.current_state = agent_state
+        
+        # Delegate to context injection service
+        await self.context_injection_service.inject_context(
+            agent_state, rag_context, ltm_context
+        )
 
-    async def main():
-        """Main function to run the agent interactively."""
-        print("🤖 Personal Assistant Agent - Interactive Mode")
-        print("=" * 50)
+    async def _execute_agent_loop(self, user_input: str):
+        """
+        Execute the main agent loop processing user input with optimized context.
 
-        # Initialize the agent
-        print("Initializing agent...")
-        agent = AgentCore()
-        print("✅ Agent initialized successfully!")
-        print()
+        Args:
+            user_input: String containing the user's message or query
 
-        # Get user ID (you can change this)
-        user_id = 1
+        Returns:
+            Tuple[str, AgentState]: Final response to user and the final AgentState
+        """
+        # Use the state that was set up by _set_context()
+        state = self.current_state
+        if state is None:
+            raise ValueError("No current state available. Call _set_context() first.")
 
-        print(f"Ready to chat! (User ID: {user_id})")
-        print("Type 'quit', 'exit', or 'q' to stop")
-        print("Type 'clear' to clear conversation history")
-        print("-" * 50)
+        # Delegate to agent loop service
+        return await self.agent_loop_service.execute_loop(state, user_input)
 
-        while True:
-            try:
-                # Get user input
-                user_input = input("\n👤 You: ").strip()
+    def _initialize_ltm_components(self, llm):
+        """Initialize LTM components with graceful fallback."""
+        try:
+            self.ltm_config = EnhancedLTMConfig()
+            self.ltm_learning_manager = LTMLearningManager(config=self.ltm_config, llm=llm)
+            self.ltm_retriever = SmartLTMRetriever(config=self.ltm_config)
+            self.context_manager = DynamicContextManager(config=self.ltm_config)
+            self.lifecycle_manager = EnhancedMemoryLifecycleManager(config=self.ltm_config)
+            logger.info("Enhanced LTM optimization components initialized successfully")
+        except Exception as e:
+            logger.warning(f"Failed to initialize enhanced LTM optimization: {e}")
+            # Set all LTM components to None for graceful degradation
+            self.ltm_learning_manager = None
+            self.ltm_retriever = None
+            self.context_manager = None
+            self.lifecycle_manager = None
 
-                # Check for exit commands
-                if user_input.lower() in ["quit", "exit", "q"]:
-                    print("👋 Goodbye!")
-                    break
-
-                # Check for clear command
-                if user_input.lower() == "clear":
-                    print("🧹 Conversation cleared!")
-                    continue
-
-                # Skip empty input
-                if not user_input:
-                    continue
-
-                # Process the message
-                print("🤖 Assistant: ", end="", flush=True)
-                response = await agent.run(user_input, user_id)
-                print(response)
-
-            except KeyboardInterrupt:
-                print("\n👋 Goodbye!")
-                break
-            except Exception as e:
-                print(f"\n❌ Error: {e}")
-                print("Please try again...")
-
-    # Run the interactive agent
-    asyncio.run(main())
