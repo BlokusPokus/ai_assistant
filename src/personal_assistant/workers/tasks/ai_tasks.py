@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 @app.task(bind=True, max_retries=3, default_retry_delay=60)
 def process_due_ai_tasks(self) -> Dict[str, Any]:
     """
-    Main task that runs every 10 minutes to check for due AI tasks.
+    Main task that runs every 1 minute to check for due AI tasks.
 
     This task:
     1. Queries the database for due AI tasks
@@ -34,8 +34,15 @@ def process_due_ai_tasks(self) -> Dict[str, Any]:
     4. Updates task status and schedules next run if recurring
     """
     task_id = self.request.id
-    logger.info(f"🔍 BREAKPOINT 1: Starting process_due_ai_tasks task {task_id}")
-    print(f"🔍 BREAKPOINT 1: Starting process_due_ai_tasks task {task_id}")
+    current_time = datetime.utcnow()
+    
+    # Enhanced logging for Celery beat tracking
+    logger.info(f"🚀 CELERY BEAT TRIGGERED: process_due_ai_tasks started at {current_time}")
+    logger.info(f"📋 Task ID: {task_id}")
+    logger.info(f"⏰ Current UTC time: {current_time}")
+    print(f"🚀 CELERY BEAT TRIGGERED: process_due_ai_tasks started at {current_time}")
+    print(f"📋 Task ID: {task_id}")
+    print(f"⏰ Current UTC time: {current_time}")
 
     try:
         # Use asyncio.run() with proper event loop handling
@@ -67,16 +74,27 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
     """
     Async implementation of the AI task processing logic.
     """
-    print("🔍 BREAKPOINT 4: Entering _process_due_ai_tasks_async")
+    current_time = datetime.utcnow()
+    logger.info(f"🔄 ASYNC PROCESSING: Starting _process_due_ai_tasks_async at {current_time}")
+    print(f"🔄 ASYNC PROCESSING: Starting _process_due_ai_tasks_async at {current_time}")
+    
     task_manager = AITaskManager()
     notification_service = NotificationService()
     task_executor = TaskExecutor()
 
     try:
         # Get due tasks
+        logger.info(f"🔍 DATABASE QUERY: Checking for due tasks...")
+        print(f"🔍 DATABASE QUERY: Checking for due tasks...")
+        
         due_tasks = await task_manager.get_due_tasks(limit=50)
-        logger.info(f"🔍 BREAKPOINT 5: Found {len(due_tasks)} due AI tasks")
-        print(f"🔍 BREAKPOINT 5: Found {len(due_tasks)} due AI tasks")
+        logger.info(f"📊 DUE TASKS FOUND: {len(due_tasks)} due AI tasks")
+        print(f"📊 DUE TASKS FOUND: {len(due_tasks)} due AI tasks")
+        
+        # Log details of each due task
+        for i, task in enumerate(due_tasks):
+            logger.info(f"📋 Task {i+1}: ID={task.id}, Title='{task.title}', Due={task.next_run_at}")
+            print(f"📋 Task {i+1}: ID={task.id}, Title='{task.title}', Due={task.next_run_at}")
 
         if not due_tasks:
             return {
@@ -404,7 +422,12 @@ def test_scheduler_connection(self) -> Dict[str, Any]:
         Dict containing test results
     """
     task_id = self.request.id
-    logger.info(f"Testing scheduler connection for task {task_id}")
+    current_time = datetime.utcnow()
+    
+    logger.info(f"🧪 CELERY BEAT TEST: test_scheduler_connection triggered at {current_time}")
+    logger.info(f"📋 Test Task ID: {task_id}")
+    print(f"🧪 CELERY BEAT TEST: test_scheduler_connection triggered at {current_time}")
+    print(f"📋 Test Task ID: {task_id}")
 
     try:
         # Use asyncio.run() with proper event loop handling
@@ -435,9 +458,24 @@ def test_scheduler_connection(self) -> Dict[str, Any]:
 
 async def _test_scheduler_connection_async() -> Dict[str, Any]:
     """Async implementation of connection testing."""
-    # Test database connection
+    # Test database connection by trying to get due tasks
     task_manager = AITaskManager()
-    test_result = await task_manager.test_connection()  # type: ignore
+    
+    try:
+        # Test database connectivity by querying for due tasks
+        due_tasks = await task_manager.get_due_tasks(limit=1)
+        test_result = {
+            "status": "success",
+            "message": "Database connection test successful",
+            "due_tasks_count": len(due_tasks),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    except Exception as e:
+        test_result = {
+            "status": "error",
+            "message": f"Database connection test failed: {str(e)}",
+            "timestamp": datetime.utcnow().isoformat(),
+        }
 
     return {
         "task_id": None,  # Will be set by caller

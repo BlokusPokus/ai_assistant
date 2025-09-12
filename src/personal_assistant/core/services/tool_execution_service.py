@@ -24,13 +24,14 @@ class ToolExecutionService:
         """
         self.tools = tools
     
-    async def execute_tool(self, action: ToolCall, state: AgentState) -> Tuple[Any, bool]:
+    async def execute_tool(self, action: ToolCall, state: AgentState, user_id: int) -> Tuple[Any, bool]:
         """
         Execute a tool call and return the result.
         
         Args:
             action: The tool call action to execute
             state: Current agent state
+            user_id: User identifier to inject into tool calls
             
         Returns:
             Tuple of (result, success_flag)
@@ -39,8 +40,13 @@ class ToolExecutionService:
             logger.debug(f"=== EXECUTING TOOL: {action.name} ===")
             logger.debug(f"Tool args: {action.args}")
 
-            # Execute tool
-            result = await self.tools.run_tool(action.name, **action.args)
+            # Automatically inject user_id into tool arguments
+            tool_args = action.args.copy()
+            tool_args['user_id'] = user_id
+            logger.debug(f"Injected user_id {user_id} into tool call")
+
+            # Execute tool with injected user_id
+            result = await self.tools.run_tool(action.name, **tool_args)
             logger.debug("=== TOOL EXECUTION COMPLETED ===")
             logger.debug(f"Tool result: {result}")
 
@@ -74,18 +80,19 @@ class ToolExecutionService:
         }
         logger.debug(f"Updated state: {state_summary}")
     
-    async def execute_and_update(self, action: ToolCall, state: AgentState) -> Tuple[Any, bool]:
+    async def execute_and_update(self, action: ToolCall, state: AgentState, user_id: int) -> Tuple[Any, bool]:
         """
         Execute a tool and update the state with the result.
         
         Args:
             action: The tool call action to execute
             state: Current agent state
+            user_id: User identifier to inject into tool calls
             
         Returns:
             Tuple of (result, success_flag)
         """
-        result, success = await self.execute_tool(action, state)
+        result, success = await self.execute_tool(action, state, user_id)
         
         if success:
             self.update_state_with_result(state, action, result)

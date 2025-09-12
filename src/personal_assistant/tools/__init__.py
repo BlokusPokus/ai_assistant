@@ -13,6 +13,7 @@ from .notes.enhanced_notes_tool import EnhancedNotesTool
 # Configure module logger
 from .planning.llm_planner import LLMPlannerTool
 from .reminders.reminder_tool import ReminderTool
+from .todos.todo_tool import create_todo_tools
 from .youtube.youtube_tool import YouTubeTool
 
 logger = get_logger("tools")
@@ -87,6 +88,11 @@ def create_tool_registry() -> ToolRegistry:
         tool.set_category("Planner")
         registry.register(tool)
 
+    # Register todo tools
+    todo_tools = create_todo_tools()
+    for tool in todo_tools:
+        registry.register(tool)
+
     return registry
 
 
@@ -101,6 +107,7 @@ __all__ = [
     "ReminderTool",
     "InternetTool",
     "YouTubeTool",
+    "create_todo_tools",
     # 'ResearchTool',
     "create_tool_registry",
     "logger",

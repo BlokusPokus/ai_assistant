@@ -130,7 +130,7 @@ class AgentCore:
             )
 
             # 4. Execute agent loop
-            response, updated_state = await self._execute_agent_loop(user_input)
+            response, updated_state = await self._execute_agent_loop(user_input, user_id)
 
             # 5. Start background processing (non-blocking)
             asyncio.create_task(self.background_service.process_async(
@@ -167,12 +167,13 @@ class AgentCore:
             agent_state, rag_context, ltm_context
         )
 
-    async def _execute_agent_loop(self, user_input: str):
+    async def _execute_agent_loop(self, user_input: str, user_id: int):
         """
         Execute the main agent loop processing user input with optimized context.
 
         Args:
             user_input: String containing the user's message or query
+            user_id: User identifier for tool execution
 
         Returns:
             Tuple[str, AgentState]: Final response to user and the final AgentState
@@ -182,8 +183,8 @@ class AgentCore:
         if state is None:
             raise ValueError("No current state available. Call _set_context() first.")
 
-        # Delegate to agent loop service
-        return await self.agent_loop_service.execute_loop(state, user_input)
+        # Delegate to agent loop service with user_id
+        return await self.agent_loop_service.execute_loop(state, user_input, user_id)
 
     def _initialize_ltm_components(self, llm):
         """Initialize LTM components with graceful fallback."""

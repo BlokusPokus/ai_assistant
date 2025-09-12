@@ -32,7 +32,7 @@ class Role(Base):
     permissions = relationship("Permission", secondary="role_permissions")
     # Note: users relationship removed to avoid SQLAlchemy join condition issues
     parent_role = relationship("Role", remote_side=[id])
-    child_roles = relationship("Role")
+    child_roles = relationship("Role", overlaps="parent_role")
 
     def __repr__(self):
         return f"<Role(id={self.id}, name='{self.name}')>"
@@ -51,7 +51,7 @@ class Permission(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    roles = relationship("Role", secondary="role_permissions")
+    roles = relationship("Role", secondary="role_permissions", overlaps="permissions")
 
     def __repr__(self):
         return f"<Permission(id={self.id}, name='{self.name}', resource_type='{self.resource_type}', action='{self.action}')>"

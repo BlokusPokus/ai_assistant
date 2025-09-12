@@ -39,6 +39,7 @@ from .recurrence_patterns import RecurrencePattern
 from .reminders import Reminder
 from .task_results import TaskResult
 from .tasks import Task
+from .todos import Todo
 from .user_settings import UserSetting
 from .users import User
 

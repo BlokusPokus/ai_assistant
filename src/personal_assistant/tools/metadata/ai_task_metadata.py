@@ -332,7 +332,7 @@ def create_ai_task_metadata() -> ToolMetadata:
     metadata = ToolMetadata(
         tool_name="ai_task_scheduler",
         tool_version="2.0.0",
-        description="Intelligent task and reminder management system with AI-powered scheduling and notifications",
+        description="AI-DRIVEN AUTOMATION: Create tasks that the AI assistant will execute automatically. Use for: 'Make a list of...', 'Analyze my...', 'Generate a report on...'. The AI does the work for you. NOT for: personal task tracking, calendar events, or simple reminders.",
         category=ToolCategory.PRODUCTIVITY,
         complexity=ToolComplexity.MODERATE,
         

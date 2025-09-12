@@ -141,6 +141,7 @@ services:
         "personal_assistant.workers.celery_app",
         "worker",
         "--loglevel=info",
+        "--queues=ai_tasks,email_tasks,file_tasks,sync_tasks,maintenance_tasks",
       ]
     depends_on:
       postgres:

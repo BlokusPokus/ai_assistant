@@ -2,28 +2,237 @@
 
 ## 🏗️ **Architecture Overview**
 
-### **System Design**
+### **Current System Design (As of September 2024)**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Current Notion System                        │
+├─────────────────────────────────────────────────────────────────┤
+│  User Request → Enhanced Notes Tool → Notion Client            │
+│       ↓              ↓                    ↓                    │
+│  AI Enhancement → Page Creation → Notion API (Single User)     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### **Target System Design (User-Specific Implementation)**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    User-Specific Notion System                  │
 ├─────────────────────────────────────────────────────────────────┤
-│  User Request → User Context → OAuth Token → Notion Client     │
-│       ↓              ↓            ↓              ↓             │
-│  Tool Execution → Workspace Mgr → Page Creation → Notion API   │
+│  User Request → SessionService → OAuthTokenService → Notion    │
+│       ↓              ↓              ↓              ↓           │
+│  Tool Execution → NotionWorkspaceMgr → Page Creation → Notion  │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+### **Detailed Architecture Flow**
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   User Request  │───▶│  SessionService  │───▶│  User Context   │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │
+                                ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│ OAuthTokenService│◀───│OAuthIntegrationSvc│◀───│  User ID Lookup │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │
+                                ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│ NotionClient    │◀───│NotionClientFactory│◀───│  Access Token   │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │
+                                ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│ Notion API      │◀───│NotionWorkspaceMgr│◀───│  User-Specific  │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
 ### **Key Components**
 
-1. **UserContextService**: Manages user identification and context
-2. **NotionClientFactory**: Creates user-specific Notion clients
-3. **NotionWorkspaceManager**: Manages user workspaces and pages
-4. **Enhanced Tools**: Updated tools with user context integration
+#### **Current Components (Implemented)**
+
+1. **EnhancedNotesTool**: AI-powered note management with LLM integration
+2. **NotionPagesTool**: Basic Notion page management with bidirectional linking
+3. **Notion Internal Functions**: Simplified page creation and management
+
+#### **Existing OAuth Infrastructure (Available)**
+
+1. **OAuthManager**: Complete OAuth 2.0 orchestration system
+2. **OAuthTokenService**: Encrypted token storage, refresh, and validation
+3. **OAuthIntegrationService**: User-specific OAuth connection management
+4. **SessionService**: Redis-based user session management
+5. **NotionOAuthProvider**: Notion-specific OAuth implementation
+6. **OAuthSecurityService**: Token encryption and audit logging
+
+#### **Components To Be Implemented**
+
+1. **NotionClientFactory**: Creates user-specific Notion clients using existing OAuth
+2. **NotionWorkspaceManager**: Manages user workspaces and pages
+3. **Enhanced Tools**: Updated tools with user context integration
+
+### **Implementation Status Matrix**
+
+| Component                      | Status         | Implementation Effort | Dependencies        |
+| ------------------------------ | -------------- | --------------------- | ------------------- |
+| **OAuthManager**               | ✅ Complete    | N/A                   | None                |
+| **OAuthTokenService**          | ✅ Complete    | N/A                   | None                |
+| **OAuthIntegrationService**    | ✅ Complete    | N/A                   | None                |
+| **SessionService**             | ✅ Complete    | N/A                   | None                |
+| **NotionOAuthProvider**        | ✅ Complete    | N/A                   | None                |
+| **OAuthSecurityService**       | ✅ Complete    | N/A                   | None                |
+| **NotionClientFactory**        | ❌ Not Started | 1-2 days              | OAuth services      |
+| **NotionWorkspaceManager**     | ❌ Not Started | 2-3 days              | NotionClientFactory |
+| **Enhanced Tools Integration** | ❌ Not Started | 1-2 days              | Both above          |
+| **Testing & Validation**       | ❌ Not Started | 1 day                 | All components      |
+
+**Total Remaining Effort**: 5-8 days (down from original 10 days)
+
+### **OAuth Infrastructure Mapping to Notion Requirements**
+
+| Notion Requirement           | OAuth Component           | Status      | Usage                            |
+| ---------------------------- | ------------------------- | ----------- | -------------------------------- |
+| **User Identification**      | `SessionService`          | ✅ Complete | Get current user from session    |
+| **Token Management**         | `OAuthTokenService`       | ✅ Complete | Get/refresh Notion access tokens |
+| **User-Provider Connection** | `OAuthIntegrationService` | ✅ Complete | Manage user's Notion integration |
+| **Notion OAuth Flow**        | `NotionOAuthProvider`     | ✅ Complete | Handle Notion-specific OAuth     |
+| **Token Security**           | `OAuthSecurityService`    | ✅ Complete | Encrypt/decrypt tokens           |
+| **OAuth Orchestration**      | `OAuthManager`            | ✅ Complete | Coordinate all OAuth operations  |
+| **Audit Logging**            | `OAuthAuditLog`           | ✅ Complete | Track OAuth operations           |
+
+### **Integration Points for Notion Tools**
+
+```python
+# Example: How to integrate existing OAuth with Notion tools
+class UserSpecificNotionTool:
+    def __init__(self, session_service: SessionService,
+                 token_service: OAuthTokenService,
+                 integration_service: OAuthIntegrationService):
+        self.session_service = session_service
+        self.token_service = token_service
+        self.integration_service = integration_service
+
+    async def get_user_notion_client(self, session_id: str) -> Client:
+        # 1. Get user from session (existing)
+        user_id = await self.session_service.get_current_user_id(session_id)
+
+        # 2. Get user's Notion integration (existing)
+        integration = await self.integration_service.get_integration_by_provider(
+            db, user_id, "notion"
+        )
+
+        # 3. Get valid access token (existing)
+        token = await self.token_service.get_valid_access_token(
+            db, integration.id
+        )
+
+        # 4. Create Notion client (new)
+        return Client(auth=token)
+```
+
+## 📊 **Current Implementation Status**
+
+### **What's Currently Working (September 2024)**
+
+1. **Enhanced Notes Tool** ✅
+
+   - AI-powered note creation and enhancement
+   - LLM integration for content improvement
+   - Smart search and note intelligence features
+   - Registered in main tool registry
+
+2. **Notion Pages Tool** ✅
+
+   - Basic CRUD operations for Notion pages
+   - Bidirectional linking between pages
+   - Table of contents management
+   - Search functionality
+
+3. **Notion Internal Functions** ✅
+
+   - Simplified `ensure_main_page_exists` function
+   - Removed async/await complexity
+   - Better error handling
+
+4. **Dynamic Page Creation** ✅
+   - "Table of Contents" page creation already implemented
+   - Auto-creation when page doesn't exist
+   - Page structure and content management
+
+### **What Needs to Be Implemented**
+
+1. **User Context Integration** ❌
+
+   - No user-specific context in Notion operations
+   - All users share the same Notion workspace
+   - No OAuth token management per user
+
+2. **Workspace Isolation** ❌
+
+   - No user-specific "Personal Assistant" pages
+   - Hardcoded `settings.NOTION_ROOT_PAGE_ID`
+   - No user data separation
+
+3. **Multi-User Support** ❌
+   - Single-user architecture
+   - No user authentication context
+   - Security vulnerabilities
 
 ## 🔧 **Implementation Details**
 
-### **1. User Context Service**
+### **0. Using Existing OAuth Infrastructure** ✅ **Already Available**
+
+#### **Getting User Context**
+
+```python
+from personal_assistant.auth.session_service import SessionService
+from personal_assistant.oauth.services.token_service import OAuthTokenService
+from personal_assistant.oauth.services.integration_service import OAuthIntegrationService
+
+# Get current user from session
+session_service = SessionService(redis_client)
+user_id = await session_service.get_current_user_id(session_id)
+
+# Get user's Notion OAuth integration
+integration_service = OAuthIntegrationService()
+notion_integration = await integration_service.get_integration_by_provider(
+    db, user_id, "notion"
+)
+
+# Get user's Notion access token
+token_service = OAuthTokenService()
+access_token = await token_service.get_valid_access_token(
+    db, notion_integration.id
+)
+```
+
+#### **Creating User-Specific Notion Client**
+
+```python
+from notion_client import Client
+from personal_assistant.oauth.services.token_service import OAuthTokenService
+
+class UserSpecificNotionClient:
+    def __init__(self, user_id: int, db: AsyncSession):
+        self.user_id = user_id
+        self.db = db
+        self.token_service = OAuthTokenService()
+
+    async def get_client(self) -> Client:
+        # Get user's Notion integration
+        integration = await self.get_notion_integration()
+
+        # Get valid access token
+        token = await self.token_service.get_valid_access_token(
+            self.db, integration.id
+        )
+
+        # Create Notion client with user's token
+        return Client(auth=token)
+```
+
+### **1. User Context Service** ✅ **Already Available**
 
 #### **File**: `src/personal_assistant/oauth/services/user_context_service.py`
 

@@ -120,23 +120,34 @@ class AITaskManager:
         Returns:
             List of due tasks
         """
+        current_time = datetime.utcnow()
+        self.logger.info(f"🔍 DATABASE QUERY: Searching for due tasks at {current_time}")
+        print(f"🔍 DATABASE QUERY: Searching for due tasks at {current_time}")
+        
         async with AsyncSessionLocal() as session:
             try:
-                result = await session.execute(
-                    select(AITask)
-                    .where(
-                        and_(
-                            AITask.status == "active",
-                            AITask.next_run_at <= datetime.utcnow(),
-                        )
+                # Log the exact query being executed
+                query = select(AITask).where(
+                    and_(
+                        AITask.status == "active",
+                        AITask.next_run_at <= current_time,
                     )
-                    .order_by(AITask.next_run_at.asc())
-                    .limit(limit)
-                )
-                return list(result.scalars().all())
+                ).order_by(AITask.next_run_at.asc()).limit(limit)
+                
+                self.logger.info(f"📊 SQL QUERY: Looking for tasks with status='active' AND next_run_at <= {current_time}")
+                print(f"📊 SQL QUERY: Looking for tasks with status='active' AND next_run_at <= {current_time}")
+                
+                result = await session.execute(query)
+                tasks = list(result.scalars().all())
+                
+                self.logger.info(f"✅ DATABASE RESULT: Found {len(tasks)} due tasks")
+                print(f"✅ DATABASE RESULT: Found {len(tasks)} due tasks")
+                
+                return tasks
 
             except Exception as e:
-                self.logger.error(f"Error getting due tasks: {e}")
+                self.logger.error(f"❌ DATABASE ERROR: Error getting due tasks: {e}")
+                print(f"❌ DATABASE ERROR: Error getting due tasks: {e}")
                 return []
 
     async def get_user_tasks(

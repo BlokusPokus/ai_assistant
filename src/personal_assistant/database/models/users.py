@@ -83,6 +83,11 @@ class User(Base):
     #     lazy="dynamic"
     # )
 
+    # Todo relationships
+    todos = relationship(
+        "Todo", back_populates="user", cascade="all, delete-orphan"
+    )
+
     # SMS Router relationships
     # SMS Router relationships - commented out due to cross-module dependency issues
     # phone_mappings = relationship(

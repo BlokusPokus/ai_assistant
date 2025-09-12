@@ -28,13 +28,14 @@ class AgentLoopService:
         self.tool_execution_service = tool_execution_service
         self.max_steps = settings.LOOP_LIMIT
     
-    async def execute_loop(self, state: AgentState, user_input: str) -> Tuple[str, AgentState]:
+    async def execute_loop(self, state: AgentState, user_input: str, user_id: int) -> Tuple[str, AgentState]:
         """
         Execute the main agent loop processing user input.
         
         Args:
             state: Current agent state
             user_input: User's input message
+            user_id: User identifier for tool execution
             
         Returns:
             Tuple of (response, updated_state)
@@ -61,7 +62,7 @@ class AgentLoopService:
             if isinstance(action, FinalAnswer):
                 return await self._handle_final_answer(action, state)
             elif isinstance(action, ToolCall):
-                success = await self._handle_tool_call(action, state)
+                success = await self._handle_tool_call(action, state, user_id)
                 if not success:
                     # Tool execution failed, return error response
                     return action.name, state
@@ -93,9 +94,9 @@ class AgentLoopService:
         state._apply_size_limits()
         return action.output, state
     
-    async def _handle_tool_call(self, action: ToolCall, state: AgentState) -> bool:
+    async def _handle_tool_call(self, action: ToolCall, state: AgentState, user_id: int) -> bool:
         """Handle a tool call action."""
-        result, success = await self.tool_execution_service.execute_and_update(action, state)
+        result, success = await self.tool_execution_service.execute_and_update(action, state, user_id)
         
         if not success:
             logger.error(f"Tool execution failed: {result}")

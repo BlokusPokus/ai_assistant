@@ -19,6 +19,12 @@ from .email_metadata import (
     get_email_tool_metadata_full,
 )
 from .tool_metadata import ToolMetadata, ToolMetadataManager
+from .todo_metadata import (
+    create_todo_ai_enhancements,
+    create_todo_tool_metadata,
+    todo_ai_enhancements,
+    todo_metadata,
+)
 
 __version__ = "1.0.0"
 __author__ = "Personal Assistant Team"
@@ -36,4 +42,8 @@ __all__ = [
     "create_email_ai_enhancements",
     "get_email_tool_metadata",
     "get_email_tool_metadata_full",
+    "create_todo_tool_metadata",
+    "create_todo_ai_enhancements",
+    "todo_metadata",
+    "todo_ai_enhancements",
 ]
