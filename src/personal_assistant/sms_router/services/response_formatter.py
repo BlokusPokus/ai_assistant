@@ -158,17 +158,68 @@ class ResponseFormatter:
         response.message(message)
         return response
 
-    def format_unknown_user_response(self, phone_number: str) -> MessagingResponse:
-        """Format response for unknown phone numbers."""
+    def format_unknown_user_response(self, phone_number: str, message: str = "") -> MessagingResponse:
+        """Format interactive response for unknown phone numbers."""
         response = MessagingResponse()
 
-        message = (
-            "Welcome! Your phone number is not yet registered with our service. "
-            "Please visit our website to sign up and start using your personal assistant."
+        # Analyze the message to determine appropriate response
+        message_clean = message.strip().upper()
+        
+        if message_clean in ['A', 'SEE WHAT I CAN DO']:
+            response_message = self._get_feature_overview()
+        elif message_clean in ['B', 'GET STARTED NOW', 'YES', 'GET STARTED', 'Y']:
+            response_message = self._get_signup_link_message(phone_number)
+        elif message_clean in ['C', 'LEARN MORE']:
+            response_message = self._get_learn_more_message()
+        else:
+            # Default welcome message for first contact or unclear input
+            response_message = self._get_welcome_message()
+
+        response.message(response_message)
+        return response
+
+    def _get_welcome_message(self) -> str:
+        """Get the initial welcome message."""
+        return (
+            "Hi! I'm your AI assistant. I can help with tasks, reminders, and more. "
+            "Would you like to:\n"
+            "A) See what I can do\n"
+            "B) Get started now\n"
+            "C) Learn more"
         )
 
-        response.message(message)
-        return response
+    def _get_feature_overview(self) -> str:
+        """Get the feature overview message."""
+        return (
+            "I can help you with:\n"
+            "📝 Create and manage tasks\n"
+            "📅 Set reminders and events\n"
+            "📧 Manage emails\n"
+            "📊 Track your productivity\n"
+            "And much more!\n\n"
+            "Ready to get started? Reply 'YES' to create your account."
+        )
+
+    def _get_signup_link_message(self, phone_number: str) -> str:
+        """Get the signup link message."""
+        signup_link = f"https://yourwebsite.com/signup?phone={phone_number}"
+        return (
+            "Great! Let's get you set up quickly.\n\n"
+            f"Here's your signup link:\n{signup_link}\n\n"
+            "Complete signup there, then text me back!"
+        )
+
+    def _get_learn_more_message(self) -> str:
+        """Get the learn more message."""
+        return (
+            "I'm a personal AI assistant that helps you stay organized and productive.\n\n"
+            "Key features:\n"
+            "• Smart task management with priorities\n"
+            "• Calendar integration and reminders\n"
+            "• Email organization and responses\n"
+            "• Productivity analytics\n\n"
+            "Want to try it? Reply 'YES' to get started!"
+        )
 
     def format_inactive_user_response(self, phone_number: str) -> MessagingResponse:
         """Format response for inactive users."""

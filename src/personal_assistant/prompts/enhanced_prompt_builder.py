@@ -141,6 +141,8 @@ class EnhancedPromptBuilder:
 
 {self._build_adhd_optimizations(state)}
 
+{self._build_sms_best_practices()}
+
 🎯 **CRITICAL: ENHANCED TOOL GUIDANCE (MUST FOLLOW)** 🎯
 
 
@@ -297,7 +299,7 @@ class EnhancedPromptBuilder:
             # Add examples
             examples = metadata_dict.get("examples", [])
             if examples:
-                section += f"\n\n💡 **Examples**:"
+                section += "\n\n💡 **Examples**:"
                 for example in examples[:1]:  # Limit to 1 example
                     user_request = example.get("user_request", "")[:100]
                     if len(example.get("user_request", "")) > 100:
@@ -306,7 +308,7 @@ class EnhancedPromptBuilder:
 
             # Add AI enhancements
             if enhancements:
-                section += f"\n\n🚨 **CRITICAL AI RULES (MUST FOLLOW)**:"
+                section += "\n\n🚨 **CRITICAL AI RULES (MUST FOLLOW)**:"
                 for enhancement in enhancements[:3]:  # Show more enhancements
                     # Handle both dataclass and dict objects
                     if hasattr(enhancement, "enhancement_type"):
@@ -525,6 +527,33 @@ class EnhancedPromptBuilder:
 • Use bullet points and formatting for readability
 • Focus on actionable next steps
 • Avoid overwhelming with too much information at once
+"""
+
+    def _build_sms_best_practices(self) -> str:
+        """Build SMS-specific best practices and examples."""
+        return """
+<<SMS BEST PRACTICES>>
+
+📱 SMS FORMATTING GUIDELINES:
+• Character Limits: Aim for under 160 characters per message
+• Line Breaks: Use \\n for readability instead of bullet points
+• Abbreviations: Use common ones (w/, thx, np, etc.)
+• Emojis: Use sparingly (max 1-2 per message)
+• Punctuation: Keep simple (avoid semicolons, colons)
+
+💡 SMS RESPONSE EXAMPLES:
+• Weather: "Sunny, 75°F. Perfect day!"
+• Email: "Need John's email address?"
+• Meeting: "What time works for you?"
+• Research: "Found 3 options. Want details?"
+• Confirmation: "Got it! Will send email now."
+
+🚨 SMS CRITICAL RULES:
+• Always prioritize clarity over verbosity
+• Use simple, direct language
+• Break complex info into multiple messages
+• End with clear next steps or questions
+• Keep tone friendly but concise
 """
 
     def _build_action_guidance(self, state: AgentState) -> str:

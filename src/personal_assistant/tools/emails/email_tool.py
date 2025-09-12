@@ -195,7 +195,7 @@ class EmailTool:
         return self._access_token  # type: ignore
 
 
-    async def get_emails(self, count: int, batch_size: int = 10) -> Union[str, dict]:
+    async def get_emails(self, count: int, batch_size: int = 10, user_id: int = None) -> Union[str, dict]:
         """Read recent emails with improved error handling and token management"""
         try:
             # Validate and normalize parameters
@@ -232,7 +232,7 @@ class EmailTool:
 
 
     async def send_email(
-        self, to_recipients: str = None, subject: str = None, body: str = None, is_html: bool = False, **kwargs
+        self, to_recipients: str = None, subject: str = None, body: str = None, is_html: bool = False, user_id: int = None, **kwargs
     ) -> Dict[str, Any]:
         """Send an email to one or more recipients"""
         try:
@@ -328,7 +328,7 @@ class EmailTool:
                 },
             )
 
-    async def delete_email(self, email_id: str) -> Dict[str, Any]:
+    async def delete_email(self, email_id: str, user_id: int = None) -> Dict[str, Any]:
         """Delete an email by its ID"""
         try:
             # Validate parameters using internal functions
@@ -365,7 +365,7 @@ class EmailTool:
                 e, "delete_email", {"email_id": email_id}
             )
 
-    async def get_email_content(self, email_id: str) -> Dict[str, Any]:
+    async def get_email_content(self, email_id: str, user_id: int = None) -> Dict[str, Any]:
         """Get the full content of a specific email by its ID"""
         try:
             # Validate parameters using internal functions
@@ -414,7 +414,7 @@ class EmailTool:
                 e, "get_email_content", {"email_id": email_id}
             )
 
-    async def get_sent_emails(self, count: int = 10, batch_size: int = 10) -> str:
+    async def get_sent_emails(self, count: int = 10, batch_size: int = 10, user_id: int = None) -> str:
         """
         Read recent emails you have sent with improved error handling and token management
         """
@@ -490,6 +490,7 @@ class EmailTool:
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
         folder: str = "inbox",
+        user_id: int = None,
     ) -> str:
         """
         Search emails by query, sender, date range, or other criteria.
@@ -638,7 +639,7 @@ class EmailTool:
                 e, "search_emails", {"query": query, "count": count, "folder": folder}
             )
 
-    async def move_email(self, email_id: str, destination_folder: str) -> str:
+    async def move_email(self, email_id: str, destination_folder: str, user_id: int = None) -> str:
         """
         Move an email from one folder to another folder.
 

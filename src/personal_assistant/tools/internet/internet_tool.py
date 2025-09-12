@@ -90,6 +90,10 @@ class InternetTool:
                     "type": "string",
                     "description": "Safe search level: strict, moderate, off (default: moderate)",
                 },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID (automatically injected by system)",
+                },
             },
         )
 
@@ -126,7 +130,7 @@ class InternetTool:
         )
 
     async def web_search(
-        self, query: str, max_results: int = 5, safe_search: str = "moderate"
+        self, query: str, max_results: int = 5, safe_search: str = "moderate", user_id: int = None
     ) -> str:
         """Search the web using DuckDuckGo"""
         try:

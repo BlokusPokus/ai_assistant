@@ -14,6 +14,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    TIMESTAMP,
 )
 from sqlalchemy.orm import relationship
 
@@ -55,6 +56,13 @@ class SMSUsageLog(Base):
     country_code = Column(String(10), default="US")  # Country code for pricing
     sms_metadata = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Retry functionality fields
+    retry_count = Column(Integer, default=0)
+    max_retries = Column(Integer, default=3)
+    next_retry_at = Column(TIMESTAMP)
+    twilio_message_sid = Column(String(50))
+    final_status = Column(String(20), default="unknown")
 
     # Relationships
     # user = relationship("User", back_populates="sms_usage_logs")  # Commented out due to cross-module dependency issues

@@ -89,6 +89,10 @@ app.conf.update(
             "queue": "maintenance_tasks",
             "priority": 1,
         },
+        "personal_assistant.workers.tasks.sms_tasks.*": {
+            "queue": "sms_tasks",
+            "priority": 8,
+        },
     },
     # Explicit queue declarations with explicit exchange names
     task_queues=(
@@ -97,6 +101,7 @@ app.conf.update(
         Queue('file_tasks', exchange='file_tasks', routing_key='file_tasks'),
         Queue('sync_tasks', exchange='sync_tasks', routing_key='sync_tasks'),
         Queue('maintenance_tasks', exchange='maintenance_tasks', routing_key='maintenance_tasks'),
+        Queue('sms_tasks', exchange='sms_tasks', routing_key='sms_tasks'),
     ),
     # Default queue configuration
     task_default_queue='ai_tasks',
@@ -172,6 +177,22 @@ app.conf.update(
             "task": "personal_assistant.workers.tasks.maintenance_tasks.cleanup_old_sessions",
             "schedule": crontab(hour=4, minute=0),
             "options": {"priority": 1},
+        },
+        # SMS retry tasks (high priority)
+        "sms-retry-processor": {
+            "task": "personal_assistant.workers.tasks.sms_tasks.process_sms_retries",
+            "schedule": crontab(minute="*/2"),
+            "options": {"priority": 8},
+        },
+        "sms-retry-cleanup": {
+            "task": "personal_assistant.workers.tasks.sms_tasks.cleanup_old_retries",
+            "schedule": crontab(hour=3, minute=0),
+            "options": {"priority": 5},
+        },
+        "sms-retry-health-check": {
+            "task": "personal_assistant.workers.tasks.sms_tasks.sms_retry_health_check",
+            "schedule": crontab(minute="*/15"),
+            "options": {"priority": 7},
         },
     },
     # Enhanced worker settings
