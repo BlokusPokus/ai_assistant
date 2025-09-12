@@ -181,7 +181,7 @@ class ResponseFormatter:
     def _get_welcome_message(self) -> str:
         """Get the initial welcome message."""
         return (
-            "Hi! I'm your AI assistant. I can help with tasks, reminders, and more. "
+            "Hi! I'm your AI assistant. I can help with tasks, reminders, and more.You are currently not registered. "
             "Would you like to:\n"
             "A) See what I can do\n"
             "B) Get started now\n"
