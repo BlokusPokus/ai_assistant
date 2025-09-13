@@ -48,15 +48,31 @@ def validate_subject(subject: str) -> tuple[bool, str]:
 
 
 def validate_start_time(start_time: str) -> tuple[bool, str]:
-    """Validate event start time format"""
+    """Validate event start time format - accepts both YYYY-MM-DD HH:MM and ISO format"""
     if not start_time or not start_time.strip():
         return False, "Error: Start time is required"
 
+    # Try the expected format first (YYYY-MM-DD HH:MM)
     try:
         datetime.strptime(start_time, "%Y-%m-%d %H:%M")
         return True, ""
     except ValueError:
-        return False, "Error: Start time must be in YYYY-MM-DD HH:MM format"
+        pass
+    
+    # Try ISO format (YYYY-MM-DDTHH:MM:SS or YYYY-MM-DDTHH:MM)
+    try:
+        datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
+        return True, ""
+    except ValueError:
+        pass
+    
+    try:
+        datetime.strptime(start_time, "%Y-%m-%dT%H:%M")
+        return True, ""
+    except ValueError:
+        pass
+    
+    return False, "Error: Start time must be in YYYY-MM-DD HH:MM or YYYY-MM-DDTHH:MM format"
 
 
 def validate_duration(duration: int) -> tuple[bool, str]:
@@ -216,8 +232,20 @@ def get_datetime_range(days: int) -> tuple[str, str]:
 def parse_start_time_with_duration(
     start_time: str, duration: int
 ) -> tuple[datetime, datetime]:
-    """Parse start time and calculate end time with specified duration"""
-    start_dt = datetime.strptime(start_time, "%Y-%m-%d %H:%M")
+    """Parse start time and calculate end time with specified duration - accepts both formats"""
+    # Try the expected format first (YYYY-MM-DD HH:MM)
+    try:
+        start_dt = datetime.strptime(start_time, "%Y-%m-%d %H:%M")
+    except ValueError:
+        # Try ISO format (YYYY-MM-DDTHH:MM:SS or YYYY-MM-DDTHH:MM)
+        try:
+            start_dt = datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
+        except ValueError:
+            try:
+                start_dt = datetime.strptime(start_time, "%Y-%m-%dT%H:%M")
+            except ValueError:
+                raise ValueError(f"Invalid start time format: {start_time}. Expected YYYY-MM-DD HH:MM or YYYY-MM-DDTHH:MM format")
+    
     end_dt = start_dt + timedelta(minutes=duration)
     return start_dt, end_dt
 

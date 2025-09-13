@@ -90,22 +90,6 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const interval = setInterval(() => {
-      fetchAnalyticsData();
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, selectedTimeRange, fetchAnalyticsData]);
-
-  // Initial data fetch
-  useEffect(() => {
-    fetchAnalyticsData();
-  }, [selectedTimeRange, fetchAnalyticsData]);
-
   const fetchAnalyticsData = useCallback(async () => {
     if (isRefreshing) return;
 
@@ -157,7 +141,23 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [selectedTimeRange, showCosts, isRefreshing]);
+  }, [selectedTimeRange, showCosts]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      fetchAnalyticsData();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, selectedTimeRange, fetchAnalyticsData]);
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [selectedTimeRange, fetchAnalyticsData]);
 
   const handleManualRefresh = () => {
     fetchAnalyticsData();

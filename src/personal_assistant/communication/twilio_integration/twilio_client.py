@@ -81,7 +81,9 @@ class TwilioService:
 
                 # Process message with existing logic for registered users
                 if self.agent is None:
+                    logger.error("Agent is None, cannot process message")
                     return self._create_helpful_guidance_response(from_number)
+                
                 result = await self.agent.run(message, user_info["id"])
                 logger.info(f"Generated response: '{result}'")
                 response.message(result)
@@ -170,19 +172,71 @@ class TwilioService:
             Exception: For other unexpected errors
         """
         try:
-            twilio_message = self.client.messages.create(
+            message = self.client.messages.create(
                 body=message, from_=self.from_number, to=to
             )
 
-            logger.info(f"Message sent successfully. SID: {twilio_message.sid}")
-            logger.info(f"Message status: {twilio_message.status}")
-            return twilio_message.sid  # type: ignore
+            logger.info(f"Message sent successfully. SID: {message.sid}")
+            logger.info(f"Message status: {message.status}")
+            return message.sid
 
         except TwilioRestException as e:
             logger.error(f"Twilio error: {e.code} - {e.msg}")
             raise
         except Exception as e:
             logger.error(f"Error sending message: {str(e)}")
+            raise
+
+    async def send_sms_with_retry(
+        self,
+        to: str,
+        message: str,
+        user_id: int,
+        sms_log_id: Optional[int] = None
+    ) -> str:
+        """
+        Send SMS with automatic retry functionality.
+
+        Args:
+            to: Recipient phone number
+            message: SMS message content
+            user_id: User ID sending the SMS
+            sms_log_id: Optional SMS log ID for retry tracking
+
+        Returns:
+            str: Message SID if successful
+
+        Raises:
+            TwilioRestException: If SMS fails and is not retryable
+        """
+        try:
+            # Attempt to send SMS
+            message_obj = self.client.messages.create(
+                body=message, from_=self.from_number, to=to
+            )
+
+            logger.info(f"Message sent successfully. SID: {message_obj.sid}")
+            return message_obj.sid
+
+        except TwilioRestException as e:
+            logger.error(f"Twilio error: {e.code} - {e.msg}")
+
+            # Initialize retry service if needed
+            if not hasattr(self, 'retry_service'):
+                from ...sms_router.services.simple_retry_service import SimpleSMSRetryService
+                self.retry_service = SimpleSMSRetryService()
+
+            # Queue for retry if error is retryable
+            if self.retry_service.error_classifier.is_retryable(e.code):
+                if sms_log_id:
+                    await self.retry_service.queue_for_retry(
+                        sms_log_id=sms_log_id,
+                        error_code=e.code,
+                        error_message=e.msg
+                    )
+                    logger.info(f"SMS queued for retry due to error {e.code}")
+
+            # Re-raise the exception
             raise
 
     async def send_verification_sms(self, to: str, verification_code: str) -> str:
@@ -211,7 +265,7 @@ class TwilioService:
             )
 
             logger.info(f"Verification SMS sent successfully. SID: {message.sid}")
-            return message.sid  # type: ignore
+            return message.sid
 
         except TwilioRestException as e:
             logger.error(f"Twilio error sending verification SMS: {e.code} - {e.msg}")

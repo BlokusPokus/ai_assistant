@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 
 from personal_assistant.config.logging_config import get_logger
 from personal_assistant.tools.base import Tool
-from personal_assistant.utils.text_cleaner import clean_html_content
 
 # Import email-specific error handling
 from .email_error_handler import EmailErrorHandler
@@ -14,19 +13,18 @@ from .email_internal import (
     build_email_message_data,
     build_email_params,
     clean_recipients_string,
-    format_delete_email_response,
-    format_email_content_response,
+    clean_html_content,
     format_email_list_response,
-    format_error_response,
+    format_email_response,
     format_move_email_response,
-    format_send_email_response,
     format_success_response,
     get_environment_error_message,
     get_token_expiration,
     handle_email_not_found,
     is_token_valid,
     parse_email_content_response,
-    parse_email_response,
+    parse_emails_from_batch,
+    process_email_batch,
     validate_body,
     validate_email_parameters,
     validate_environment_variables,
@@ -45,7 +43,7 @@ class EmailTool:
         self._token_expires_at = None
         self.scopes = ["Mail.Read", "Mail.ReadWrite", "Mail.Send", "User.Read"]
         self.logger = get_logger("tools.emails")
-        self._initialize_token()
+        # Don't initialize token here - do it lazily when needed
 
         # Create individual tools
         self.read_emails_tool = Tool(
@@ -90,7 +88,7 @@ class EmailTool:
             func=self.delete_email,
             description="Delete an email by its ID",
             parameters={
-                "message_id": {
+                "email_id": {
                     "type": "string",
                     "description": "The ID of the email message to delete",
                 }
@@ -102,7 +100,7 @@ class EmailTool:
             func=self.get_email_content,
             description="Get the full content of a specific email by its ID",
             parameters={
-                "message_id": {
+                "email_id": {
                     "type": "string",
                     "description": "The ID of the email message to get content from",
                 }
@@ -158,7 +156,7 @@ class EmailTool:
             func=self.move_email,
             description="Move an email from one folder to another folder (e.g., from Inbox to Archive, or between custom folders)",
             parameters={
-                "message_id": {
+                "email_id": {
                     "type": "string",
                     "description": "The ID of the email message to move",
                 },
@@ -169,10 +167,6 @@ class EmailTool:
             },
         )
 
-    def _clean_html_content(self, html_content: str) -> str:
-        """Extract clean text content from HTML, removing styling and formatting"""
-        # Use the new text cleaning utility
-        return str(clean_html_content(html_content))
 
     def _is_token_valid(self) -> bool:
         """Check if current token is valid and not expired"""
@@ -200,65 +194,57 @@ class EmailTool:
         self._initialize_token()
         return self._access_token  # type: ignore
 
-    async def get_emails(self, count: int, batch_size: int = 10) -> Union[str, dict]:
-        """
-        Read recent emails with improved error handling and token management
-        """
+
+    async def get_emails(self, count: int, batch_size: int = 10, user_id: int = None) -> Union[str, dict]:
+        """Read recent emails with improved error handling and token management"""
         try:
-            # Validate parameters using internal functions
-            # Ensure count and batch_size are integers (handle float values from LLM)
+            # Validate and normalize parameters
             count = int(count) if count else 10
             batch_size = int(batch_size) if batch_size else 10
 
-            count, batch_size = validate_email_parameters(count, batch_size)
-
             token = self._get_valid_token()
             headers = build_email_headers(token)
-            emails = []
+            all_emails = []
 
-            # Reuse the pagination logic
-            for i in range(0, count, batch_size):
-                params = build_email_params(
-                    top=min(batch_size, count - i),
-                    select="id,subject,bodyPreview,receivedDateTime,from,isDraft",
-                    skip=i,
-                    orderby="receivedDateTime desc",
-                )
-
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(
-                        f"{self.ms_graph_url}/me/messages",
-                        headers=headers,
-                        params=params,
+            # Process emails in batches
+            async with httpx.AsyncClient() as client:
+                for i in range(0, count, batch_size):
+                    batch_num = i // batch_size + 1
+                    current_batch_size = min(batch_size, count - i)
+                    
+                    self.logger.info(f"Processing batch {batch_num}, emails {i} to {i + current_batch_size}")
+                    
+                    batch_emails = await process_email_batch(
+                        client, headers, batch_num, current_batch_size, i, 
+                        self.ms_graph_url, self.logger
                     )
+                    
+                    parsed_emails = parse_emails_from_batch(batch_emails, self.logger)
+                    all_emails.extend(parsed_emails)
 
-                    if response.status_code != 200:
-                        return EmailErrorHandler.handle_email_error(
-                            Exception(f"HTTP {response.status_code}: {response.text}"),
-                            "get_emails",
-                            {"count": count, "batch_size": batch_size},
-                        )
-
-                    for mail in response.json().get("value", []):
-                        if not mail.get("isDraft"):
-                            emails.append(parse_email_response(mail))
-
-                    if len(emails) >= count:
-                        break
-
-            # Use formatting function for clean user output
-            return format_email_list_response(emails[:count], count)
+            # Format and return response
+            return format_email_response(all_emails, count, self.logger)
 
         except Exception as e:
             return EmailErrorHandler.handle_email_error_str(
                 e, "get_emails", {"count": count, "batch_size": batch_size}
             )
 
+
     async def send_email(
-        self, to_recipients: str, subject: str, body: str, is_html: bool = False
+        self, to_recipients: str = None, subject: str = None, body: str = None, is_html: bool = False, user_id: int = None, **kwargs
     ) -> Dict[str, Any]:
         """Send an email to one or more recipients"""
         try:
+            # Handle both 'to_recipients' and 'to' parameter names for compatibility
+            if to_recipients is None and 'to' in kwargs:
+                # Convert 'to' parameter (which might be a list) to 'to_recipients' string
+                to_param = kwargs['to']
+                if isinstance(to_param, list):
+                    to_recipients = ', '.join(to_param)
+                else:
+                    to_recipients = str(to_param)
+            
             # Validate parameters using internal functions
             is_valid, error_msg = validate_recipients(to_recipients)
             if not is_valid:
@@ -342,14 +328,14 @@ class EmailTool:
                 },
             )
 
-    async def delete_email(self, message_id: str) -> Dict[str, Any]:
+    async def delete_email(self, email_id: str, user_id: int = None) -> Dict[str, Any]:
         """Delete an email by its ID"""
         try:
             # Validate parameters using internal functions
-            is_valid, error_msg = validate_message_id(message_id)
+            is_valid, error_msg = validate_message_id(email_id)
             if not is_valid:
                 return EmailErrorHandler.handle_email_error(
-                    ValueError(error_msg), "delete_email", {"message_id": message_id}
+                    ValueError(error_msg), "delete_email", {"email_id": email_id}
                 )
 
             token = self._get_valid_token()
@@ -357,38 +343,38 @@ class EmailTool:
 
             async with httpx.AsyncClient() as client:
                 response = await client.delete(
-                    f"{self.ms_graph_url}/me/messages/{message_id}", headers=headers
+                    f"{self.ms_graph_url}/me/messages/{email_id}", headers=headers
                 )
 
                 if response.status_code == 204:  # No content on successful deletion
                     return format_success_response(
-                        f"Successfully deleted email with ID: {message_id}",
-                        {"message_id": message_id},
+                        f"Successfully deleted email with ID: {email_id}",
+                        {"email_id": email_id},
                     )
                 elif response.status_code == 404:
-                    return handle_email_not_found(message_id)
+                    return handle_email_not_found(email_id)
                 else:
                     return EmailErrorHandler.handle_email_error(
                         Exception(f"HTTP {response.status_code}: {response.text}"),
                         "delete_email",
-                        {"message_id": message_id},
+                        {"email_id": email_id},
                     )
 
         except Exception as e:
             return EmailErrorHandler.handle_email_error(
-                e, "delete_email", {"message_id": message_id}
+                e, "delete_email", {"email_id": email_id}
             )
 
-    async def get_email_content(self, message_id: str) -> Dict[str, Any]:
+    async def get_email_content(self, email_id: str, user_id: int = None) -> Dict[str, Any]:
         """Get the full content of a specific email by its ID"""
         try:
             # Validate parameters using internal functions
-            is_valid, error_msg = validate_message_id(message_id)
+            is_valid, error_msg = validate_message_id(email_id)
             if not is_valid:
                 return EmailErrorHandler.handle_email_error(
                     ValueError(error_msg),
                     "get_email_content",
-                    {"message_id": message_id},
+                    {"email_id": email_id},
                 )
 
             token = self._get_valid_token()
@@ -396,7 +382,7 @@ class EmailTool:
 
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    f"{self.ms_graph_url}/me/messages/{message_id}",
+                    f"{self.ms_graph_url}/me/messages/{email_id}",
                     headers=headers,
                     params=build_email_params(
                         top=1,
@@ -407,7 +393,7 @@ class EmailTool:
                 if response.status_code == 200:
                     mail = response.json()
                     raw_body = mail.get("body", {}).get("content", "")
-                    clean_body = self._clean_html_content(raw_body)
+                    clean_body = clean_html_content(raw_body)
 
                     # Use formatting function for clean user output
                     email_data = parse_email_content_response(mail, clean_body)
@@ -415,20 +401,20 @@ class EmailTool:
                         "Email content retrieved successfully", email_data
                     )
                 elif response.status_code == 404:
-                    return handle_email_not_found(message_id)
+                    return handle_email_not_found(email_id)
                 else:
                     return EmailErrorHandler.handle_email_error(
                         Exception(f"HTTP {response.status_code}: {response.text}"),
                         "get_email_content",
-                        {"message_id": message_id},
+                        {"email_id": email_id},
                     )
 
         except Exception as e:
             return EmailErrorHandler.handle_email_error(
-                e, "get_email_content", {"message_id": message_id}
+                e, "get_email_content", {"email_id": email_id}
             )
 
-    async def get_sent_emails(self, count: int = 10, batch_size: int = 10) -> str:
+    async def get_sent_emails(self, count: int = 10, batch_size: int = 10, user_id: int = None) -> str:
         """
         Read recent emails you have sent with improved error handling and token management
         """
@@ -504,6 +490,7 @@ class EmailTool:
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
         folder: str = "inbox",
+        user_id: int = None,
     ) -> str:
         """
         Search emails by query, sender, date range, or other criteria.
@@ -652,7 +639,7 @@ class EmailTool:
                 e, "search_emails", {"query": query, "count": count, "folder": folder}
             )
 
-    async def move_email(self, message_id: str, destination_folder: str) -> str:
+    async def move_email(self, email_id: str, destination_folder: str, user_id: int = None) -> str:
         """
         Move an email from one folder to another folder.
 
@@ -666,12 +653,12 @@ class EmailTool:
         """
         try:
             # Validate parameters
-            if not message_id or not message_id.strip():
+            if not email_id or not email_id.strip():
                 return EmailErrorHandler.handle_email_error_str(
-                    ValueError("Message ID cannot be empty"),
+                    ValueError("Email ID cannot be empty"),
                     "move_email",
                     {
-                        "message_id": message_id,
+                        "email_id": email_id,
                         "destination_folder": destination_folder,
                     },
                 )
@@ -681,7 +668,7 @@ class EmailTool:
                     ValueError("Destination folder cannot be empty"),
                     "move_email",
                     {
-                        "message_id": message_id,
+                        "email_id": email_id,
                         "destination_folder": destination_folder,
                     },
                 )
@@ -715,7 +702,7 @@ class EmailTool:
                 async with httpx.AsyncClient() as client:
                     # Get message details to see current folder
                     response = await client.get(
-                        f"{self.ms_graph_url}/me/messages/{message_id}",
+                        f"{self.ms_graph_url}/me/messages/{email_id}",
                         headers=headers,
                         params={"$select": "id,subject,parentFolderId"},
                     )
@@ -738,7 +725,7 @@ class EmailTool:
             # Perform the move operation
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{self.ms_graph_url}/me/messages/{message_id}/move",
+                    f"{self.ms_graph_url}/me/messages/{email_id}/move",
                     headers=headers,
                     json=move_data,
                 )
@@ -756,16 +743,16 @@ class EmailTool:
                     return format_move_email_response(
                         True,
                         success_message,
-                        message_id,
+                        email_id,
                         destination_folder,
                         current_folder,
                     )
                 elif response.status_code == 404:
-                    error_message = f"Email with ID {message_id} not found"
+                    error_message = f"Email with ID {email_id} not found"
                     return format_move_email_response(
                         False,
                         error_message,
-                        message_id,
+                        email_id,
                         destination_folder,
                         current_folder,
                     )
@@ -775,7 +762,7 @@ class EmailTool:
                     return format_move_email_response(
                         False,
                         error_message,
-                        message_id,
+                        email_id,
                         destination_folder,
                         current_folder,
                     )
@@ -784,7 +771,7 @@ class EmailTool:
                     return format_move_email_response(
                         False,
                         error_message,
-                        message_id,
+                        email_id,
                         destination_folder,
                         current_folder,
                     )
@@ -793,7 +780,7 @@ class EmailTool:
             return EmailErrorHandler.handle_email_error_str(
                 e,
                 "move_email",
-                {"message_id": message_id, "destination_folder": destination_folder},
+                {"email_id": email_id, "destination_folder": destination_folder},
             )
 
     def __iter__(self):

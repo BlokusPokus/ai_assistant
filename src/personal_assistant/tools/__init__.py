@@ -8,10 +8,12 @@ from .emails.email_tool import EmailTool
 from .internet.internet_tool import InternetTool
 from .ltm.ltm_tool import LTMTool
 from .notion_pages.notion_pages_tool import NotionPagesTool
+from .notes.enhanced_notes_tool import EnhancedNotesTool
 
 # Configure module logger
 from .planning.llm_planner import LLMPlannerTool
 from .reminders.reminder_tool import ReminderTool
+from .todos.todo_tool import create_todo_tools
 from .youtube.youtube_tool import YouTubeTool
 
 logger = get_logger("tools")
@@ -40,9 +42,15 @@ def create_tool_registry() -> ToolRegistry:
     #     registry.register(tool)
 
     # Register Notion pages tools (new page-based note system)
-    notion_pages_tool = NotionPagesTool()
-    for tool in notion_pages_tool:
-        tool.set_category("NotionPages")
+    # notion_pages_tool = NotionPagesTool()
+    # for tool in notion_pages_tool:
+    #     tool.set_category("NotionPages")
+    #     registry.register(tool)
+
+    # Register enhanced notes tools (AI-powered note management)
+    enhanced_notes_tool = EnhancedNotesTool()
+    for tool in enhanced_notes_tool:
+        tool.set_category("EnhancedNotes")
         registry.register(tool)
 
     # Register reminder tools
@@ -80,6 +88,11 @@ def create_tool_registry() -> ToolRegistry:
         tool.set_category("Planner")
         registry.register(tool)
 
+    # Register todo tools
+    todo_tools = create_todo_tools()
+    for tool in todo_tools:
+        registry.register(tool)
+
     return registry
 
 
@@ -90,9 +103,11 @@ __all__ = [
     "CalendarTool",
     "EmailTool",
     "NotionPagesTool",
+    "EnhancedNotesTool",
     "ReminderTool",
     "InternetTool",
     "YouTubeTool",
+    "create_todo_tools",
     # 'ResearchTool',
     "create_tool_registry",
     "logger",

@@ -45,7 +45,7 @@ class GeminiEmbeddings:
         if self._llm_client is None:
             if not self.api_key:
                 raise ValueError("Gemini API key not configured")
-            self._llm_client = GeminiLLM(api_key=self.api_key, model="gemini-2.0-flash")
+            self._llm_client = GeminiLLM(api_key=self.api_key, model=settings.GEMINI_MODEL)
         return self._llm_client
 
     async def embed_text(self, text: str) -> List[float]:

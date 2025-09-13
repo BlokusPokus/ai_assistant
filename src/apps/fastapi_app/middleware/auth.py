@@ -36,6 +36,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/api/v1/auth/login",
             "/api/v1/auth/register",
             "/api/v1/auth/refresh",
+            "/api/v1/oauth/callback",  # OAuth callback from external providers
             "/webhook/twilio",  # Keep Twilio webhook accessible
             "/twilio/sms",  # Keep Twilio SMS webhook accessible
             "/sms-router/webhook/sms",  # SMS Router webhook for Twilio

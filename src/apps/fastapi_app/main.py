@@ -8,6 +8,7 @@ from apps.fastapi_app.middleware.rate_limiting import RateLimitingMiddleware
 from apps.fastapi_app.routes import (
     analytics,
     auth,
+    chat,
     mfa,
     oauth,
     rbac,
@@ -73,6 +74,7 @@ app.include_router(sessions.router)
 app.include_router(rbac.router)
 app.include_router(users.router)
 app.include_router(oauth.router)
+app.include_router(chat.router)
 
 # Add SMS Router routes
 app.include_router(sms_router.router)

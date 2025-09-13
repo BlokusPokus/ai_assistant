@@ -21,7 +21,7 @@ def extract_video_id(video_input: str) -> str:
 
     # Handle different YouTube URL formats
     patterns = [
-        r"(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/|youtube\.com/v/)([a-zA-Z0-9_-]{11})",
+        r"(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/|youtube\.com/v/|youtube\.com/shorts/)([a-zA-Z0-9_-]{11})",
         r"^([a-zA-Z0-9_-]{11})$",  # Direct video ID
     ]
 

@@ -191,10 +191,6 @@ class AgentState:
 
         # Add tool execution to conversation history
         new_items = [
-            {
-                "role": "assistant",
-                "content": f"I'll help you with that using the {tool_call.name} tool.",
-            },
             {"role": "tool", "name": tool_call.name, "content": result},
         ]
 

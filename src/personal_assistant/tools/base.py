@@ -257,7 +257,7 @@ class ToolRegistry:
             raise ValueError(f"Tool {name} not found")
 
         # Await the tool execution
-        logger.debug(f"=== TOOL REGISTRY: CALLING TOOL.EXECUTE ===")
+        logger.debug(f"=== TOOL REGISTRY: CALLING TOOL.EXECUTE {name} ===")
         result = await self.tools[name].execute(**kwargs)
         logger.debug(f"=== TOOL REGISTRY: TOOL EXECUTION COMPLETED ===")
         logger.debug(f"=== TOOL REGISTRY: RESULT {result} ===")

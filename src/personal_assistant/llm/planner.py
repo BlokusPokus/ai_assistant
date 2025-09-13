@@ -175,4 +175,5 @@ class LLMPlanner:
         # Clean result before logging
         clean_result = clean_text_for_logging(str(result))
         logger.debug(f"Tool result: {clean_result}")
-        pass  # Can be used to update internal state or trigger additional actions
+        # Can be used to update internal state or trigger additional actions
+        return clean_result

@@ -14,7 +14,7 @@ from personal_assistant.database.models.base import Base
 
 
 class OAuthState(Base):
-    __tablename__ = "oauth_state"
+    __tablename__ = "oauth_states"
 
     id = Column(Integer, primary_key=True)
     state_token = Column(String(255), nullable=False, unique=True)  # Unique state token

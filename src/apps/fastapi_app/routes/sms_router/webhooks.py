@@ -11,6 +11,7 @@ from personal_assistant.sms_router.middleware.webhook_validation import (
     validate_twilio_webhook,
 )
 from personal_assistant.sms_router.services.routing_engine import SMSRoutingEngine
+from personal_assistant.sms_router.services.simple_retry_service import SimpleSMSRetryService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -35,6 +36,10 @@ async def twilio_sms_webhook(
         MessageSid: Twilio message SID
         routing_engine: SMS routing engine instance
     """
+    logger.info(f"🚨 SMS WEBHOOK CALLED! From: {From}, To: {To}, Body: {Body}, MessageSid: {MessageSid}")
+    logger.info(f"🚨 Request headers: {dict(request.headers)}")
+    logger.info(f"🚨 Request client: {request.client}")
+    
     try:
         # Validate webhook (optional security measure)
         if not validate_twilio_webhook(request):
@@ -55,6 +60,40 @@ async def twilio_sms_webhook(
     except Exception as e:
         logger.error(f"Error processing SMS webhook: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/delivery-status")
+async def twilio_delivery_status_webhook(
+    request: Request,
+    MessageSid: str = Form(...),
+    MessageStatus: str = Form(...),
+    retry_service: SimpleSMSRetryService = Depends(),
+):
+    """
+    Handle Twilio delivery status webhooks.
+
+    This endpoint receives delivery confirmations from Twilio and updates
+    the retry queue status accordingly.
+    """
+    try:
+        logger.info(f"Received delivery status webhook: {MessageSid} - {MessageStatus}")
+
+        # Handle delivery confirmation
+        success = await retry_service.handle_delivery_confirmation(MessageSid, MessageStatus)
+
+        if success:
+            return {"status": "success", "message": "Delivery status updated"}
+        else:
+            return {"status": "warning", "message": "No matching SMS record found"}
+
+    except Exception as e:
+        logger.error(f"Error processing delivery status webhook: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def get_retry_service() -> SimpleSMSRetryService:
+    """Dependency to get SMS retry service."""
+    return SimpleSMSRetryService()
 
 
 @router.get("/health")

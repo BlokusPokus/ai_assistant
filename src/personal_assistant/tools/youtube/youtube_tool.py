@@ -80,18 +80,29 @@ class YouTubeTool:
             func=self.get_video_info,
             description="Get detailed information about a YouTube video",
             parameters={
-                "video_id": {
-                    "type": "string",
-                    "description": "YouTube video ID or URL (required)",
+                "type": "object",
+                "properties": {
+                    "video_id": {
+                        "type": "string",
+                        "description": "YouTube video ID or URL",
+                    },
+                    "video_url": {
+                        "type": "string",
+                        "description": "YouTube video URL (alternative to video_id)",
+                    },
+                    "include_transcript": {
+                        "type": "boolean",
+                        "description": "Include video transcript (default: false)",
+                    },
+                    "include_statistics": {
+                        "type": "boolean",
+                        "description": "Include video statistics (default: true)",
+                    },
                 },
-                "include_transcript": {
-                    "type": "boolean",
-                    "description": "Include video transcript (default: false)",
-                },
-                "include_statistics": {
-                    "type": "boolean",
-                    "description": "Include video statistics (default: true)",
-                },
+                "anyOf": [
+                    {"required": ["video_id"]},
+                    {"required": ["video_url"]}
+                ]
             },
         )
 
@@ -100,18 +111,30 @@ class YouTubeTool:
             func=self.get_video_transcript,
             description="Extract and process YouTube video transcript",
             parameters={
-                "video_id": {
-                    "type": "string",
-                    "description": "YouTube video ID or URL (required)",
+                "type": "object",
+                "properties": {
+                    "video_id": {
+                        "type": "string",
+                        "description": "YouTube video ID or URL",
+                    },
+                    "video_url": {
+                        "type": "string",
+                        "description": "YouTube video URL (alternative to video_id)",
+                    },
+                    "language": {
+                        "type": "string",
+                        "description": "Language code for transcript (default: auto)",
+                    },
+                    "format": {
+                        "type": "string",
+                        "description": "Output format: text, json, or srt (default: text)",
+                        "enum": ["text", "json", "srt"]
+                    },
                 },
-                "language": {
-                    "type": "string",
-                    "description": "Language code for transcript (default: auto)",
-                },
-                "format": {
-                    "type": "string",
-                    "description": "Output format: text, json, or srt (default: text)",
-                },
+                "anyOf": [
+                    {"required": ["video_id"]},
+                    {"required": ["video_url"]}
+                ]
             },
         )
 
@@ -120,19 +143,25 @@ class YouTubeTool:
             func=self.search_videos,
             description="Search for YouTube videos by query",
             parameters={
-                "query": {"type": "string", "description": "Search query (required)"},
-                "max_results": {
-                    "type": "integer",
-                    "description": "Maximum number of results (default: 10)",
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Search query (required)"},
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of results (default: 10)",
+                    },
+                    "video_duration": {
+                        "type": "string",
+                        "description": "Filter by duration: short, medium, long (optional)",
+                        "enum": ["short", "medium", "long"]
+                    },
+                    "upload_date": {
+                        "type": "string",
+                        "description": "Filter by upload date: today, this_week, this_month, this_year (optional)",
+                        "enum": ["today", "this_week", "this_month", "this_year"]
+                    },
                 },
-                "video_duration": {
-                    "type": "string",
-                    "description": "Filter by duration: short, medium, long (optional)",
-                },
-                "upload_date": {
-                    "type": "string",
-                    "description": "Filter by upload date: today, this_week, this_month, this_year (optional)",
-                },
+                "required": ["query"]
             },
         )
 
@@ -141,18 +170,22 @@ class YouTubeTool:
             func=self.get_channel_info,
             description="Get information about a YouTube channel",
             parameters={
-                "channel_id": {
-                    "type": "string",
-                    "description": "YouTube channel ID or URL (required)",
+                "type": "object",
+                "properties": {
+                    "channel_id": {
+                        "type": "string",
+                        "description": "YouTube channel ID or URL (required)",
+                    },
+                    "include_statistics": {
+                        "type": "boolean",
+                        "description": "Include channel statistics (default: true)",
+                    },
+                    "include_recent_videos": {
+                        "type": "boolean",
+                        "description": "Include recent videos (default: false)",
+                    },
                 },
-                "include_statistics": {
-                    "type": "boolean",
-                    "description": "Include channel statistics (default: true)",
-                },
-                "include_recent_videos": {
-                    "type": "boolean",
-                    "description": "Include recent videos (default: false)",
-                },
+                "required": ["channel_id"]
             },
         )
 
@@ -161,18 +194,22 @@ class YouTubeTool:
             func=self.get_playlist_info,
             description="Get information about a YouTube playlist",
             parameters={
-                "playlist_id": {
-                    "type": "string",
-                    "description": "YouTube playlist ID or URL (required)",
+                "type": "object",
+                "properties": {
+                    "playlist_id": {
+                        "type": "string",
+                        "description": "YouTube playlist ID or URL (required)",
+                    },
+                    "max_videos": {
+                        "type": "integer",
+                        "description": "Maximum number of videos to show (default: 20)",
+                    },
+                    "include_video_details": {
+                        "type": "boolean",
+                        "description": "Include video details in playlist (default: false)",
+                    },
                 },
-                "max_videos": {
-                    "type": "integer",
-                    "description": "Maximum number of videos to show (default: 20)",
-                },
-                "include_video_details": {
-                    "type": "boolean",
-                    "description": "Include video details in playlist (default: false)",
-                },
+                "required": ["playlist_id"]
             },
         )
 
@@ -190,19 +227,23 @@ class YouTubeTool:
 
     async def get_video_info(
         self,
-        video_id: str,
+        video_id: str = None,
+        video_url: str = None,
         include_transcript: bool = False,
         include_statistics: bool = True,
     ) -> Union[str, dict]:
         """Get detailed information about a YouTube video"""
         try:
-            # Validate parameters
-            if not video_id or not video_id.strip():
+            # Handle both video_id and video_url parameters
+            if video_url and not video_id:
+                video_id = video_url
+            elif not video_id:
                 return YouTubeErrorHandler.handle_youtube_error(
-                    ValueError("Video ID is required"),
+                    ValueError("Either video_id or video_url is required"),
                     "get_video_info",
                     {
                         "video_id": video_id,
+                        "video_url": video_url,
                         "include_transcript": include_transcript,
                         "include_statistics": include_statistics,
                     },
@@ -363,16 +404,18 @@ class YouTubeTool:
             )
 
     async def get_video_transcript(
-        self, video_id: str, language: str = "auto", format: str = "text"
+        self, video_id: str = None, video_url: str = None, language: str = "auto", format: str = "text"
     ) -> Union[str, dict]:
         """Extract and process YouTube video transcript"""
         try:
-            # Validate parameters
-            if not video_id or not video_id.strip():
+            # Handle both video_id and video_url parameters
+            if video_url and not video_id:
+                video_id = video_url
+            elif not video_id:
                 return YouTubeErrorHandler.handle_youtube_error(
-                    ValueError("Video ID is required"),
+                    ValueError("Either video_id or video_url is required"),
                     "get_video_transcript",
-                    {"video_id": video_id, "language": language, "format": format},
+                    {"video_id": video_id, "video_url": video_url, "language": language, "format": format},
                 )
 
             video_id = extract_video_id(video_id)

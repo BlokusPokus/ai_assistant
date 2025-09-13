@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 # Import the existing AI scheduler components
-from ...tools.ai_scheduler.ai_task_manager import AITaskManager
+from ...tools.ai_scheduler.core.task_manager import AITaskManager
 
 logger = logging.getLogger(__name__)
 

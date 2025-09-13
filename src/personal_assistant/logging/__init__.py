@@ -5,6 +5,15 @@ Structured logging utilities for the personal assistant framework.
 Provides structured JSON logging, correlation IDs, and enhanced logging utilities.
 """
 
+from .embedding_filter import (
+    EmbeddingDebugFilter,
+    EmbeddingNoiseFilter,
+    apply_embedding_filter,
+    disable_embedding_logs,
+    enable_embedding_noise_filter,
+    set_embedding_log_level,
+    setup_embedding_logging_control,
+)
 from .oauth_audit import (
     OAuthAuditLogger,
     log_oauth_authorization_denied,
@@ -41,4 +50,11 @@ __all__ = [
     "log_oauth_token_refresh",
     "log_oauth_token_revocation",
     "log_oauth_security_event",
+    "EmbeddingNoiseFilter",
+    "EmbeddingDebugFilter",
+    "apply_embedding_filter",
+    "disable_embedding_logs",
+    "enable_embedding_noise_filter",
+    "set_embedding_log_level",
+    "setup_embedding_logging_control",
 ]

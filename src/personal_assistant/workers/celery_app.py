@@ -12,6 +12,7 @@ from datetime import datetime
 from celery import Celery
 from celery.schedules import crontab
 from celery.signals import task_failure, task_postrun, task_prerun
+from kombu import Queue
 from dotenv import load_dotenv
 
 # Configure logging
@@ -88,13 +89,34 @@ app.conf.update(
             "queue": "maintenance_tasks",
             "priority": 1,
         },
+        "personal_assistant.workers.tasks.sms_tasks.*": {
+            "queue": "sms_tasks",
+            "priority": 8,
+        },
     },
+    # Explicit queue declarations with explicit exchange names
+    task_queues=(
+        Queue('ai_tasks', exchange='ai_tasks', routing_key='ai_tasks'),
+        Queue('email_tasks', exchange='email_tasks', routing_key='email_tasks'),
+        Queue('file_tasks', exchange='file_tasks', routing_key='file_tasks'),
+        Queue('sync_tasks', exchange='sync_tasks', routing_key='sync_tasks'),
+        Queue('maintenance_tasks', exchange='maintenance_tasks', routing_key='maintenance_tasks'),
+        Queue('sms_tasks', exchange='sms_tasks', routing_key='sms_tasks'),
+    ),
+    # Default queue configuration
+    task_default_queue='ai_tasks',
+    task_default_exchange='ai_tasks',
+    task_default_exchange_type='direct',
+    task_default_routing_key='ai_tasks',
+    # Prevent queue naming conflicts
+    task_create_missing_queues=True,
+    task_default_delivery_mode='persistent',
     # Enhanced beat schedule with dependencies
     beat_schedule={
         # AI tasks (high priority)
         "process-due-ai-tasks": {
             "task": "personal_assistant.workers.tasks.ai_tasks.process_due_ai_tasks",
-            "schedule": crontab(minute="*/10"),
+            "schedule": crontab(minute="*/1"),
             "options": {"priority": 10},
         },
         "test-scheduler-connection": {
@@ -156,6 +178,22 @@ app.conf.update(
             "schedule": crontab(hour=4, minute=0),
             "options": {"priority": 1},
         },
+        # SMS retry tasks (high priority)
+        "sms-retry-processor": {
+            "task": "personal_assistant.workers.tasks.sms_tasks.process_sms_retries",
+            "schedule": crontab(minute="*/2"),
+            "options": {"priority": 8},
+        },
+        "sms-retry-cleanup": {
+            "task": "personal_assistant.workers.tasks.sms_tasks.cleanup_old_retries",
+            "schedule": crontab(hour=3, minute=0),
+            "options": {"priority": 5},
+        },
+        "sms-retry-health-check": {
+            "task": "personal_assistant.workers.tasks.sms_tasks.sms_retry_health_check",
+            "schedule": crontab(minute="*/15"),
+            "options": {"priority": 7},
+        },
     },
     # Enhanced worker settings
     worker_prefetch_multiplier=1,
@@ -184,6 +222,26 @@ app.conf.update(
     worker_log_format="[%(asctime)s: %(levelname)s/%(processName)s] %(message)s",
     worker_task_log_format="[%(asctime)s: %(levelname)s/%(processName)s] [%(task_name)s(%(task_id)s)] %(message)s",
 )
+
+# Log the beat schedule configuration
+logger.info("🚀 CELERY BEAT SCHEDULE CONFIGURED:")
+logger.info(f"📅 process-due-ai-tasks: Every minute (crontab: */1)")
+logger.info(f"📅 test-scheduler-connection: Every 30 minutes")
+logger.info(f"📅 cleanup-old-logs: Daily at 2:00 AM")
+print("🚀 CELERY BEAT SCHEDULE CONFIGURED:")
+print(f"📅 process-due-ai-tasks: Every minute (crontab: */1)")
+print(f"📅 test-scheduler-connection: Every 30 minutes")
+print(f"📅 cleanup-old-logs: Daily at 2:00 AM")
+
+# Log the queue configuration
+logger.info("🚀 CELERY QUEUE CONFIGURATION:")
+logger.info(f"📋 Default Queue: {app.conf.task_default_queue}")
+logger.info(f"📋 Active Queues: {[q.name for q in app.conf.task_queues]}")
+logger.info(f"📋 Task Routes: {app.conf.task_routes}")
+print("🚀 CELERY QUEUE CONFIGURATION:")
+print(f"📋 Default Queue: {app.conf.task_default_queue}")
+print(f"📋 Active Queues: {[q.name for q in app.conf.task_queues]}")
+print(f"📋 Task Routes: {app.conf.task_routes}")
 
 # Enhanced signal handlers for monitoring
 

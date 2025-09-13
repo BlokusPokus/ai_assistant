@@ -50,15 +50,44 @@ class EnhancedPromptBuilder:
                 create_email_ai_enhancements,
                 create_email_tool_metadata,
             )
+            from ..tools.metadata.ai_task_metadata import (
+                create_ai_task_ai_enhancements,
+                create_ai_task_metadata,
+            )
+            from ..tools.metadata.internet_metadata import (
+                create_internet_ai_enhancements,
+                create_internet_tool_metadata,
+            )
+            from ..tools.metadata.note_metadata import (
+                create_note_ai_enhancements,
+                create_note_tool_metadata,
+            )
 
             # Register email tool metadata
             email_metadata = create_email_tool_metadata()
             self.metadata_manager.register_tool_metadata(email_metadata)
-
-            # Register email tool AI enhancements
             create_email_ai_enhancements(self.enhancement_manager)
 
-            logger.info("Enhanced prompt builder initialized with tool metadata")
+            # Register AI task scheduler tool metadata
+            ai_task_metadata = create_ai_task_metadata()
+            self.metadata_manager.register_tool_metadata(ai_task_metadata)
+            # AI task enhancements returns a manager, so we need to merge it
+            ai_task_enhancements = create_ai_task_ai_enhancements()
+            # Merge the enhancements into our main manager
+            for enhancement in ai_task_enhancements.enhancements.values():
+                self.enhancement_manager.register_enhancement(enhancement)
+
+            # Register internet tool metadata
+            internet_metadata = create_internet_tool_metadata()
+            self.metadata_manager.register_tool_metadata(internet_metadata)
+            create_internet_ai_enhancements(self.enhancement_manager)
+
+            # Register note tool metadata
+            note_metadata = create_note_tool_metadata()
+            self.metadata_manager.register_tool_metadata(note_metadata)
+            create_note_ai_enhancements(self.enhancement_manager)
+
+            logger.info("Enhanced prompt builder initialized with all tool metadata")
 
         except Exception as e:
             logger.warning(f"Failed to initialize tool metadata: {e}")
@@ -111,6 +140,8 @@ class EnhancedPromptBuilder:
 {self._build_context_strategies()}
 
 {self._build_adhd_optimizations(state)}
+
+{self._build_sms_best_practices()}
 
 🎯 **CRITICAL: ENHANCED TOOL GUIDANCE (MUST FOLLOW)** 🎯
 
@@ -166,19 +197,19 @@ class EnhancedPromptBuilder:
             word in input_lower
             for word in ["research", "search", "find", "look up", "investigate"]
         ):
-            required_tools.append("internet_tool")
+            required_tools.append("internet_tools")
 
         # Note-taking tasks
         if any(
             word in input_lower for word in ["note", "write down", "document", "save"]
         ):
-            required_tools.append("notion_tool")
+            required_tools.append("note_tool")
 
         # Planning tasks
         if any(
             word in input_lower for word in ["plan", "organize", "coordinate", "manage"]
         ):
-            required_tools.append("ai_scheduler_tool")
+            required_tools.append("ai_task_scheduler")
 
         logger.debug(
             f"Analyzed tool requirements: {required_tools} for input: {user_input[:50]}..."
@@ -268,7 +299,7 @@ class EnhancedPromptBuilder:
             # Add examples
             examples = metadata_dict.get("examples", [])
             if examples:
-                section += f"\n\n💡 **Examples**:"
+                section += "\n\n💡 **Examples**:"
                 for example in examples[:1]:  # Limit to 1 example
                     user_request = example.get("user_request", "")[:100]
                     if len(example.get("user_request", "")) > 100:
@@ -277,7 +308,7 @@ class EnhancedPromptBuilder:
 
             # Add AI enhancements
             if enhancements:
-                section += f"\n\n🚨 **CRITICAL AI RULES (MUST FOLLOW)**:"
+                section += "\n\n🚨 **CRITICAL AI RULES (MUST FOLLOW)**:"
                 for enhancement in enhancements[:3]:  # Show more enhancements
                     # Handle both dataclass and dict objects
                     if hasattr(enhancement, "enhancement_type"):
@@ -318,11 +349,12 @@ class EnhancedPromptBuilder:
 • Maintain focus on the current request
 
 🚨 **CRITICAL: COMMUNICATION STYLE**
-• DURING PROCESS: Can think out loud and explain actions
-• FINAL ANSWER: Must be clean, direct, and user-focused
+• DURING PROCESS: Think out loud naturally, like you're working alongside them
+• FINAL ANSWER: Be conversational and warm, like talking to a good friend
 • NEVER say "Based on the search results..." in final answers
 • NEVER say "I will provide a summary..." in final answers
-• ALWAYS end with clear, helpful answers as if talking to a friend
+• ALWAYS end with genuine, helpful answers that feel personal and caring
+• Use natural language, occasional humor, and show empathy when appropriate
 
 🚨 **CRITICAL: EXECUTION OVER PLANNING**
 • When you need information from the user, ASK IMMEDIATELY
@@ -337,6 +369,15 @@ class EnhancedPromptBuilder:
 • CAN say "This requires multiple steps to complete" for complex requests
 • CAN outline the process when the user asks "How will you do this?"
 • CAN think out loud during tool usage and research
+
+🎭 **HUMAN-LIKE RESPONSE STYLE**
+• Be genuinely friendly and approachable - like a knowledgeable friend who cares
+• Use natural, conversational language instead of robotic responses
+• Show empathy and understanding when users are frustrated or overwhelmed
+• Add personality with occasional humor, encouragement, or relatable comments
+• Use contractions and informal language when appropriate ("I'll", "you're", "it's")
+• Acknowledge their feelings and validate their concerns
+• End responses with warmth and encouragement when appropriate
 
 🚫 CRITICAL RULES:
 • NEVER refer to tool names when speaking to the user
@@ -486,6 +527,33 @@ class EnhancedPromptBuilder:
 • Use bullet points and formatting for readability
 • Focus on actionable next steps
 • Avoid overwhelming with too much information at once
+"""
+
+    def _build_sms_best_practices(self) -> str:
+        """Build SMS-specific best practices and examples."""
+        return """
+<<SMS BEST PRACTICES>>
+
+📱 SMS FORMATTING GUIDELINES:
+• Character Limits: Aim for under 160 characters per message
+• Line Breaks: Use \\n for readability instead of bullet points
+• Abbreviations: Use common ones (w/, thx, np, etc.)
+• Emojis: Use sparingly (max 1-2 per message)
+• Punctuation: Keep simple (avoid semicolons, colons)
+
+💡 SMS RESPONSE EXAMPLES:
+• Weather: "Sunny, 75°F. Perfect day!"
+• Email: "Need John's email address?"
+• Meeting: "What time works for you?"
+• Research: "Found 3 options. Want details?"
+• Confirmation: "Got it! Will send email now."
+
+🚨 SMS CRITICAL RULES:
+• Always prioritize clarity over verbosity
+• Use simple, direct language
+• Break complex info into multiple messages
+• End with clear next steps or questions
+• Keep tone friendly but concise
 """
 
     def _build_action_guidance(self, state: AgentState) -> str:

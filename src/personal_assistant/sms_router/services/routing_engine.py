@@ -75,7 +75,7 @@ class SMSRoutingEngine:
             if not user_info:
                 logger.warning(f"No user found for phone number: {from_phone}")
                 response = self.response_formatter.format_unknown_user_response(
-                    from_phone
+                    from_phone, message_body
                 )
                 await self._log_usage(
                     from_phone,
@@ -190,7 +190,7 @@ class SMSRoutingEngine:
 
     async def send_sms(self, to_phone: str, message: str, user_id: int) -> bool:
         """
-        Send an outbound SMS message.
+        Send an outbound SMS message with retry functionality.
 
         Args:
             to_phone: Recipient's phone number
@@ -198,19 +198,16 @@ class SMSRoutingEngine:
             user_id: Sender's user ID
 
         Returns:
-            True if successful, False otherwise
+            True if successful or queued for retry, False otherwise
         """
         start_time = time.time()
+        sms_log_id = None
 
         try:
             logger.info(f"Sending SMS to {to_phone} from user {user_id}")
 
-            # TODO: Integrate with Twilio service for actual SMS sending
-            # For now, just log the outbound message
-            logger.info(f"Outbound SMS: {message[:50]}...")
-
-            # Log the outbound message
-            await self._log_usage(
+            # Log the attempt first
+            sms_log = await self._log_usage(
                 to_phone,
                 message,
                 "outbound",
@@ -218,11 +215,27 @@ class SMSRoutingEngine:
                 time.time() - start_time,
                 user_id=user_id,
             )
+            sms_log_id = sms_log.id if sms_log else None
 
+            # Send via Twilio with retry support
+            from ...communication.twilio_integration.twilio_client import TwilioService
+            twilio_service = TwilioService()
+            message_sid = await twilio_service.send_sms_with_retry(
+                to_phone, message, user_id, sms_log_id
+            )
+
+            # Update log with success
+            if sms_log:
+                sms_log.twilio_message_sid = message_sid
+                sms_log.final_status = 'sent'
+
+            logger.info(f"SMS sent successfully: {message_sid}")
             return True
 
         except Exception as e:
             logger.error(f"Error sending SMS to {to_phone}: {e}")
+
+            # Log the failure
             await self._log_usage(
                 to_phone,
                 message,
@@ -232,6 +245,15 @@ class SMSRoutingEngine:
                 str(e),
                 user_id,
             )
+
+            # Check if this was a retryable error (already queued by TwilioService)
+            if hasattr(e, 'code'):
+                from .error_classifier import SMSErrorClassifier
+                classifier = SMSErrorClassifier()
+                if classifier.is_retryable(e.code):
+                    logger.info(f"SMS queued for retry due to error {e.code}")
+                    return True  # Consider it successful since it's queued for retry
+
             return False
 
     async def _log_usage(
@@ -243,7 +265,7 @@ class SMSRoutingEngine:
         processing_time_ms: float,
         error_message: str | None = None,
         user_id: int | None = None,
-    ) -> None:
+    ) -> SMSUsageLog | None:
         """Log SMS usage for analytics and monitoring."""
         try:
             async with AsyncSessionLocal() as session:
@@ -278,9 +300,12 @@ class SMSRoutingEngine:
                 logger.debug(
                     f"Usage logged for {direction} SMS to/from {self._mask_phone_number(phone_number)}"
                 )
+                
+                return usage_log
 
         except Exception as e:
             logger.error(f"Error logging SMS usage: {e}")
+            return None
 
     async def health_check(self) -> Dict[str, Any]:
         """Perform health check of the routing engine."""

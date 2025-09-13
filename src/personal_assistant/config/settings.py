@@ -51,6 +51,7 @@ class Settings(BaseSettings):
 
     # Google settings (including Gemini LLM)
     GOOGLE_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-2.0-flash"  # Default Gemini model
     YOUTUBE_API_KEY: Optional[str] = None  # YouTube Data API v3 key
 
     # Twilio settings
@@ -92,7 +93,7 @@ class Settings(BaseSettings):
 
     # Application settings
     DEBUG: bool = True
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str = "DEBUG"
     ENVIRONMENT: str = "development"
 
     # Conversation management settings
@@ -113,11 +114,11 @@ class Settings(BaseSettings):
     CORRELATION_ID_HEADER: str = "X-Correlation-ID"
 
     # Module-specific log levels
-    CORE_LOG_LEVEL: str = "INFO"
+    CORE_LOG_LEVEL: str = "DEBUG"
     LLM_LOG_LEVEL: str = "INFO"
     MEMORY_LOG_LEVEL: str = "INFO"
-    RAG_LOG_LEVEL: str = "INFO"
-    TOOLS_LOG_LEVEL: str = "INFO"
+    RAG_LOG_LEVEL: str = "WARNING"
+    TOOLS_LOG_LEVEL: str = "DEBUG"
     TYPES_LOG_LEVEL: str = "INFO"
 
     # Logging override environment variables (optional)
@@ -130,6 +131,10 @@ class Settings(BaseSettings):
     PA_RAG_LOG_LEVEL: Optional[str] = None
     PA_TOOLS_LOG_LEVEL: Optional[str] = None
     PA_TYPES_LOG_LEVEL: Optional[str] = None
+    
+    # Embedding logging control
+    PA_EMBEDDING_LOG_LEVEL: Optional[str] = None  # Control embedding log verbosity
+    PA_EMBEDDING_FILTER: Optional[str] = None  # Enable/disable embedding noise filter
 
     # Celery settings
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"

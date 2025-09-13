@@ -130,7 +130,15 @@ def setup_logging(
     # Configure Loki logging if enabled
     if LOKI_AVAILABLE:
         configure_loki_logging()
-
+    
+    # Apply embedding noise filter to reduce log noise
+    try:
+        from ..logging.embedding_filter import enable_embedding_noise_filter
+        enable_embedding_noise_filter()
+        print("🔧 Embedding noise filter applied")
+    except ImportError:
+        pass  # Filter not available, continue without it
+    
     logging.info(
         f"Logging configured with level: {level}, structured: {structured_logging}"
     )

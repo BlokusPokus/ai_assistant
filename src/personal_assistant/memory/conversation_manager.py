@@ -62,14 +62,14 @@ async def get_conversation_id(user_id: int | None) -> Optional[str]:
                 )
                 return str(conversation_id) if conversation_id is not None else None
             else:
-                logger.debug(f"No conversation found in normalized storage")
+                logger.debug("No conversation found in normalized storage")
                 return None
     except Exception as e:
         logger.error(f"Error getting conversation ID for user {user_id}: {e}")
         return None
 
 
-async def create_new_conversation(user_id: int | None) -> Optional[str]:
+async def create_new_conversation(user_id: int | None) -> str:
     """
     Create a new conversation for a user and return the conversation ID.
 
@@ -77,15 +77,17 @@ async def create_new_conversation(user_id: int | None) -> Optional[str]:
         user_id (int): The user ID for the new conversation
 
     Returns:
-        Optional[str]: The new conversation ID (UUID string) or None if failed
+        str: The new conversation ID (UUID string)
 
     Raises:
         ValueError: If user_id is invalid
+        SQLAlchemyError: If database operations fail
+        Exception: If any other error occurs
     """
     # Input validation
     if user_id is None:
         logger.error("user_id cannot be None")
-        return None
+        raise ValueError("user_id cannot be None")
 
     try:
         # Validate user exists (you'll need to implement this)
@@ -127,10 +129,10 @@ async def create_new_conversation(user_id: int | None) -> Optional[str]:
 
     except SQLAlchemyError as e:
         logger.error(f"Failed to create conversation for user {user_id}: {e}")
-        return None
+        raise  # Re-raise the exception instead of returning None
     except Exception as e:
         logger.error(f"Unexpected error creating conversation for user {user_id}: {e}")
-        return None
+        raise  # Re-raise the exception instead of returning None
 
 
 def should_resume_conversation(last_timestamp: Optional[datetime]) -> bool:

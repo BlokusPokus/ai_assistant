@@ -76,6 +76,7 @@ class DatabaseConfig:
         self.health_check_interval = int(
             os.getenv("DB_HEALTH_CHECK_INTERVAL", "30")
         )  # 30 seconds
+        self._health_monitoring_started = False
 
         # Initialize the database if auto_initialize is True
         if auto_initialize:
@@ -135,8 +136,8 @@ class DatabaseConfig:
             # Set up connection pool event listeners
             self._setup_pool_event_listeners()
 
-            # Start health monitoring
-            asyncio.create_task(self._start_health_monitoring())
+            # Start health monitoring (only if event loop is running)
+            self.start_health_monitoring()
 
             self._initialized = True
             logger.info(
@@ -366,6 +367,19 @@ class DatabaseConfig:
                 "max_connection_wait": self.max_connection_wait,
             },
         }
+
+    def start_health_monitoring(self):
+        """Start health monitoring if not already started and event loop is available."""
+        if self._health_monitoring_started:
+            return
+            
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self._start_health_monitoring())
+            self._health_monitoring_started = True
+            logger.debug("Health monitoring started")
+        except RuntimeError:
+            logger.debug("No event loop running, health monitoring will start when available")
 
     async def _start_health_monitoring(self):
         """Start background health monitoring."""
