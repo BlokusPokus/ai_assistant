@@ -21,4 +21,4 @@ export { default as Badge } from './Badge';
 export { default as Alert } from './Alert';
 
 // Export component variants and utilities
-export { buttonVariants } from './Button/Button';
+export { buttonVariants } from './Button/buttonVariants';

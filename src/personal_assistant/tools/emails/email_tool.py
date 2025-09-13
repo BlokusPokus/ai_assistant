@@ -43,7 +43,7 @@ class EmailTool:
         self._token_expires_at = None
         self.scopes = ["Mail.Read", "Mail.ReadWrite", "Mail.Send", "User.Read"]
         self.logger = get_logger("tools.emails")
-        self._initialize_token()
+        # Don't initialize token here - do it lazily when needed
 
         # Create individual tools
         self.read_emails_tool = Tool(

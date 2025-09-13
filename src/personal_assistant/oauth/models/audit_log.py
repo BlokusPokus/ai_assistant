@@ -25,7 +25,7 @@ from personal_assistant.database.models.base import Base
 
 
 class OAuthAuditLog(Base):
-    __tablename__ = "oauth_audit_log"
+    __tablename__ = "oauth_audit_logs"
 
     id = Column(Integer, primary_key=True)
     integration_id = Column(Integer, ForeignKey("oauth_integrations.id"), nullable=True)

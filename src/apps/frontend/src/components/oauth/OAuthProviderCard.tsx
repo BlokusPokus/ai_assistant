@@ -9,11 +9,16 @@ interface OAuthProviderCardProps {
 }
 
 const OAuthProviderCard: React.FC<OAuthProviderCardProps> = ({ provider }) => {
-  const { integrations, revokeIntegration, refreshIntegration } =
-    useOAuthSettingsStore();
+  const {
+    integrations,
+    revokeIntegration,
+    refreshIntegration,
+    connectIntegration,
+  } = useOAuthSettingsStore();
 
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const providerConfig = OAUTH_PROVIDERS.find(p => p.id === provider);
   const integration = integrations.find(i => i.provider === provider);
@@ -48,6 +53,23 @@ const OAuthProviderCard: React.FC<OAuthProviderCardProps> = ({ provider }) => {
       console.error('Failed to refresh:', error);
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const handleConnect = async () => {
+    if (!providerConfig) return;
+
+    setIsConnecting(true);
+    try {
+      // Use default scopes for the provider
+      const defaultScopes = providerConfig.availableScopes
+        ?.filter(scope => scope.is_required)
+        ?.map(scope => scope.scope_name) || ['read'];
+
+      await connectIntegration(provider, defaultScopes);
+    } catch (error) {
+      console.error('Failed to connect:', error);
+      setIsConnecting(false); // Only reset if there's an error, otherwise redirect happens
     }
   };
 
@@ -166,10 +188,11 @@ const OAuthProviderCard: React.FC<OAuthProviderCardProps> = ({ provider }) => {
           <Button
             variant="primary"
             size="sm"
-            onClick={() => {}} // TODO: Implement connect flow
+            onClick={handleConnect}
+            disabled={isConnecting}
             className="w-full"
           >
-            Connect
+            {isConnecting ? 'Connecting...' : 'Connect'}
           </Button>
         )}
       </div>

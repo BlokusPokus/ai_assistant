@@ -115,29 +115,6 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const interval = setInterval(() => {
-      fetchSystemAnalytics();
-      fetchPerformanceMetrics();
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, [
-    autoRefresh,
-    selectedTimeRange,
-    fetchSystemAnalytics,
-    fetchPerformanceMetrics,
-  ]);
-
-  // Initial data fetch
-  useEffect(() => {
-    fetchSystemAnalytics();
-    fetchPerformanceMetrics();
-  }, [selectedTimeRange, fetchSystemAnalytics, fetchPerformanceMetrics]);
-
   const fetchSystemAnalytics = useCallback(async () => {
     try {
       const response = await fetch(
@@ -190,6 +167,29 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
       setLoading(false);
     }
   }, []);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      fetchSystemAnalytics();
+      fetchPerformanceMetrics();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [
+    autoRefresh,
+    selectedTimeRange,
+    fetchSystemAnalytics,
+    fetchPerformanceMetrics,
+  ]);
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchSystemAnalytics();
+    fetchPerformanceMetrics();
+  }, [selectedTimeRange, fetchSystemAnalytics, fetchPerformanceMetrics]);
 
   const handleManualRefresh = () => {
     setIsRefreshing(true);

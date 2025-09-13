@@ -315,6 +315,23 @@ export class OAuthSettingsService {
     ];
   }
 
+  async connectIntegration(
+    provider: string,
+    scopes: string[]
+  ): Promise<{ authorization_url: string; state: string }> {
+    try {
+      const response = await api.post('/oauth/initiate', {
+        provider,
+        scopes,
+        redirect_uri: `${window.location.origin}/oauth/callback/${provider}`,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to initiate OAuth connection:', error);
+      throw new Error('Failed to initiate OAuth connection');
+    }
+  }
+
   async exportData(
     format: 'csv' | 'json',
     filters?: AuditFilters

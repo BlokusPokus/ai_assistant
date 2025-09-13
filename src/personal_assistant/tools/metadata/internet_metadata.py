@@ -692,3 +692,4 @@ def get_internet_tool_metadata_full() -> dict:
     metadata = create_internet_tool_metadata()
     return metadata.to_dict()
 
+

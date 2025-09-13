@@ -36,7 +36,7 @@ class CalendarTool:
         self.ms_graph_url = "https://graph.microsoft.com/v1.0"
         self._access_token = None
         self.scopes = ["Calendars.Read", "Calendars.ReadWrite", "User.Read"]
-        self._initialize_token()
+        # Don't initialize token here - do it lazily when needed
 
         # Create individual tools
         self.view_calendar_events_tool = Tool(
