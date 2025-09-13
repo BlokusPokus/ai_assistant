@@ -5,6 +5,12 @@
 old_tasks/
 next_steps/
 scripts/
+
+# Backup files (contain sensitive data)
+backups/
+*.sql.backup
+*.dump
+*.backup
 # Python bytecode and cache
 __pycache__/
 *.py[cod]
@@ -35,6 +41,7 @@ venv_personal_assistant/
 .env.production
 *.env
 config/*.env
+docker/.env.prod
 !config/env.example
 
 # Logs and temporary files

@@ -21,7 +21,7 @@ class TestCeleryIntegration:
             r = redis.from_url(app.conf.broker_url)
             
             # Clear any existing tasks
-            for queue_name in ['ai_tasks', 'celery', 'email_tasks', 'file_tasks', 'sync_tasks', 'maintenance_tasks']:
+            for queue_name in ['ai_tasks', 'celery']:
                 r.delete(queue_name)
             
             # Send a test task
@@ -55,7 +55,6 @@ class TestCeleryIntegration:
                 for worker, queues in active_queues.items():
                     queue_names = [q['name'] for q in queues]
                     assert 'ai_tasks' in queue_names, f"Worker {worker} is not listening to ai_tasks queue"
-                    assert 'email_tasks' in queue_names, f"Worker {worker} is not listening to email_tasks queue"
             else:
                 pytest.skip("No active workers found for testing")
                 
@@ -100,25 +99,22 @@ class TestCeleryIntegration:
             r = redis.from_url(app.conf.broker_url)
             
             # Clear all queues
-            for queue_name in ['ai_tasks', 'email_tasks', 'file_tasks', 'sync_tasks', 'maintenance_tasks']:
+            for queue_name in ['ai_tasks']:
                 r.delete(queue_name)
             
             # Send different types of tasks
             ai_result = app.send_task('personal_assistant.workers.tasks.ai_tasks.process_due_ai_tasks')
-            email_result = app.send_task('personal_assistant.workers.tasks.email_tasks.process_email_queue')
             
             # Wait for tasks to be queued
             time.sleep(1)
             
             # Check that tasks are in correct queues
             ai_tasks_length = r.llen('ai_tasks')
-            email_tasks_length = r.llen('email_tasks')
             
             assert ai_tasks_length > 0, "AI task was not routed to ai_tasks queue"
-            assert email_tasks_length > 0, "Email task was not routed to email_tasks queue"
             
             # Clean up
-            for queue_name in ['ai_tasks', 'email_tasks', 'file_tasks', 'sync_tasks', 'maintenance_tasks']:
+            for queue_name in ['ai_tasks']:
                 r.delete(queue_name)
                 
         except redis.ConnectionError:
@@ -138,9 +134,9 @@ class TestCeleryIntegration:
             for key in keys:
                 key_str = key.decode('utf-8') if isinstance(key, bytes) else str(key)
                 
-                # Check for suffixed queues (like ai_tasks9, email_tasks3, etc.)
-                if any(queue in key_str for queue in ['ai_tasks', 'email_tasks', 'file_tasks', 'sync_tasks', 'maintenance_tasks']):
-                    if key_str not in ['ai_tasks', 'email_tasks', 'file_tasks', 'sync_tasks', 'maintenance_tasks']:
+                # Check for suffixed queues (like ai_tasks9, etc.)
+                if any(queue in key_str for queue in ['ai_tasks']):
+                    if key_str not in ['ai_tasks']:
                         # Check if it's a list (queue) and has tasks
                         if r.type(key_str) == 'list':
                             length = r.llen(key_str)
@@ -218,7 +214,7 @@ class TestCeleryRegressionPrevention:
                     queue_names = [q['name'] for q in queues]
                     
                     # Worker should listen to all our custom queues
-                    required_queues = ['ai_tasks', 'email_tasks', 'file_tasks', 'sync_tasks', 'maintenance_tasks']
+                    required_queues = ['ai_tasks']
                     for required_queue in required_queues:
                         assert required_queue in queue_names, f"Worker {worker} is not listening to required queue {required_queue}"
             else:

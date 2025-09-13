@@ -46,10 +46,6 @@ class TestCeleryApp:
         
         # Check for specific task routes
         assert 'personal_assistant.workers.tasks.ai_tasks.*' in task_routes
-        assert 'personal_assistant.workers.tasks.email_tasks.*' in task_routes
-        assert 'personal_assistant.workers.tasks.file_tasks.*' in task_routes
-        assert 'personal_assistant.workers.tasks.maintenance_tasks.*' in task_routes
-        assert 'personal_assistant.workers.tasks.sync_tasks.*' in task_routes
 
     def test_celery_app_beat_schedule(self):
         """Test beat schedule configuration."""
@@ -223,19 +219,6 @@ class TestCeleryApp:
             'personal_assistant.workers.tasks.ai_tasks.process_due_ai_tasks',
             'personal_assistant.workers.tasks.ai_tasks.test_scheduler_connection',
             'personal_assistant.workers.tasks.ai_tasks.cleanup_old_logs',
-            'personal_assistant.workers.tasks.email_tasks.process_email_queue',
-            'personal_assistant.workers.tasks.email_tasks.send_daily_email_summary',
-            'personal_assistant.workers.tasks.file_tasks.cleanup_temp_files',
-            'personal_assistant.workers.tasks.file_tasks.backup_user_data',
-            'personal_assistant.workers.tasks.maintenance_tasks.optimize_database',
-            'personal_assistant.workers.tasks.maintenance_tasks.cleanup_old_sessions',
-            'personal_assistant.workers.tasks.maintenance_tasks.cleanup_old_logs',
-            'personal_assistant.workers.tasks.maintenance_tasks.system_health_check',
-            'personal_assistant.workers.tasks.maintenance_tasks.cleanup_expired_cache',
-            'personal_assistant.workers.tasks.sync_tasks.sync_calendar_events',
-            'personal_assistant.workers.tasks.sync_tasks.sync_notion_pages',
-            'personal_assistant.workers.tasks.sync_tasks.sync_email_services',
-            'personal_assistant.workers.tasks.sync_tasks.sync_user_preferences'
         ]
         
         for task in expected_tasks:
@@ -282,7 +265,7 @@ class TestCeleryApp:
         # Test that all required modules can be imported
         
         try:
-            from personal_assistant.workers.tasks import ai_tasks, email_tasks, file_tasks, maintenance_tasks, sync_tasks
+            from personal_assistant.workers.tasks import ai_tasks
             from personal_assistant.workers.schedulers import ai_scheduler
             from personal_assistant.workers.utils import error_handling, health_check, task_monitoring
         except ImportError as e:

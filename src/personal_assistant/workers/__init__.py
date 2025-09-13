@@ -15,7 +15,7 @@ from .celery_app import app
 from .schedulers import ai_scheduler
 
 # Import task modules
-from .tasks import ai_tasks, email_tasks, file_tasks, maintenance_tasks, sync_tasks
+from .tasks import ai_tasks
 
 # Import utility modules
 from .utils import error_handling, health_check, task_monitoring
@@ -68,10 +68,6 @@ def initialize_workers():
 __all__ = [
     "app",
     "ai_tasks",
-    "email_tasks",
-    "file_tasks",
-    "sync_tasks",
-    "maintenance_tasks",
     "task_monitoring",
     "error_handling",
     "health_check",
