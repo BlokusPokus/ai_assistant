@@ -54,6 +54,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
         Returns:
             Response from the next middleware or endpoint
         """
+        # Allow OPTIONS requests (CORS preflight) to pass through without authentication
+        if request.method == "OPTIONS":
+            return await call_next(request)
+            
         # Check if path should be excluded from authentication
         if self._should_exclude_path(request.url.path):
             return await call_next(request)

@@ -12,7 +12,6 @@ from ..base import Tool
 from ...llm.gemini import GeminiLLM
 from ...config.logging_config import get_logger
 from ...config.settings import settings
-from ..notion_pages.notion_internal import create_properties_dict, ensure_main_page_exists
 
 logger = get_logger("enhanced_notes_tool")
 
@@ -29,9 +28,9 @@ class EnhancedNotesTool:
         llm_client = GeminiLLM(api_key=api_key, model=settings.GEMINI_MODEL)
         self.llm_enhancer = LLMNotesEnhancer(llm_client)
         
-        # Initialize Notion client
-        from ..notion_pages.notion_internal import get_notion_client
-        self.notion_client = get_notion_client()
+        # Initialize user-specific Notion components
+        from ..notion_pages.notion_internal_user_specific import UserSpecificNotionInternal
+        self.notion_internal = UserSpecificNotionInternal()
         
         # Create tool instances
         self._create_tools()
@@ -152,26 +151,14 @@ class EnhancedNotesTool:
             self.note_intelligence_tool
         ])
     
-    def _create_notion_page(self, main_page_id: str, properties: dict, content: str):
-        """Create a Notion page with the given properties and content"""
-        return self.notion_client.pages.create(
-            parent={"type": "page_id", "page_id": main_page_id},
-            properties=properties,
-            children=[{
-                "object": "block",
-                "type": "paragraph",
-                "paragraph": {
-                    "rich_text": [{"type": "text", "text": {"content": content}}]
-                }
-            }]
-        )
     
     async def create_enhanced_note(
         self,
         content: str,
         title: Optional[str] = None,
         note_type: Optional[str] = None,
-        auto_tags: bool = True
+        auto_tags: bool = True,
+        user_id: Optional[int] = None
     ) -> Union[str, Dict]:
         """Create a new note with AI-powered enhancement"""
         try:
@@ -208,26 +195,22 @@ class EnhancedNotesTool:
                 self.logger.warning(f"Content truncated from {len(content_with_metadata)} to 2000 characters")
                 content_with_metadata = content_with_metadata[:1997] + "..."
             
-            # Create note in Notion
-            main_page_id = await ensure_main_page_exists(self.notion_client)
-            properties = create_properties_dict(
-                title,
-                ", ".join(tags),
-                note_type
-            )
+            # Create note in user's Notion workspace
+            if not user_id:
+                return "Error: User ID is required for creating notes"
             
-            # Create the page with content including metadata
-            note_page = self._create_notion_page(main_page_id, properties, content_with_metadata)
+            # Get database session (this should be injected from the tool execution context)
+            from personal_assistant.config.database import db_config
+            async with db_config.get_session_context() as db:
+                # Ensure user has Personal Assistant page
+                main_page_id = await self.notion_internal.ensure_user_main_page_exists(db, user_id)
+                
+                # Create the note page in user's workspace
+                note_page_id = await self.notion_internal.create_user_page(
+                    db, user_id, title, content_with_metadata, main_page_id
+                )
             
-            result = f"✅ Successfully created enhanced note '{title}' with ID: {note_page['id']}"
-            
-            # Update table of contents
-            try:
-                from ..notion_pages.notion_internal import update_table_of_contents
-                await update_table_of_contents(self.notion_client, main_page_id)
-            except Exception as toc_error:
-                self.logger.warning(f"Failed to update table of contents: {toc_error}")
-                result += f"\n⚠️ Note created but table of contents update failed: {toc_error}"
+            result = f"✅ Successfully created enhanced note '{title}' with ID: {note_page_id}"
             
             # Add enhancement summary
             result += "\n\n📊 Enhancement Summary:"

@@ -12,6 +12,12 @@ import {
 import { Input } from '@/components/ui';
 import { chatApi } from '@/services';
 import type { MessageResponse, ConversationResponse } from '@/services/chatApi';
+import {
+  filterVisibleMessages,
+  removeDuplicateMessages,
+  isDuplicateMessage,
+} from '@/utils/messageUtils';
+import MessageBubble from '@/components/chat/MessageBubble';
 
 const ChatPage: React.FC = () => {
   const [messages, setMessages] = useState<MessageResponse[]>([]);
@@ -68,7 +74,11 @@ const ChatPage: React.FC = () => {
     try {
       setError(null);
       const messages = await chatApi.getConversationMessages(conversationId);
-      setMessages(messages);
+      // Filter visible messages and remove duplicates
+      const filteredMessages = removeDuplicateMessages(
+        filterVisibleMessages(messages)
+      );
+      setMessages(filteredMessages);
     } catch (error: any) {
       console.error('Error loading messages:', error);
       setError('Failed to load messages');
@@ -95,12 +105,23 @@ const ChatPage: React.FC = () => {
         setCurrentConversationId(response.conversation_id);
       }
 
-      // Update messages with both user and AI responses
-      setMessages(prev => [
-        ...prev,
-        response.user_message,
-        response.ai_message,
-      ]);
+      // Update messages with both user and AI responses, avoiding duplicates
+      setMessages(prev => {
+        const newMessages = [...prev];
+
+        // Add user message if not already present
+        if (!isDuplicateMessage(response.user_message, newMessages)) {
+          newMessages.push(response.user_message);
+        }
+
+        // Add AI message if not already present
+        if (!isDuplicateMessage(response.ai_message, newMessages)) {
+          newMessages.push(response.ai_message);
+        }
+
+        // Filter and deduplicate all messages
+        return removeDuplicateMessages(filterVisibleMessages(newMessages));
+      });
 
       // Reload conversations to include the new one
       if (!currentConversationId) {
@@ -255,7 +276,7 @@ const ChatPage: React.FC = () => {
         )}
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4">
           {messages.length === 0 && !isLoading && (
             <div className="text-center py-12">
               <Bot className="w-12 h-12 mx-auto mb-4 text-gray-400" />
@@ -269,30 +290,16 @@ const ChatPage: React.FC = () => {
           )}
 
           {messages.map(message => (
-            <div
+            <MessageBubble
               key={message.id}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  message.role === 'user'
-                    ? 'bg-accent text-white'
-                    : 'bg-gray-100 text-gray-900'
-                }`}
-              >
-                <div className="text-sm whitespace-pre-wrap">
-                  {message.content}
-                </div>
-                <div className="text-xs opacity-70 mt-1">
-                  {formatTimestamp(message.timestamp)}
-                </div>
-              </div>
-            </div>
+              message={message}
+              formatTimestamp={formatTimestamp}
+            />
           ))}
 
           {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-gray-100 text-gray-900 px-4 py-2 rounded-lg">
+            <div className="flex justify-start mb-3">
+              <div className="bg-gray-100 text-gray-900 px-4 py-3 rounded-2xl">
                 <div className="flex items-center space-x-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span className="text-sm">AI is thinking...</span>

@@ -64,7 +64,14 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
                 params[key] = value
 
         query_string = urllib.parse.urlencode(params)
-        return f"{self.authorization_url}?{query_string}"
+        auth_url = f"{self.authorization_url}?{query_string}"
+        
+        # Debug logging
+        print(f"DEBUG: Microsoft authorization URL - scopes: {scopes}")
+        print(f"DEBUG: Microsoft authorization URL - scope param: {params.get('scope')}")
+        print(f"DEBUG: Microsoft authorization URL: {auth_url}")
+        
+        return auth_url
 
     def exchange_code_for_tokens(
         self, authorization_code: str, **kwargs
@@ -74,12 +81,21 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
 
         Args:
             authorization_code: Authorization code from OAuth callback
-            **kwargs: Additional parameters
+            **kwargs: Additional parameters (scopes, etc.)
 
         Returns:
             Dictionary containing tokens and metadata
         """
         try:
+            # Get scopes from kwargs or use default Microsoft Graph scopes
+            scopes = kwargs.get('scopes', ['openid', 'profile', 'email', 'User.Read'])
+            scope_string = ' '.join(scopes) if isinstance(scopes, list) else scopes
+            
+            # Debug logging
+            print(f"DEBUG: Microsoft token exchange - scopes from kwargs: {kwargs.get('scopes')}")
+            print(f"DEBUG: Microsoft token exchange - processed scopes: {scopes}")
+            print(f"DEBUG: Microsoft token exchange - scope_string: {scope_string}")
+            
             # Prepare the token exchange request
             data = {
                 "client_id": self.client_id,
@@ -87,6 +103,7 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
                 "code": authorization_code,
                 "grant_type": "authorization_code",
                 "redirect_uri": self.redirect_uri,
+                "scope": scope_string,  # Required by Microsoft OAuth 2.0
             }
 
             # Make the HTTP POST request to Microsoft's token endpoint
@@ -98,8 +115,12 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
             )
 
             if response.status_code != 200:
-                raise Exception(
-                    f"Microsoft OAuth token exchange failed: {response.status_code} - {response.text}"
+                from personal_assistant.oauth.exceptions import OAuthProviderError
+                raise OAuthProviderError(
+                    f"Microsoft OAuth token exchange failed: {response.status_code} - {response.text}",
+                    provider="microsoft",
+                    operation="exchange_code_for_tokens",
+                    status_code=response.status_code
                 )
 
             # Parse the response
@@ -129,7 +150,12 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
             }
 
         except Exception as e:
-            raise Exception(f"Failed to exchange authorization code for tokens: {e}")
+            from personal_assistant.oauth.exceptions import OAuthProviderError
+            raise OAuthProviderError(
+                f"Failed to exchange authorization code for tokens: {e}",
+                provider="microsoft",
+                operation="exchange_code_for_tokens"
+            )
 
     def refresh_access_token(self, refresh_token: str, **kwargs) -> Dict[str, Any]:
         """
@@ -343,6 +369,7 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
             "profile",
             "email",
             "User.Read",
+            "Calendars.Read",
         ]
 
     def get_required_scopes(self) -> List[str]:

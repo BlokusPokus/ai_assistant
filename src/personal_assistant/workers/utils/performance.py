@@ -227,10 +227,6 @@ class PerformanceOptimizer:
                 # Reduce concurrency if CPU is high
                 for queue in [
                     "ai_tasks",
-                    "email_tasks",
-                    "file_tasks",
-                    "sync_tasks",
-                    "maintenance_tasks",
                 ]:
                     if f"{queue}_concurrency" in optimal_config:
                         current_concurrency = optimal_config[f"{queue}_concurrency"]
@@ -245,10 +241,6 @@ class PerformanceOptimizer:
                 # Increase concurrency if CPU is low
                 for queue in [
                     "ai_tasks",
-                    "email_tasks",
-                    "file_tasks",
-                    "sync_tasks",
-                    "maintenance_tasks",
                 ]:
                     if f"{queue}_concurrency" in optimal_config:
                         current_concurrency = optimal_config[f"{queue}_concurrency"]
@@ -276,10 +268,6 @@ class PerformanceOptimizer:
                 # High load - reduce worker count
                 for queue in [
                     "ai_tasks",
-                    "email_tasks",
-                    "file_tasks",
-                    "sync_tasks",
-                    "maintenance_tasks",
                 ]:
                     if f"{queue}_concurrency" in optimal_config:
                         current_concurrency = optimal_config[f"{queue}_concurrency"]

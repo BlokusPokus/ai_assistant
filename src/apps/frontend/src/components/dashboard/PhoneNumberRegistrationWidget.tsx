@@ -9,6 +9,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import api from '@/services/api';
 
 interface PhoneNumber {
   id: number | string;
@@ -42,19 +43,8 @@ const PhoneNumberRegistrationWidget: React.FC<
     setError(null);
 
     try {
-      const response = await fetch('/api/v1/users/me/phone-numbers', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch phone numbers');
-      }
-
-      const data = await response.json();
-      setPhoneNumbers(data.phone_numbers || []);
+      const response = await api.get('/users/me/phone-numbers');
+      setPhoneNumbers(response.data.phone_numbers || []);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to fetch phone numbers'

@@ -18,14 +18,16 @@ export default defineConfig({
   },
   server: {
     port: 3001,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-        // Don't rewrite the path - keep /api prefix for backend
-      },
-    },
+    host: '0.0.0.0', // Allow connections from Docker network
+    // Proxy disabled - using direct API URL in services
+    // proxy: {
+    //   '/api': {
+    //     target: process.env.VITE_API_URL || 'http://localhost:8000',
+    //     changeOrigin: true,
+    //     secure: false,
+    //     // Don't rewrite the path - keep /api prefix for backend
+    //   },
+    // },
   },
   build: {
     outDir: 'dist',

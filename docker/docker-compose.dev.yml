@@ -8,8 +8,8 @@ services:
       dockerfile: Dockerfile
     container_name: personal_assistant_nginx_dev
     ports:
-      - "8080:80" # Different port to avoid conflicts
-      - "8443:443" # Different port to avoid conflicts
+      - "8081:80" # Different port to avoid conflicts
+      - "8445:443" # Different port to avoid conflicts
     volumes:
       - ./nginx/ssl/dev:/etc/nginx/ssl:ro
       - ./nginx/logs:/var/log/nginx
@@ -26,29 +26,55 @@ services:
       retries: 3
       start_period: 40s
 
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: personal_assistant_postgres
-    environment:
-      POSTGRES_DB: personal_assistant
-      POSTGRES_USER: ianleblanc
-      POSTGRES_PASSWORD: password
-      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
+  # Frontend Development Server
+  frontend:
+    build:
+      context: ../src/apps/frontend
+      dockerfile: Dockerfile.dev
+    container_name: personal_assistant_frontend_dev
     ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ianleblanc -d personal_assistant"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    restart: unless-stopped
+      - "3001:3001"
+    volumes:
+      - ../src/apps/frontend:/app:ro
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - api
     networks:
       - personal_assistant_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL Database - Using local Postgres.app instead
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: personal_assistant_postgres
+  #   environment:
+  #     POSTGRES_DB: postgres
+  #     POSTGRES_USER: ianleblanc
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #     - ./init-scripts:/docker-entrypoint-initdb.d
+  #   ports:
+  #     - "5432:5432"
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ianleblanc -d postgres"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
+  #   restart: unless-stopped
+  #   networks:
+  #     - personal_assistant_network
 
   # Redis Cache and Queue
   redis:
@@ -76,11 +102,13 @@ services:
       dockerfile: docker/Dockerfile
       target: development
     container_name: personal_assistant_api
+    env_file:
+      - ../config/development.env
     environment:
       - ENVIRONMENT=development
       - DEBUG=true
-      - REAL_DB_URL=postgresql+asyncpg://ianleblanc:password@postgres:5432/personal_assistant
-      - DATABASE_URL=postgresql+asyncpg://ianleblanc:password@postgres:5432/personal_assistant
+      - REAL_DB_URL=postgresql+asyncpg://ianleblanc:password@host.docker.internal:5432/postgres
+      - DATABASE_URL=postgresql+asyncpg://ianleblanc:password@host.docker.internal:5432/postgres
       - CELERY_BROKER_URL=redis://:redis_password@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:redis_password@redis:6379/0
       - REDIS_URL=redis://:redis_password@redis:6379/0
@@ -101,8 +129,6 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
@@ -122,11 +148,13 @@ services:
       dockerfile: docker/Dockerfile
       target: development
     container_name: personal_assistant_worker
+    env_file:
+      - ../config/development.env
     environment:
       - ENVIRONMENT=development
       - DEBUG=true
-      - REAL_DB_URL=postgresql+asyncpg://ianleblanc:password@postgres:5432/personal_assistant
-      - DATABASE_URL=postgresql+asyncpg://ianleblanc:password@postgres:5432/personal_assistant
+      - REAL_DB_URL=postgresql+asyncpg://ianleblanc:password@host.docker.internal:5432/postgres
+      - DATABASE_URL=postgresql+asyncpg://ianleblanc:password@host.docker.internal:5432/postgres
       - CELERY_BROKER_URL=redis://:redis_password@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:redis_password@redis:6379/0
       - REDIS_URL=redis://:redis_password@redis:6379/0
@@ -141,11 +169,9 @@ services:
         "personal_assistant.workers.celery_app",
         "worker",
         "--loglevel=info",
-        "--queues=ai_tasks,email_tasks,file_tasks,sync_tasks,maintenance_tasks",
+        "--queues=ai_tasks",
       ]
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -159,11 +185,13 @@ services:
       dockerfile: docker/Dockerfile
       target: development
     container_name: personal_assistant_scheduler
+    env_file:
+      - ../config/development.env
     environment:
       - ENVIRONMENT=development
       - DEBUG=true
-      - REAL_DB_URL=postgresql+asyncpg://ianleblanc:password@postgres:5432/personal_assistant
-      - DATABASE_URL=postgresql+asyncpg://ianleblanc:password@postgres:5432/personal_assistant
+      - REAL_DB_URL=postgresql+asyncpg://ianleblanc:password@host.docker.internal:5432/postgres
+      - DATABASE_URL=postgresql+asyncpg://ianleblanc:password@host.docker.internal:5432/postgres
       - CELERY_BROKER_URL=redis://:redis_password@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:redis_password@redis:6379/0
       - REDIS_URL=redis://:redis_password@redis:6379/0
@@ -180,8 +208,6 @@ services:
         "--loglevel=info",
       ]
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -226,6 +252,21 @@ services:
     networks:
       - personal_assistant_network
 
+  # Loki for Log Aggregation - Development
+  loki:
+    image: grafana/loki:latest
+    container_name: personal_assistant_loki_dev
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command:
+      - "-config.file=/etc/loki/local-config.yaml"
+    restart: unless-stopped
+    networks:
+      - personal_assistant_network
+
 volumes:
   postgres_data:
     driver: local
@@ -234,6 +275,8 @@ volumes:
   prometheus_data:
     driver: local
   grafana_data:
+    driver: local
+  loki_data:
     driver: local
 
 networks:

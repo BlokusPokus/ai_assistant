@@ -259,10 +259,6 @@ class MetricsCollector:
             # Get queue lengths (simplified - in production you'd get this from Redis)
             queue_lengths = {
                 "ai_tasks": 0,
-                "email_tasks": 0,
-                "file_tasks": 0,
-                "sync_tasks": 0,
-                "maintenance_tasks": 0,
             }
 
             system_status = {
@@ -469,10 +465,6 @@ class MetricsCollector:
                 worker_count=active_workers,
                 queue_lengths={
                     "ai_tasks": 0,
-                    "email_tasks": 0,
-                    "file_tasks": 0,
-                    "sync_tasks": 0,
-                    "maintenance_tasks": 0,
                 },
             )
 
