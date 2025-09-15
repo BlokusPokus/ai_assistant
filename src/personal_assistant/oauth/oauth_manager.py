@@ -163,6 +163,11 @@ class OAuthManager:
             # Get provider
             provider = self.get_provider(provider_name)
 
+            # Use default scopes if none provided
+            if not scopes:
+                scopes = provider.get_default_scopes()
+                print(f"DEBUG: OAuth manager - using default scopes for {provider_name}: {scopes}")
+
             # Validate scopes
             scope_validation = provider.validate_scopes(scopes)
             if not scope_validation[0]:
@@ -179,6 +184,10 @@ class OAuthManager:
             )
 
             # Generate authorization URL
+            print(f"DEBUG: OAuth initiate - provider: {provider_name}")
+            print(f"DEBUG: OAuth initiate - scopes: {scopes}")
+            print(f"DEBUG: OAuth initiate - state_token: {state.state_token}")
+            
             auth_url = provider.get_authorization_url(
                 state=state.state_token, scopes=scopes, **kwargs
             )
@@ -247,7 +256,23 @@ class OAuthManager:
             provider = self.get_provider(provider_name)
 
             # Exchange code for tokens
-            tokens = provider.exchange_code_for_tokens(authorization_code, **kwargs)
+            # Pass scopes from state to the token exchange
+            exchange_kwargs = kwargs.copy()
+            if state.scopes:
+                exchange_kwargs['scopes'] = state.scopes
+            
+            # Debug logging
+            print(f"DEBUG: OAuth callback - state.scopes: {state.scopes}")
+            print(f"DEBUG: OAuth callback - exchange_kwargs: {exchange_kwargs}")
+            
+            # Run the synchronous token exchange in a thread pool to avoid greenlet_spawn issues
+            import asyncio
+            
+            def _exchange_tokens():
+                return provider.exchange_code_for_tokens(authorization_code, **exchange_kwargs)
+            
+            loop = asyncio.get_event_loop()
+            tokens = await loop.run_in_executor(None, _exchange_tokens)
 
             # Check if integration already exists
             existing_integration = (
@@ -386,10 +411,10 @@ class OAuthManager:
                 print(
                     f"⚠️  No refresh token available for integration {integration_id} ({integration.provider})"
                 )
-                print(f"🔍 DEBUG: About to return False")
+                print("🔍 DEBUG: About to return False")
                 return False
 
-            print(f"🔍 DEBUG: Found refresh token, proceeding with refresh")
+                print("🔍 DEBUG: Found refresh token, proceeding with refresh")
 
             # Refresh tokens
             start_time = datetime.now()
@@ -399,7 +424,7 @@ class OAuthManager:
             duration = (datetime.now() - start_time).total_seconds()
 
             if new_token:
-                print(f"🔍 DEBUG: Token refresh successful")
+                print("🔍 DEBUG: Token refresh successful")
 
                 # Update Prometheus metrics
                 try:
@@ -432,7 +457,7 @@ class OAuthManager:
 
                 return True
 
-            print(f"⚠️  DEBUG: Token refresh returned no new token")
+            print("⚠️  DEBUG: Token refresh returned no new token")
 
             # Update Prometheus metrics for failure
             try:
@@ -468,7 +493,7 @@ class OAuthManager:
                         integration_id=integration_id,
                         error_message=str(e),
                     )
-                    print(f"🔍 DEBUG: Security event logged successfully")
+                    print("🔍 DEBUG: Security event logged successfully")
                 except Exception as log_error:
                     print(f"❌ DEBUG: Failed to log security event: {log_error}")
             raise

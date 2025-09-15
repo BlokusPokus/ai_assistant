@@ -53,11 +53,13 @@ class EmailTool:
             parameters={
                 "count": {
                     "type": "integer",
-                    "description": "Number of emails to fetch",
+                    "description": "Number of emails to fetch (default: 10)",
+                    "default": 10,
                 },
                 "batch_size": {
                     "type": "integer",
                     "description": "Number of emails per batch (default: 10)",
+                    "default": 10,
                 },
             },
         )
@@ -195,7 +197,7 @@ class EmailTool:
         return self._access_token  # type: ignore
 
 
-    async def get_emails(self, count: int, batch_size: int = 10, user_id: int = None) -> Union[str, dict]:
+    async def get_emails(self, count: int = 10, batch_size: int = 10, user_id: int = None) -> Union[str, dict]:
         """Read recent emails with improved error handling and token management"""
         try:
             # Validate and normalize parameters
