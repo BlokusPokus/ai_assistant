@@ -290,7 +290,7 @@ export class OAuthSettingsService {
         action: 'integration_created',
         provider: 'google',
         integration_id: 1,
-        details: JSON.stringify({ scopes: ['calendar.readonly'] }),
+        details: { scopes: 'calendar.readonly' },
         ip_address: '192.168.1.1',
         user_agent: 'Mozilla/5.0...',
       },
@@ -301,7 +301,7 @@ export class OAuthSettingsService {
         action: 'tokens_refreshed',
         provider: 'google',
         integration_id: 1,
-        details: JSON.stringify({ scopes: ['calendar.readonly'] }),
+        details: { scopes: 'calendar.readonly' },
         ip_address: '192.168.1.1',
         user_agent: 'Mozilla/5.0...',
       },
@@ -354,7 +354,7 @@ export class OAuthSettingsService {
 
   async exportData(
     format: 'csv' | 'json',
-    filters?: AuditFilters
+    _filters?: AuditFilters
   ): Promise<string> {
     try {
       const data = await this.getAuditLogs();

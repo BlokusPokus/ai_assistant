@@ -169,7 +169,7 @@ export const useOAuthSettingsStore = create<OAuthSettingsStore>()(
         }
       },
 
-      loadAnalytics: async (timeRange = '7d') => {
+      loadAnalytics: async (_timeRange = '7d') => {
         try {
           set({ loading: true, error: null });
           const analytics = await oauthSettingsService.getAnalytics();
@@ -185,7 +185,7 @@ export const useOAuthSettingsStore = create<OAuthSettingsStore>()(
         }
       },
 
-      loadAuditLogs: async (filters = {}) => {
+      loadAuditLogs: async (_filters = {}) => {
         try {
           set({ loading: true, error: null });
           const auditLogs = await oauthSettingsService.getAuditLogs();

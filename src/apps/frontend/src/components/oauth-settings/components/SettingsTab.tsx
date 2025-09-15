@@ -36,7 +36,10 @@ export const SettingsTab: React.FC = () => {
       setLocalSettings({
         ...localSettings,
         [parentKey]: {
-          ...localSettings[parentKey],
+          ...(typeof localSettings[parentKey] === 'object' &&
+          localSettings[parentKey] !== null
+            ? localSettings[parentKey]
+            : {}),
           [childKey]: value,
         },
       });

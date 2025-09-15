@@ -48,7 +48,7 @@ describe('OAuthProviderCard', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useOAuthStore as ReturnType<typeof vi.fn>).mockReturnValue(mockStore);
+    (useOAuthStore as any).mockReturnValue(mockStore);
   });
 
   it('renders provider information correctly', () => {

@@ -63,7 +63,7 @@ const OAuthConsent: React.FC<OAuthConsentProps> = ({
           type="text"
           placeholder="Search permissions..."
           value={searchTerm}
-          onChange={setSearchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
           className="w-full"
         />
       </div>
@@ -162,7 +162,7 @@ const OAuthConsent: React.FC<OAuthConsentProps> = ({
 
       {/* Actions */}
       <div className="flex space-x-3">
-        <Button variant="outline" onClick={onCancel} className="flex-1">
+        <Button variant="secondary" onClick={onCancel} className="flex-1">
           Cancel
         </Button>
         <Button
