@@ -88,8 +88,8 @@ const SettingsForm: React.FC = () => {
       preferences: {
         theme: formData.theme,
         language: formData.language,
-        notifications: formData.notifications,
-        privacy: formData.privacy,
+        notifications: JSON.stringify(formData.notifications),
+        privacy: JSON.stringify(formData.privacy),
       },
     });
 

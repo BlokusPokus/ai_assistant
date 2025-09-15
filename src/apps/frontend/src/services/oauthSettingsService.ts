@@ -141,10 +141,12 @@ export class OAuthSettingsService {
         throw new Error(
           'Failed to refresh tokens. The integration may have expired or been revoked.'
         );
-      } else if (error.response?.status === 500) {
+      } else if ((error as any).response?.status === 500) {
         // Check if it's a missing refresh token issue
         if (
-          error.response?.data?.detail?.includes('No refresh token available')
+          (error as any).response?.data?.detail?.includes(
+            'No refresh token available'
+          )
         ) {
           throw new Error(
             'This integration cannot be refreshed because no refresh token was stored during the initial OAuth connection. You may need to reconnect the integration.'
@@ -257,7 +259,9 @@ export class OAuthSettingsService {
           expired: integrations.inactive_integrations || 0, // Map inactive to expired for UI
           revoked: 0, // Backend doesn't track revoked separately yet
         },
-        providers: integrations.providers || {},
+        providers: Array.isArray(integrations.providers)
+          ? {}
+          : integrations.providers || {},
         usage: {
           total_requests: 0, // Would come from analytics endpoint
           successful_requests: 0,
@@ -286,7 +290,7 @@ export class OAuthSettingsService {
         action: 'integration_created',
         provider: 'google',
         integration_id: 1,
-        details: { scopes: ['calendar.readonly'] },
+        details: JSON.stringify({ scopes: ['calendar.readonly'] }),
         ip_address: '192.168.1.1',
         user_agent: 'Mozilla/5.0...',
       },
@@ -297,7 +301,7 @@ export class OAuthSettingsService {
         action: 'tokens_refreshed',
         provider: 'google',
         integration_id: 1,
-        details: { scopes: ['calendar.readonly'] },
+        details: JSON.stringify({ scopes: ['calendar.readonly'] }),
         ip_address: '192.168.1.1',
         user_agent: 'Mozilla/5.0...',
       },
@@ -353,7 +357,7 @@ export class OAuthSettingsService {
     filters?: AuditFilters
   ): Promise<string> {
     try {
-      const data = await this.getAuditLogs(filters);
+      const data = await this.getAuditLogs();
 
       if (format === 'json') {
         return JSON.stringify(data, null, 2);

@@ -1,14 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card } from '@/components/ui';
-import {
-  MessageSquare,
-  Send,
-  Bot,
-  User,
-  Plus,
-  Trash2,
-  Loader2,
-} from 'lucide-react';
+import { MessageSquare, Send, Bot, Plus, Trash2, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui';
 import { chatApi } from '@/services';
 import type { MessageResponse, ConversationResponse } from '@/services/chatApi';

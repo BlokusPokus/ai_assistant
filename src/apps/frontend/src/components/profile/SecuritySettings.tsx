@@ -36,13 +36,13 @@ const SecuritySettings: React.FC = () => {
   };
 
   return (
-    <Card padding="lg">
+    <Card>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold text-gray-900">
           Security Settings
         </h2>
         {!isEditing && (
-          <Button onClick={handleEdit} variant="outline" size="sm">
+          <Button onClick={handleEdit} variant="secondary" size="sm">
             <Edit className="w-4 h-4 mr-2" />
             Change Password
           </Button>
@@ -89,8 +89,8 @@ const SecuritySettings: React.FC = () => {
                 <Input
                   type="password"
                   value={formData.currentPassword}
-                  onChange={value =>
-                    handleInputChange('currentPassword', value)
+                  onChange={e =>
+                    handleInputChange('currentPassword', e.target.value)
                   }
                   placeholder="Enter your current password"
                   required
@@ -110,7 +110,9 @@ const SecuritySettings: React.FC = () => {
                 <Input
                   type="password"
                   value={formData.newPassword}
-                  onChange={value => handleInputChange('newPassword', value)}
+                  onChange={e =>
+                    handleInputChange('newPassword', e.target.value)
+                  }
                   placeholder="Enter your new password"
                   required
                   className="pl-10"
@@ -132,8 +134,8 @@ const SecuritySettings: React.FC = () => {
                 <Input
                   type="password"
                   value={formData.confirmPassword}
-                  onChange={value =>
-                    handleInputChange('confirmPassword', value)
+                  onChange={e =>
+                    handleInputChange('confirmPassword', e.target.value)
                   }
                   placeholder="Confirm your new password"
                   required
@@ -144,7 +146,7 @@ const SecuritySettings: React.FC = () => {
 
             {/* Action Buttons */}
             <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
-              <Button type="button" variant="outline" onClick={handleCancel}>
+              <Button type="button" variant="secondary" onClick={handleCancel}>
                 <X className="w-4 h-4 mr-2" />
                 Cancel
               </Button>
