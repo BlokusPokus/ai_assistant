@@ -46,7 +46,7 @@ INSERT INTO users (
     updated_at
 ) VALUES (
     'your.email@example.com',           -- Replace with your email
-    '+14388290590',                     -- Replace with your phone number
+    '+1234567890',                     -- Replace with your phone number
     'Your Full Name',                   -- Replace with your name
     '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.s5u.mG', -- This is "AdminPass123!" hashed
     true,                               -- Active account

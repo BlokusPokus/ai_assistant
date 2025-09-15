@@ -46,7 +46,7 @@ INSERT INTO users (
     updated_at
 ) VALUES (
     'ian.le.blanc@hotmail.com',        -- Ian's email from development.env
-    '+14388290590',                     -- Ian's phone number from development.env
+    '+1234567890',                     -- Replace with your phone number
     'Ian LeBlanc',                      -- Ian's full name
     '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.s5u.mG', -- "IanAdmin2024!" hashed
     true,                               -- Active account
@@ -62,7 +62,7 @@ DECLARE
     role_id INTEGER;
 BEGIN
     -- Get Ian's user ID
-    SELECT id INTO user_id FROM users WHERE phone_number = '+14388290590';
+    SELECT id INTO user_id FROM users WHERE phone_number = '+1234567890';
     
     -- Get the administrator role ID
     SELECT id INTO role_id FROM roles WHERE name = 'administrator';
@@ -92,12 +92,12 @@ SELECT
 FROM users u
 LEFT JOIN user_roles ur ON u.id = ur.user_id
 LEFT JOIN roles r ON ur.role_id = r.id
-WHERE u.phone_number = '+14388290590';
+WHERE u.phone_number = '+1234567890';
 
 -- Step 6: Show login credentials
 SELECT 
     '🎉 Admin user created successfully!' as status,
-    '📱 Phone: +14388290590' as phone,
+    '📱 Phone: +1234567890' as phone,
     '📧 Email: ian.le.blanc@hotmail.com' as email,
     '👤 Name: Ian LeBlanc' as name,
     '🔒 Password: IanAdmin2024!' as password,
