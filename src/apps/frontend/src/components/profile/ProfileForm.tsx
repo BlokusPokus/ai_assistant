@@ -65,7 +65,7 @@ const ProfileForm: React.FC = () => {
 
   if (isLoading && !profile) {
     return (
-      <Card padding="lg">
+      <Card>
         <div className="animate-pulse space-y-4">
           <div className="h-4 bg-gray-200 rounded w-1/4"></div>
           <div className="space-y-3">
@@ -79,7 +79,7 @@ const ProfileForm: React.FC = () => {
 
   if (!profile) {
     return (
-      <Card padding="lg">
+      <Card>
         <div className="text-center text-gray-500">
           Failed to load profile information
         </div>
@@ -88,13 +88,13 @@ const ProfileForm: React.FC = () => {
   }
 
   return (
-    <Card padding="lg">
+    <Card>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold text-gray-900">
           Profile Information
         </h2>
         {!isEditing && (
-          <Button onClick={handleEdit} variant="outline" size="sm">
+          <Button onClick={handleEdit} variant="secondary" size="sm">
             <Edit className="w-4 h-4 mr-2" />
             Edit Profile
           </Button>
@@ -141,7 +141,7 @@ const ProfileForm: React.FC = () => {
             <Input
               type="text"
               value={formData.full_name}
-              onChange={value => handleInputChange('full_name', value)}
+              onChange={e => handleInputChange('full_name', e.target.value)}
               placeholder="Enter your full name"
               disabled={!isEditing}
               required
@@ -162,7 +162,7 @@ const ProfileForm: React.FC = () => {
             <Input
               type="tel"
               value={formData.phone_number}
-              onChange={value => handleInputChange('phone_number', value)}
+              onChange={e => handleInputChange('phone_number', e.target.value)}
               placeholder="Enter your phone number"
               disabled={!isEditing}
               className="pl-10"
@@ -200,7 +200,7 @@ const ProfileForm: React.FC = () => {
           <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={handleCancel}
               disabled={isLoading}
             >

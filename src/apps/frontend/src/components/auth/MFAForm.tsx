@@ -54,7 +54,6 @@ const MFAForm: React.FC<MFAFormProps> = ({
           ? 'Set Up Two-Factor Authentication'
           : 'Verify Two-Factor Authentication'
       }
-      padding="lg"
       className="max-w-md mx-auto"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -93,7 +92,7 @@ const MFAForm: React.FC<MFAFormProps> = ({
                     </code>
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
                       onClick={() => copyToClipboard(secretKey)}
                     >
@@ -117,7 +116,7 @@ const MFAForm: React.FC<MFAFormProps> = ({
                   </h3>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={() => setShowBackupCodes(!showBackupCodes)}
                   >
@@ -144,7 +143,7 @@ const MFAForm: React.FC<MFAFormProps> = ({
                     </div>
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
                       className="mt-3"
                       onClick={() => copyToClipboard(backupCodes.join('\n'))}
@@ -176,7 +175,7 @@ const MFAForm: React.FC<MFAFormProps> = ({
                 message: 'Please enter a 6-digit code',
               },
             })}
-            onChange={handleInputChange}
+            onChange={e => handleInputChange(e.target.value)}
           />
           <p className="text-sm text-gray-600">
             {type === 'setup'
@@ -190,7 +189,7 @@ const MFAForm: React.FC<MFAFormProps> = ({
           {onCancel && (
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={onCancel}
               className="flex-1"
             >

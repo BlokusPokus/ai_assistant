@@ -50,7 +50,7 @@ const CalendarPage: React.FC = () => {
       </div>
 
       {/* Calendar Header */}
-      <Card padding="lg">
+      <Card>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
             <button className="p-2 hover:bg-gray-100 rounded-md">
@@ -91,7 +91,7 @@ const CalendarPage: React.FC = () => {
       </Card>
 
       {/* Upcoming Events */}
-      <Card title="Upcoming Events" padding="lg">
+      <Card title="Upcoming Events">
         <div className="space-y-4">
           {mockEvents.map(event => (
             <div
@@ -124,10 +124,7 @@ const CalendarPage: React.FC = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card
-          padding="lg"
-          className="text-center hover:shadow-md transition-shadow cursor-pointer"
-        >
+        <Card className="text-center hover:shadow-md transition-shadow cursor-pointer">
           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Plus className="w-6 h-6 text-blue-600" />
           </div>
@@ -135,10 +132,7 @@ const CalendarPage: React.FC = () => {
           <p className="text-sm text-gray-600">Create a new calendar event</p>
         </Card>
 
-        <Card
-          padding="lg"
-          className="text-center hover:shadow-md transition-shadow cursor-pointer"
-        >
+        <Card className="text-center hover:shadow-md transition-shadow cursor-pointer">
           <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Calendar className="w-6 h-6 text-green-600" />
           </div>
@@ -146,10 +140,7 @@ const CalendarPage: React.FC = () => {
           <p className="text-sm text-gray-600">See your monthly overview</p>
         </Card>
 
-        <Card
-          padding="lg"
-          className="text-center hover:shadow-md transition-shadow cursor-pointer"
-        >
+        <Card className="text-center hover:shadow-md transition-shadow cursor-pointer">
           <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Clock className="w-6 h-6 text-purple-600" />
           </div>
@@ -159,10 +150,7 @@ const CalendarPage: React.FC = () => {
       </div>
 
       {/* Coming Soon Features */}
-      <Card
-        padding="lg"
-        className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200"
-      >
+      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
         <div className="text-center">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             📅 Advanced Calendar Features Coming Soon!

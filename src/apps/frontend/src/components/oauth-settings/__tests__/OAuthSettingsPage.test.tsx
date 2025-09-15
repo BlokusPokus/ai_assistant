@@ -1,4 +1,4 @@
-import React from 'react';
+// import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { OAuthSettingsPage } from '../OAuthSettingsPage';
@@ -31,6 +31,8 @@ describe('OAuthSettingsPage', () => {
 
   it('shows page description', () => {
     render(<OAuthSettingsPage />);
-    expect(screen.getByText(/Manage your OAuth integrations/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Manage your OAuth integrations/)
+    ).toBeInTheDocument();
   });
 });

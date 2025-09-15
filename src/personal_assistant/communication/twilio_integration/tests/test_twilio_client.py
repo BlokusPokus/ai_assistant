@@ -245,7 +245,7 @@ class TestTwilioService(unittest.IsolatedAsyncioTestCase):
         )
 
         # Simulate sending a message with a Twilio exception
-        to_number = "+14388290590"
+        to_number = "+1234567890"
         message = "Test message"
 
         logger.info("Testing send_sms with TwilioRestException")

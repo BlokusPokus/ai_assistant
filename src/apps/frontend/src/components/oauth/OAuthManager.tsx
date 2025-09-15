@@ -106,7 +106,7 @@ const OAuthManager: React.FC = () => {
           type="text"
           placeholder="Search services..."
           value={searchTerm}
-          onChange={setSearchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
           className="w-full"
         />
       </div>

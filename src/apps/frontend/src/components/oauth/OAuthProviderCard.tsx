@@ -63,8 +63,8 @@ const OAuthProviderCard: React.FC<OAuthProviderCardProps> = ({ provider }) => {
     try {
       // Use default scopes for the provider
       const defaultScopes = providerConfig.availableScopes
-        ?.filter(scope => scope.is_required)
-        ?.map(scope => scope.scope_name) ||
+        ?.filter(scope => scope.required)
+        ?.map(scope => scope.name) ||
         DEFAULT_OAUTH_SCOPES[provider] || ['read'];
 
       console.log('DEBUG: Frontend OAuth - provider:', provider);

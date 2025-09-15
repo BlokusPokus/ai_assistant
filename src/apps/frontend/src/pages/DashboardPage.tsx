@@ -65,7 +65,7 @@ const DashboardPage: React.FC = () => {
                   {user?.full_name || 'User'}
                 </span>
               </div>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
+              <Button variant="secondary" size="sm" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
               </Button>
@@ -91,7 +91,7 @@ const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {quickActions.map((action, index) => (
             <div key={index} className="cursor-pointer" onClick={action.action}>
-              <Card padding="lg" className="hover:shadow-md transition-shadow">
+              <Card className="hover:shadow-md transition-shadow">
                 <div className="text-center space-y-3">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
                     <action.icon className="w-6 h-6 text-blue-600" />
@@ -107,7 +107,7 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Recent Activity */}
-        <Card title="Recent Activity" padding="lg" className="mb-8">
+        <Card title="Recent Activity" className="mb-8">
           <div className="space-y-4">
             <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -134,7 +134,7 @@ const DashboardPage: React.FC = () => {
         </Card>
 
         {/* System Status */}
-        <Card title="System Status" padding="lg">
+        <Card title="System Status">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -164,10 +164,7 @@ const DashboardPage: React.FC = () => {
 
         {/* Coming Soon */}
         <div className="mt-8 text-center">
-          <Card
-            padding="lg"
-            className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200"
-          >
+          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               🚀 More Features Coming Soon!
             </h3>
@@ -175,7 +172,7 @@ const DashboardPage: React.FC = () => {
               We're working hard to bring you more powerful features including
               advanced chat, calendar integration, and mobile apps.
             </p>
-            <Button variant="outline" size="sm">
+            <Button variant="secondary" size="sm">
               Learn More
             </Button>
           </Card>

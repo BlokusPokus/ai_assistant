@@ -221,7 +221,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
 
   if (isLoading && phoneNumbers.length === 0) {
     return (
-      <Card padding="lg" className={className}>
+      <Card className={className}>
         <div className="animate-pulse space-y-4">
           <div className="h-4 bg-gray-200 rounded w-1/4"></div>
           <div className="space-y-3">
@@ -234,7 +234,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
   }
 
   return (
-    <Card padding="lg" className={className}>
+    <Card className={className}>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Phone Numbers</h2>
@@ -244,7 +244,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
         </div>
         <Button
           onClick={() => setShowAddForm(true)}
-          variant="outline"
+          variant="secondary"
           size="sm"
           className="flex items-center gap-2"
         >
@@ -267,7 +267,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
 
       {/* Add Phone Number Form */}
       {showAddForm && (
-        <Card padding="md" className="mb-6 bg-gray-50">
+        <Card className="mb-6 bg-gray-50">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             Add New Phone Number
           </h3>
@@ -306,7 +306,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => setShowAddForm(false)}
               >
@@ -366,7 +366,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
                     </Button>
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
                       onClick={cancelEdit}
                     >
@@ -417,7 +417,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
                   <div className="flex items-center gap-2">
                     {!phone.is_verified && (
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         onClick={() =>
                           handleSendVerification(phone.phone_number)
@@ -433,7 +433,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
                     )}
                     {!phone.is_primary && (
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         onClick={() => handleSetPrimary(phone.id)}
                         className="flex items-center gap-1"
@@ -443,7 +443,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
                       </Button>
                     )}
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
                       onClick={() => startEdit(phone)}
                       className="flex items-center gap-1"
@@ -452,7 +452,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
                       Edit
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
                       onClick={() => handleDeletePhoneNumber(phone.id)}
                       className="flex items-center gap-1 text-red-600 hover:text-red-700"
@@ -470,7 +470,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
 
       {/* Verification Code Input */}
       {verifyingPhone && (
-        <Card padding="md" className="mt-6 bg-blue-50 border-blue-200">
+        <Card className="mt-6 bg-blue-50 border-blue-200">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             Verify Phone Number
           </h3>
@@ -486,7 +486,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
               <Input
                 type="text"
                 value={verificationCode}
-                onChange={(value: string) => setVerificationCode(value)}
+                onChange={e => setVerificationCode(e.target.value)}
                 placeholder="123456"
                 required
                 className="w-full"
@@ -498,7 +498,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => {
                   setVerifyingPhone(null);

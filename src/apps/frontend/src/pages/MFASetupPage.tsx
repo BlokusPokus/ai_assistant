@@ -78,7 +78,7 @@ const MFASetupPage: React.FC = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <Card title="Setup Error" padding="lg" className="max-w-md mx-auto">
+        <Card title="Setup Error" className="max-w-md mx-auto">
           <div className="text-center space-y-4">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
               <Shield className="w-8 h-8 text-red-600" />
@@ -88,7 +88,7 @@ const MFASetupPage: React.FC = () => {
             </h3>
             <p className="text-gray-600">{error}</p>
             <div className="flex space-x-3">
-              <Button variant="outline" onClick={handleBackToLogin}>
+              <Button variant="secondary" onClick={handleBackToLogin}>
                 Back to Login
               </Button>
               <Button
@@ -149,11 +149,7 @@ const MFASetupPage: React.FC = () => {
         )}
 
         {/* Security Information */}
-        <Card
-          title="Why Two-Factor Authentication?"
-          padding="lg"
-          className="mt-8"
-        >
+        <Card title="Why Two-Factor Authentication?" className="mt-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">

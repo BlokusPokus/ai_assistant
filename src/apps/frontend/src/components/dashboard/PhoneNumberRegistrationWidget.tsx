@@ -166,7 +166,7 @@ const PhoneNumberRegistrationWidget: React.FC<
               <div className="flex space-x-2">
                 {!phone.is_verified && (
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={handleVerifyClick}
                     className="text-xs"
@@ -176,7 +176,7 @@ const PhoneNumberRegistrationWidget: React.FC<
                   </Button>
                 )}
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   onClick={handleManageClick}
                   className="text-xs"
@@ -200,7 +200,7 @@ const PhoneNumberRegistrationWidget: React.FC<
       <div className="mt-4 pt-4 border-t border-gray-200">
         <div className="flex space-x-2">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={handleAddPhoneClick}
             className="flex-1"
@@ -209,7 +209,7 @@ const PhoneNumberRegistrationWidget: React.FC<
             Add Phone
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={handleManageClick}
             className="flex-1"

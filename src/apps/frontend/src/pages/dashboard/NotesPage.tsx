@@ -79,7 +79,7 @@ const NotesPage: React.FC = () => {
       </div>
 
       {/* Search and Filters */}
-      <Card padding="lg">
+      <Card>
         <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
           {/* Search */}
           <div className="flex-1 relative">
@@ -123,11 +123,7 @@ const NotesPage: React.FC = () => {
       {/* Notes Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredNotes.map(note => (
-          <Card
-            key={note.id}
-            padding="lg"
-            className="hover:shadow-md transition-shadow"
-          >
+          <Card key={note.id} className="hover:shadow-md transition-shadow">
             <div className="space-y-3">
               {/* Note Header */}
               <div className="flex items-start justify-between">
@@ -183,7 +179,7 @@ const NotesPage: React.FC = () => {
 
       {/* Empty State */}
       {filteredNotes.length === 0 && (
-        <Card padding="lg" className="text-center py-12">
+        <Card className="text-center py-12">
           <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             No notes found
@@ -202,10 +198,7 @@ const NotesPage: React.FC = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card
-          padding="lg"
-          className="text-center hover:shadow-md transition-shadow cursor-pointer"
-        >
+        <Card className="text-center hover:shadow-md transition-shadow cursor-pointer">
           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Plus className="w-6 h-6 text-blue-600" />
           </div>
@@ -213,10 +206,7 @@ const NotesPage: React.FC = () => {
           <p className="text-sm text-gray-600">Create a note in seconds</p>
         </Card>
 
-        <Card
-          padding="lg"
-          className="text-center hover:shadow-md transition-shadow cursor-pointer"
-        >
+        <Card className="text-center hover:shadow-md transition-shadow cursor-pointer">
           <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Tag className="w-6 h-6 text-green-600" />
           </div>
@@ -224,10 +214,7 @@ const NotesPage: React.FC = () => {
           <p className="text-sm text-gray-600">Tag and categorize notes</p>
         </Card>
 
-        <Card
-          padding="lg"
-          className="text-center hover:shadow-md transition-shadow cursor-pointer"
-        >
+        <Card className="text-center hover:shadow-md transition-shadow cursor-pointer">
           <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Search className="w-6 h-6 text-purple-600" />
           </div>
@@ -237,10 +224,7 @@ const NotesPage: React.FC = () => {
       </div>
 
       {/* Coming Soon Features */}
-      <Card
-        padding="lg"
-        className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200"
-      >
+      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
         <div className="text-center">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             📝 Advanced Notes Features Coming Soon!

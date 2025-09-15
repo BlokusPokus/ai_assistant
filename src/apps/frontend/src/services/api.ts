@@ -8,7 +8,9 @@ import type {
 
 // Create axios instance with base configuration
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/v1` : '/api/v1',
+  baseURL: import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/api/v1`
+    : '/api/v1',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -63,7 +65,9 @@ api.interceptors.response.use(
           failedQueue.push({ resolve, reject });
         })
           .then(token => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+            }
             return api(originalRequest);
           })
           .catch(err => {
@@ -102,7 +106,9 @@ api.interceptors.response.use(
         }
 
         // Update the original request with new token
-        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        }
 
         // Process queued requests
         processQueue(null, access_token);
@@ -111,7 +117,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         // Token refresh failed, log out
-        processQueue(refreshError, null);
+        processQueue(refreshError as Error, null);
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
