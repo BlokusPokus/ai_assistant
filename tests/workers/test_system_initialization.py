@@ -106,8 +106,7 @@ class TestSystemInitialization:
 
                 # Check that task routes are configured
                 task_routes = app.conf.task_routes
-                expected_queues = ['ai_tasks', 'email_tasks',
-                                   'file_tasks', 'sync_tasks', 'maintenance_tasks']
+                expected_queues = ['ai_tasks']
 
                 for queue in expected_queues:
                     assert any(queue in route.get('queue', '')
@@ -154,8 +153,7 @@ class TestSystemInitialization:
             assert isinstance(TASK_REGISTRY, dict)
 
             # Check that expected task types are registered
-            expected_task_types = ['ai_tasks', 'email_tasks',
-                                   'file_tasks', 'sync_tasks', 'maintenance_tasks']
+            expected_task_types = ['ai_tasks']
 
             for task_type in expected_task_types:
                 assert task_type in TASK_REGISTRY

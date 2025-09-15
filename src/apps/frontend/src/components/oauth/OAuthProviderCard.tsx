@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button, Card } from '@/components/ui';
 import { useOAuthSettingsStore } from '../../stores/oauthSettingsStore';
 import type { OAuthProvider } from '@/types/oauth';
-import { OAUTH_PROVIDERS } from '@/constants/oauth';
+import { OAUTH_PROVIDERS, DEFAULT_OAUTH_SCOPES } from '@/constants/oauth';
 
 interface OAuthProviderCardProps {
   provider: OAuthProvider;
@@ -64,7 +64,15 @@ const OAuthProviderCard: React.FC<OAuthProviderCardProps> = ({ provider }) => {
       // Use default scopes for the provider
       const defaultScopes = providerConfig.availableScopes
         ?.filter(scope => scope.is_required)
-        ?.map(scope => scope.scope_name) || ['read'];
+        ?.map(scope => scope.scope_name) ||
+        DEFAULT_OAUTH_SCOPES[provider] || ['read'];
+
+      console.log('DEBUG: Frontend OAuth - provider:', provider);
+      console.log('DEBUG: Frontend OAuth - defaultScopes:', defaultScopes);
+      console.log(
+        'DEBUG: Frontend OAuth - providerConfig.availableScopes:',
+        providerConfig.availableScopes
+      );
 
       await connectIntegration(provider, defaultScopes);
     } catch (error) {

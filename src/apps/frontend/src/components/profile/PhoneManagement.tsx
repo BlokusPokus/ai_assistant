@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Input, Card, Badge, Alert } from '@/components/ui';
+import { Button, Card, Badge, Alert } from '@/components/ui';
+import { Input } from '@/components/ui/Input/Input';
 import {
   Phone,
   Plus,
@@ -9,6 +10,7 @@ import {
   CheckCircle,
   Send,
 } from 'lucide-react';
+import api from '@/services/api';
 
 interface PhoneNumber {
   id: number | string;
@@ -57,19 +59,8 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
     setError(null);
 
     try {
-      const response = await fetch('/api/v1/users/me/phone-numbers', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch phone numbers');
-      }
-
-      const data = await response.json();
-      setPhoneNumbers(data.phone_numbers);
+      const response = await api.get('/users/me/phone-numbers');
+      setPhoneNumbers(response.data.phone_numbers);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to fetch phone numbers'
@@ -85,22 +76,10 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
     setSuccess(null);
 
     try {
-      const response = await fetch('/api/v1/users/me/phone-numbers', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone_number: newPhoneNumber,
-          is_primary: isPrimary,
-        }),
+      await api.post('/users/me/phone-numbers', {
+        phone_number: newPhoneNumber,
+        is_primary: isPrimary,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to add phone number');
-      }
 
       setSuccess('Phone number added successfully');
       setNewPhoneNumber('');
@@ -122,25 +101,10 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
     setSuccess(null);
 
     try {
-      const response = await fetch(
-        `/api/v1/users/me/phone-numbers/${editingPhone.id}`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            phone_number: editPhoneNumber,
-            is_primary: editIsPrimary,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to update phone number');
-      }
+      await api.put(`/users/me/phone-numbers/${editingPhone.id}`, {
+        phone_number: editPhoneNumber,
+        is_primary: editIsPrimary,
+      });
 
       setSuccess('Phone number updated successfully');
       setEditingPhone(null);
@@ -161,21 +125,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
     setSuccess(null);
 
     try {
-      const response = await fetch(
-        `/api/v1/users/me/phone-numbers/${phoneId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to delete phone number');
-      }
+      await api.delete(`/users/me/phone-numbers/${phoneId}`);
 
       setSuccess('Phone number deleted successfully');
       fetchPhoneNumbers();
@@ -191,23 +141,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
     setSuccess(null);
 
     try {
-      const response = await fetch(
-        `/api/v1/users/me/phone-numbers/${phoneId}/set-primary`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.detail || 'Failed to set primary phone number'
-        );
-      }
+      await api.post(`/users/me/phone-numbers/${phoneId}/set-primary`);
 
       setSuccess('Primary phone number updated successfully');
       fetchPhoneNumbers();
@@ -225,21 +159,9 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
     setSuccess(null);
 
     try {
-      const response = await fetch('/api/v1/users/me/phone-numbers/verify', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone_number: phoneNumber,
-        }),
+      await api.post('/users/me/phone-numbers/verify', {
+        phone_number: phoneNumber,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to send verification code');
-      }
 
       setSuccess('Verification code sent successfully');
       setVerifyingPhone(phoneNumber);
@@ -259,25 +181,10 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
     setSuccess(null);
 
     try {
-      const response = await fetch(
-        '/api/v1/users/me/phone-numbers/verify-code',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            phone_number: verifyingPhone,
-            verification_code: verificationCode,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to verify code');
-      }
+      await api.post('/users/me/phone-numbers/verify-code', {
+        phone_number: verifyingPhone,
+        verification_code: verificationCode,
+      });
 
       setSuccess('Phone number verified successfully');
       setVerifyingPhone(null);
@@ -372,7 +279,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
               <Input
                 type="tel"
                 value={newPhoneNumber}
-                onChange={(value: string) => setNewPhoneNumber(value)}
+                onChange={e => setNewPhoneNumber(e.target.value)}
                 placeholder="+1 (555) 123-4567"
                 required
                 className="w-full"
@@ -433,7 +340,7 @@ const PhoneManagement: React.FC<PhoneManagementProps> = ({
                     <Input
                       type="tel"
                       value={editPhoneNumber}
-                      onChange={(value: string) => setEditPhoneNumber(value)}
+                      onChange={e => setEditPhoneNumber(e.target.value)}
                       required
                       className="w-full"
                     />

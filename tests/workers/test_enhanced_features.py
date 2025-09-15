@@ -725,8 +725,6 @@ class TestPerformanceOptimizer:
         """Test worker configuration optimization."""
         current_config = {
             'ai_tasks_concurrency': 4,
-            'email_tasks_concurrency': 2,
-            'file_tasks_concurrency': 1
         }
 
         optimized_config = self.optimizer.optimize_worker_configuration(

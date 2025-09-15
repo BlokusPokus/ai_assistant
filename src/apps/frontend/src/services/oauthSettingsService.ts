@@ -320,11 +320,27 @@ export class OAuthSettingsService {
     scopes: string[]
   ): Promise<{ authorization_url: string; state: string }> {
     try {
-      const response = await api.post('/oauth/initiate', {
+      console.log(
+        'DEBUG: oauthSettingsService.connectIntegration - provider:',
+        provider
+      );
+      console.log(
+        'DEBUG: oauthSettingsService.connectIntegration - scopes:',
+        scopes
+      );
+
+      const requestBody = {
         provider,
         scopes,
         redirect_uri: `${window.location.origin}/oauth/callback/${provider}`,
-      });
+      };
+
+      console.log(
+        'DEBUG: oauthSettingsService.connectIntegration - requestBody:',
+        requestBody
+      );
+
+      const response = await api.post('/oauth/initiate', requestBody);
       return response.data;
     } catch (error) {
       console.error('Failed to initiate OAuth connection:', error);

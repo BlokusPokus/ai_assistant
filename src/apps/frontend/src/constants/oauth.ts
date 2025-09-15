@@ -49,7 +49,7 @@ export const OAUTH_SCOPES: Record<string, OAuthScope[]> = {
       id: 'Calendars.Read',
       name: 'Calendar Read',
       description: 'Read your calendar',
-      required: false,
+      required: true,
       category: 'read',
       provider: 'microsoft',
     },

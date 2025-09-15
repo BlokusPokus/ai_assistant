@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Download, BarChart3 } from 'lucide-react';
 import { Select } from '@/components/ui';
+import api from '@/services/api';
 
 interface SMSAnalyticsData {
   usage_summary: {
@@ -98,36 +99,22 @@ const SMSAnalyticsWidget: React.FC<SMSAnalyticsWidgetProps> = ({
       setError(null);
 
       // Fetch analytics data
-      const analyticsResponse = await fetch(
-        `/api/v1/analytics/me/sms-analytics?time_range=${selectedTimeRange}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-          },
-        }
+      const analyticsResponse = await api.get(
+        `/analytics/me/sms-analytics?time_range=${selectedTimeRange}`
       );
 
-      if (!analyticsResponse.ok) {
-        throw new Error('Failed to fetch analytics data');
-      }
-
-      const analytics = await analyticsResponse.json();
+      const analytics = analyticsResponse.data;
       setAnalyticsData(analytics);
 
       // Fetch cost data if enabled
       if (showCosts) {
-        const costResponse = await fetch(
-          `/api/v1/analytics/me/sms-costs?time_range=${selectedTimeRange}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-            },
-          }
-        );
-
-        if (costResponse.ok) {
-          const costs = await costResponse.json();
-          setCostData(costs);
+        try {
+          const costResponse = await api.get(
+            `/analytics/me/sms-costs?time_range=${selectedTimeRange}`
+          );
+          setCostData(costResponse.data);
+        } catch (costError) {
+          console.warn('Cost data not available:', costError);
         }
       }
 

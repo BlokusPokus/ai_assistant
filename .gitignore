@@ -35,6 +35,7 @@ venv_personal_assistant/
 .env.production
 *.env
 config/*.env
+docker/.env.prod
 !config/env.example
 
 # Logs and temporary files

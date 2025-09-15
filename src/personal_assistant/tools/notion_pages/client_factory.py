@@ -66,7 +66,7 @@ class NotionClientFactory:
 
             # Get valid access token
             access_token = await self.token_service.get_valid_token(
-                db, integration.id
+                db, integration.id, "access_token"
             )
 
             if not access_token:

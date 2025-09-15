@@ -73,22 +73,6 @@ app.conf.update(
             "queue": "ai_tasks",
             "priority": 10,
         },
-        "personal_assistant.workers.tasks.email_tasks.*": {
-            "queue": "email_tasks",
-            "priority": 5,
-        },
-        "personal_assistant.workers.tasks.file_tasks.*": {
-            "queue": "file_tasks",
-            "priority": 3,
-        },
-        "personal_assistant.workers.tasks.sync_tasks.*": {
-            "queue": "sync_tasks",
-            "priority": 7,
-        },
-        "personal_assistant.workers.tasks.maintenance_tasks.*": {
-            "queue": "maintenance_tasks",
-            "priority": 1,
-        },
         "personal_assistant.workers.tasks.sms_tasks.*": {
             "queue": "sms_tasks",
             "priority": 8,
@@ -97,10 +81,6 @@ app.conf.update(
     # Explicit queue declarations with explicit exchange names
     task_queues=(
         Queue('ai_tasks', exchange='ai_tasks', routing_key='ai_tasks'),
-        Queue('email_tasks', exchange='email_tasks', routing_key='email_tasks'),
-        Queue('file_tasks', exchange='file_tasks', routing_key='file_tasks'),
-        Queue('sync_tasks', exchange='sync_tasks', routing_key='sync_tasks'),
-        Queue('maintenance_tasks', exchange='maintenance_tasks', routing_key='maintenance_tasks'),
         Queue('sms_tasks', exchange='sms_tasks', routing_key='sms_tasks'),
     ),
     # Default queue configuration
@@ -128,55 +108,6 @@ app.conf.update(
             "task": "personal_assistant.workers.tasks.ai_tasks.cleanup_old_logs",
             "schedule": crontab(hour=2, minute=0),
             "options": {"priority": 10},
-        },
-        # Email tasks (medium priority)
-        "process-email-queue": {
-            "task": "personal_assistant.workers.tasks.email_tasks.process_email_queue",
-            "schedule": crontab(minute="*/5"),
-            "options": {"priority": 5},
-        },
-        "send-daily-email-summary": {
-            "task": "personal_assistant.workers.tasks.email_tasks.send_daily_email_summary",
-            "schedule": crontab(hour=8, minute=0),
-            "options": {"priority": 5},
-        },
-        # File tasks (low priority)
-        "cleanup-temp-files": {
-            "task": "personal_assistant.workers.tasks.file_tasks.cleanup_temp_files",
-            "schedule": crontab(hour=2, minute=0),
-            "options": {"priority": 3},
-        },
-        "backup-user-data": {
-            "task": "personal_assistant.workers.tasks.file_tasks.backup_user_data",
-            "schedule": crontab(day_of_week=0, hour=1, minute=0),
-            "options": {"priority": 3},
-        },
-        # Sync tasks (medium-high priority)
-        "sync-calendar-events": {
-            "task": "personal_assistant.workers.tasks.sync_tasks.sync_calendar_events",
-            "schedule": crontab(minute=0),
-            "options": {"priority": 7},
-        },
-        "sync-notion-pages": {
-            "task": "personal_assistant.workers.tasks.sync_tasks.sync_notion_pages",
-            "schedule": crontab(minute=0, hour="*/2"),
-            "options": {"priority": 7},
-        },
-        # Maintenance tasks (lowest priority)
-        "cleanup-old-logs": {
-            "task": "personal_assistant.workers.tasks.maintenance_tasks.cleanup_old_logs",
-            "schedule": crontab(hour=3, minute=0),
-            "options": {"priority": 1},
-        },
-        "optimize-database": {
-            "task": "personal_assistant.workers.tasks.maintenance_tasks.optimize_database",
-            "schedule": crontab(day_of_week=0, hour=3, minute=0),
-            "options": {"priority": 1},
-        },
-        "cleanup-old-sessions": {
-            "task": "personal_assistant.workers.tasks.maintenance_tasks.cleanup_old_sessions",
-            "schedule": crontab(hour=4, minute=0),
-            "options": {"priority": 1},
         },
         # SMS retry tasks (high priority)
         "sms-retry-processor": {

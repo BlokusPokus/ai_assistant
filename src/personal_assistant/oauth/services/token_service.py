@@ -95,8 +95,8 @@ class OAuthTokenService:
                 db.add(access_token)
                 stored_tokens.append(access_token)
 
-            # Store refresh token
-            if "refresh_token" in tokens:
+            # Store refresh token (only if it's not None)
+            if "refresh_token" in tokens and tokens["refresh_token"] is not None:
                 refresh_token = OAuthToken(
                     integration_id=integration_id,
                     token_type="refresh_token",
