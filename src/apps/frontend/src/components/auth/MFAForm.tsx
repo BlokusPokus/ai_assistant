@@ -175,7 +175,7 @@ const MFAForm: React.FC<MFAFormProps> = ({
                 message: 'Please enter a 6-digit code',
               },
             })}
-            onChange={e => handleInputChange(e.target.value)}
+            onChange={value => handleInputChange(value)}
           />
           <p className="text-sm text-gray-600">
             {type === 'setup'

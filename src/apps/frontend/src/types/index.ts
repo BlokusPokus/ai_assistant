@@ -6,6 +6,30 @@ export interface User {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  // Role information (optional for backward compatibility)
+  roles?: Role[];
+  permissions?: Permission[];
+  primary_role?: Role;
+}
+
+// Role and Permission types for RBAC
+export interface Permission {
+  id: number;
+  name: string;
+  resource_type: string;
+  action: string;
+  description?: string;
+  created_at: string;
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  description?: string;
+  parent_role_id?: number;
+  permissions: Permission[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ApiResponse<T> {

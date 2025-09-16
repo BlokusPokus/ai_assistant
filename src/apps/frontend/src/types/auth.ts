@@ -9,7 +9,7 @@ export interface RegisterFormData {
   password: string;
   confirmPassword: string;
   fullName: string;
-  phoneNumber?: string;
+  phoneNumber: string; // Required field
 }
 
 export interface MFAFormData {

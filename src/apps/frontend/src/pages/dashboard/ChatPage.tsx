@@ -40,11 +40,21 @@ const ChatPage: React.FC = () => {
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom();
+    // Use setTimeout to ensure DOM is updated before scrolling
+    const timer = setTimeout(() => {
+      scrollToBottom();
+    }, 100);
+    return () => clearTimeout(timer);
   }, [messages]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'end',
+        inline: 'nearest',
+      });
+    }
   };
 
   const loadConversations = async () => {
@@ -69,7 +79,8 @@ const ChatPage: React.FC = () => {
       const filteredMessages = removeDuplicateMessages(
         filterVisibleMessages(messages)
       );
-      setMessages(filteredMessages);
+      // Reverse the order since backend now returns newest-first, but we want oldest-first for chat display
+      setMessages(filteredMessages.reverse());
     } catch (error: any) {
       console.error('Error loading messages:', error);
       setError('Failed to load messages');
@@ -171,9 +182,9 @@ const ChatPage: React.FC = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-200px)] space-x-6">
+    <div className="flex h-[calc(100vh-90px)] space-x-4 -m-6 p-6">
       {/* Conversation Sidebar */}
-      <div className="w-1/3 border-r border-gray-200 bg-gray-50 flex flex-col">
+      <div className="w-1/4 border-r border-gray-200 bg-gray-50 flex flex-col">
         <div className="p-4 border-b border-gray-200">
           <button
             onClick={startNewConversation}
@@ -267,7 +278,7 @@ const ChatPage: React.FC = () => {
         )}
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto px-2 py-4">
           {messages.length === 0 && !isLoading && (
             <div className="text-center py-12">
               <Bot className="w-12 h-12 mx-auto mb-4 text-gray-400" />
@@ -303,15 +314,15 @@ const ChatPage: React.FC = () => {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-gray-200 p-4 flex-shrink-0 bg-white">
-          <div className="flex space-x-3">
+        <div className="border-t border-gray-200 px-1 py-4 flex-shrink-0 bg-white">
+          <div className="flex space-x-2">
             <Input
               type="text"
               value={inputMessage}
               onChange={e => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Type your message..."
-              className="flex-1 min-w-0"
+              className="flex-1 min-w-0 w-full"
               disabled={isLoading}
             />
             <button

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
 import { Select } from '@/components/ui';
+import api from '@/services/api';
 
 interface SystemAnalyticsData {
   system_performance: {
@@ -117,21 +118,10 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
 
   const fetchSystemAnalytics = useCallback(async () => {
     try {
-      const response = await fetch(
-        `/api/v1/analytics/admin/sms-analytics/system?time_range=${selectedTimeRange}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-          },
-        }
+      const response = await api.get(
+        `/analytics/admin/sms-analytics/system?time_range=${selectedTimeRange}`
       );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch system analytics');
-      }
-
-      const data = await response.json();
-      setSystemAnalytics(data);
+      setSystemAnalytics(response.data);
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Error fetching system analytics:', err);
@@ -143,18 +133,8 @@ const SMSAnalyticsPanel: React.FC<SMSAnalyticsPanelProps> = ({
 
   const fetchPerformanceMetrics = useCallback(async () => {
     try {
-      const response = await fetch(`/api/v1/analytics/admin/sms-performance`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch performance metrics');
-      }
-
-      const data = await response.json();
-      setPerformanceMetrics(data);
+      const response = await api.get(`/analytics/admin/sms-performance`);
+      setPerformanceMetrics(response.data);
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Error fetching performance metrics:', err);

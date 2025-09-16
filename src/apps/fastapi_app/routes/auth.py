@@ -8,7 +8,7 @@ logout, and token refresh operations.
 import logging
 import secrets
 from datetime import datetime, timedelta
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, EmailStr, validator
@@ -23,7 +23,7 @@ from personal_assistant.auth.password_service import password_service
 from personal_assistant.config.settings import settings
 from personal_assistant.database.models.auth_tokens import AuthToken
 from personal_assistant.database.models.users import User
-from personal_assistant.database.session import AsyncSessionLocal
+# Removed AsyncSessionLocal import as it's not used in this file
 
 # Create router
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
@@ -38,19 +38,21 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     full_name: str
-    phone_number: Optional[str] = None
+    phone_number: str  # Required field
 
     @validator("phone_number")
     def validate_phone_number(cls, v):
-        if v is not None:
-            # Basic phone number validation - remove spaces and dashes
-            v = v.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
-            if not v.startswith("+") and not v.isdigit():
-                raise ValueError(
-                    "Phone number must start with + or contain only digits"
-                )
-            if len(v) < 10 or len(v) > 15:
-                raise ValueError("Phone number must be between 10 and 15 characters")
+        if not v:
+            raise ValueError("Phone number is required")
+        
+        # Basic phone number validation - remove spaces and dashes
+        v = v.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+        if not v.startswith("+") and not v.isdigit():
+            raise ValueError(
+                "Phone number must start with + or contain only digits"
+            )
+        if len(v) < 10 or len(v) > 15:
+            raise ValueError("Phone number must be between 10 and 15 characters")
         return v
 
 
@@ -171,11 +173,8 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
         logger.debug("Hashing password")
         hashed_password = password_service.hash_password(user_data.password)
 
-        # Generate verification token
-        logger.debug("Generating verification token")
-        verification_token = secrets.token_urlsafe(32)
-
-        # Create new user
+        # TODO: Implement proper email verification for production
+        # For now, auto-verify users for development (no email service)
         logger.debug("Creating new user object")
         new_user = User(
             email=user_data.email,
@@ -183,8 +182,8 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
             phone_number=user_data.phone_number,
             hashed_password=hashed_password,
             is_active=True,
-            is_verified=False,  # Email verification required
-            verification_token=verification_token,
+            is_verified=True,  # Auto-verify for development (no email service)
+            verification_token=None,  # No token needed since auto-verified
             failed_login_attempts=0,
         )
 
@@ -195,9 +194,8 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
         logger.debug("Refreshing user from database")
         await db.refresh(new_user)
 
-        # TODO: Send verification email
-        # For now, return the verification token (in production, send via email)
-        logger.info(f"Successfully registered user with ID: {new_user.id}")
+        # Auto-verified for development (no email service needed)
+        logger.info(f"Successfully registered and auto-verified user with ID: {new_user.id}")
 
         return UserResponse(
             id=int(new_user.id),

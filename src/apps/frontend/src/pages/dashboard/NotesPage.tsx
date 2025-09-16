@@ -8,6 +8,7 @@ import {
   Calendar,
   Edit,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 
 const NotesPage: React.FC = () => {
@@ -76,6 +77,24 @@ const NotesPage: React.FC = () => {
         <p className="text-gray-600">
           Create, organize, and manage your notes and ideas in one place.
         </p>
+      </div>
+
+      {/* Notice Banner */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <div className="flex items-start space-x-3">
+          <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <h3 className="text-sm font-medium text-yellow-800">
+              Notes Tool Available Through Integrations
+            </h3>
+            <p className="text-sm text-yellow-700 mt-1">
+              The notes tool is available through Notion integration, but not
+              implemented as a standalone notes system yet. You can access notes
+              functionality through the AI assistant when connected to Notion
+              services.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Search and Filters */}

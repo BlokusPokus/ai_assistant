@@ -62,7 +62,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
     clearError();
     setVerificationError(null);
 
-    // If phone number is provided, go to verification step
+    // Phone number is now required, so always go to verification step
     if (data.phoneNumber && data.phoneNumber.trim()) {
       setPhoneToVerify(data.phoneNumber);
       setVerificationStep('verify');
@@ -70,16 +70,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
       return;
     }
 
-    // If no phone number, proceed with registration
-    const success = await registerUser({
-      email: data.email,
-      password: data.password,
-      full_name: data.fullName,
-      phone_number: undefined,
-    });
-    if (success && onSuccess) {
-      onSuccess();
-    }
+    // This should not happen since phone number is required
+    setVerificationError('Phone number is required');
   };
 
   const sendVerificationCode = async (phoneNumber: string) => {
@@ -220,7 +212,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                 type="text"
                 placeholder="Enter 6-digit code"
                 value={verificationCode}
-                onChange={e => setVerificationCode(e.target.value)}
+                onChange={value => setVerificationCode(value)}
                 maxLength={6}
                 className="text-center text-lg tracking-widest"
               />
@@ -397,11 +389,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
           {/* Phone Number Field */}
           <div>
             <Input
-              label="Phone Number (Optional)"
+              label="Phone Number"
               type="tel"
               placeholder="Enter your phone number"
               error={errors.phoneNumber?.message}
+              required
               {...register('phoneNumber', {
+                required: 'Phone number is required',
                 pattern: {
                   value: /^[+]?[1-9][\d]{0,15}$/,
                   message: 'Please enter a valid phone number',
@@ -410,7 +404,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
               onChange={e => handleInputChange('phoneNumber', e.target.value)}
             />
             <p className="text-xs text-gray-500 mt-1">
-              If provided, we'll send a verification code to confirm your number
+              We'll send a verification code to confirm your number
             </p>
           </div>
 

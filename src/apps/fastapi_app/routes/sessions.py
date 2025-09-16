@@ -162,7 +162,7 @@ async def get_session_stats(
 
 
 @router.delete("/{session_id}")
-@require_permission("user", "update")
+@require_permission("user", "write")
 async def invalidate_session(
     session_id: str,
     request: Request,

@@ -137,7 +137,7 @@ sms_mfa_service = SMSMFAService()  # TODO: Inject actual Twilio client
 
 
 @router.post("/setup/totp", response_model=TOTPSetupResponse)
-@require_permission("user", "update")
+@require_permission("user", "write")
 async def setup_totp(
     request: Request,
     current_user: User = Depends(get_current_user),
@@ -496,7 +496,7 @@ async def get_mfa_status(
 
 
 @router.post("/disable")
-@require_permission("user", "update")
+@require_permission("user", "write")
 async def disable_mfa(
     request: DisableMFARequest,
     http_request: Request,
