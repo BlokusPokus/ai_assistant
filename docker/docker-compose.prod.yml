@@ -121,6 +121,8 @@ services:
       dockerfile: docker/Dockerfile
       target: production
     container_name: personal_assistant_api_prod
+    env_file:
+      - docker/.env.prod
     environment:
       - ENVIRONMENT=production
       - DEBUG=false
