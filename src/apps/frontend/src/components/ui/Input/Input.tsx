@@ -40,6 +40,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             )}
             ref={ref}
             {...props}
+            value={props.value || ''}
           />
           {rightIcon && (
             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 z-10">

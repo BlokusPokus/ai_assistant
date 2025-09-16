@@ -15,7 +15,7 @@ const Input: React.FC<InputProps> = ({
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (onChange) {
-      onChange(e.target.value);
+      onChange(e);
     }
   };
 
@@ -35,7 +35,7 @@ const Input: React.FC<InputProps> = ({
       )}
       <input
         type={type}
-        value={value}
+        value={value || ''}
         onChange={handleChange}
         placeholder={placeholder}
         disabled={disabled}

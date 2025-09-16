@@ -212,7 +212,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                 type="text"
                 placeholder="Enter 6-digit code"
                 value={verificationCode}
-                onChange={value => setVerificationCode(value)}
+                onChange={e => setVerificationCode(e.target.value)}
                 maxLength={6}
                 className="text-center text-lg tracking-widest"
               />
