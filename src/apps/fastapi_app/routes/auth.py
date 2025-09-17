@@ -194,6 +194,28 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
         logger.debug("Refreshing user from database")
         await db.refresh(new_user)
 
+        # Assign default 'user' role to new user
+        logger.debug("Assigning default user role")
+        from personal_assistant.database.models.rbac_models import Role, UserRole
+        
+        # Get the 'user' role
+        role_result = await db.execute(select(Role).where(Role.name == "user"))
+        user_role = role_result.scalar_one_or_none()
+        
+        if user_role:
+            # Create user role assignment
+            user_role_assignment = UserRole(
+                user_id=new_user.id,
+                role_id=user_role.id,
+                is_primary=True,
+                granted_at=datetime.utcnow()
+            )
+            db.add(user_role_assignment)
+            await db.commit()
+            logger.info(f"Assigned 'user' role to new user with ID: {new_user.id}")
+        else:
+            logger.warning("Default 'user' role not found in database")
+
         # Auto-verified for development (no email service needed)
         logger.info(f"Successfully registered and auto-verified user with ID: {new_user.id}")
 

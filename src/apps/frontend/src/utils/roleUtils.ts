@@ -108,7 +108,8 @@ export function canAccessOAuthSettings(user: User): boolean {
   return (
     hasPermission(user, 'system', 'write') ||
     hasPermission(user, 'user', 'write') ||
-    isPremium(user)
+    isPremium(user) ||
+    hasRole(user, 'user') // Basic users can access OAuth settings
   );
 }
 
@@ -119,7 +120,8 @@ export function canAccessIntegrations(user: User): boolean {
   return (
     hasPermission(user, 'system', 'write') ||
     hasPermission(user, 'user', 'write') ||
-    isPremium(user)
+    isPremium(user) ||
+    hasRole(user, 'user') // Basic users can access integrations
   );
 }
 
@@ -171,16 +173,16 @@ export function getFilteredNavigationItems(user: User) {
       requiredRole: null,
     },
 
-    // Premium/Admin features
+    // Available to all users
     {
       label: 'Integrations',
       href: '/dashboard/integrations',
-      requiredRole: 'premium',
+      requiredRole: null,
     },
     {
       label: 'OAuth Settings',
       href: '/dashboard/oauth-settings',
-      requiredRole: 'premium',
+      requiredRole: null,
     },
     {
       label: 'SMS Analytics',
