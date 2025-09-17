@@ -2,7 +2,7 @@
  * Role and Permission utility functions for RBAC
  */
 
-import type { User, Role, Permission } from '@/types';
+import type { User } from '@/types';
 
 /**
  * Check if user has a specific role

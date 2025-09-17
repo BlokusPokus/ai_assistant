@@ -22,7 +22,6 @@ const DashboardHome: React.FC = () => {
     stats,
     recentActivity,
     systemStatus,
-    oauthIntegrations,
     isLoading: dashboardLoading,
     loadDashboardData,
   } = useDashboardDataStore();

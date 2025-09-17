@@ -113,7 +113,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
     const fullItem = allNavigationItems.find(
       fullItem => fullItem.href === item.href
     );
-    return fullItem || item;
+    return fullItem || { ...item, icon: Settings }; // Default icon if not found
   });
 
   const sidebarClasses = `

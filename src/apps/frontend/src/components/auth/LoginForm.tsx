@@ -26,7 +26,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
   } = useForm<LoginFormData>({
     defaultValues: {
       email: '',

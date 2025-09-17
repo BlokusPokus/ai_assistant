@@ -73,15 +73,13 @@ class DashboardService {
       );
       const conversations = conversationsResponse.data.conversations || [];
 
-      const activities: RecentActivity[] = conversations.map(
-        (conv: any, index: number) => ({
-          id: `conv-${conv.id}`,
-          type: 'chat',
-          message: `Started conversation: "${conv.user_input?.substring(0, 50)}..."`,
-          timestamp: this.formatTimestamp(conv.created_at),
-          status: 'info' as const,
-        })
-      );
+      const activities: RecentActivity[] = conversations.map((conv: any) => ({
+        id: `conv-${conv.id}`,
+        type: 'chat',
+        message: `Started conversation: "${conv.user_input?.substring(0, 50)}..."`,
+        timestamp: this.formatTimestamp(conv.created_at),
+        status: 'info' as const,
+      }));
 
       // Add some system activities
       const systemActivities: RecentActivity[] = [
