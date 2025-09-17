@@ -44,15 +44,28 @@ export const useAuthStore = create<AuthState>()(
           // Store authentication data
           authService.storeAuthData(authData);
 
-          // Update state
-          set({
-            user: authData.user,
-            isAuthenticated: true,
-            isLoading: false,
-            mfaRequired: authData.mfa_required,
-            mfaSetupRequired: authData.mfa_setup_required,
-            error: null,
-          });
+          // Fetch user with roles and permissions
+          try {
+            const userWithRoles = await authService.getCurrentUserWithRoles();
+            set({
+              user: userWithRoles,
+              isAuthenticated: true,
+              isLoading: false,
+              mfaRequired: authData.mfa_required,
+              mfaSetupRequired: authData.mfa_setup_required,
+              error: null,
+            });
+          } catch {
+            // If roles fetch fails, use basic user data
+            set({
+              user: authData.user,
+              isAuthenticated: true,
+              isLoading: false,
+              mfaRequired: authData.mfa_required,
+              mfaSetupRequired: authData.mfa_setup_required,
+              error: null,
+            });
+          }
 
           return true;
         } catch (err: unknown) {
@@ -131,25 +144,36 @@ export const useAuthStore = create<AuthState>()(
           return;
         }
 
-        // Try to get current user from API
+        // Try to get current user with roles from API
         try {
-          const user = await authService.getCurrentUser();
+          const userWithRoles = await authService.getCurrentUserWithRoles();
           set({
-            user,
+            user: userWithRoles,
             isAuthenticated: true,
             mfaRequired: false,
             mfaSetupRequired: false,
           });
         } catch {
-          // If API call fails, clear auth state
-          set({
-            user: null,
-            isAuthenticated: false,
-            mfaRequired: false,
-            mfaSetupRequired: false,
-          });
-          // Clear invalid tokens
-          authService.logout();
+          // If roles fetch fails, try basic user data
+          try {
+            const user = await authService.getCurrentUser();
+            set({
+              user,
+              isAuthenticated: true,
+              mfaRequired: false,
+              mfaSetupRequired: false,
+            });
+          } catch {
+            // If API call fails, clear auth state
+            set({
+              user: null,
+              isAuthenticated: false,
+              mfaRequired: false,
+              mfaSetupRequired: false,
+            });
+            // Clear invalid tokens
+            authService.logout();
+          }
         }
       },
 

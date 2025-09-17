@@ -21,6 +21,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import UserProfileCard from '@/components/dashboard/UserProfileCard';
 import NavigationMenu from '../navigation/NavigationMenu';
+import { getFilteredNavigationItems } from '@/utils/roleUtils';
 
 interface SidebarProps {
   isCollapsed?: boolean;
@@ -29,7 +30,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
   const navigate = useNavigate();
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
   const { isMobileMenuOpen, setMobileMenuOpen } = useDashboardStore();
 
   const handleLogout = async () => {
@@ -37,7 +38,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
     navigate('/');
   };
 
-  const navigationItems = [
+  // Get role-based navigation items
+  const allNavigationItems = [
     {
       label: 'Dashboard',
       href: '/dashboard',
@@ -60,29 +62,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
       icon: FileText,
     },
     {
-      label: 'Integrations',
-      href: '/dashboard/integrations',
-      icon: Link,
-    },
-    {
       label: 'Phone Number',
       href: '/dashboard/phone-management',
       icon: Phone,
-    },
-    {
-      label: 'OAuth Settings',
-      href: '/dashboard/oauth-settings',
-      icon: Key,
-    },
-    {
-      label: 'SMS Analytics',
-      href: '/dashboard/sms-analytics',
-      icon: BarChart3,
-    },
-    {
-      label: 'Admin Analytics',
-      href: '/dashboard/admin-analytics',
-      icon: Shield,
     },
     {
       label: 'Profile',
@@ -99,7 +81,40 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
       href: '/dashboard/security',
       icon: Shield,
     },
+    {
+      label: 'Integrations',
+      href: '/dashboard/integrations',
+      icon: Link,
+    },
+    {
+      label: 'OAuth Settings',
+      href: '/dashboard/oauth-settings',
+      icon: Key,
+    },
+    {
+      label: 'SMS Analytics',
+      href: '/dashboard/sms-analytics',
+      icon: BarChart3,
+    },
+    {
+      label: 'Admin Analytics',
+      href: '/dashboard/admin-analytics',
+      icon: Shield,
+    },
   ];
+
+  // Filter navigation items based on user roles
+  const filteredItems = user
+    ? getFilteredNavigationItems(user)
+    : allNavigationItems;
+
+  // Map filtered items to navigation items with icons
+  const navigationItems = filteredItems.map(item => {
+    const fullItem = allNavigationItems.find(
+      fullItem => fullItem.href === item.href
+    );
+    return fullItem || item;
+  });
 
   const sidebarClasses = `
     fixed left-0 top-0 z-40 h-screen transition-transform duration-300 ease-in-out

@@ -32,9 +32,13 @@ from apps.fastapi_app.models.users import (
     UserPublicResponse,
     UserResponse,
     UserUpdateRequest,
+    UserWithRolesResponse,
+    RoleResponse,
+    PermissionResponse,
 )
 from apps.fastapi_app.services.phone_management_service import PhoneManagementService
 from apps.fastapi_app.services.user_service import UserService
+from apps.fastapi_app.services.user_role_service import UserRoleService
 from personal_assistant.auth.decorators import require_permission
 from personal_assistant.database.models.users import User
 from personal_assistant.database.session import AsyncSessionLocal
@@ -162,12 +166,117 @@ async def get_current_user_profile(current_user: User = Depends(get_current_user
         )
 
 
+@router.get("/me/roles", response_model=UserWithRolesResponse)
+async def get_current_user_with_roles(
+    current_user: User = Depends(get_current_user_db),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get current user profile with role and permission information.
+
+    Returns the profile information for the currently authenticated user
+    including their roles and permissions.
+    """
+    try:
+        user_role_service = UserRoleService(db)
+        
+        # Get user roles and permissions
+        roles = await user_role_service.get_user_roles(int(current_user.id))
+        permissions = await user_role_service.get_user_permissions(int(current_user.id))
+        primary_role = await user_role_service.get_primary_role(int(current_user.id))
+        
+        # Convert roles to response models
+        role_responses = []
+        for role in roles:
+            role_permissions = [
+                PermissionResponse(
+                    id=perm.id,
+                    name=perm.name,
+                    resource_type=perm.resource_type,
+                    action=perm.action,
+                    description=perm.description,
+                    created_at=perm.created_at or datetime.utcnow()
+                )
+                for perm in role.permissions
+            ]
+            
+            role_responses.append(RoleResponse(
+                id=role.id,
+                name=role.name,
+                description=role.description,
+                parent_role_id=role.parent_role_id,
+                permissions=role_permissions,
+                created_at=role.created_at,
+                updated_at=role.updated_at
+            ))
+        
+        # Convert permissions to response models
+        permission_responses = [
+            PermissionResponse(
+                id=perm['id'],
+                name=perm['name'],
+                resource_type=perm['resource_type'],
+                action=perm['action'],
+                description=perm['description'],
+                created_at=perm['created_at'] or datetime.utcnow()
+            )
+            for perm in permissions
+        ]
+        
+        # Convert primary role to response model
+        primary_role_response = None
+        if primary_role:
+            primary_permissions = [
+                PermissionResponse(
+                    id=perm.id,
+                    name=perm.name,
+                    resource_type=perm.resource_type,
+                    action=perm.action,
+                    description=perm.description,
+                    created_at=perm.created_at or datetime.utcnow()
+                )
+                for perm in primary_role.permissions
+            ]
+            
+            primary_role_response = RoleResponse(
+                id=primary_role.id,
+                name=primary_role.name,
+                description=primary_role.description,
+                parent_role_id=primary_role.parent_role_id,
+                permissions=primary_permissions,
+                created_at=primary_role.created_at,
+                updated_at=primary_role.updated_at
+            )
+        
+        return UserWithRolesResponse(
+            id=int(current_user.id),
+            email=str(current_user.email),
+            phone_number=getattr(current_user, "phone_number", None),
+            full_name=getattr(current_user, "full_name", None),
+            is_active=getattr(current_user, "is_active", True),
+            is_verified=getattr(current_user, "is_verified", False),
+            last_login=getattr(current_user, "last_login", None),
+            created_at=current_user.created_at,
+            updated_at=getattr(current_user, "updated_at", current_user.created_at),
+            roles=role_responses,
+            permissions=permission_responses,
+            primary_role=primary_role_response,
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting current user with roles: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve user profile with roles",
+        )
+
+
 @router.put("/me", response_model=UserPublicResponse)
 async def update_current_user_profile(
     user_update: UserUpdateRequest,
     current_user: User = Depends(get_current_user_db),
     db: AsyncSession = Depends(get_db),
-    _: bool = Depends(require_user_permission("user", "update")),
+    _: bool = Depends(require_user_permission("user", "write")),
 ):
     """
     Update current user profile.
@@ -280,12 +389,12 @@ async def get_user_preferences(
 
 
 @router.put("/me/preferences", response_model=UserPreferencesResponse)
-# @require_permission("user", "update")  # Disabled - doesn't work with FastAPI DI
+# @require_permission("user", "write")  # Disabled - doesn't work with FastAPI DI
 async def update_user_preferences(
     preferences: UserPreferencesUpdateRequest,
     current_user: User = Depends(get_current_user_db),
     db: AsyncSession = Depends(get_db),
-    _: bool = Depends(require_user_permission("user", "update")),
+    _: bool = Depends(require_user_permission("user", "write")),
 ):
     """
     Update current user preferences.
@@ -422,7 +531,7 @@ async def get_user_settings(
 
 
 @router.put("/me/settings", response_model=UserPreferencesResponse)
-@require_permission("user", "update")
+@require_permission("user", "write")
 async def update_user_settings(
     preferences: UserPreferencesUpdateRequest,
     current_user: User = Depends(get_current_user_db),
@@ -466,7 +575,7 @@ async def update_user_settings(
 
 # Admin-only endpoints
 @router.get("/", response_model=UserListResponse)
-@require_permission("users", "read")
+@require_permission("user", "read")
 async def list_users(
     skip: int = Query(0, ge=0, description="Number of users to skip"),
     limit: int = Query(
@@ -498,7 +607,7 @@ async def list_users(
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-@require_permission("users", "read")
+@require_permission("user", "read")
 async def get_user(
     user_id: int,
     current_user: User = Depends(get_current_user),
@@ -530,7 +639,7 @@ async def get_user(
 
 
 @router.put("/{user_id}", response_model=UserResponse)
-@require_permission("users", "update")
+@require_permission("user", "write")
 async def update_user(
     user_id: int,
     user_update: UserUpdateRequest,
@@ -584,7 +693,7 @@ async def update_user(
 
 
 @router.delete("/{user_id}")
-@require_permission("users", "delete")
+@require_permission("user", "delete")
 async def deactivate_user(
     user_id: int,
     delete_request: UserDeleteRequest,
@@ -639,7 +748,7 @@ async def deactivate_user(
 
 
 @router.post("/", response_model=UserResponse)
-@require_permission("users", "create")
+@require_permission("user", "write")
 async def create_user(
     user_create: UserCreateRequest,
     current_user: User = Depends(get_current_user),
@@ -692,7 +801,7 @@ async def create_user(
 
 
 @router.get("/{user_id}/stats")
-@require_permission("users", "read")
+@require_permission("user", "read")
 async def get_user_stats(
     user_id: int,
     current_user: User = Depends(get_current_user),

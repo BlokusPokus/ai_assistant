@@ -194,3 +194,65 @@ class UserDeleteRequest(BaseModel):
 
     deactivate_reason: Optional[str] = None
     transfer_data_to: Optional[int] = None  # User ID to transfer data to
+
+
+# Role and Permission Models for RBAC
+class PermissionResponse(BaseModel):
+    """Response model for permission information."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
+    name: str
+    resource_type: str
+    action: str
+    description: Optional[str]
+    created_at: datetime
+
+
+class RoleResponse(BaseModel):
+    """Response model for role information."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
+    name: str
+    description: Optional[str]
+    parent_role_id: Optional[int]
+    permissions: List[PermissionResponse]
+    created_at: datetime
+    updated_at: datetime
+
+
+class UserRoleResponse(BaseModel):
+    """Response model for user role assignment."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
+    user_id: int
+    role_id: int
+    is_primary: bool
+    granted_by: Optional[int]
+    granted_at: datetime
+    expires_at: Optional[datetime]
+
+
+class UserWithRolesResponse(BaseModel):
+    """Enhanced user response model with role information."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
+    email: str
+    phone_number: Optional[str]
+    full_name: Optional[str]
+    is_active: bool
+    is_verified: bool
+    last_login: Optional[datetime]
+    created_at: datetime
+    updated_at: datetime
+    # Role information
+    roles: List[RoleResponse]
+    permissions: List[PermissionResponse]
+    primary_role: Optional[RoleResponse]

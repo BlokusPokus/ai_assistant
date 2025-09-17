@@ -11,7 +11,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   full_name: string;
-  phone_number?: string;
+  phone_number: string; // Required field
 }
 
 export interface MFASetupRequest {
@@ -89,6 +89,12 @@ class AuthService {
   async getCurrentUser(): Promise<User> {
     const response = await api.get<ApiResponse<User>>('/users/me');
     return response.data.data;
+  }
+
+  // Get current user with roles and permissions
+  async getCurrentUserWithRoles(): Promise<User> {
+    const response = await api.get<User>('/users/me/roles');
+    return response.data;
   }
 
   // Update user profile

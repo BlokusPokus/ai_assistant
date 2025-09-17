@@ -27,9 +27,14 @@ if os.path.exists(config_file):
     load_dotenv(config_file)
     print(f"✅ Loaded configuration from {config_file}")
 else:
-    # Fallback to root .env file
-    load_dotenv()
-    print("⚠️  Using fallback .env file")
+    # Load environment-specific config
+    env = os.getenv("ENVIRONMENT", "development")
+    config_file = f"config/{env}.env"
+    if os.path.exists(config_file):
+        load_dotenv(config_file)
+        print(f"✅ Loaded configuration from {config_file}")
+    else:
+        raise FileNotFoundError(f"Environment config file not found: {config_file}")
 
 # Get Redis URL from environment or use default
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")

@@ -94,7 +94,7 @@ class ChatService:
         query = (
             select(ConversationMessage)
             .where(ConversationMessage.conversation_id == conversation_id)
-            .order_by(ConversationMessage.timestamp.asc())
+            .order_by(ConversationMessage.timestamp.desc())
             .limit(limit)
         )
         result = await db.execute(query)

@@ -43,9 +43,6 @@ docker/.env.prod
 logs/
 *.tmp
 *.temp
-*.swp
-*.swo
-*~
 
 # System files
 .DS_Store
@@ -168,4 +165,47 @@ docker/nginx/ssl/*/*.pfx
 
 # Keep directory structure but ignore actual certificates
 !docker/nginx/ssl/*/
-!docker/nginx/ssl/*/.gitkeep 
+!docker/nginx/ssl/*/.gitkeep
+
+# ========================================
+# 🔐 CRITICAL SECURITY FILES (Added Task 084)
+# ========================================
+
+# Sensitive session and authentication files
+cookies.txt
+*.cookies
+session_*.txt
+
+# Database schema files (contain sensitive production data)
+*schema*.txt
+*schema*.sql
+reset_*_schema.sql
+*schema_ddl.sql
+*schema_report.txt
+database/schemas/
+
+# Backup files that may contain sensitive data
+*.backup
+*.bak
+*backup*.sql
+
+# ========================================
+# 📦 NODE.JS FILES (Added Task 084)
+# ========================================
+
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+.npm
+.yarn-integrity
+
+# Node.js build outputs
+dist/
+build/
+.next/
+.nuxt/
+.cache/ 

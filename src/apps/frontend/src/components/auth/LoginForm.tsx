@@ -1,6 +1,13 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
+import {
+  Button,
+  Input,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import type { LoginFormData } from '@/types/auth';
 
@@ -35,11 +42,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
     }
   };
 
-  const handleInputChange = (field: keyof LoginFormData, value: string) => {
-    setValue(field, value);
-    if (error) clearError();
-  };
-
   return (
     <Card className="max-w-md mx-auto">
       <CardHeader>
@@ -61,7 +63,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
                 message: 'Please enter a valid email address',
               },
             })}
-            onChange={(e) => handleInputChange('email', e.target.value)}
           />
 
           {/* Password Field */}
@@ -78,7 +79,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
                 message: 'Password must be at least 8 characters',
               },
             })}
-            onChange={(e) => handleInputChange('password', e.target.value)}
           />
 
           {/* Error Display */}

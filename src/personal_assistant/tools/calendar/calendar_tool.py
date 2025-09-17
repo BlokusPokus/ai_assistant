@@ -1,5 +1,6 @@
 from typing import Any, Dict, List
 
+import os
 import httpx
 from dotenv import load_dotenv
 
@@ -32,7 +33,10 @@ from .calendar_internal import (
 
 class CalendarTool:
     def __init__(self):
-        load_dotenv()
+        # Load environment-specific config
+        env = os.getenv("ENVIRONMENT", "development")
+        config_file = f"config/{env}.env"
+        load_dotenv(config_file)
         self.ms_graph_url = "https://graph.microsoft.com/v1.0"
         self._access_token = None
         self.scopes = ["Calendars.Read", "Calendars.ReadWrite", "User.Read"]

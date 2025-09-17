@@ -42,8 +42,11 @@ def get_access_token(application_id, client_secret, scopes):
     print(f"\nOpening URL: {auth_url[:60]}...")
     webbrowser.open(auth_url)
 
-    authorization_code = input("Enter the authorization code: ")
-
+    try:
+        authorization_code = input("Enter the authorization code: ")
+    except EOFError:
+        raise Exception("Interactive authentication not available in this environment. Please use the OAuth integration system.")
+    
     if not authorization_code:
         raise ValueError("Authorization code is empty")
 
@@ -66,7 +69,10 @@ def get_access_token(application_id, client_secret, scopes):
 
 if __name__ == "__main__":
     # When run directly, use environment variables
-    load_dotenv()
+    # Load environment-specific config
+    env = os.getenv("ENVIRONMENT", "development")
+    config_file = f"config/{env}.env"
+    load_dotenv(config_file)
     client_id = os.getenv("MICROSOFT_APPLICATION_ID")
     client_secret = os.getenv("MICROSOFT_CLIENT_SECRET")
     scopes = ["Mail.Read", "Mail.ReadWrite", "Mail.Send", "User.Read"]

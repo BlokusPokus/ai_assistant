@@ -63,6 +63,8 @@ app.add_middleware(
         "/twilio/sms",  # Keep Twilio SMS webhook accessible
         "/sms-router/webhook/sms",  # SMS Router webhook for Twilio
         "/sms-router/webhook/health",  # SMS Router health check
+        "/api/v1/sms-router/webhook/sms",  # SMS Router webhook for Twilio (with prefix)
+        "/api/v1/sms-router/webhook/health",  # SMS Router health check (with prefix)
     ],
 )
 

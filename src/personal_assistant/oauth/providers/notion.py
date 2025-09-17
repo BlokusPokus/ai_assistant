@@ -114,6 +114,7 @@ class NotionOAuthProvider(BaseOAuthProvider):
             # Return the complete token data
             return {
                 "access_token": token_data.get("access_token"),
+                "refresh_token": token_data.get("refresh_token"),  # Add refresh token extraction
                 "token_type": token_data.get("token_type", "Bearer"),
                 "workspace_id": token_data.get("workspace_id"),
                 "workspace_name": token_data.get("workspace_name"),
@@ -168,6 +169,7 @@ class NotionOAuthProvider(BaseOAuthProvider):
 
             return {
                 "access_token": token_data.get("access_token"),
+                "refresh_token": token_data.get("refresh_token"),  # Include refresh token in refresh response
                 "token_type": token_data.get("token_type", "Bearer"),
                 "workspace_id": token_data.get("workspace_id"),
                 "workspace_name": token_data.get("workspace_name"),
@@ -301,7 +303,7 @@ class NotionOAuthProvider(BaseOAuthProvider):
 
     def get_default_scopes(self) -> List[str]:
         """Get default Notion OAuth scopes."""
-        return ["read"]
+        return ["read", "write"]
 
     def get_required_scopes(self) -> List[str]:
         """Get required Notion OAuth scopes."""

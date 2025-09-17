@@ -3,9 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { useProfileStore } from '@/stores/profileStore';
-import { useOAuthStore } from '@/stores/oauthStore';
-import SMSAnalyticsWidget from '@/components/dashboard/SMSAnalyticsWidget';
-import PhoneNumberRegistrationWidget from '@/components/dashboard/PhoneNumberRegistrationWidget';
+import { useDashboardDataStore } from '@/stores/dashboardDataStore';
 import {
   MessageSquare,
   Calendar,
@@ -14,21 +12,25 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
-  Link,
-  Key,
-  Phone,
 } from 'lucide-react';
 
 const DashboardHome: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { fetchProfile } = useProfileStore();
-  const { integrations, loadMockData } = useOAuthStore();
+  const {
+    stats,
+    recentActivity,
+    systemStatus,
+    oauthIntegrations,
+    isLoading: dashboardLoading,
+    loadDashboardData,
+  } = useDashboardDataStore();
 
   useEffect(() => {
     fetchProfile();
-    loadMockData();
-  }, [fetchProfile, loadMockData]);
+    loadDashboardData();
+  }, [fetchProfile, loadDashboardData]);
 
   const quickActions = [
     {
@@ -53,27 +55,6 @@ const DashboardHome: React.FC = () => {
       color: 'bg-purple-100 text-purple-600',
     },
     {
-      icon: Link,
-      title: 'Integrations',
-      description: 'Manage your OAuth connections',
-      action: () => navigate('/dashboard/integrations'),
-      color: 'bg-orange-100 text-orange-600',
-    },
-    {
-      icon: Phone,
-      title: 'Manage Phone Number',
-      description: 'Update, verify, and manage your phone number',
-      action: () => navigate('/dashboard/phone-management'),
-      color: 'bg-teal-100 text-teal-600',
-    },
-    {
-      icon: Key,
-      title: 'OAuth Settings',
-      description: 'Advanced OAuth management and analytics',
-      action: () => navigate('/dashboard/oauth-settings'),
-      color: 'bg-indigo-100 text-indigo-600',
-    },
-    {
       icon: Settings,
       title: 'Settings',
       description: 'Manage your account preferences',
@@ -82,91 +63,98 @@ const DashboardHome: React.FC = () => {
     },
   ];
 
-  const recentActivity = [
-    {
-      id: 1,
-      type: 'login',
-      message: 'Successfully logged in to your account',
-      timestamp: 'Just now',
-      status: 'success',
-    },
-    {
-      id: 2,
-      type: 'mfa',
-      message: 'Two-factor authentication enabled',
-      timestamp: '2 minutes ago',
-      status: 'success',
-    },
-    {
-      id: 3,
-      type: 'profile',
-      message: 'Profile information updated',
-      timestamp: '1 hour ago',
-      status: 'info',
-    },
-    {
-      id: 4,
-      type: 'chat',
-      message: 'Started a new conversation with AI assistant',
-      timestamp: '2 hours ago',
-      status: 'info',
-    },
-  ];
+  // Use real data from store, fallback to empty array if loading
+  const displayRecentActivity = dashboardLoading ? [] : recentActivity;
 
-  const systemStatus = [
-    {
-      name: 'AI Assistant',
-      status: 'Online & Ready',
-      icon: 'orca',
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
-    },
-    {
-      name: 'SMS Service',
-      status: 'Connected',
-      icon: MessageSquare,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
-    },
-    {
-      name: 'OAuth Integrations',
-      status: `${integrations.filter(i => i.status === 'connected').length} Connected`,
-      icon: Link,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
-    },
-  ];
+  // Use real data from store, fallback to default if loading
+  const displaySystemStatus = dashboardLoading
+    ? [
+        {
+          name: 'AI Assistant',
+          status: 'Online & Ready',
+          icon: 'orca',
+          color: 'text-green-600',
+          bgColor: 'bg-green-100',
+        },
+        {
+          name: 'SMS Service',
+          status: 'Connected',
+          icon: MessageSquare,
+          color: 'text-blue-600',
+          bgColor: 'bg-blue-100',
+        },
+        {
+          name: 'OAuth Integrations',
+          status: 'Loading...',
+          icon: Settings,
+          color: 'text-orange-600',
+          bgColor: 'bg-orange-100',
+        },
+      ]
+    : systemStatus;
 
-  const stats = [
-    {
-      name: 'Total Conversations',
-      value: '24',
-      change: '+12%',
-      changeType: 'increase',
-      icon: MessageSquare,
-    },
-    {
-      name: 'Tasks Completed',
-      value: '18',
-      change: '+8%',
-      changeType: 'increase',
-      icon: CheckCircle,
-    },
-    {
-      name: 'Notes Created',
-      value: '32',
-      change: '+15%',
-      changeType: 'increase',
-      icon: FileText,
-    },
-    {
-      name: 'Time Saved',
-      value: '6.5h',
-      change: '+2.5h',
-      changeType: 'increase',
-      icon: Clock,
-    },
-  ];
+  // Use real data from store, fallback to default if loading
+  const displayStats = dashboardLoading
+    ? [
+        {
+          name: 'Total Conversations',
+          value: '...',
+          change: '...',
+          changeType: 'increase' as const,
+          icon: MessageSquare,
+        },
+        {
+          name: 'Tasks Completed',
+          value: '...',
+          change: '...',
+          changeType: 'increase' as const,
+          icon: CheckCircle,
+        },
+        {
+          name: 'Notes Created',
+          value: '...',
+          change: '...',
+          changeType: 'increase' as const,
+          icon: FileText,
+        },
+        {
+          name: 'Time Saved',
+          value: '...',
+          change: '...',
+          changeType: 'increase' as const,
+          icon: Clock,
+        },
+      ]
+    : [
+        {
+          name: 'Total Conversations',
+          value: stats?.totalConversations.toString() || '0',
+          change: '+12%',
+          changeType: 'increase' as const,
+          icon: MessageSquare,
+        },
+        {
+          name: 'Tasks Completed',
+          value: stats?.tasksCompleted.toString() || '0',
+          change: '+8%',
+          changeType: 'increase' as const,
+          icon: CheckCircle,
+        },
+        {
+          name: 'Notes Created',
+          value: stats?.notesCreated.toString() || '0',
+          change: '+15%',
+          changeType: 'increase' as const,
+          icon: FileText,
+        },
+        {
+          name: 'Time Saved',
+          value: stats?.timeSaved || '0h',
+          change: '+2.5h',
+          changeType: 'increase' as const,
+          icon: Clock,
+        },
+      ];
 
   return (
     <div className="space-y-6">
@@ -180,6 +168,10 @@ const DashboardHome: React.FC = () => {
             Your AI assistant is ready to help you stay organized and
             productive.
           </p>
+          <p className="text-white/90 text-lg mb-4">
+            Please note that this is a beta version and some features may not
+            work as expected and might not be implemented yet.
+          </p>
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-green-400 rounded-full"></div>
             <span className="text-sm text-white/90">
@@ -191,7 +183,7 @@ const DashboardHome: React.FC = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
+        {displayStats.map((stat, index) => (
           <Card key={index} className="bg-white">
             <div className="flex items-center justify-between">
               <div>
@@ -214,27 +206,12 @@ const DashboardHome: React.FC = () => {
         ))}
       </div>
 
-      {/* SMS Analytics & Phone Management Section */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900">
-          Communication & Management
-        </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <SMSAnalyticsWidget
-            timeRange="30d"
-            showCosts={true}
-            showPerformance={true}
-          />
-          <PhoneNumberRegistrationWidget />
-        </div>
-      </div>
-
       {/* Quick Actions Grid */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900 mb-4">
           Quick Actions
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action, index) => (
             <div
               key={index}
@@ -264,7 +241,7 @@ const DashboardHome: React.FC = () => {
         {/* Recent Activity */}
         <Card className="bg-white">
           <div className="space-y-4">
-            {recentActivity.map((activity, index) => (
+            {displayRecentActivity.map((activity, index) => (
               <div key={index} className="flex items-center space-x-3">
                 <div
                   className={`w-2 h-2 rounded-full ${
@@ -287,7 +264,7 @@ const DashboardHome: React.FC = () => {
         {/* System Status */}
         <Card className="bg-white">
           <div className="space-y-4">
-            {systemStatus.map((status, index) => (
+            {displaySystemStatus.map((status, index) => (
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div

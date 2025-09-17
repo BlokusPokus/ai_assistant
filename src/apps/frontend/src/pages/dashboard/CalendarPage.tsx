@@ -7,6 +7,7 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  AlertTriangle,
 } from 'lucide-react';
 
 const CalendarPage: React.FC = () => {
@@ -47,6 +48,24 @@ const CalendarPage: React.FC = () => {
         <p className="text-gray-600">
           View and manage your schedule, appointments, and upcoming events.
         </p>
+      </div>
+
+      {/* Notice Banner */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <div className="flex items-start space-x-3">
+          <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <h3 className="text-sm font-medium text-yellow-800">
+              Calendar Tool Available Through Integrations
+            </h3>
+            <p className="text-sm text-yellow-700 mt-1">
+              The calendar tool is available through Microsoft and Google
+              integrations, but not implemented as a standalone calendar yet.
+              You can access calendar functionality through the AI assistant
+              when connected to these services.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Calendar Header */}
