@@ -5,7 +5,6 @@ This manager handles user-specific Notion workspace operations, including
 creating and managing "Personal Assistant" pages for each user.
 """
 
-import logging
 from typing import Optional
 from notion_client import Client
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -80,12 +79,22 @@ class NotionWorkspaceManager:
             NotionPageCreationError: If page creation fails
         """
         try:
-            # Get user's workspace root (first accessible page)
+            # Get user's workspace root (smart detection)
             workspace_root_id = await self._get_workspace_root(client)
+
+            # Determine parent based on workspace root detection
+            if workspace_root_id is None:
+                # Create at workspace root level (not under any existing page)
+                parent = {"type": "workspace", "workspace": True}
+                self.logger.info("Creating Personal Assistant page at workspace root level")
+            else:
+                # Create under the detected suitable page
+                parent = {"type": "page_id", "page_id": workspace_root_id}
+                self.logger.info(f"Creating Personal Assistant page under existing page: {workspace_root_id}")
 
             # Create Personal Assistant page
             personal_assistant_page = client.pages.create(
-                parent={"type": "page_id", "page_id": workspace_root_id},
+                parent=parent,
                 properties={
                     "title": [{"type": "text", "text": {"content": "Personal Assistant"}}]
                 },
@@ -150,37 +159,134 @@ class NotionWorkspaceManager:
             self.logger.error(f"Error finding Personal Assistant page for user {user_id}: {e}")
             return None
 
-    async def _get_workspace_root(self, client: Client) -> str:
+    async def _get_workspace_root(self, client: Client) -> Optional[str]:
         """
         Get the root page of the user's workspace.
+        
+        This method now uses a smarter approach:
+        1. First, try to find an existing "Personal Assistant" page at workspace root level
+        2. If found, return it (so we reuse the existing page)
+        3. If not found, return None (so we create a new one at workspace root level)
+        
+        The Personal Assistant page should ALWAYS be at workspace root level,
+        not nested under other pages.
 
         Args:
             client: User-specific Notion client
 
         Returns:
-            Page ID of the workspace root
+            Page ID of existing Personal Assistant page, or None if we should create new one
 
         Raises:
             NotionWorkspaceError: If workspace is not accessible
         """
         try:
-            # Search for pages in the workspace
-            response = client.search(
-                query="",
-                filter={"property": "object", "value": "page"},
-                page_size=1
-            )
-
-            if not response.get("results"):
-                raise NotionWorkspaceError("No accessible pages found in workspace")
-
-            # Return the first accessible page as workspace root
-            workspace_root = response["results"][0]
-            return workspace_root["id"]
+            # Look for existing Personal Assistant page at workspace root level
+            existing_pa_page = await self._find_existing_personal_assistant_page_at_root(client)
+            if existing_pa_page:
+                self.logger.info("Found existing Personal Assistant page at workspace root, reusing it")
+                return existing_pa_page
+            
+            # No existing PA page found, we'll create a new one at workspace root
+            self.logger.info("No existing Personal Assistant page found, will create new one at workspace root")
+            return None
 
         except Exception as e:
             self.logger.error(f"Error getting workspace root: {e}")
             raise NotionWorkspaceError(f"Failed to access workspace: {e}")
+    
+    async def _find_existing_personal_assistant_page_at_root(self, client: Client) -> Optional[str]:
+        """Find an existing Personal Assistant page at workspace root level."""
+        try:
+            response = client.search(
+                query="Personal Assistant",
+                filter={"property": "object", "value": "page"},
+                page_size=10
+            )
+            
+            for page in response.get("results", []):
+                # Check if page is at workspace root level
+                parent = page.get("parent", {})
+                if parent.get("type") != "workspace":
+                    continue
+                
+                # Check if it's a Personal Assistant page
+                title = page.get("properties", {}).get("title", {}).get("title", [])
+                if title:
+                    page_title = title[0].get("text", {}).get("content", "").lower()
+                    if "personal assistant" in page_title:
+                        return page["id"]
+            return None
+        except Exception as e:
+            self.logger.warning(f"Error searching for existing Personal Assistant page at root: {e}")
+            return None
+    
+    async def _find_existing_personal_assistant_page(self, client: Client) -> Optional[str]:
+        """Find an existing Personal Assistant page anywhere in the workspace."""
+        try:
+            response = client.search(
+                query="Personal Assistant",
+                filter={"property": "object", "value": "page"},
+                page_size=10
+            )
+            
+            for page in response.get("results", []):
+                title = page.get("properties", {}).get("title", {}).get("title", [])
+                if title:
+                    page_title = title[0].get("text", {}).get("content", "").lower()
+                    if "personal assistant" in page_title:
+                        return page["id"]
+            return None
+        except Exception as e:
+            self.logger.warning(f"Error searching for existing Personal Assistant page: {e}")
+            return None
+    
+    async def _find_suitable_workspace_root(self, client: Client) -> Optional[str]:
+        """
+        Find a suitable workspace root page.
+        
+        Looks for pages that are:
+        1. At workspace root level (not nested under other pages)
+        2. Have generic names like "Home", "Dashboard", "Main", etc.
+        3. Are not project-specific or dated pages
+        """
+        try:
+            response = client.search(
+                query="",
+                filter={"property": "object", "value": "page"},
+                page_size=50
+            )
+            
+            suitable_pages = []
+            generic_names = ["home", "dashboard", "main", "workspace", "root", "index"]
+            
+            for page in response.get("results", []):
+                # Check if page is at workspace root level
+                parent = page.get("parent", {})
+                if parent.get("type") != "workspace":
+                    continue
+                
+                # Check if page has a generic name
+                title = page.get("properties", {}).get("title", {}).get("title", [])
+                if title:
+                    page_title = title[0].get("text", {}).get("content", "").lower()
+                    
+                    # Skip project-specific or dated pages
+                    if any(keyword in page_title for keyword in ["phase", "project", "meeting", "task", "2024", "2025"]):
+                        continue
+                    
+                    # Prefer generic names
+                    if any(generic_name in page_title for generic_name in generic_names):
+                        suitable_pages.insert(0, page)  # Higher priority
+                    else:
+                        suitable_pages.append(page)
+            
+            # Return the first suitable page, or None if none found
+            return suitable_pages[0]["id"] if suitable_pages else None
+            
+        except Exception as e:
+            self.logger.warning(f"Error finding suitable workspace root: {e}")
+            return None
 
     async def validate_user_workspace(self, client: Client, user_id: int) -> bool:
         """
