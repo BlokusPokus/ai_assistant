@@ -5,7 +5,6 @@ This factory creates and manages user-specific Notion clients using the existing
 OAuth infrastructure for secure, user-isolated Notion operations.
 """
 
-import logging
 from typing import Optional, Dict
 from notion_client import Client
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -69,15 +68,70 @@ class NotionClientFactory:
                 db, integration.id, "access_token"
             )
 
+            # If no valid access token, try to refresh it
             if not access_token:
-                raise NotionTokenExpiredError(f"Could not get valid token for user {user_id}")
+                self.logger.info(f"Access token expired or not found for user {user_id}, attempting to refresh...")
+                
+                # Import OAuth manager to get Notion provider
+                from personal_assistant.oauth.oauth_manager import OAuthManager
+                oauth_manager = OAuthManager()
+                provider = oauth_manager.get_provider("notion")
+                
+                # Attempt to refresh the access token
+                new_access_token = await self.token_service.refresh_access_token(
+                    db, integration.id, provider
+                )
+                
+                if new_access_token:
+                    self.logger.info(f"Successfully refreshed access token for user {user_id}")
+                    # Create Notion client with new token
+                    client = Client(auth=new_access_token)
+                else:
+                    raise NotionTokenExpiredError(f"Could not refresh access token for user {user_id}. Please reconnect your Notion account.")
+            else:
+                # Create Notion client with existing token
+                client = Client(auth=access_token.access_token)
 
-            # Create Notion client
-            client = Client(auth=access_token)
-
-            # Validate workspace access
-            if not await self._validate_workspace_access(client):
-                raise NotionWorkspaceError(f"User {user_id} doesn't have workspace access")
+            # Validate workspace access with better error handling
+            try:
+                if not await self._validate_workspace_access(client):
+                    raise NotionWorkspaceError(f"User {user_id} doesn't have workspace access")
+            except Exception as validation_error:
+                # Check if it's a token expiration issue
+                if "API token is invalid" in str(validation_error) or "unauthorized" in str(validation_error).lower():
+                    self.logger.warning(f"Notion token appears to be expired for user {user_id}, attempting refresh...")
+                    
+                    # Try to refresh the token
+                    from personal_assistant.oauth.oauth_manager import OAuthManager
+                    oauth_manager = OAuthManager()
+                    provider = oauth_manager.get_provider("notion")
+                    
+                    new_access_token = await self.token_service.refresh_access_token(
+                        db, integration.id, provider
+                    )
+                    
+                    if new_access_token:
+                        self.logger.info(f"Successfully refreshed access token for user {user_id} after validation failure")
+                        # Create new client with refreshed token
+                        client = Client(auth=new_access_token)
+                        # Invalidate cached client
+                        self.invalidate_user_client(user_id)
+                        
+                        # Try validation again with new token
+                        if not await self._validate_workspace_access(client):
+                            raise NotionWorkspaceError(f"User {user_id} doesn't have workspace access")
+                    else:
+                        self.logger.warning(f"Could not refresh Notion token for user {user_id}, marking integration as expired")
+                        # Mark the integration as expired so user knows to reconnect
+                        await self.integration_service.update_integration(
+                            db, integration.id, 
+                            status="expired",
+                            error_message="Access token expired and refresh failed. Please reconnect your Notion account.",
+                            error_count=integration.error_count + 1 if integration.error_count else 1
+                        )
+                        raise NotionTokenExpiredError(f"Notion access token expired for user {user_id}. Please reconnect your Notion account.")
+                else:
+                    raise NotionWorkspaceError(f"User {user_id} doesn't have workspace access: {validation_error}")
 
             # Cache client
             self._client_cache[cache_key] = client

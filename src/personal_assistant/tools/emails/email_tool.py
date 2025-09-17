@@ -65,8 +65,26 @@ class EmailTool:
                 
                 # Get valid access token
                 token = await self.token_service.get_valid_token(db, integration.id, "access_token")
+                
+                # If no valid access token, try to refresh it
                 if not token:
-                    raise Exception("Could not get valid token for Microsoft integration")
+                    self.logger.info("Access token expired or not found, attempting to refresh...")
+                    
+                    # Use OAuth manager to get properly configured Microsoft provider
+                    from personal_assistant.oauth.oauth_manager import OAuthManager
+                    oauth_manager = OAuthManager()
+                    provider = oauth_manager.get_provider("microsoft")
+                    
+                    # Attempt to refresh the access token
+                    new_access_token = await self.token_service.refresh_access_token(
+                        db, integration.id, provider
+                    )
+                    
+                    if new_access_token:
+                        self.logger.info("Successfully refreshed access token")
+                        return new_access_token
+                    else:
+                        raise Exception("Could not refresh access token. Please reconnect your Microsoft account.")
                 
                 return token.access_token
                 
