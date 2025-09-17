@@ -42,7 +42,7 @@ services:
       dockerfile: Dockerfile.prod
     container_name: personal_assistant_frontend_build
     volumes:
-      - ./nginx/html:/app/dist:ro
+      - ./nginx/html:/app/dist
     environment:
       - NODE_ENV=production
       - VITE_API_URL=https://ianleblanc.ca
