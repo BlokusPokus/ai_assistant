@@ -30,7 +30,7 @@ interface DashboardDataState {
 
 export const useDashboardDataStore = create<DashboardDataState>()(
   devtools(
-    (set) => ({
+    set => ({
       // Initial state
       stats: null,
       recentActivity: [],
