@@ -42,8 +42,11 @@ def get_access_token(application_id, client_secret, scopes):
     print(f"\nOpening URL: {auth_url[:60]}...")
     webbrowser.open(auth_url)
 
-    authorization_code = input("Enter the authorization code: ")
-
+    try:
+        authorization_code = input("Enter the authorization code: ")
+    except EOFError:
+        raise Exception("Interactive authentication not available in this environment. Please use the OAuth integration system.")
+    
     if not authorization_code:
         raise ValueError("Authorization code is empty")
 

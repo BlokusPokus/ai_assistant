@@ -85,7 +85,7 @@ class OAuthTokenService:
                     access_token=tokens["access_token"],
                     refresh_token=None,  # No refresh token for access token
                     expires_at=datetime.utcnow()
-                    + timedelta(seconds=tokens.get("expires_in", 3600)),
+                    + timedelta(seconds=tokens.get("expires_in", 604800)),  # Default 7 days instead of 1 hour
                     scope=" ".join(tokens.get("scope", "").split())
                     if tokens.get("scope")
                     else None,

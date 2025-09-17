@@ -99,8 +99,8 @@ const navigationItems = [
 - ✅ **OAuth Settings** - OAuth configuration
 - ✅ **Integrations** - OAuth integrations
 
-
 #### **Premium-Level Tabs (Premium + Admin)**
+
 Premium gives you access to better models
 
 #### **Admin-Only Tabs (Admin Only)**

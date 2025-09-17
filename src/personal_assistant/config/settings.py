@@ -51,7 +51,7 @@ class Settings(BaseSettings):
 
     # Google settings (including Gemini LLM)
     GOOGLE_API_KEY: Optional[str] = None
-    GEMINI_MODEL: str = "gemini-2.0-flash"  # Default Gemini model
+    GEMINI_MODEL: str = "gemini-2.5-flash"  # Default Gemini model
     YOUTUBE_API_KEY: Optional[str] = None  # YouTube Data API v3 key
 
     # Twilio settings

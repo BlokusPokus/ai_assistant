@@ -212,18 +212,23 @@ class OAuthConsentService:
             Number of consents revoked
         """
         try:
+            # Import OAuthIntegration to join with it
+            from personal_assistant.oauth.models.integration import OAuthIntegration
+            
             query = update(OAuthConsent).where(
-                OAuthConsent.user_id == user_id,
-                OAuthConsent.consent_status == "granted",
+                OAuthConsent.integration_id.in_(
+                    select(OAuthIntegration.id).where(OAuthIntegration.user_id == user_id)
+                ),
+                OAuthConsent.is_revoked == False,
             )
 
             if integration_id:
                 query = query.where(OAuthConsent.integration_id == integration_id)
 
             query = query.values(
-                consent_status="revoked",
-                consent_revoked_at=datetime.utcnow(),
-                consent_reason=reason,
+                is_revoked=True,
+                revoked_at=datetime.utcnow(),
+                revoked_reason=reason,
             )
 
             result = await db.execute(query)

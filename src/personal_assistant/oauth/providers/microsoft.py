@@ -88,7 +88,7 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
         """
         try:
             # Get scopes from kwargs or use default Microsoft Graph scopes
-            scopes = kwargs.get('scopes', ['openid', 'profile', 'email', 'User.Read'])
+            scopes = kwargs.get('scopes', ['openid', 'profile', 'email', 'User.Read', 'Mail.Read', 'Mail.Send', 'Mail.ReadWrite', 'Calendars.Read', 'offline_access'])
             scope_string = ' '.join(scopes) if isinstance(scopes, list) else scopes
             
             # Debug logging
@@ -140,7 +140,7 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
                 "access_token": token_data.get("access_token"),
                 "refresh_token": token_data.get("refresh_token"),
                 "token_type": token_data.get("token_type", "Bearer"),
-                "expires_in": token_data.get("expires_in", 3600),
+                "expires_in": token_data.get("expires_in", 604800),  # Default 7 days instead of 1 hour
                 "scope": token_data.get("scope", ""),
                 "provider_user_id": user_info.get("id"),
                 "provider_email": user_info.get("mail"),
@@ -197,7 +197,7 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
                 "access_token": token_data.get("access_token"),
                 "refresh_token": refresh_token,  # Keep the original refresh token
                 "token_type": token_data.get("token_type", "Bearer"),
-                "expires_in": token_data.get("expires_in", 3600),
+                "expires_in": token_data.get("expires_in", 604800),  # Default 7 days instead of 1 hour
                 "scope": token_data.get("scope", ""),
             }
 
@@ -308,6 +308,30 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
                 "is_required": False,
             },
             {
+                "scope_name": "Mail.Read",
+                "display_name": "Mail (Read)",
+                "description": "Read user's email messages",
+                "category": "mail",
+                "is_readonly": True,
+                "is_required": False,
+            },
+            {
+                "scope_name": "Mail.Send",
+                "display_name": "Mail (Send)",
+                "description": "Send email messages",
+                "category": "mail",
+                "is_readonly": False,
+                "is_required": False,
+            },
+            {
+                "scope_name": "Mail.ReadWrite",
+                "display_name": "Mail (Read/Write)",
+                "description": "Read and write email messages",
+                "category": "mail",
+                "is_readonly": False,
+                "is_required": False,
+            },
+            {
                 "scope_name": "Files.Read",
                 "display_name": "Files (Read)",
                 "description": "Read files in OneDrive",
@@ -330,6 +354,14 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
                 "category": "tasks",
                 "is_readonly": True,
                 "is_required": False,
+            },
+            {
+                "scope_name": "offline_access",
+                "display_name": "Offline Access",
+                "description": "Access user data when they're not present (refresh tokens)",
+                "category": "access",
+                "is_readonly": True,
+                "is_required": True,
             },
         ]
 

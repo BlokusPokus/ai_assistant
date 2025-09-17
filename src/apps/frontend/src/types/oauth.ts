@@ -49,7 +49,7 @@ export interface OAuthScope {
   name: string;
   description: string;
   required: boolean;
-  category: 'read' | 'write' | 'admin';
+  category: 'read' | 'write' | 'admin' | 'identity' | 'access';
   provider: OAuthProvider;
 }
 

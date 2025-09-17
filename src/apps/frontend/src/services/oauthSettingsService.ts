@@ -336,7 +336,7 @@ export class OAuthSettingsService {
       const requestBody = {
         provider,
         scopes,
-        redirect_uri: `${window.location.origin}/oauth/callback/${provider}`,
+        redirect_uri: `http://localhost:8000/api/v1/oauth/callback`,
       };
 
       console.log(

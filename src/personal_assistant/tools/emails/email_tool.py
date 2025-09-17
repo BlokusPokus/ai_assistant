@@ -18,34 +18,60 @@ from .email_internal import (
     format_email_response,
     format_move_email_response,
     format_success_response,
-    get_environment_error_message,
-    get_token_expiration,
     handle_email_not_found,
-    is_token_valid,
     parse_email_content_response,
     parse_emails_from_batch,
     process_email_batch,
     validate_body,
     validate_email_parameters,
-    validate_environment_variables,
     validate_message_id,
     validate_recipients,
     validate_subject,
 )
-from .ms_graph import get_access_token
+# OAuth imports for user-specific authentication
+from personal_assistant.oauth.services.token_service import OAuthTokenService
+from personal_assistant.oauth.services.integration_service import OAuthIntegrationService
+from personal_assistant.database.session import AsyncSessionLocal
 
 
 class EmailTool:
     def __init__(self):
         load_dotenv()
         self.ms_graph_url = "https://graph.microsoft.com/v1.0"
-        self._access_token = None
-        self._token_expires_at = None
-        self.scopes = ["Mail.Read", "Mail.ReadWrite", "Mail.Send", "User.Read"]
         self.logger = get_logger("tools.emails")
-        # Don't initialize token here - do it lazily when needed
-
+        
+        # Initialize OAuth services
+        self.token_service = OAuthTokenService()
+        self.integration_service = OAuthIntegrationService()
+        
         # Create individual tools
+        self._create_tools()
+
+    async def _get_oauth_access_token(self, user_id: int) -> str:
+        """Get a valid OAuth access token for the user's Microsoft integration."""
+        try:
+            async with AsyncSessionLocal() as db:
+                # Get user's Microsoft integration
+                integration = await self.integration_service.get_integration_by_user_and_provider(
+                    db=db, user_id=user_id, provider="microsoft"
+                )
+                
+                if not integration:
+                    raise Exception("Microsoft integration not found. Please connect your Microsoft account first.")
+                
+                # Get valid access token
+                token = await self.token_service.get_valid_token(db, integration.id, "access_token")
+                if not token:
+                    raise Exception("Could not get valid token for Microsoft integration")
+                
+                return token.access_token
+                
+        except Exception as e:
+            self.logger.error(f"Failed to get OAuth access token: {e}")
+            raise Exception(f"Authentication failed: {str(e)}")
+
+    def _create_tools(self):
+        """Create individual email tools."""
         self.read_emails_tool = Tool(
             name="read_emails",
             func=self.get_emails,
@@ -169,42 +195,21 @@ class EmailTool:
             },
         )
 
-
-    def _is_token_valid(self) -> bool:
-        """Check if current token is valid and not expired"""
-        return is_token_valid(self._access_token, self._token_expires_at)
-
-    def _initialize_token(self):
-        """Initialize the access token using environment variables"""
-        is_valid, application_id, client_secret = validate_environment_variables()
-
-        if not is_valid:
-            raise ValueError(get_environment_error_message())
-
-        self._access_token = get_access_token(
-            application_id, client_secret, self.scopes
-        )
-        # Set expiration (assuming 1 hour from now)
-        self._token_expires_at = get_token_expiration()
-
-    def _get_valid_token(self) -> str:
-        """Get a valid token, refreshing if necessary"""
-        if self._is_token_valid():
-            return self._access_token  # type: ignore
-
-        # Token expired or missing, get new one
-        self._initialize_token()
-        return self._access_token  # type: ignore
+    # Old token methods removed - now using OAuth system
 
 
     async def get_emails(self, count: int = 10, batch_size: int = 10, user_id: int = None) -> Union[str, dict]:
-        """Read recent emails with improved error handling and token management"""
+        """Read recent emails with improved error handling and OAuth token management"""
         try:
             # Validate and normalize parameters
             count = int(count) if count else 10
             batch_size = int(batch_size) if batch_size else 10
 
-            token = self._get_valid_token()
+            if not user_id:
+                return {"error": "User ID is required for OAuth authentication"}
+
+            # Get OAuth access token
+            token = await self._get_oauth_access_token(user_id)
             headers = build_email_headers(token)
             all_emails = []
 
@@ -287,7 +292,11 @@ class EmailTool:
                     },
                 )
 
-            token = self._get_valid_token()
+            if not user_id:
+                return {"error": "User ID is required for OAuth authentication"}
+
+            # Get OAuth access token
+            token = await self._get_oauth_access_token(user_id)
             headers = build_email_headers(token, "application/json")
 
             # Parse and clean recipients
@@ -340,7 +349,10 @@ class EmailTool:
                     ValueError(error_msg), "delete_email", {"email_id": email_id}
                 )
 
-            token = self._get_valid_token()
+            if not user_id:
+                return {"error": "User ID is required for OAuth authentication"}
+            
+            token = await self._get_oauth_access_token(user_id)
             headers = build_email_headers(token)
 
             async with httpx.AsyncClient() as client:
@@ -379,7 +391,10 @@ class EmailTool:
                     {"email_id": email_id},
                 )
 
-            token = self._get_valid_token()
+            if not user_id:
+                return {"error": "User ID is required for OAuth authentication"}
+            
+            token = await self._get_oauth_access_token(user_id)
             headers = build_email_headers(token)
 
             async with httpx.AsyncClient() as client:
@@ -428,7 +443,10 @@ class EmailTool:
 
             count, batch_size = validate_email_parameters(count, batch_size)
 
-            token = self._get_valid_token()
+            if not user_id:
+                return {"error": "User ID is required for OAuth authentication"}
+            
+            token = await self._get_oauth_access_token(user_id)
             headers = build_email_headers(token)
             sent_emails = []
 
@@ -520,7 +538,10 @@ class EmailTool:
             if count <= 0 or count > 100:
                 count = min(max(count, 1), 100)  # Clamp between 1 and 100
 
-            token = self._get_valid_token()
+            if not user_id:
+                return {"error": "User ID is required for OAuth authentication"}
+            
+            token = await self._get_oauth_access_token(user_id)
             headers = build_email_headers(token)
             search_results = []
 
@@ -675,7 +696,10 @@ class EmailTool:
                     },
                 )
 
-            token = self._get_valid_token()
+            if not user_id:
+                return {"error": "User ID is required for OAuth authentication"}
+            
+            token = await self._get_oauth_access_token(user_id)
             headers = build_email_headers(token, "application/json")
 
             # Map common folder names to their IDs

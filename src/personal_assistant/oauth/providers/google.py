@@ -119,7 +119,7 @@ class GoogleOAuthProvider(BaseOAuthProvider):
                 "access_token": token_data.get("access_token"),
                 "refresh_token": token_data.get("refresh_token"),
                 "token_type": token_data.get("token_type", "Bearer"),
-                "expires_in": token_data.get("expires_in", 3600),
+                "expires_in": token_data.get("expires_in", 604800),  # Default 7 days instead of 1 hour
                 "scope": token_data.get("scope", ""),
                 "provider_user_id": user_info.get("id"),
                 "provider_email": user_info.get("email"),
@@ -171,7 +171,7 @@ class GoogleOAuthProvider(BaseOAuthProvider):
                 "access_token": token_data.get("access_token"),
                 "refresh_token": refresh_token,  # Keep the original refresh token
                 "token_type": token_data.get("token_type", "Bearer"),
-                "expires_in": token_data.get("expires_in", 3600),
+                "expires_in": token_data.get("expires_in", 604800),  # Default 7 days instead of 1 hour
                 "scope": token_data.get("scope", ""),
             }
 
@@ -290,6 +290,14 @@ class GoogleOAuthProvider(BaseOAuthProvider):
                 "is_required": False,
             },
             {
+                "scope_name": "https://www.googleapis.com/auth/gmail.send",
+                "display_name": "Gmail Send",
+                "description": "Send emails via Gmail",
+                "category": "mail",
+                "is_readonly": False,
+                "is_required": False,
+            },
+            {
                 "scope_name": "https://www.googleapis.com/auth/youtube.readonly",
                 "display_name": "YouTube (Read Only)",
                 "description": "View YouTube videos and channels",
@@ -323,6 +331,9 @@ class GoogleOAuthProvider(BaseOAuthProvider):
             "openid",
             "https://www.googleapis.com/auth/userinfo.email",
             "https://www.googleapis.com/auth/userinfo.profile",
+            "https://www.googleapis.com/auth/gmail.readonly",
+            "https://www.googleapis.com/auth/gmail.send",
+            "https://www.googleapis.com/auth/calendar.readonly",
         ]
 
     def get_required_scopes(self) -> List[str]:
