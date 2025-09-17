@@ -1,20 +1,21 @@
 # Monitoring and Observability Guide
 
-This guide covers comprehensive monitoring, logging, and observability setup for the Personal Assistant TDAH system.
+This guide covers the comprehensive monitoring, logging, and observability setup for the Personal Assistant TDAH system.
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Monitoring Architecture](#monitoring-architecture)
-- [Prometheus Setup](#prometheus-setup)
-- [Grafana Configuration](#grafana-configuration)
-- [Log Aggregation](#log-aggregation)
+- [Prometheus Configuration](#prometheus-configuration)
+- [Grafana Dashboards](#grafana-dashboards)
+- [Log Aggregation with Loki](#log-aggregation-with-loki)
 - [Alerting System](#alerting-system)
 - [Health Checks](#health-checks)
-- [Performance Monitoring](#performance-monitoring)
+- [Performance Metrics](#performance-metrics)
 - [Business Metrics](#business-metrics)
 - [Security Monitoring](#security-monitoring)
 - [Troubleshooting](#troubleshooting)
+- [Best Practices](#best-practices)
 
 ## Overview
 
@@ -96,7 +97,7 @@ graph TB
 | **Postgres Exporter** | Database metrics   | Prometheus | 9187 |
 | **Redis Exporter**    | Cache metrics      | Prometheus | 9121 |
 
-## Prometheus Setup
+## Prometheus Configuration
 
 ### Configuration File
 
@@ -192,7 +193,7 @@ failed_requests_total: Counter
 timeout_requests_total: Counter
 ```
 
-## Grafana Configuration
+## Grafana Dashboards
 
 ### Dashboard Overview
 
@@ -324,7 +325,7 @@ The system includes six comprehensive dashboards:
 - Error rates
 - Schedule adherence
 
-## Log Aggregation
+## Log Aggregation with Loki
 
 ### Loki Configuration
 
@@ -559,7 +560,7 @@ GET /health/database/performance
 | **Nginx**    | `/health`          | 30s             | 10s     |
 | **Worker**   | Celery status      | 60s             | 30s     |
 
-## Performance Monitoring
+## Performance Metrics
 
 ### Key Performance Indicators (KPIs)
 
