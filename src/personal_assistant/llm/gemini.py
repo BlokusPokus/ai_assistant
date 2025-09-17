@@ -1,5 +1,6 @@
 from typing import Union
 
+import os
 import google.generativeai as genai
 from dotenv import load_dotenv
 
@@ -11,7 +12,10 @@ from .llm_client import LLMClient
 # Configure module logger
 logger = get_logger("llm")
 
-load_dotenv()
+# Load environment-specific config
+env = os.getenv("ENVIRONMENT", "development")
+config_file = f"config/{env}.env"
+load_dotenv(config_file)
 
 
 class GeminiLLM(LLMClient):

@@ -69,7 +69,10 @@ def get_access_token(application_id, client_secret, scopes):
 
 if __name__ == "__main__":
     # When run directly, use environment variables
-    load_dotenv()
+    # Load environment-specific config
+    env = os.getenv("ENVIRONMENT", "development")
+    config_file = f"config/{env}.env"
+    load_dotenv(config_file)
     client_id = os.getenv("MICROSOFT_APPLICATION_ID")
     client_secret = os.getenv("MICROSOFT_CLIENT_SECRET")
     scopes = ["Mail.Read", "Mail.ReadWrite", "Mail.Send", "User.Read"]

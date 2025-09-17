@@ -35,14 +35,8 @@ if os.path.exists(config_file):
     load_dotenv(config_file)
     print(f"🔧 Loaded config from: {config_file}")
 else:
-    # Fallback to root .env file
-    fallback_env = os.path.join(PROJECT_ROOT, ".env")
-    if os.path.exists(fallback_env):
-        load_dotenv(fallback_env)
-        print(f"🔧 Loaded fallback config from: {fallback_env}")
-    else:
-        print(f"⚠️  No config file found at: {config_file} or {fallback_env}")
-        load_dotenv()  # Load from environment variables only
+    # Require environment-specific file
+    raise FileNotFoundError(f"Environment config file not found: {config_file}. Please ensure the {ENVIRONMENT}.env file exists in the config/ directory.")
 
 
 class Settings(BaseSettings):

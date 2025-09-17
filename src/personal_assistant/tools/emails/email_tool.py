@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Union
 
+import os
 import httpx
 from dotenv import load_dotenv
 
@@ -36,7 +37,10 @@ from personal_assistant.database.session import AsyncSessionLocal
 
 class EmailTool:
     def __init__(self):
-        load_dotenv()
+        # Load environment-specific config
+        env = os.getenv("ENVIRONMENT", "development")
+        config_file = f"config/{env}.env"
+        load_dotenv(config_file)
         self.ms_graph_url = "https://graph.microsoft.com/v1.0"
         self.logger = get_logger("tools.emails")
         
