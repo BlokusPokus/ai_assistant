@@ -74,7 +74,7 @@ class DashboardService {
       const conversations = conversationsResponse.data.conversations || [];
 
       const activities: RecentActivity[] = conversations.map(
-        (conv: any, index: number) => ({
+        (conv: any) => ({
           id: `conv-${conv.id}`,
           type: 'chat',
           message: `Started conversation: "${conv.user_input?.substring(0, 50)}..."`,
