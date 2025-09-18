@@ -132,10 +132,11 @@ class AgentCore:
             # 4. Execute agent loop
             response, updated_state = await self._execute_agent_loop(user_input, user_id)
 
+            # This is very low performance and blocks followup messages, we need to rethink how to save memories
             # 5. Start background processing (non-blocking)
-            asyncio.create_task(self.background_service.process_async(
-                user_id, user_input, response, updated_state, conversation_id, start_time
-            ))
+            # asyncio.create_task(self.background_service.process_async(
+            #     user_id, user_input, response, updated_state, conversation_id, start_time
+            # ))
 
             return response
 

@@ -178,21 +178,33 @@ class EmailTool:
             func=self.search_emails,
             description="Search emails by query, sender, date range, or other criteria. Uses Microsoft Graph $search parameter to search in subject, sender email, sender name, and email body content natively.",
             parameters={
+                "search_terms": {
+                    "type": "string",
+                    "description": "What to search for (keywords, sender email, subject terms, body content - all searched natively by Microsoft Graph API). For date filtering, use 'received:last 24 hours' or 'received:2024-01-01' format.",
+                },
                 "query": {
                     "type": "string",
-                    "description": "Search query (keywords, sender email, subject terms, body content - all searched natively by Microsoft Graph API)",
+                    "description": "Alternative parameter name for search_terms. What to search for (keywords, sender email, subject terms, body content).",
+                },
+                "date_range": {
+                    "type": "string",
+                    "description": "Alternative parameter name for search_terms. Use 'received:last 24 hours' or 'received:2024-01-01' format for date filtering.",
                 },
                 "count": {
                     "type": "integer",
                     "description": "Maximum number of emails to return (default: 20)",
                 },
-                "date_from": {
+                "start_date": {
                     "type": "string",
-                    "description": "Start date for search (YYYY-MM-DD format, optional)",
+                    "description": "Start date for search (YYYY-MM-DD format, optional). Also accepts 'date_from' parameter name.",
                 },
-                "date_to": {
+                "end_date": {
+                    "type": "string", 
+                    "description": "End date for search (YYYY-MM-DD format, optional). Also accepts 'date_to' parameter name.",
+                },
+                "received_after": {
                     "type": "string",
-                    "description": "End date for search (YYYY-MM-DD format, optional)",
+                    "description": "Alternative parameter name for start_date. Search for emails received after this date (YYYY-MM-DD format or ISO datetime).",
                 },
                 "folder": {
                     "type": "string",
@@ -213,6 +225,34 @@ class EmailTool:
                 "destination_folder": {
                     "type": "string",
                     "description": "Destination folder name (e.g., 'Archive', 'Junk', 'Deleted Items', or custom folder name)",
+                },
+            },
+        )
+
+        self.find_all_email_folders_tool = Tool(
+            name="find_all_email_folders",
+            func=self.find_all_email_folders,
+            description="Get a list of all available email folders (Inbox, Sent Items, Drafts, Archive, Junk, Deleted Items, and custom folders)",
+            parameters={},
+        )
+
+        self.create_email_folder_tool = Tool(
+            name="create_email_folder",
+            func=self.create_email_folder,
+            description="Create a new custom email folder for organizing emails",
+            parameters={
+                "folder_name": {
+                    "type": "string",
+                    "description": "Name of the new folder to create (also called display_name in some contexts)",
+                },
+                "display_name": {
+                    "type": "string",
+                    "description": "Alternative parameter name for folder_name. Name of the new folder to create.",
+                },
+                "parent_folder_id": {
+                    "type": "string",
+                    "description": "ID of the parent folder (optional, defaults to root if not specified)",
+                    "default": None,
                 },
             },
         )
@@ -527,10 +567,15 @@ class EmailTool:
 
     async def search_emails(
         self,
-        query: str,
+        search_terms: str = None,
+        query: str = None,
         count: int = 20,
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        date_range: Optional[str] = None,
+        received_after: Optional[str] = None,
         folder: str = "inbox",
         user_id: int = None,
     ) -> str:
@@ -574,18 +619,23 @@ class EmailTool:
             # Microsoft Graph API supports $search in from, subject, and body automatically
             # Reference: https://learn.microsoft.com/en-us/graph/search-query-parameter?tabs=http
             search_params = {}
-            if query:
+            actual_query = search_terms or query or date_range  # Support all parameter names, prioritize search_terms
+            
+            if actual_query:
                 # Use $search instead of $filter for better body content search
-                search_params["$search"] = f'"{query}"'
+                search_params["$search"] = f'"{actual_query}"'
             else:
                 # If no query, build filter for other criteria only
                 search_filter = []
 
-            # Add date range filter if provided
-            if date_from:
-                search_filter.append(f"receivedDateTime ge {date_from}T00:00:00Z")
-            if date_to:
-                search_filter.append(f"receivedDateTime le {date_to}T23:59:59Z")
+            # Add date range filter if provided - support all parameter name formats
+            actual_start_date = start_date or date_from or received_after
+            actual_end_date = end_date or date_to
+            
+            if actual_start_date:
+                search_filter.append(f"receivedDateTime ge {actual_start_date}T00:00:00Z")
+            if actual_end_date:
+                search_filter.append(f"receivedDateTime le {actual_end_date}T23:59:59Z")
 
             # Combine date filters with AND logic (since they're date constraints)
             filter_string = " and ".join(search_filter) if search_filter else None
@@ -625,17 +675,20 @@ class EmailTool:
                 emails = response.json().get("value", [])
 
                 for email in emails:
-                    # Format search result
+                    # Format search result - use same structure as other email functions
                     email_info = {
                         "id": email.get("id"),
                         "subject": email.get("subject", "No Subject"),
-                        "body_preview": email.get(
+                        "preview": email.get(
                             "bodyPreview", "No preview available"
-                        ),
-                        "received_date": email.get("receivedDateTime"),
-                        "from_sender": email.get("from", {})
+                        ),  # Changed from body_preview to preview to match format_email_list_response
+                        "received": email.get("receivedDateTime"),  # Changed from received_date to received
+                        "from_name": email.get("from", {})
                         .get("emailAddress", {})
-                        .get("address", "Unknown"),
+                        .get("name", "Unknown"),  # Changed from from_sender to from_name
+                        "from_email": email.get("from", {})
+                        .get("emailAddress", {})
+                        .get("address", "Unknown"),  # Added from_email field
                         "to_recipients": [
                             recipient.get("emailAddress", {}).get("address", "Unknown")
                             for recipient in email.get("toRecipients", [])
@@ -654,9 +707,9 @@ class EmailTool:
                         # Parse ISO datetime strings and sort by received date (newest first)
                         search_results.sort(
                             key=lambda x: datetime.fromisoformat(
-                                x["received_date"].replace("Z", "+00:00")
+                                x["received"].replace("Z", "+00:00")
                             )
-                            if x["received_date"]
+                            if x["received"]
                             else datetime.min,
                             reverse=True,
                         )
@@ -686,13 +739,24 @@ class EmailTool:
 
     async def move_email(self, email_id: str, destination_folder: str, user_id: int = None) -> str:
         """
-        Move an email from one folder to another folder.
+        Move an email from one folder to another folder for organization and classification purposes.
+
+        PRIMARY USE CASE: Email Classification and Organization
+        - Automatically categorize emails into appropriate folders based on content, sender, or subject
+        - Organize emails by project, priority, or topic for better inbox management
+        - Filter and sort emails into custom classification folders
 
         Supports moving emails to standard folders like:
         - Archive
         - Junk
         - Deleted Items
-        - Custom folders
+        - Custom folders (for classification: 'Important emails', 'Interesting reading', 'Useless emails', etc.)
+
+        CLASSIFICATION EXAMPLES:
+        - Move newsletter emails to 'Interesting reading' folder
+        - Move invoice emails to 'Important emails' folder  
+        - Move spam/promotional emails to 'Useless emails' folder
+        - Move project-related emails to specific project folders
 
         Reference: https://learn.microsoft.com/en-us/graph/api/message-move
         """
@@ -739,7 +803,40 @@ class EmailTool:
 
             # Normalize destination folder name
             dest_folder_lower = destination_folder.lower().strip()
-            destination_id = folder_mapping.get(dest_folder_lower, dest_folder_lower)
+            destination_id = folder_mapping.get(dest_folder_lower, None)
+            
+            # If it's not a standard folder, we need to find the custom folder ID
+            if destination_id is None:
+                # Search for custom folder by display name
+                async with httpx.AsyncClient() as client:
+                    folders_response = await client.get(
+                        f"{self.ms_graph_url}/me/mailFolders",
+                        headers=headers,
+                        params={
+                            "$select": "id,displayName",
+                            "$top": 100  # Get all folders, not just first 10
+                        }
+                    )
+                    
+                    if folders_response.status_code == 200:
+                        folders_data = folders_response.json().get("value", [])
+                        for folder in folders_data:
+                            if folder.get("displayName", "").lower() == dest_folder_lower:
+                                destination_id = folder.get("id")
+                                break
+                        
+                        if destination_id is None:
+                            return EmailErrorHandler.handle_email_error_str(
+                                ValueError(f"Folder '{destination_folder}' not found"),
+                                "move_email",
+                                {"email_id": email_id, "destination_folder": destination_folder}
+                            )
+                    else:
+                        return EmailErrorHandler.handle_email_error_str(
+                            Exception(f"Failed to get folder list: HTTP {folders_response.status_code}"),
+                            "move_email",
+                            {"email_id": email_id, "destination_folder": destination_folder}
+                        )
 
             # Build the move request payload
             move_data = {"destinationId": destination_id}
@@ -831,6 +928,180 @@ class EmailTool:
                 {"email_id": email_id, "destination_folder": destination_folder},
             )
 
+    async def find_all_email_folders(self, user_id: int = None) -> str:
+        """
+        Get a list of all available email folders including standard and custom folders.
+        
+        Returns both standard Microsoft folders (Inbox, Sent Items, Drafts, etc.) 
+        and any custom folders the user has created.
+        """
+        try:
+            if not user_id:
+                return {"error": "User ID is required for OAuth authentication"}
+            
+            token = await self._get_oauth_access_token(user_id)
+            headers = build_email_headers(token)
+            
+            folders = []
+            
+            async with httpx.AsyncClient() as client:
+                # Get all mail folders using $top parameter (more efficient than pagination)
+                response = await client.get(
+                    f"{self.ms_graph_url}/me/mailFolders",
+                    headers=headers,
+                    params={
+                        "$select": "id,displayName,parentFolderId,totalItemCount,unreadItemCount",
+                        "$orderby": "displayName",
+                        "$top": 100  # Get up to 100 folders at once (should cover most cases)
+                    }
+                )
+                
+                if response.status_code != 200:
+                    return EmailErrorHandler.handle_email_error_str(
+                        Exception(f"HTTP {response.status_code}: {response.text}"),
+                        "find_all_email_folders",
+                        {}
+                    )
+                
+                folders_data = response.json().get("value", [])
+                
+                # Process and format folder information
+                for folder in folders_data:
+                    folder_info = {
+                        "id": folder.get("id"),
+                        "name": folder.get("displayName", "Unknown"),
+                        "total_items": folder.get("totalItemCount", 0),
+                        "unread_items": folder.get("unreadItemCount", 0),
+                        "parent_folder_id": folder.get("parentFolderId")
+                    }
+                    folders.append(folder_info)
+                
+                # Sort folders: standard folders first, then custom folders alphabetically
+                standard_folders = ["Inbox", "Sent Items", "Drafts", "Archive", "Junk Email", "Deleted Items"]
+                
+                def sort_key(folder):
+                    name = folder["name"]
+                    if name in standard_folders:
+                        return (0, standard_folders.index(name))
+                    else:
+                        return (1, name.lower())
+                
+                folders.sort(key=sort_key)
+                
+                # Format response
+                if not folders:
+                    return "No email folders found."
+                
+                result = "Available Email Folders:\n\n"
+                
+                for folder in folders:
+                    unread_info = f" ({folder['unread_items']} unread)" if folder['unread_items'] > 0 else ""
+                    result += f"• {folder['name']}: {folder['total_items']} emails{unread_info}\n"
+                
+                self.logger.info(f"Found {len(folders)} email folders for user {user_id}")
+                return result
+                
+        except Exception as e:
+            return EmailErrorHandler.handle_email_error_str(
+                e, "find_all_email_folders", {}
+            )
+
+    async def create_email_folder(self, folder_name: str = None, display_name: str = None, parent_folder_id: str = None, user_id: int = None) -> str:
+        """
+        Create a new custom email folder for organizing emails.
+        
+        Args:
+            folder_name: Name of the new folder to create
+            parent_folder_id: ID of the parent folder (optional, defaults to root)
+            user_id: User identifier for OAuth authentication
+            
+        Returns:
+            Success message with folder details or error message
+        """
+        try:
+            # Support both parameter name formats
+            actual_folder_name = folder_name or display_name
+            
+            # Validate parameters
+            if not actual_folder_name or not actual_folder_name.strip():
+                return EmailErrorHandler.handle_email_error_str(
+                    ValueError("Folder name cannot be empty"),
+                    "create_email_folder",
+                    {"folder_name": actual_folder_name, "parent_folder_id": parent_folder_id}
+                )
+            
+            # Clean and validate folder name
+            actual_folder_name = actual_folder_name.strip()
+            if len(actual_folder_name) > 255:
+                return EmailErrorHandler.handle_email_error_str(
+                    ValueError("Folder name cannot exceed 255 characters"),
+                    "create_email_folder",
+                    {"folder_name": actual_folder_name, "parent_folder_id": parent_folder_id}
+                )
+            
+            if not user_id:
+                return {"error": "User ID is required for OAuth authentication"}
+            
+            token = await self._get_oauth_access_token(user_id)
+            headers = build_email_headers(token, "application/json")
+            
+            # Build the folder creation payload
+            folder_data = {
+                "displayName": actual_folder_name
+            }
+            
+            # Add parent folder ID if specified
+            if parent_folder_id:
+                folder_data["parentFolderId"] = parent_folder_id
+            
+            async with httpx.AsyncClient() as client:
+                # Create the folder
+                response = await client.post(
+                    f"{self.ms_graph_url}/me/mailFolders",
+                    headers=headers,
+                    json=folder_data
+                )
+                
+                if response.status_code == 201:  # Created
+                    folder_info = response.json()
+                    folder_id = folder_info.get("id")
+                    created_name = folder_info.get("displayName", actual_folder_name)
+                    
+                    success_message = f"Successfully created email folder '{created_name}'"
+                    if folder_id:
+                        success_message += f" with ID: {folder_id}"
+                    
+                    self.logger.info(f"Created email folder '{created_name}' for user {user_id}")
+                    return success_message
+                    
+                elif response.status_code == 400:
+                    error_data = response.json()
+                    error_message = error_data.get("error", {}).get("message", "Bad request")
+                    return EmailErrorHandler.handle_email_error_str(
+                        Exception(f"Folder creation failed: {error_message}"),
+                        "create_email_folder",
+                        {"folder_name": actual_folder_name, "parent_folder_id": parent_folder_id}
+                    )
+                    
+                elif response.status_code == 409:
+                    return EmailErrorHandler.handle_email_error_str(
+                        Exception(f"A folder with the name '{actual_folder_name}' already exists"),
+                        "create_email_folder",
+                        {"folder_name": actual_folder_name, "parent_folder_id": parent_folder_id}
+                    )
+                    
+                else:
+                    return EmailErrorHandler.handle_email_error_str(
+                        Exception(f"HTTP {response.status_code}: {response.text}"),
+                        "create_email_folder",
+                        {"folder_name": actual_folder_name, "parent_folder_id": parent_folder_id}
+                    )
+                    
+        except Exception as e:
+            return EmailErrorHandler.handle_email_error_str(
+                e, "create_email_folder", {"folder_name": actual_folder_name, "parent_folder_id": parent_folder_id}
+            )
+
     def __iter__(self):
         """Makes the class iterable to return all tools"""
         return iter(
@@ -842,5 +1113,7 @@ class EmailTool:
                 self.get_sent_emails_tool,
                 self.search_emails_tool,
                 self.move_email_tool,
+                self.find_all_email_folders_tool,
+                self.create_email_folder_tool,
             ]
         )

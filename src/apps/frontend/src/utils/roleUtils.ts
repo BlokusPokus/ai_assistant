@@ -153,6 +153,16 @@ export function getFilteredNavigationItems(user: User | null) {
       requiredRole: null,
     },
     {
+      label: 'Todos',
+      href: '/dashboard/todos',
+      requiredRole: null,
+    },
+    {
+      label: 'AI Tasks',
+      href: '/dashboard/ai-tasks',
+      requiredRole: null,
+    },
+    {
       label: 'Phone Number',
       href: '/dashboard/phone-management',
       requiredRole: null,
