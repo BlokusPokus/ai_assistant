@@ -72,7 +72,7 @@ export const useAITaskStore = create<AITaskState>((set, get) => ({
   updateTask: async (id, updates) => {
     set({ loading: true, error: null });
     try {
-      const response = await api.put(`/ai-tasks/${id}`, updates);
+      await api.put(`/ai-tasks/${id}`, updates);
       // The backend returns a result object, not the task directly
       // We need to refresh the tasks to get the updated data
       await get().fetchTasks();
@@ -120,7 +120,7 @@ export const useAITaskStore = create<AITaskState>((set, get) => ({
   pauseTask: async id => {
     set({ loading: true, error: null });
     try {
-      const response = await api.post(`/ai-tasks/${id}/pause`);
+      await api.post(`/ai-tasks/${id}/pause`);
       // The backend returns a status, not the full task
       // We need to refresh the tasks to get the updated data
       await get().fetchTasks();
