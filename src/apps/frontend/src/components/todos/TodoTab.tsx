@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useTodoStore } from '../../stores/todoStore';
 import { TodoForm } from './TodoForm';
 import { TodoList } from './TodoList';
-import { Plus } from 'lucide-react';
 
 export const TodoTab: React.FC = () => {
   const { fetchTodos } = useTodoStore();

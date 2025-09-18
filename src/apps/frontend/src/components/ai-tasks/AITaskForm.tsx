@@ -6,15 +6,26 @@ interface AITaskFormProps {
   onSuccess: () => void;
 }
 
+interface FormData {
+  title: string;
+  description: string;
+  task_type: 'reminder' | 'automated_task' | 'periodic_task';
+  schedule_type: 'once' | 'daily' | 'weekly' | 'monthly' | 'custom';
+  ai_context: string;
+  notification_channels: string[];
+  status: 'active' | 'paused' | 'completed' | 'failed';
+}
+
 export const AITaskForm: React.FC<AITaskFormProps> = ({ onSuccess }) => {
   const { createTask } = useAITaskStore();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
     task_type: 'reminder',
     schedule_type: 'once',
     ai_context: '',
-    notification_channels: [] as string[],
+    notification_channels: [],
+    status: 'active',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,7 +97,7 @@ export const AITaskForm: React.FC<AITaskFormProps> = ({ onSuccess }) => {
                 onChange={e =>
                   setFormData(prev => ({
                     ...prev,
-                    task_type: e.target.value,
+                    task_type: e.target.value as FormData['task_type'],
                   }))
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -106,7 +117,7 @@ export const AITaskForm: React.FC<AITaskFormProps> = ({ onSuccess }) => {
                 onChange={e =>
                   setFormData(prev => ({
                     ...prev,
-                    schedule_type: e.target.value,
+                    schedule_type: e.target.value as FormData['schedule_type'],
                   }))
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
