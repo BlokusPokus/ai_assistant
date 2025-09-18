@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
+  CheckSquare,
 } from 'lucide-react';
 
 const DashboardHome: React.FC = () => {
@@ -52,6 +53,13 @@ const DashboardHome: React.FC = () => {
       description: 'Access your saved notes and documents',
       action: () => navigate('/dashboard/notes'),
       color: 'bg-purple-100 text-purple-600',
+    },
+    {
+      icon: CheckSquare,
+      title: 'My Todos',
+      description: 'Manage your tasks and stay organized',
+      action: () => navigate('/dashboard/todos'),
+      color: 'bg-orange-100 text-orange-600',
     },
     {
       icon: Settings,

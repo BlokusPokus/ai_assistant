@@ -16,6 +16,8 @@ import {
   Key,
   BarChart3,
   Phone,
+  CheckSquare,
+  Bot,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useDashboardStore } from '@/stores/dashboardStore';
@@ -60,6 +62,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
       label: 'Notes',
       href: '/dashboard/notes',
       icon: FileText,
+    },
+    {
+      label: 'Todos',
+      href: '/dashboard/todos',
+      icon: CheckSquare,
+    },
+    {
+      label: 'AI Tasks',
+      href: '/dashboard/ai-tasks',
+      icon: Bot,
     },
     {
       label: 'Phone Number',

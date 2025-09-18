@@ -19,6 +19,8 @@ import {
   ChatPage,
   CalendarPage,
   NotesPage,
+  TodosPage,
+  AITasksPage,
   OAuthIntegrationsPage,
   SMSAnalyticsPage,
   AdminAnalyticsPage,
@@ -102,6 +104,8 @@ function App() {
             <Route path="chat" element={<ChatPage />} />
             <Route path="calendar" element={<CalendarPage />} />
             <Route path="notes" element={<NotesPage />} />
+            <Route path="todos" element={<TodosPage />} />
+            <Route path="ai-tasks" element={<AITasksPage />} />
             <Route path="integrations" element={<OAuthIntegrationsPage />} />
             <Route path="oauth-settings" element={<OAuthSettingsPage />} />
             <Route path="sms-analytics" element={<SMSAnalyticsPage />} />

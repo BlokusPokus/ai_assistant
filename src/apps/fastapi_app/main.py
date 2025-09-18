@@ -6,6 +6,7 @@ from fastapi.security import HTTPBearer
 from apps.fastapi_app.middleware.auth import AuthMiddleware
 from apps.fastapi_app.middleware.rate_limiting import RateLimitingMiddleware
 from apps.fastapi_app.routes import (
+    ai_tasks,
     analytics,
     auth,
     chat,
@@ -14,6 +15,7 @@ from apps.fastapi_app.routes import (
     rbac,
     sessions,
     sms_router,
+    todos,
     twilio,
     users,
 )
@@ -78,6 +80,8 @@ app.include_router(rbac.router)
 app.include_router(users.router)
 app.include_router(oauth.router)
 app.include_router(chat.router)
+app.include_router(todos.router)  # Todos router
+app.include_router(ai_tasks.router)  # AI Tasks router
 
 # Add SMS Router routes
 app.include_router(sms_router.router)

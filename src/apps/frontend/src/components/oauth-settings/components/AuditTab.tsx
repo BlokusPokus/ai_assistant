@@ -1,15 +1,40 @@
 import React, { useState } from 'react';
 import { useOAuthSettingsStore } from '../../../stores/oauthSettingsStore';
+import { useAuthStore } from '../../../stores/authStore';
+import { isAdmin } from '../../../utils/roleUtils';
 import type { AuditFilters } from '../../../services/oauthSettingsService';
 import { Select } from '@/components/ui';
 
 export const AuditTab: React.FC = () => {
+  const { user } = useAuthStore();
   const { auditLogs, loading, loadAuditLogs, exportData } =
     useOAuthSettingsStore();
   const [filters, setFilters] = useState<AuditFilters>({});
   const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv');
+  const [error, setError] = useState<string | null>(null);
+
+  // Check permissions before loading data
+  React.useEffect(() => {
+    if (!isAdmin(user)) {
+      setError('Insufficient permissions to view audit logs');
+      return;
+    }
+
+    loadAuditLogs().catch((err: any) => {
+      if (err?.status === 403) {
+        setError('You do not have permission to access audit logs');
+      } else {
+        setError('Failed to load audit logs');
+      }
+    });
+  }, [loadAuditLogs, user]);
 
   const handleExport = async () => {
+    if (!isAdmin(user)) {
+      setError('Insufficient permissions to export audit logs');
+      return;
+    }
+
     try {
       const data = await exportData(exportFormat, filters);
 
@@ -25,8 +50,13 @@ export const AuditTab: React.FC = () => {
       }.${exportFormat}`;
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Export failed:', error);
+    } catch (error: any) {
+      if (error?.status === 403) {
+        setError('You do not have permission to export audit logs');
+      } else {
+        console.error('Export failed:', error);
+        setError('Export failed');
+      }
     }
   };
 
@@ -46,10 +76,53 @@ export const AuditTab: React.FC = () => {
     loadAuditLogs({});
   };
 
+  // Show access denied if user doesn't have permission
+  if (!isAdmin(user)) {
+    return (
+      <div className="text-center py-12">
+        <div className="mx-auto h-12 w-12 text-gray-400">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+            />
+          </svg>
+        </div>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">
+          Access Denied
+        </h3>
+        <p className="mt-1 text-sm text-gray-500">
+          You need Administrator access to view audit logs.
+        </p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="mx-auto h-12 w-12 text-red-400">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">Error</h3>
+        <p className="mt-1 text-sm text-gray-500">{error}</p>
       </div>
     );
   }

@@ -308,20 +308,62 @@ You have a periodic task to execute. This task runs on a recurring schedule.
 You have an automated task to execute. This is a system-generated task that requires AI processing.
 
 🚨 **CRITICAL: AUTOMATED TASK EXECUTION RULES**
-• Execute thoroughly and provide comprehensive analysis
-• Execute the automated task thoroughly
-• LEAD WITH RESULTS: Start with the key findings/answers
-• Keep the main response concise and actionable
-• Note any important findings, issues, or opportunities
-• Suggest any follow-up actions or improvements
-• Consider the automated nature and provide insights
+• YOU MUST ACTUALLY EXECUTE THE TASK USING AVAILABLE TOOLS
+• Do not just analyze or suggest - PERFORM THE ACTUAL WORK
+• Use search_emails to find emails from the specified time period
+• Use move_email to organize emails into appropriate folders
+• Use find_all_email_folders to see available folders
+• PROCESS ALL EMAILS: You must categorize and move ALL emails found, not just a few
+• LEAD WITH RESULTS: Start with what you accomplished
+• Provide specific details about emails moved and folders used
 
 💡 **EXECUTION APPROACH**:
-• Focus on thorough analysis and providing actionable results
-• Use tools when needed to gather information or perform actions
-• Lead with the essential results, then add context if needed
-• Keep responses concise but complete
-• Maintain high quality standards for automated processing
+• IMMEDIATELY start using tools to complete the task
+• For email filtering: search → categorize by SUBJECT → move (only read content if subject is unclear)
+• For other tasks: use appropriate tools to accomplish the goal
+• Show your work: explain what tools you used and why
+• Provide concrete results: "I moved X emails to Y folder"
+• Do not give up or claim inability - you have all necessary tools
+
+📧 **EMAIL PROCESSING REQUIREMENTS**:
+• If search_emails returns 20 emails, you must process ALL 20 emails
+• Do not stop after moving just 2-3 emails - continue until all are categorized
+• Use move_email multiple times to organize all emails found
+• Count your progress: "Processed 5/20 emails" → "Processed 10/20 emails" → "Processed 20/20 emails"
+• Only declare task complete when ALL emails have been processed
+
+📧 **EMAIL CLASSIFICATION RULES AND STRATEGY**:
+
+**PRIMARY CLASSIFICATION METHOD:**
+• Make categorization decisions based on EMAIL SUBJECT/TITLE
+• SECONDARY: Only use get_email_content if subject is ambiguous or unclear
+• EFFICIENT: Subject lines usually contain enough information for folder decisions
+
+**CLASSIFICATION RULES:**
+• **"Interesting reading" folder:**
+  - Newsletters, articles, educational content
+  - Tech updates, industry news, learning materials
+  - Examples: "Weekly Tech Newsletter", "Build your own Deep Agent", "What's new at Plaid"
+
+• **"Important emails" folder:**
+  - Financial documents, invoices, billing
+  - Work-related communications, project updates
+  - Meeting invitations, deadlines, urgent matters
+  - Examples: "Invoice #12345", "Meeting: Project Discussion", "Job application status"
+
+• **"Useless emails" folder:**
+  - Promotional offers, marketing emails
+  - Spam, sales pitches, discount offers
+  - Social media notifications, entertainment promotions
+  - Examples: "Win $1000 Now!", "50% off sale", "Don't Blink. This Collab Will Go Fast"
+
+**CLASSIFICATION EXAMPLES:**
+  - "Newsletter: Weekly Tech Updates" → "Interesting reading" folder
+  - "Invoice #12345 - Payment Due" → "Important emails" folder  
+  - "Spam: Win $1000 Now!" → "Useless emails" folder
+  - "Meeting: Project Discussion Tomorrow" → "Important emails" folder
+  - "Build your own Deep Agent – New Academy Course" → "Interesting reading" folder
+  - "Ian, save 55% on your first EveryPlate box" → "Useless emails" folder
 """
 
     def _build_generic_task_content(self, task: AITask, context: Dict[str, Any]) -> str:

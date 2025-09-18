@@ -7,22 +7,22 @@ import type { User } from '@/types';
 /**
  * Check if user has a specific role
  */
-export function hasRole(user: User, roleName: string): boolean {
-  if (!user.roles) return false;
+export function hasRole(user: User | null, roleName: string): boolean {
+  if (!user || !user.roles) return false;
   return user.roles.some(role => role.name === roleName);
 }
 
 /**
  * Check if user has administrator role
  */
-export function isAdmin(user: User): boolean {
+export function isAdmin(user: User | null): boolean {
   return hasRole(user, 'administrator');
 }
 
 /**
  * Check if user has premium role
  */
-export function isPremium(user: User): boolean {
+export function isPremium(user: User | null): boolean {
   return hasRole(user, 'premium') || isAdmin(user);
 }
 
@@ -30,11 +30,11 @@ export function isPremium(user: User): boolean {
  * Check if user has a specific permission
  */
 export function hasPermission(
-  user: User,
+  user: User | null,
   resourceType: string,
   action: string
 ): boolean {
-  if (!user.permissions) return false;
+  if (!user || !user.permissions) return false;
   return user.permissions.some(
     permission =>
       permission.resource_type === resourceType && permission.action === action
@@ -130,7 +130,7 @@ export function canAccessIntegrations(user: User): boolean {
  * Note: This function returns the navigation items without icons.
  * The icons should be handled in the component that uses this function.
  */
-export function getFilteredNavigationItems(user: User) {
+export function getFilteredNavigationItems(user: User | null) {
   const allItems = [
     {
       label: 'Dashboard',
@@ -150,6 +150,16 @@ export function getFilteredNavigationItems(user: User) {
     {
       label: 'Notes',
       href: '/dashboard/notes',
+      requiredRole: null,
+    },
+    {
+      label: 'Todos',
+      href: '/dashboard/todos',
+      requiredRole: null,
+    },
+    {
+      label: 'AI Tasks',
+      href: '/dashboard/ai-tasks',
       requiredRole: null,
     },
     {

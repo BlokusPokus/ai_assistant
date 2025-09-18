@@ -17,6 +17,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMenuToggle }) => {
       '/dashboard/chat': 'Chat',
       '/dashboard/calendar': 'Calendar',
       '/dashboard/notes': 'Notes',
+      '/dashboard/todos': 'Todos',
+      '/dashboard/ai-tasks': 'AI Tasks',
       '/dashboard/profile': 'Profile',
       '/dashboard/settings': 'Settings',
       '/dashboard/security': 'Security',

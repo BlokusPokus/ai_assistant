@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOAuthSettingsStore } from '../../../stores/oauthSettingsStore';
+import { useAuthStore } from '../../../stores/authStore';
+import { isPremium, isAdmin } from '../../../utils/roleUtils';
 import { Select } from '@/components/ui';
 
 const timeRanges = [
@@ -10,22 +12,78 @@ const timeRanges = [
 ];
 
 export const AnalyticsTab: React.FC = () => {
+  const { user } = useAuthStore();
   const { analytics, loading, loadAnalytics } = useOAuthSettingsStore();
-
   const [timeRange, setTimeRange] = useState('7d');
+  const [error, setError] = useState<string | null>(null);
 
+  // Check permissions before loading data
   useEffect(() => {
-    loadAnalytics();
-  }, [loadAnalytics]);
+    if (!isPremium(user) && !isAdmin(user)) {
+      setError('Insufficient permissions to view analytics');
+      return;
+    }
+
+    loadAnalytics().catch((err: any) => {
+      if (err?.status === 403) {
+        setError('You do not have permission to access analytics data');
+      } else {
+        setError('Failed to load analytics data');
+      }
+    });
+  }, [loadAnalytics, user]);
 
   const handleTimeRangeChange = (newTimeRange: string) => {
     setTimeRange(newTimeRange);
   };
 
+  // Show access denied if user doesn't have permission
+  if (!isPremium(user) && !isAdmin(user)) {
+    return (
+      <div className="text-center py-12">
+        <div className="mx-auto h-12 w-12 text-gray-400">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+            />
+          </svg>
+        </div>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">
+          Access Denied
+        </h3>
+        <p className="mt-1 text-sm text-gray-500">
+          You need Premium access to view analytics.
+        </p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="mx-auto h-12 w-12 text-red-400">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">Error</h3>
+        <p className="mt-1 text-sm text-gray-500">{error}</p>
       </div>
     );
   }
@@ -41,10 +99,14 @@ export const AnalyticsTab: React.FC = () => {
   return (
     <div className="px-4 sm:px-0">
       <div className="mb-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Analytics Overview</h3>
-        
+        <h3 className="text-lg font-medium text-gray-900 mb-4">
+          Analytics Overview
+        </h3>
+
         <div className="flex items-center space-x-4 mb-6">
-          <label className="text-sm font-medium text-gray-700">Time Range:</label>
+          <label className="text-sm font-medium text-gray-700">
+            Time Range:
+          </label>
           <Select
             value={timeRange}
             onChange={handleTimeRangeChange}

@@ -6,9 +6,10 @@ including message sending, conversation management, and real-time communication.
 """
 
 import logging
+from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.fastapi_app.models.chat import (
@@ -50,6 +51,7 @@ async def get_chat_service() -> ChatService:
 @router.post("/messages", response_model=SendMessageResponse)
 async def send_message(
     message_data: MessageCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     chat_service: ChatService = Depends(get_chat_service),
@@ -58,17 +60,32 @@ async def send_message(
     try:
         logger.info(f"User {current_user.id} sending message: {message_data.content[:50]}...")
         
-        user_message, ai_message, conversation_id = await chat_service.send_message(
+        # Save user message immediately and get conversation
+        user_message, conversation_id = await chat_service.save_user_message(
             db, current_user.id, message_data.content, message_data.conversation_id
         )
 
+        # Process AI response in background to avoid timeout
+        background_tasks.add_task(
+            chat_service.process_ai_response_background,
+            db, current_user.id, message_data.content, conversation_id
+        )
+
+        # Return immediate response with user message
         response = SendMessageResponse(
             user_message=MessageResponse.model_validate(user_message),
-            ai_message=MessageResponse.model_validate(ai_message),
+            ai_message=MessageResponse(
+                id=0,  # Placeholder - will be updated when AI responds
+                conversation_id=conversation_id,
+                role="assistant",
+                content="Processing your request...",
+                message_type="assistant_response",
+                timestamp=datetime.utcnow().isoformat()
+            ),
             conversation_id=conversation_id
         )
         
-        logger.info(f"Successfully processed message for user {current_user.id}")
+        logger.info(f"Successfully queued message for user {current_user.id}")
         return response
         
     except ValueError as e:
