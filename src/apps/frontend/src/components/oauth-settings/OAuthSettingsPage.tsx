@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { TabNavigation } from "./components/TabNavigation";
-import { IntegrationsTab } from "./components/IntegrationsTab";
-import { AnalyticsTab } from "./components/AnalyticsTab";
-import { AuditTab } from "./components/AuditTab";
-import { SettingsTab } from "./components/SettingsTab";
-import { useOAuthSettingsStore } from "../../stores/oauthSettingsStore";
+import React, { useState, useEffect } from 'react';
+import { TabNavigation } from './components/TabNavigation';
+import { IntegrationsTab } from './components/IntegrationsTab';
+import { AnalyticsTab } from './components/AnalyticsTab';
+import { AuditTab } from './components/AuditTab';
+import { SettingsTab } from './components/SettingsTab';
+import { useOAuthSettingsStore } from '../../stores/oauthSettingsStore';
+import { useAuthStore } from '../../stores/authStore';
+import { isPremium, isAdmin } from '../../utils/roleUtils';
 
 export const OAuthSettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("integrations");
+  const [activeTab, setActiveTab] = useState('integrations');
+  const { user } = useAuthStore();
   const {
     loadSettings,
     loadIntegrations,
@@ -26,13 +29,17 @@ export const OAuthSettingsPage: React.FC = () => {
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
 
-    // Load tab-specific data
+    // Load tab-specific data with permission checks
     switch (tab) {
-      case "analytics":
-        loadAnalytics();
+      case 'analytics':
+        if (isPremium(user) || isAdmin(user)) {
+          loadAnalytics();
+        }
         break;
-      case "audit":
-        loadAuditLogs();
+      case 'audit':
+        if (isAdmin(user)) {
+          loadAuditLogs();
+        }
         break;
       default:
         break;
@@ -40,14 +47,23 @@ export const OAuthSettingsPage: React.FC = () => {
   };
 
   const renderTabContent = () => {
+    // Check permissions before rendering tabs
     switch (activeTab) {
-      case "integrations":
+      case 'integrations':
         return <IntegrationsTab />;
-      case "analytics":
-        return <AnalyticsTab />;
-      case "audit":
-        return <AuditTab />;
-      case "settings":
+      case 'analytics':
+        if (isPremium(user) || isAdmin(user)) {
+          return <AnalyticsTab />;
+        }
+        return <AccessDeniedTab feature="Analytics" requiredRole="Premium" />;
+      case 'audit':
+        if (isAdmin(user)) {
+          return <AuditTab />;
+        }
+        return (
+          <AccessDeniedTab feature="Audit Logs" requiredRole="Administrator" />
+        );
+      case 'settings':
         return <SettingsTab />;
       default:
         return <IntegrationsTab />;
@@ -133,13 +149,16 @@ export const OAuthSettingsPage: React.FC = () => {
                   </h3>
                   <div className="mt-2 text-sm text-yellow-700">
                     <p>
-                      The OAuth service requires backend configuration to function properly. 
-                      Your administrator needs to set up OAuth provider credentials (Google, Microsoft, Notion, YouTube) 
-                      in the backend environment variables.
+                      The OAuth service requires backend configuration to
+                      function properly. Your administrator needs to set up
+                      OAuth provider credentials (Google, Microsoft, Notion,
+                      YouTube) in the backend environment variables.
                     </p>
                     <p className="mt-2">
-                      <strong>Required variables:</strong> GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, 
-                      MICROSOFT_OAUTH_CLIENT_ID, MICROSOFT_OAUTH_CLIENT_SECRET, etc.
+                      <strong>Required variables:</strong>{' '}
+                      GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET,
+                      MICROSOFT_OAUTH_CLIENT_ID, MICROSOFT_OAUTH_CLIENT_SECRET,
+                      etc.
                     </p>
                   </div>
                 </div>
@@ -157,3 +176,26 @@ export const OAuthSettingsPage: React.FC = () => {
     </div>
   );
 };
+
+// Access Denied Component
+const AccessDeniedTab: React.FC<{ feature: string; requiredRole: string }> = ({
+  feature,
+  requiredRole,
+}) => (
+  <div className="text-center py-12">
+    <div className="mx-auto h-12 w-12 text-gray-400">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+        />
+      </svg>
+    </div>
+    <h3 className="mt-2 text-sm font-medium text-gray-900">Access Denied</h3>
+    <p className="mt-1 text-sm text-gray-500">
+      You need {requiredRole} access to view {feature}.
+    </p>
+  </div>
+);

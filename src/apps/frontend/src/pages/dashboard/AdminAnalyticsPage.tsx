@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui';
 import SMSAnalyticsPanel from '@/components/admin/SMSAnalyticsPanel';
+import { useAuthStore } from '../../stores/authStore';
+import { isAdmin } from '../../utils/roleUtils';
 import {
   BarChart3,
   Users,
@@ -13,6 +15,63 @@ import {
 } from 'lucide-react';
 
 const AdminAnalyticsPage: React.FC = () => {
+  const { user } = useAuthStore();
+  const [error, setError] = useState<string | null>(null);
+
+  // Check permissions
+  useEffect(() => {
+    if (!isAdmin(user)) {
+      setError('Insufficient permissions to view admin analytics');
+    }
+  }, [user]);
+
+  // Show access denied if user doesn't have permission
+  if (!isAdmin(user)) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center py-12">
+          <div className="mx-auto h-12 w-12 text-gray-400">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+          </div>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">
+            Access Denied
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            You need Administrator access to view admin analytics.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center py-12">
+          <div className="mx-auto h-12 w-12 text-red-400">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Error</h3>
+          <p className="mt-1 text-sm text-gray-500">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
