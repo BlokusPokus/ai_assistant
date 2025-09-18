@@ -20,8 +20,8 @@ export const AuditTab: React.FC = () => {
       return;
     }
 
-    loadAuditLogs().catch(err => {
-      if (err.status === 403) {
+    loadAuditLogs().catch((err: any) => {
+      if (err?.status === 403) {
         setError('You do not have permission to access audit logs');
       } else {
         setError('Failed to load audit logs');
@@ -50,8 +50,8 @@ export const AuditTab: React.FC = () => {
       }.${exportFormat}`;
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      if (error.status === 403) {
+    } catch (error: any) {
+      if (error?.status === 403) {
         setError('You do not have permission to export audit logs');
       } else {
         console.error('Export failed:', error);

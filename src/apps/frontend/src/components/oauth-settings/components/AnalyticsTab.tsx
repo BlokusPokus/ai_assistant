@@ -24,8 +24,8 @@ export const AnalyticsTab: React.FC = () => {
       return;
     }
 
-    loadAnalytics().catch(err => {
-      if (err.status === 403) {
+    loadAnalytics().catch((err: any) => {
+      if (err?.status === 403) {
         setError('You do not have permission to access analytics data');
       } else {
         setError('Failed to load analytics data');
