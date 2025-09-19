@@ -22,10 +22,15 @@ class EmailErrorHandler:
 
     # Email-specific user intents mapped to method names
     USER_INTENTS = {
-        "read_recent_emails": "Read recent emails from inbox",
+        "get_emails": "Read recent emails from inbox",
         "send_email": "Send an email to recipients",
         "delete_email": "Delete an email by ID",
         "get_email_content": "Get full content of a specific email",
+        "get_sent_emails": "Get sent emails from sent folder",
+        "search_emails": "Search emails by query",
+        "move_email": "Move email to different folder",
+        "find_all_email_folders": "List all email folders",
+        "create_email_folder": "Create a new email folder",
     }
 
     # Email-specific error patterns for enhanced classification
@@ -42,6 +47,13 @@ class EmailErrorHandler:
             "empty",
             "malformed",
             "format",
+            "folder",
+            "query",
+            "destination",
+            "display_name",
+            "parent_folder",
+            "characters",
+            "exceed",
         ],
         "permission_error": [
             "microsoft graph",
@@ -55,6 +67,8 @@ class EmailErrorHandler:
             "scope",
             "mail.send",
             "mail.read",
+            "mail.readwrite",
+            "mailboxsettings.read",
         ],
         "resource_error": [
             "email",
@@ -67,6 +81,10 @@ class EmailErrorHandler:
             "limit",
             "exceeded",
             "mailbox",
+            "folder",
+            "already exists",
+            "409",
+            "conflict",
         ],
         "connection_error": [
             "connection",
@@ -77,6 +95,8 @@ class EmailErrorHandler:
             "http",
             "smtp",
             "mail server",
+            "unreachable",
+            "dns",
         ],
     }
 
@@ -146,7 +166,7 @@ class EmailErrorHandler:
         # Email-specific recovery strategies
         email_strategies = {
             "validation_error": {
-                "read_recent_emails": [
+                "get_emails": [
                     "Check count is between 1-100",
                     "Verify batch_size is between 1-50",
                     "Ensure parameters are positive integers",
@@ -167,9 +187,34 @@ class EmailErrorHandler:
                     "Check message ID format",
                     "Ensure message ID is a valid string",
                 ],
+                "get_sent_emails": [
+                    "Check count is between 1-100",
+                    "Verify batch_size is between 1-50",
+                    "Ensure parameters are positive integers",
+                ],
+                "search_emails": [
+                    "Verify search query is not empty",
+                    "Check query length is reasonable",
+                    "Ensure special characters are properly escaped",
+                ],
+                "move_email": [
+                    "Verify email ID is not empty",
+                    "Check destination folder name is valid",
+                    "Ensure folder name is not empty",
+                ],
+                "find_all_email_folders": [
+                    "Check if user has folder access permissions",
+                    "Verify Microsoft Graph API access",
+                ],
+                "create_email_folder": [
+                    "Verify folder name is not empty",
+                    "Check folder name length (max 255 characters)",
+                    "Ensure folder name doesn't contain invalid characters",
+                    "Check if parent folder ID is valid",
+                ],
             },
             "permission_error": {
-                "read_recent_emails": [
+                "get_emails": [
                     "Check Microsoft Graph API permissions",
                     "Verify Mail.Read scope is granted",
                     "Ensure access token is valid",
@@ -191,9 +236,36 @@ class EmailErrorHandler:
                     "Verify Mail.Read scope is granted",
                     "Ensure access token is valid",
                 ],
+                "get_sent_emails": [
+                    "Check Microsoft Graph API permissions",
+                    "Verify Mail.Read scope is granted",
+                    "Ensure access token is valid",
+                    "Check application registration scopes",
+                ],
+                "search_emails": [
+                    "Check Microsoft Graph API permissions",
+                    "Verify Mail.Read scope is granted",
+                    "Ensure access token is valid",
+                    "Check application registration scopes",
+                ],
+                "move_email": [
+                    "Check Microsoft Graph API permissions",
+                    "Verify Mail.ReadWrite scope is granted",
+                    "Ensure access token is valid",
+                ],
+                "find_all_email_folders": [
+                    "Check Microsoft Graph API permissions",
+                    "Verify Mail.Read scope is granted",
+                    "Ensure access token is valid",
+                ],
+                "create_email_folder": [
+                    "Check Microsoft Graph API permissions",
+                    "Verify Mail.ReadWrite scope is granted",
+                    "Ensure access token is valid",
+                ],
             },
             "resource_error": {
-                "read_recent_emails": [
+                "get_emails": [
                     "Check if mailbox is accessible",
                     "Verify user has email permissions",
                     "Try with smaller count values",
@@ -217,9 +289,39 @@ class EmailErrorHandler:
                     "Try listing emails first to get valid IDs",
                     "Ensure message is not deleted",
                 ],
+                "get_sent_emails": [
+                    "Check if sent folder is accessible",
+                    "Verify user has email permissions",
+                    "Try with smaller count values",
+                    "Check for mailbox quota limits",
+                ],
+                "search_emails": [
+                    "Check if mailbox is accessible",
+                    "Verify user has email permissions",
+                    "Try with different search terms",
+                    "Check for mailbox quota limits",
+                ],
+                "move_email": [
+                    "Verify email ID exists",
+                    "Check if destination folder exists",
+                    "Try listing folders first to get valid folder names",
+                    "Ensure email is not already moved",
+                ],
+                "find_all_email_folders": [
+                    "Check if mailbox is accessible",
+                    "Verify user has folder access permissions",
+                    "Try refreshing the folder list",
+                    "Check for mailbox quota limits",
+                ],
+                "create_email_folder": [
+                    "Check if folder name already exists",
+                    "Verify parent folder exists",
+                    "Try with a different folder name",
+                    "Check for folder creation limits",
+                ],
             },
             "connection_error": {
-                "read_recent_emails": [
+                "get_emails": [
                     "Check network connectivity",
                     "Verify Microsoft Graph API availability",
                     "Try again in a few moments",
@@ -237,6 +339,34 @@ class EmailErrorHandler:
                     "Try again in a few moments",
                 ],
                 "get_email_content": [
+                    "Check network connectivity",
+                    "Verify Microsoft Graph API availability",
+                    "Try again in a few moments",
+                ],
+                "get_sent_emails": [
+                    "Check network connectivity",
+                    "Verify Microsoft Graph API availability",
+                    "Try again in a few moments",
+                    "Check firewall/proxy settings",
+                ],
+                "search_emails": [
+                    "Check network connectivity",
+                    "Verify Microsoft Graph API availability",
+                    "Try again in a few moments",
+                    "Check firewall/proxy settings",
+                ],
+                "move_email": [
+                    "Check network connectivity",
+                    "Verify Microsoft Graph API availability",
+                    "Try again in a few moments",
+                ],
+                "find_all_email_folders": [
+                    "Check network connectivity",
+                    "Verify Microsoft Graph API availability",
+                    "Try again in a few moments",
+                    "Check firewall/proxy settings",
+                ],
+                "create_email_folder": [
                     "Check network connectivity",
                     "Verify Microsoft Graph API availability",
                     "Try again in a few moments",
@@ -314,3 +444,154 @@ class EmailErrorHandler:
         response += "⏱️ Response Time: <3 seconds (target)"
 
         return response
+
+    @classmethod
+    def handle_user_id_required_error(cls) -> dict:
+        """
+        Handle the common "User ID is required" error pattern.
+        
+        Returns:
+            Dictionary with formatted error response
+        """
+        return {
+            "success": False,
+            "error": "User ID is required for OAuth authentication",
+            "error_type": "validation_error",
+            "recovery_hints": [
+                "Ensure user is properly authenticated",
+                "Check if user session is valid",
+                "Verify OAuth token is present",
+            ],
+            "message": "Authentication required to access email services"
+        }
+
+    @classmethod
+    def handle_user_id_required_error_str(cls) -> str:
+        """
+        Handle the common "User ID is required" error pattern as string.
+        
+        Returns:
+            String with formatted error response
+        """
+        return "❌ validation_error: User ID is required for OAuth authentication\n💡 Suggestions: Ensure user is properly authenticated, Check if user session is valid, Verify OAuth token is present\n⏱️ Response Time: <3 seconds (target)"
+
+    @classmethod
+    def handle_http_error(cls, response, method_name: str, args: dict) -> str:
+        """
+        Handle HTTP response errors with appropriate error classification.
+        
+        Args:
+            response: HTTP response object
+            method_name: Name of the email method that failed
+            args: Arguments that were passed to the method
+            
+        Returns:
+            Formatted error response as string
+        """
+        if response.status_code == 400:
+            error_data = response.json() if response.headers.get('content-type', '').startswith('application/json') else {}
+            error_message = error_data.get("error", {}).get("message", "Bad request")
+            return cls.handle_email_error_str(
+                Exception(f"Bad request: {error_message}"),
+                method_name,
+                args
+            )
+        elif response.status_code == 401:
+            return cls.handle_email_error_str(
+                Exception("Unauthorized: Invalid or expired access token"),
+                method_name,
+                args
+            )
+        elif response.status_code == 403:
+            return cls.handle_email_error_str(
+                Exception("Forbidden: Insufficient permissions"),
+                method_name,
+                args
+            )
+        elif response.status_code == 404:
+            return cls.handle_email_error_str(
+                Exception("Not found: Resource does not exist"),
+                method_name,
+                args
+            )
+        elif response.status_code == 409:
+            return cls.handle_email_error_str(
+                Exception("Conflict: Resource already exists or conflict occurred"),
+                method_name,
+                args
+            )
+        elif response.status_code == 429:
+            return cls.handle_email_error_str(
+                Exception("Rate limited: Too many requests"),
+                method_name,
+                args
+            )
+        elif response.status_code >= 500:
+            return cls.handle_email_error_str(
+                Exception(f"Server error: {response.status_code}"),
+                method_name,
+                args
+            )
+        else:
+            return cls.handle_email_error_str(
+                Exception(f"HTTP {response.status_code}: {response.text}"),
+                method_name,
+                args
+            )
+
+    @classmethod
+    def handle_validation_error(cls, error_message: str, method_name: str, args: dict) -> str:
+        """
+        Handle validation errors with consistent formatting.
+        
+        Args:
+            error_message: The validation error message
+            method_name: Name of the email method that failed
+            args: Arguments that were passed to the method
+            
+        Returns:
+            Formatted error response as string
+        """
+        return cls.handle_email_error_str(
+            ValueError(error_message),
+            method_name,
+            args
+        )
+
+    @classmethod
+    def handle_folder_conflict_error(cls, folder_name: str, method_name: str, args: dict) -> str:
+        """
+        Handle folder conflict errors (409 status).
+        
+        Args:
+            folder_name: Name of the conflicting folder
+            method_name: Name of the email method that failed
+            args: Arguments that were passed to the method
+            
+        Returns:
+            Formatted error response as string
+        """
+        return cls.handle_email_error_str(
+            Exception(f"A folder with the name '{folder_name}' already exists"),
+            method_name,
+            args
+        )
+
+    @classmethod
+    def handle_folder_not_found_error(cls, folder_name: str, method_name: str, args: dict) -> str:
+        """
+        Handle folder not found errors.
+        
+        Args:
+            folder_name: Name of the missing folder
+            method_name: Name of the email method that failed
+            args: Arguments that were passed to the method
+            
+        Returns:
+            Formatted error response as string
+        """
+        return cls.handle_email_error_str(
+            ValueError(f"Folder '{folder_name}' not found"),
+            method_name,
+            args
+        )

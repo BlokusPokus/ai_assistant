@@ -5,13 +5,13 @@ Enhanced Prompt Builder with Metadata Integration.
 Builds agent prompts with intelligent metadata loading based on user context.
 """
 
-from datetime import datetime
 from typing import Any, List
 
 from ..config.logging_config import get_logger
 from ..tools.base import ToolRegistry
 from ..tools.metadata import AIEnhancementManager, ToolMetadataManager
 from ..types.state import AgentState
+from ..utils.time_utils import get_current_time_for_prompts
 from .prompt_helpers import PromptHelpers
 
 logger = get_logger("enhanced_prompts")
@@ -102,7 +102,7 @@ class EnhancedPromptBuilder:
         Returns:
             str: Enhanced prompt with relevant metadata
         """
-        current_time = datetime.now()
+        current_time = get_current_time_for_prompts()
 
         # Analyze which tools are likely needed
         required_tools = self._analyze_tool_requirements(state.user_input)
@@ -114,7 +114,7 @@ class EnhancedPromptBuilder:
         base_prompt = f"""
 🎯 PERSONAL ASSISTANT AGENT
 
-📅 Current time: {current_time.strftime('%Y-%m-%d %H:%M')}
+📅 Current time: {current_time}
 
 🎯 USER REQUEST: {state.user_input}
 

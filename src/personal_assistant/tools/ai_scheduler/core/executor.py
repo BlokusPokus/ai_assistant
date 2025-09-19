@@ -6,12 +6,12 @@ Enhanced with sophisticated prompt architecture and metadata integration.
 """
 
 import logging
-from datetime import datetime
 from typing import Any, Dict, List
 
 from ....database.models.ai_tasks import AITask
 # from ....prompts.prompt_helpers import PromptHelpers  # Not used in executor
 from ....tools.metadata import AIEnhancementManager, ToolMetadataManager
+from ....utils.time_utils import get_current_time_for_prompts, get_current_time_for_logs
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class TaskExecutor:
                 "success": False,
                 "error": str(e),
                 "message": f"Failed to execute task: {e}",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": get_current_time_for_logs(),
             }
 
     def _build_task_context(self, task: AITask) -> Dict[str, Any]:
@@ -120,7 +120,7 @@ class TaskExecutor:
             "notification_channels": task.notification_channels or [],
             "created_at": task.created_at.isoformat() if task.created_at else None,
             "last_run_at": task.last_run_at.isoformat() if task.last_run_at else None,
-            "current_time": datetime.utcnow().isoformat(),
+            "current_time": get_current_time_for_logs(),
         }
 
         return context
@@ -196,12 +196,12 @@ class TaskExecutor:
 
     def _build_base_prompt(self, task: AITask, context: Dict[str, Any]) -> str:
         """Build the base prompt structure with professional formatting."""
-        current_time = datetime.now()
+        current_time = get_current_time_for_prompts()
         
         return f"""
 🎯 AI TASK EXECUTOR
 
-📅 Current time: {current_time.strftime('%Y-%m-%d %H:%M')}
+📅 Current time: {current_time}
 
 🎯 TASK EXECUTION REQUEST: {task.title or 'Execute scheduled AI task'}
 
@@ -516,7 +516,7 @@ You have a task to execute. This is a scheduled task that requires AI processing
             "task_id": task.id,
             "task_title": task.title,
             "task_type": task.task_type,
-            "execution_time": datetime.utcnow().isoformat(),
+            "execution_time": get_current_time_for_logs(),
             "ai_response": ai_response,
             "response_quality": response_quality,
             "extracted_info": extracted_info,
