@@ -5,9 +5,11 @@ This module provides the main tool interface for intelligent note management
 using specialized LLM calls for content enhancement and analysis.
 """
 
-from typing import Optional, Union, Dict, List
+from typing import Optional, Union, Dict
 
-from .llm_notes_enhancer import LLMNotesEnhancer, NoteType
+from .llm_notes_enhancer import LLMNotesEnhancer, StrategyEnhancedNote
+from .prompt_templates import NoteType
+from .note_internal import NoteInternal
 from ..base import Tool
 from ...llm.gemini import GeminiLLM
 from ...config.logging_config import get_logger
@@ -27,6 +29,9 @@ class EnhancedNotesTool:
         api_key = os.getenv("GEMINI_API_KEY")
         llm_client = GeminiLLM(api_key=api_key, model=settings.GEMINI_MODEL)
         self.llm_enhancer = LLMNotesEnhancer(llm_client)
+        
+        # Initialize internal functions
+        self.note_internal = NoteInternal(self.llm_enhancer)
         
         # Initialize user-specific Notion components
         from ..notion_pages.notion_internal_user_specific import UserSpecificNotionInternal
@@ -57,6 +62,10 @@ class EnhancedNotesTool:
                     "note_type": {
                         "type": "string",
                         "description": "Type of note: meeting, project, personal, research, learning, task, idea, journal (optional - will be auto-detected)"
+                    },
+                    "domain": {
+                        "type": "string",
+                        "description": "Domain specialization: technical, business, creative, academic, general (optional - defaults to general)"
                     },
                     "auto_tags": {
                         "type": "boolean", 
@@ -100,7 +109,7 @@ class EnhancedNotesTool:
         self.enhance_existing_note_tool = Tool(
             name="enhance_existing_note",
             func=self.enhance_existing_note,
-            description="ENHANCE NOTES: Find and enhance notes by search query or page ID. Use this for all note enhancement tasks. Can search by description or use specific page ID.",
+            description="ENHANCE NOTES: Find and enhance notes by search query or page ID. Supports smart strategies: replace (modify existing), append (add at end), insert (add at specific location). All strategies are valid and successful. CRITICAL: This tool completes the enhancement in ONE call and returns 'TASK COMPLETED' - NEVER retry if you see success messages. Use this for all note enhancement tasks.",
             parameters={
                 "type": "object",
                 "properties": {
@@ -111,6 +120,10 @@ class EnhancedNotesTool:
                     "page_id": {
                         "type": "string",
                         "description": "Specific Notion page ID of the note to enhance. Use this when you know the exact page ID."
+                    },
+                    "enhancement_request": {
+                        "type": "string",
+                        "description": "What you want to enhance or add to the note (e.g., 'add recent updates', 'update the timeline section', 'add action items after overview'). The AI will choose the best strategy (append/insert/replace) automatically."
                     },
                     "enhancement_type": {
                         "type": "string",
@@ -141,6 +154,34 @@ class EnhancedNotesTool:
             }
         )
         
+        # Delete note tool
+        self.delete_note_tool = Tool(
+            name="delete_note",
+            func=self.delete_note,
+            description="DELETE NOTES: Delete notes by search query or page ID. Use this to remove notes that are no longer needed. IMPORTANT: This action is irreversible.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "search_query": {
+                        "type": "string",
+                        "description": "Search query to find the note to delete (e.g., 'meeting notes from yesterday', 'old project notes'). Use this when you don't have the page ID."
+                    },
+                    "page_id": {
+                        "type": "string",
+                        "description": "Specific Notion page ID of the note to delete. Use this when you know the exact page ID."
+                    },
+                    "confirm_deletion": {
+                        "type": "boolean",
+                        "description": "Confirmation flag - must be true to actually delete the note. This prevents accidental deletions."
+                    }
+                },
+                "anyOf": [
+                    {"required": ["search_query", "confirm_deletion"]},
+                    {"required": ["page_id", "confirm_deletion"]}
+                ]
+            }
+        )
+        
     
     def __iter__(self):
         """Makes the class iterable to return all tools"""
@@ -148,7 +189,8 @@ class EnhancedNotesTool:
             self.create_enhanced_note_tool,
             self.smart_search_tool,
             self.enhance_existing_note_tool,
-            self.note_intelligence_tool
+            self.note_intelligence_tool,
+            self.delete_note_tool
         ])
     
     
@@ -157,11 +199,15 @@ class EnhancedNotesTool:
         content: str,
         title: Optional[str] = None,
         note_type: Optional[str] = None,
+        domain: Optional[str] = None,
         auto_tags: bool = True,
         user_id: Optional[int] = None
     ) -> Union[str, Dict]:
         """Create a new note with AI-powered enhancement"""
         try:
+                        # Create note in user's Notion workspace
+            if not user_id:
+                return "Error: User ID is required for creating notes"
             # Convert string note_type to enum if provided
             note_type_enum = None
             if note_type:
@@ -170,9 +216,11 @@ class EnhancedNotesTool:
                 except ValueError:
                     self.logger.warning(f"Invalid note type: {note_type}")
             
+            # Domain will be handled internally by the LLM enhancer
+            
             # Enhance content with LLM (always enhanced for this tool)
             enhanced_note = await self.llm_enhancer.enhance_note_content(
-                content, title, note_type_enum
+                content, title, note_type_enum, domain
             )
             
             # Use enhanced content and title
@@ -182,22 +230,12 @@ class EnhancedNotesTool:
             note_type = enhanced_note.note_type.value
             
             # Add metadata to content before creating the note
-            content_with_metadata = content
-            if tags or note_type:
-                content_with_metadata += "\n\n---\n**Metadata:**\n"
-                if note_type:
-                    content_with_metadata += f"**Category:** {note_type}\n"
-                if tags:
-                    content_with_metadata += f"**Tags:** {', '.join(tags)}\n"
+            content_with_metadata = self.note_internal.add_metadata_to_content(content, tags, note_type)
             
             # Ensure content is under 2000 characters for Notion compatibility
-            if len(content_with_metadata) > 2000:
-                self.logger.warning(f"Content truncated from {len(content_with_metadata)} to 2000 characters")
-                content_with_metadata = content_with_metadata[:1997] + "..."
+            content_with_metadata = self.note_internal.truncate_content_for_notion(content_with_metadata)
             
-            # Create note in user's Notion workspace
-            if not user_id:
-                return "Error: User ID is required for creating notes"
+
             
             # Get database session (this should be injected from the tool execution context)
             from personal_assistant.config.database import db_config
@@ -213,13 +251,7 @@ class EnhancedNotesTool:
             result = f"✅ Successfully created enhanced note '{title}' with ID: {note_page_id}"
             
             # Add enhancement summary
-            result += "\n\n📊 Enhancement Summary:"
-            result += f"\n• Note Type: {enhanced_note.note_type.value}"
-            result += f"\n• Confidence: {enhanced_note.confidence_score:.2f}"
-            result += f"\n• Tags: {', '.join(enhanced_note.suggested_tags)}"
-            result += f"\n• Key Topics: {', '.join(enhanced_note.key_topics)}"
-            if enhanced_note.action_items:
-                result += f"\n• Action Items: {', '.join(enhanced_note.action_items)}"
+            result += self.note_internal.format_enhancement_summary(enhanced_note, domain)
             
             return result
             
@@ -233,16 +265,28 @@ class EnhancedNotesTool:
     async def smart_search_notes(
         self,
         query: str,
-        note_type: Optional[str] = None,
-        tags: Optional[str] = None,
-        limit: int = 20
+        limit: int = 20,
+        user_id: Optional[int] = None
     ) -> Union[str, Dict]:
         """Search notes using Notion's native search API with LLM-based relevance selection"""
         try:
             self.logger.info(f"Performing smart search: {query}")
             
+            if not user_id:
+                self.logger.error("User ID is required for note search")
+                return {
+                    "error": "User ID is required for note search",
+                    "message": "Failed to search notes"
+                }
+            
+            # Get user's Notion client
+            from personal_assistant.config.database import db_config
+            async with db_config.get_session_context() as db:
+                notion_client = await self.notion_internal.get_user_client(db, user_id)
+                self.logger.info(f"Successfully obtained Notion client for user {user_id}")
+            
             # Use Notion's native search API
-            search_results = self.notion_client.search(
+            search_results = notion_client.search(
                 query=query,
                 filter={"property": "object", "value": "page"},
                 page_size=min(limit, 100)  # Notion API limit
@@ -257,61 +301,16 @@ class EnhancedNotesTool:
                 }
             
             # Extract note information
-            notes = []
-            for page in search_results["results"]:
-                # Get page title
-                page_title = (
-                    page.get("properties", {})
-                    .get("title", {})
-                    .get("title", [{}])[0]
-                    .get("plain_text", "")
-                )
-                
-                # Get page content preview
-                try:
-                    page_blocks = self.notion_client.blocks.children.list(page["id"])
-                    page_content = ""
-                    for block in page_blocks.get("results", []):
-                        if block["type"] == "paragraph":
-                            text = block["paragraph"]["rich_text"]
-                            page_content += "".join([t["plain_text"] for t in text])
-                except Exception:
-                    page_content = ""
-                
-                notes.append({
-                    "page_id": page["id"],
-                    "title": page_title,
-                    "preview": page_content[:200] + "..." if len(page_content) > 200 else page_content,
-                    "created_time": page.get("created_time", ""),
-                    "last_edited_time": page.get("last_edited_time", "")
-                })
+            notes = self.note_internal.format_notes_for_search(search_results, notion_client)
             
             # Use LLM to select the most relevant note
             if len(notes) > 1:
-                selected_note = await self._select_most_relevant_note(query, notes)
+                selected_note = await self.note_internal.select_most_relevant_note(query, notes)
             else:
                 selected_note = notes[0]
             
             # Format response with clear success indicators
-            response = {
-                "status": "success",
-                "action": "note_found",
-                "message": "Successfully found and selected the most relevant note",
-                "note": {
-                    "title": selected_note['title'],
-                    "page_id": selected_note['page_id'],
-                    "preview": selected_note['preview']
-                },
-                "search_stats": {
-                    "total_matches": len(notes),
-                    "query": query
-                }
-            }
-            
-            if len(notes) > 1:
-                response["search_stats"]["selection_method"] = "LLM-based relevance selection"
-            
-            return response
+            return self.note_internal.format_search_response(selected_note, notes, query)
             
         except Exception as e:
             self.logger.error(f"Error searching notes: {e}")
@@ -320,55 +319,14 @@ class EnhancedNotesTool:
                 "message": "Failed to search notes"
             }
     
-    async def _select_most_relevant_note(self, query: str, notes: List[Dict]) -> Dict:
-        """Use LLM to select the most relevant note from search results"""
-        try:
-            # Prepare notes data for LLM
-            notes_text = ""
-            for i, note in enumerate(notes, 1):
-                notes_text += f"{i}. **{note['title']}**\n"
-                notes_text += f"   Preview: {note['preview']}\n"
-                notes_text += f"   Created: {note['created_time']}\n\n"
-            
-            # Create LLM prompt for note selection
-            prompt = f"""
-You are a helpful assistant that selects the most relevant note based on a user's search query.
-
-User Query: "{query}"
-
-Available Notes:
-{notes_text}
-
-Please analyze the user query and the available notes, then select the most relevant one.
-
-Return ONLY the number (1, 2, 3, etc.) of the most relevant note. No explanation needed.
-"""
-            
-            # Get LLM response
-            response = await self.llm_enhancer._get_llm_response(prompt)
-            
-            # Extract the selected number
-            try:
-                selected_number = int(response.strip())
-                if 1 <= selected_number <= len(notes):
-                    return notes[selected_number - 1]
-                else:
-                    # Fallback to first note if invalid selection
-                    return notes[0]
-            except (ValueError, IndexError):
-                # Fallback to first note if parsing fails
-                return notes[0]
-                
-        except Exception as e:
-            self.logger.warning(f"Error in LLM note selection: {e}")
-            # Fallback to first note
-            return notes[0]
     
     async def enhance_existing_note(
         self,
         search_query: str = None,
         page_id: str = None,
-        enhancement_type: str = "all"
+        enhancement_request: str = "",
+        enhancement_type: str = "all",
+        user_id: Optional[int] = None
     ) -> Union[str, Dict]:
         """Enhance an existing note with AI improvements - can search by query or use page ID"""
         try:
@@ -390,92 +348,78 @@ Return ONLY the number (1, 2, 3, etc.) of the most relevant note. No explanation
                         return f"❌ Search failed: {search_result.get('message', 'Unknown error')}"
                 else:
                     # Fallback for old string format
-                    import re
                     if "No notes found" in search_result:
                         return f"❌ No notes found matching '{search_query}'"
                     
-                    id_match = re.search(r'\*\*ID:\*\* ([a-f0-9-]+)', search_result)
-                    if not id_match:
+                    page_id = self.note_internal.parse_search_result_for_page_id(search_result)
+                    if not page_id:
                         return "❌ Error: Could not extract page ID from search results"
                     
-                    page_id = id_match.group(1)
-                    title_match = re.search(r'\*\*Title:\*\* (.+)', search_result)
-                    title = title_match.group(1) if title_match else "Unknown"
+                    title = self.note_internal.parse_search_result_for_title(search_result) or "Unknown"
             
             elif not page_id:
                 return "❌ Error: Either search_query or page_id must be provided"
             
             # Clean the page_id to remove any newlines or whitespace
-            page_id = page_id.strip()
+            page_id = self.note_internal.clean_page_id(page_id)
             self.logger.info(f"Enhancing existing note: {page_id}")
             self.logger.debug(f"Page ID length: {len(page_id)}, repr: {repr(page_id)}")
             
+            # Get user's Notion client
+            from personal_assistant.config.database import db_config
+            async with db_config.get_session_context() as db:
+                notion_client = await self.notion_internal.get_user_client(db, user_id)
+                self.logger.info(f"Successfully obtained Notion client for user {user_id}")
+            
             # Get current note content
-            page = self.notion_client.pages.retrieve(page_id)
-            blocks = self.notion_client.blocks.children.list(page_id)
+            page = notion_client.pages.retrieve(page_id)
+            blocks = notion_client.blocks.children.list(page_id)
             
             # Extract content
-            content = ""
-            for block in blocks.get("results", []):
-                if block["type"] == "paragraph":
-                    text = block["paragraph"]["rich_text"]
-                    content += "".join([t["plain_text"] for t in text]) + "\n"
-            
-            # Clean up content - remove excessive newlines and strip
-            content = content.strip()
+            content = self.note_internal.extract_note_content(blocks)
             
             # Get title (use from search if available, otherwise get from page)
             if 'title' not in locals():
-                title = (
-                    page.get("properties", {})
-                    .get("title", {})
-                    .get("title", [{}])[0]
-                    .get("plain_text", "")
-                )
+                title = self.note_internal.extract_note_title(page)
             
             # Handle empty notes by creating content based on the title
             if not content.strip():
                 self.logger.info(f"Note '{title}' is empty, creating content based on title")
-                # Create basic content from the title for enhancement
-                content = f"# {title}\n\nThis note is currently empty. Let's add some content to make it more useful and informative."
+                content = self.note_internal.create_empty_note_content(title)
             
-            # Enhance based on type
+            # Use strategy-aware enhancement
             if enhancement_type in ["structure", "all"]:
-                enhanced_note = await self.llm_enhancer.enhance_existing_note_content(content, title)
+                # Add a simple check to prevent duplicate enhancements
+                if not self.note_internal.validate_enhancement_request(enhancement_request):
+                    self.logger.warning("No enhancement request provided, skipping enhancement")
+                    return f"✅ Note '{title}' accessed successfully (no enhancement requested)"
                 
-                # Update content if enhanced
-                if enhanced_note.enhanced_content != content:
-                    # Ensure content is under 2000 characters for Notion compatibility
-                    enhanced_content = enhanced_note.enhanced_content
-                    if len(enhanced_content) > 2000:
-                        self.logger.warning(f"Enhanced content truncated from {len(enhanced_content)} to 2000 characters")
-                        enhanced_content = enhanced_content[:1997] + "..."
-                    
-                    # Clear existing content (skip archived blocks)
-                    for block in blocks.get("results", []):
-                        try:
-                            # Check if block is archived before trying to delete
-                            if not block.get("archived", False):
-                                self.notion_client.blocks.delete(block["id"])
-                        except Exception as e:
-                            self.logger.warning(f"Could not delete block {block['id']}: {e}")
-                            # Continue with other blocks even if one fails
-                    
-                    # Add enhanced content
-                    self.notion_client.blocks.children.append(
-                        page_id,
-                        children=[
-                            {
-                                "object": "block",
-                                "type": "paragraph",
-                                "paragraph": {
-                                    "rich_text": [
-                                        {"type": "text", "text": {"content": enhanced_content}}
-                                    ]
-                                }
-                            }
-                        ]
-                    )
+                strategy_note = await self.llm_enhancer.enhance_note_with_strategy(
+                    content, title, enhancement_request
+                )
+                
+                # Apply the determined strategy
+                result = await self.apply_enhancement_strategy(page_id, strategy_note, notion_client)
+                
+                # Add explicit completion message at the start
+                result = "🎯 ENHANCEMENT TASK COMPLETED SUCCESSFULLY\n" + result
+                
+                # Add clear completion status with proper formatting
+                result += "\n\n🎯 ENHANCEMENT COMPLETED SUCCESSFULLY"
+                result += f"\n📊 Strategy Used: {strategy_note.update_strategy.title()}"
+                result += f"\n💭 AI Reasoning: {strategy_note.reasoning}"
+                if strategy_note.insertion_point:
+                    result += f"\n📍 Target Location: {strategy_note.insertion_point}"
+                result += f"\n📝 Note Type: {strategy_note.note_type.value.title()}"
+                result += f"\n🎯 Confidence: {strategy_note.confidence_score:.2f}"
+                if strategy_note.key_topics:
+                    result += f"\n🔑 Key Topics: {', '.join(strategy_note.key_topics)}"
+                if strategy_note.action_items:
+                    result += f"\n✅ Action Items: {', '.join(strategy_note.action_items)}"
+                
+                result += "\n\n✨ TASK COMPLETED: The note has been successfully enhanced. No further action needed."
+                
+                return result
             
             if enhancement_type in ["tags", "all"]:
                 # Note: Tags cannot be added to regular pages in Notion
@@ -483,49 +427,142 @@ Return ONLY the number (1, 2, 3, etc.) of the most relevant note. No explanation
                 # For now, we'll skip tag updates for regular pages
                 self.logger.info("Tag updates skipped - regular pages cannot have custom properties")
             
-            # Create a clear success message similar to create_enhanced_note
-            result = f"✅ Successfully enhanced note '{title}' with {enhancement_type} improvements"
-            result += f"\n• Note ID: {page_id}"
-            result += f"\n• Enhancement Type: {enhancement_type}"
-            
-            # Add enhancement details if available
-            if 'enhanced_note' in locals():
-                result += f"\n• Key Topics: {', '.join(enhanced_note.key_topics)}"
-                if enhanced_note.action_items:
-                    result += f"\n• Action Items: {', '.join(enhanced_note.action_items)}"
-                if enhanced_note.suggested_tags:
-                    result += f"\n• Suggested Tags: {', '.join(enhanced_note.suggested_tags)}"
-            
-            return result
+            # If we get here without enhancement, return basic success message
+            return f"✅ Note '{title}' processed successfully"
             
         except Exception as e:
             self.logger.error(f"Error enhancing existing note: {e}")
             return f"❌ Error: Failed to enhance note - {str(e)}"
     
+    async def apply_enhancement_strategy(
+        self, 
+        page_id: str, 
+        strategy_note: StrategyEnhancedNote,
+        notion_client
+    ) -> str:
+        """Apply the determined enhancement strategy"""
+        
+        if strategy_note.update_strategy == "replace":
+            return await self._apply_replace_strategy(page_id, strategy_note, notion_client)
+        elif strategy_note.update_strategy == "append":
+            return await self._apply_append_strategy(page_id, strategy_note, notion_client)
+        elif strategy_note.update_strategy == "insert":
+            return await self._apply_insert_strategy(page_id, strategy_note, notion_client)
+        else:
+            # Fallback to replace
+            self.logger.warning(f"Unknown strategy '{strategy_note.update_strategy}', falling back to replace")
+            return await self._apply_replace_strategy(page_id, strategy_note, notion_client)
+
+    async def _apply_replace_strategy(self, page_id: str, strategy_note: StrategyEnhancedNote, notion_client):
+        """Apply replace strategy (current behavior)"""
+        try:
+            # Clear existing content
+            blocks = notion_client.blocks.children.list(page_id)
+            for block in blocks.get("results", []):
+                if not block.get("archived", False):
+                    notion_client.blocks.delete(block["id"])
+            
+            # Add enhanced content
+            notion_client.blocks.children.append(
+                page_id,
+                children=[{
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [{"type": "text", "text": {"content": strategy_note.new_content}}]
+                    }
+                }]
+            )
+            return "✅ SUCCESS: Note content replaced with enhanced version. TASK COMPLETED."
+        except Exception as e:
+            self.logger.error(f"Error in replace strategy: {e}")
+            return f"❌ Error applying replace strategy: {str(e)}"
+
+    async def _apply_append_strategy(self, page_id: str, strategy_note: StrategyEnhancedNote, notion_client):
+        """Apply append strategy - add new content at the end"""
+        try:
+            # Add new content at the end
+            notion_client.blocks.children.append(
+                page_id,
+                children=[{
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [{"type": "text", "text": {"content": strategy_note.new_content}}]
+                    }
+                }]
+            )
+            return "✅ SUCCESS: New content added to the end of the note. TASK COMPLETED."
+        except Exception as e:
+            self.logger.error(f"Error in append strategy: {e}")
+            return f"❌ Error applying append strategy: {str(e)}"
+
+    async def _apply_insert_strategy(self, page_id: str, strategy_note: StrategyEnhancedNote, notion_client):
+        """Apply insert strategy - add content at specific location"""
+        try:
+            self.logger.info(f"Applying insert strategy at: {strategy_note.insertion_point}")
+            
+            # Get current blocks to find insertion point
+            blocks_response = notion_client.blocks.children.list(page_id)
+            blocks = blocks_response.get("results", [])
+            
+            # Find the best insertion point based on content analysis
+            insert_after_block_id = self.note_internal.get_insertion_point_from_strategy(
+                strategy_note.insertion_point, blocks
+            )
+            
+            # Insert the new content
+            if insert_after_block_id:
+                # Insert after the specified block
+                notion_client.blocks.children.append(
+                    page_id,
+                    children=[{
+                        "object": "block",
+                        "type": "paragraph",
+                        "paragraph": {
+                            "rich_text": [{"type": "text", "text": {"content": strategy_note.new_content}}]
+                        }
+                    }],
+                    after=insert_after_block_id
+                )
+                return "✅ SUCCESS: New content inserted at the specified location. TASK COMPLETED."
+            else:
+                # Fall back to append if no specific location found
+                return await self._apply_append_strategy(page_id, strategy_note, notion_client)
+                
+        except Exception as e:
+            self.logger.error(f"Error in insert strategy: {e}")
+            # Fall back to append on error
+            return await self._apply_append_strategy(page_id, strategy_note, notion_client)
+    
     async def get_note_intelligence(
         self,
-        page_id: str
+        page_id: str,
+        user_id: Optional[int] = None
     ) -> Union[str, Dict]:
         """Get AI-powered insights and suggestions for a note"""
         try:
             self.logger.info(f"Getting note intelligence for: {page_id}")
             
+            if not user_id:
+                self.logger.error("User ID is required for note intelligence")
+                return {
+                    "error": "User ID is required for note intelligence",
+                    "message": "Failed to get note intelligence"
+                }
+            
+            # Get user's Notion client
+            from personal_assistant.config.database import db_config
+            async with db_config.get_session_context() as db:
+                notion_client = await self.notion_internal.get_user_client(db, user_id)
+                self.logger.info(f"Successfully obtained Notion client for user {user_id}")
+            
             # Get note content
-            page = self.notion_client.pages.retrieve(page_id)
-            blocks = self.notion_client.blocks.children.list(page_id)
+            page = notion_client.pages.retrieve(page_id)
+            blocks = notion_client.blocks.children.list(page_id)
             
-            content = ""
-            for block in blocks.get("results", []):
-                if block["type"] == "paragraph":
-                    text = block["paragraph"]["rich_text"]
-                    content += "".join([t["plain_text"] for t in text]) + "\n"
-            
-            title = (
-                page.get("properties", {})
-                .get("title", {})
-                .get("title", [{}])[0]
-                .get("plain_text", "")
-            )
+            content = self.note_internal.extract_note_content(blocks)
+            title = self.note_internal.extract_note_title(page)
             
             if not content.strip():
                 return "No content found in note to analyze"
@@ -534,39 +571,7 @@ Return ONLY the number (1, 2, 3, etc.) of the most relevant note. No explanation
             enhanced_note = await self.llm_enhancer.enhance_note_content(content, title)
             
             # Format intelligence report
-            report = f"🧠 Note Intelligence Report for '{title}':\n\n"
-            report += "📊 Analysis:\n"
-            report += f"• Note Type: {enhanced_note.note_type.value}\n"
-            report += f"• Confidence Score: {enhanced_note.confidence_score:.2f}\n\n"
-            
-            if enhanced_note.key_topics:
-                report += "🎯 Key Topics:\n"
-                for topic in enhanced_note.key_topics:
-                    report += f"• {topic}\n"
-                report += "\n"
-            
-            if enhanced_note.action_items:
-                report += "✅ Action Items:\n"
-                for item in enhanced_note.action_items:
-                    report += f"• {item}\n"
-                report += "\n"
-            
-            if enhanced_note.important_details:
-                report += "💡 Important Details:\n"
-                for detail in enhanced_note.important_details:
-                    report += f"• {detail}\n"
-                report += "\n"
-            
-            if enhanced_note.suggested_tags:
-                report += "🏷️ Suggested Tags:\n"
-                report += f"• {', '.join(enhanced_note.suggested_tags)}\n\n"
-            
-            if enhanced_note.structure_suggestions:
-                report += "📝 Structure Suggestions:\n"
-                for suggestion in enhanced_note.structure_suggestions:
-                    report += f"• {suggestion}\n"
-            
-            return report
+            return self.note_internal.format_intelligence_report(enhanced_note, title)
             
         except Exception as e:
             self.logger.error(f"Error getting note intelligence: {e}")
@@ -575,11 +580,78 @@ Return ONLY the number (1, 2, 3, etc.) of the most relevant note. No explanation
                 "message": "Failed to get note intelligence"
             }
     
+    async def delete_note(
+        self,
+        search_query: str = None,
+        page_id: str = None,
+        confirm_deletion: bool = False,
+        user_id: Optional[int] = None
+    ) -> Union[str, Dict]:
+        """Delete a note by search query or page ID with confirmation"""
+        try:
+            # Validate confirmation
+            if not confirm_deletion:
+                return "❌ Deletion not confirmed. Set confirm_deletion=true to proceed with deletion."
+            
+            # Determine if we need to search first
+            if search_query and not page_id:
+                self.logger.info(f"Searching for note to delete: {search_query}")
+                
+                # Get user's Notion client
+                from personal_assistant.config.database import db_config
+                async with db_config.get_session_context() as db:
+                    notion_client = await self.notion_internal.get_user_client(db, user_id)
+                    self.logger.info(f"Successfully obtained Notion client for user {user_id}")
+                
+                # Search for notes
+                search_results = notion_client.search(
+                    query=search_query,
+                    filter={"property": "object", "value": "page"}
+                )
+                
+                notes = search_results.get("results", [])
+                if not notes:
+                    return f"❌ No notes found matching search query: '{search_query}'"
+                
+                # Use LLM to select the best note if multiple found
+                if len(notes) > 1:
+                    selected_note = await self.note_internal.select_best_note_for_deletion(notes, search_query)
+                else:
+                    selected_note = notes[0]
+                
+                page_id = selected_note["id"]
+            
+            # Validate page_id
+            if not page_id:
+                return "❌ Error: No page ID provided for deletion"
+            
+            # Get user's Notion client
+            from personal_assistant.config.database import db_config
+            async with db_config.get_session_context() as db:
+                notion_client = await self.notion_internal.get_user_client(db, user_id)
+                self.logger.info(f"Successfully obtained Notion client for user {user_id}")
+            
+            # Get note details before deletion
+            try:
+                page = notion_client.pages.retrieve(page_id)
+                title = self.note_internal.extract_note_title(page) or "Untitled"
+            except Exception as e:
+                self.logger.warning(f"Could not retrieve page details: {e}")
+                title = "Unknown"
+            
+            # Archive the page (Notion's way of "deleting")
+            notion_client.pages.update(
+                page_id,
+                archived=True
+            )
+            
+            self.logger.info(f"Successfully deleted note: {title} (ID: {page_id})")
+            
+            return f"✅ Successfully deleted note '{title}' (ID: {page_id})"
+            
+        except Exception as e:
+            self.logger.error(f"Error deleting note: {e}")
+            return f"❌ Error: Failed to delete note - {str(e)}"
     
-    def _generate_simple_title(self, content: str) -> str:
-        """Generate a simple title from content"""
-        lines = content.split('\n')
-        first_line = lines[0].strip()
-        if len(first_line) > 50:
-            return first_line[:47] + "..."
-        return first_line or "Untitled Note"
+    
+    

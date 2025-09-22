@@ -115,6 +115,10 @@ class EmailTool:
                     "description": "Number of emails per batch (default: 10)",
                     "default": 10,
                 },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
+                },
             },
         )
 
@@ -136,6 +140,10 @@ class EmailTool:
                     "type": "boolean",
                     "description": "Whether the body is HTML format (default: false)",
                 },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
+                },
             },
         )
 
@@ -147,6 +155,10 @@ class EmailTool:
                 "email_id": {
                     "type": "string",
                     "description": "The ID of the email message to delete",
+                },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
                 }
             },
         )
@@ -159,6 +171,10 @@ class EmailTool:
                 "email_id": {
                     "type": "string",
                     "description": "The ID of the email message to get content from",
+                },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
                 }
             },
         )
@@ -175,6 +191,10 @@ class EmailTool:
                 "batch_size": {
                     "type": "integer",
                     "description": "Number of emails per batch (default: 10)",
+                },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
                 },
             },
         )
@@ -216,6 +236,10 @@ class EmailTool:
                     "type": "string",
                     "description": "Folder to search in (inbox, sentitems, drafts, etc., default: inbox)",
                 },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
+                },
             },
         )
 
@@ -232,6 +256,10 @@ class EmailTool:
                     "type": "string",
                     "description": "Destination folder name (e.g., 'Archive', 'Junk', 'Deleted Items', or custom folder name)",
                 },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
+                },
             },
         )
 
@@ -239,7 +267,12 @@ class EmailTool:
             name="find_all_email_folders",
             func=self.find_all_email_folders,
             description="Get a list of all available email folders (Inbox, Sent Items, Drafts, Archive, Junk, Deleted Items, and custom folders)",
-            parameters={},
+            parameters={
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
+                },
+            },
         )
 
         self.create_email_folder_tool = Tool(
@@ -259,6 +292,10 @@ class EmailTool:
                     "type": "string",
                     "description": "ID of the parent folder (optional, defaults to root if not specified)",
                     "default": None,
+                },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
                 },
             },
         )

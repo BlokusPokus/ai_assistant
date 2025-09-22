@@ -9,6 +9,7 @@ from .internet.internet_tool import InternetTool
 from .ltm.ltm_tool import LTMTool
 from .notion_pages.notion_pages_tool import NotionPagesTool
 from .notes.enhanced_notes_tool import EnhancedNotesTool
+from .grocery.grocery_deals_tool import GroceryDealsTool
 
 # Configure module logger
 from .planning.llm_planner import LLMPlannerTool
@@ -93,6 +94,12 @@ def create_tool_registry() -> ToolRegistry:
     for tool in todo_tools:
         registry.register(tool)
 
+    # Register grocery deals tools
+    grocery_deals_tool = GroceryDealsTool()
+    for tool in grocery_deals_tool:
+        tool.set_category("GroceryDeals")
+        registry.register(tool)
+
     return registry
 
 
@@ -107,6 +114,7 @@ __all__ = [
     "ReminderTool",
     "InternetTool",
     "YouTubeTool",
+    "GroceryDealsTool",
     "create_todo_tools",
     # 'ResearchTool',
     "create_tool_registry",
