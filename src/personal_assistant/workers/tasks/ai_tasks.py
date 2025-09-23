@@ -84,8 +84,8 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
 
     try:
         # Get due tasks
-        logger.info("🔍 DATABASE QUERY: Checking for due tasks...")
-        print("🔍 DATABASE QUERY: Checking for due tasks...")
+        logger.info(f"🔍 DATABASE QUERY: Checking for due tasks...")
+        print(f"🔍 DATABASE QUERY: Checking for due tasks...")
         
         due_tasks = await task_manager.get_due_tasks(limit=50)
         logger.info(f"📊 DUE TASKS FOUND: {len(due_tasks)} due AI tasks")
@@ -127,34 +127,23 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
                 execution_result = await task_executor.execute_task(task)
                 print(f"🔍 BREAKPOINT 8: TaskExecutor.execute_task completed, result: {execution_result}")
 
-                # Calculate next run time for recurring tasks
-                next_run_at = None
-                if task.schedule_type != "once":
-                    next_run_at = await task_manager.calculate_next_run(
-                        task.schedule_type, 
-                        task.schedule_config
-                    )
-                    logger.info(f"🔄 Rescheduling recurring task {task.id} ({task.schedule_type}) for next run at: {next_run_at}")
-                    print(f"🔄 Rescheduling recurring task {task.id} ({task.schedule_type}) for next run at: {next_run_at}")
-
-                # Mark task as completed (or active for recurring tasks)
-                task_status = "active" if task.schedule_type != "once" else "completed"
+                # Mark task as completed
+                #TODO: Handle when task are designed to be done more than once
                 await task_manager.update_task_status(
                     task_id=int(task.id),
-                    status=task_status,
+                    status="completed",
                     last_run_at=datetime.utcnow(),
-                    next_run_at=next_run_at,
                 )
 
                 # Send notification if configured
                 if task.should_notify():
-                    print("🔍 BREAKPOINT 9: About to send SMS notification")
+                    print(f"🔍 BREAKPOINT 9: About to send SMS notification")
                     await notification_service.send_task_completion_notification(
                         task, execution_result
                     )
-                    print("🔍 BREAKPOINT 10: SMS notification sent")
+                    print(f"🔍 BREAKPOINT 10: SMS notification sent")
                 else:
-                    print("🔍 BREAKPOINT 9: Task should_notify() returned False, skipping SMS")
+                    print(f"🔍 BREAKPOINT 9: Task should_notify() returned False, skipping SMS")
 
                 processed_tasks += 1
                 results.append(
@@ -177,23 +166,11 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
                 logger.error(f"Failed to process AI task {task.id}: {e}")
                 failed_tasks += 1
 
-                # Calculate next run time for recurring tasks (even if failed)
-                next_run_at = None
-                if task.schedule_type != "once":
-                    next_run_at = await task_manager.calculate_next_run(
-                        task.schedule_type, 
-                        task.schedule_config
-                    )
-                    logger.info(f"🔄 Rescheduling failed recurring task {task.id} ({task.schedule_type}) for next run at: {next_run_at}")
-                    print(f"🔄 Rescheduling failed recurring task {task.id} ({task.schedule_type}) for next run at: {next_run_at}")
-
-                # Mark task as failed (but keep active for recurring tasks)
-                task_status = "active" if task.schedule_type != "once" else "failed"
+                # Mark task as failed
                 await task_manager.update_task_status(
                     task_id=int(task.id),
-                    status=task_status,
+                    status="failed",
                     last_run_at=datetime.utcnow(),
-                    next_run_at=next_run_at,
                 )
 
                 results.append(

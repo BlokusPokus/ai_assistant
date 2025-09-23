@@ -105,8 +105,10 @@ Return ONLY valid JSON in this exact format:
     "smart_tags": ["tag1", "tag2", "tag3"],
     "enhanced_content": "improved content with better structure",
     "enhanced_title": "clear, descriptive title for the note",
-    "confidence_score": 0.85
+    "confidence_score": 0.85,
+    "follow_up_questions": ["question1", "question2", "question3"]
 }}
+Note: Only include "follow_up_questions" if you need clarification to create a better note.
 """,
             "existing_note_enhancement": """
 You are a specialized note improvement AI. You are enhancing an EXISTING note that the user has already created. Your job is to improve what's already there, not create something new.
