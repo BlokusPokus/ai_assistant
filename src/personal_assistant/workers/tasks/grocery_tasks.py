@@ -6,7 +6,7 @@ This module handles grocery-related background tasks including:
 - Data processing and cleaning
 - Database storage with cleanup
 """
-import os
+
 import asyncio
 import logging
 import re
@@ -218,7 +218,7 @@ def _get_iga_endpoint_from_config() -> Dict[str, str]:
     
     Environment Variables:
         IGA_PUBLICATION_ID: Current publication ID (e.g., "7502970")
-        IGA_ACCESS_TOKEN: Current access token (e.g., "REPLACE_WITH_ACTUAL_TOKEN")
+        IGA_ACCESS_TOKEN: Current access token (e.g., "692be3f8ba9e9247dc13d064cb89e7f9")
     
     Returns:
         Dict with 'publication_id' and 'access_token' keys
@@ -226,7 +226,7 @@ def _get_iga_endpoint_from_config() -> Dict[str, str]:
     import os
     
     publication_id = os.getenv("IGA_PUBLICATION_ID", "7502970")
-    access_token = os.getenv("IGA_ACCESS_TOKEN", "REPLACE_WITH_ACTUAL_TOKEN")
+    access_token = os.getenv("IGA_ACCESS_TOKEN", "692be3f8ba9e9247dc13d064cb89e7f9")
     
     logger.info(f"📋 Using IGA publication ID from config: {publication_id}")
     logger.info(f"🔑 Using IGA access token from config: {access_token[:10]}...")
@@ -382,7 +382,7 @@ async def _discover_iga_endpoint() -> Dict[str, str]:
     logger.warning("💡 Manual update required: Set IGA_PUBLICATION_ID and IGA_ACCESS_TOKEN environment variables")
     return {
         "publication_id": "7502970",
-        "access_token": "REPLACE_WITH_ACTUAL_TOKEN"
+        "access_token": "692be3f8ba9e9247dc13d064cb89e7f9"
     }
 
 
@@ -397,7 +397,7 @@ async def _try_alternative_endpoints() -> Optional[Dict[str, str]]:
         # Method 1: Try common publication ID patterns with multiple access tokens
         base_id = 7502970
         known_tokens = [
-            "REPLACE_WITH_ACTUAL_TOKEN",  # Current working token
+            "692be3f8ba9e9247dc13d064cb89e7f9",  # Current working token
             # Add more tokens here as we discover them
         ]
         
@@ -535,8 +535,7 @@ async def _discover_access_tokens() -> List[str]:
         # - Domain-specific tokens
         
         # Try some common patterns (this is experimental)
-        # TODO: Replace with environment variable or secure token management
-        base_token = os.getenv("IGA_API_TOKEN", "REPLACE_WITH_ACTUAL_TOKEN")
+        base_token = "692be3f8ba9e9247dc13d064cb89e7f9"
         # Try variations of the current token
         token_variations = [
             base_token,  # Current working token

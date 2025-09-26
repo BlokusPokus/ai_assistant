@@ -204,11 +204,11 @@ class EnhancedPromptBuilder:
         ):
             required_tools.append("note_tool")
 
-        # Planning tasks
+        # Planning/automation tasks
         if any(
-            word in input_lower for word in ["plan", "organize", "coordinate", "manage"]
+            word in input_lower for word in ["plan", "organize", "coordinate", "manage", "automated", "automation", "repetitive", "schedule", "daily", "weekly", "monthly"]
         ):
-            required_tools.append("ai_task_scheduler")
+            required_tools.append("create_reminder")
 
         logger.debug(
             f"Analyzed tool requirements: {required_tools} for input: {user_input[:50]}..."
@@ -283,6 +283,9 @@ class EnhancedPromptBuilder:
 📋 **Description**: {metadata_dict.get('description', 'No description available')}
 🏷️ **Category**: {metadata_dict.get('category', 'General')}
 ⚡ **Complexity**: {metadata_dict.get('complexity', 'Unknown')}
+
+🎯 **AI INSTRUCTIONS (CRITICAL - MUST FOLLOW)**:
+{metadata_dict.get('ai_instructions', 'No specific instructions available')}
 
 🎯 **Use Cases**:"""
 

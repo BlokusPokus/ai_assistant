@@ -16,7 +16,7 @@ from .grocery.grocery_deals_tool import GroceryDealsTool
 from .reminders.reminder_tool import ReminderTool
 from .todos.todo_tool import create_todo_tools
 from .youtube.youtube_tool import YouTubeTool
-from .ai_tasks.ai_task_tool import AgentWorkflowTool
+from .ai_tasks.ai_task_tool import ConversationTaskTool
 
 logger = get_logger("tools")
 
@@ -102,9 +102,9 @@ def create_tool_registry() -> ToolRegistry:
         registry.register(tool)
 
     # Register AI agent workflow management tools
-    agent_workflow_tool = AgentWorkflowTool()
-    for tool in agent_workflow_tool:
-        tool.set_category("AgentWorkflow")
+    conversation_task_tool = ConversationTaskTool()
+    for tool in conversation_task_tool:
+        tool.set_category("ConversationTasks")
         registry.register(tool)
 
     return registry

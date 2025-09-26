@@ -127,13 +127,38 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
                 execution_result = await task_executor.execute_task(task)
                 print(f"🔍 BREAKPOINT 8: TaskExecutor.execute_task completed, result: {execution_result}")
 
-                # Mark task as completed
-                #TODO: Handle when task are designed to be done more than once
-                await task_manager.update_task_status(
-                    task_id=int(task.id),
-                    status="completed",
-                    last_run_at=datetime.utcnow(),
-                )
+                # Handle task completion and rescheduling
+                if task.schedule_type == "once":
+                    # One-time tasks are marked as completed
+                    await task_manager.update_task_status(
+                        task_id=int(task.id),
+                        status="completed",
+                        last_run_at=datetime.utcnow(),
+                    )
+                else:
+                    # Recurring tasks: calculate next run time and keep status as active
+                    next_run_at = await task_manager.calculate_next_run(
+                        schedule_type=task.schedule_type,
+                        schedule_config=task.schedule_config,
+                        current_time=datetime.utcnow()
+                    )
+                    
+                    if next_run_at:
+                        await task_manager.update_task_status(
+                            task_id=int(task.id),
+                            status="active",  # Keep as active for recurring tasks
+                            last_run_at=datetime.utcnow(),
+                            next_run_at=next_run_at,
+                        )
+                        logger.info(f"Rescheduled recurring task {task.id} for next run at {next_run_at}")
+                    else:
+                        # If we can't calculate next run, mark as completed
+                        await task_manager.update_task_status(
+                            task_id=int(task.id),
+                            status="completed",
+                            last_run_at=datetime.utcnow(),
+                        )
+                        logger.warning(f"Could not calculate next run for task {task.id}, marking as completed")
 
                 # Send notification if configured
                 if task.should_notify():

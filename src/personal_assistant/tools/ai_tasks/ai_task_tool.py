@@ -11,14 +11,14 @@ from .ai_task_models import AITask, TaskStatus, TaskComplexity
 logger = get_logger("ai_task_tool")
 
 
-class AgentWorkflowTool:
-    """Tool for AI agent to manage its own workflow tasks during conversation."""
+class ConversationTaskTool:
+    """Tool for AI agent to manage conversation-based tasks for complex SMS requests."""
     
     def __init__(self):
-        self.workflow_manager_tool = Tool(
-            name="agent_workflow_manager",
+        self.conversation_task_tool = Tool(
+            name="conversation_task_manager",
             func=self._run,
-            description="Manage AI agent's internal workflow tasks for complex operations. Create, update, and track agent workflow with dependencies.",
+            description="CONVERSATION TASKS: Break down complex SMS requests into manageable steps. Use for multi-step AI operations during conversations (e.g., 'analyze my emails and tell me what to do'). Tasks are session-based and temporary.",
             parameters={
                 "type": "object",
                 "properties": {
@@ -70,7 +70,7 @@ class AgentWorkflowTool:
     
     def __iter__(self):
         """Makes the class iterable to return all tools"""
-        return iter([self.workflow_manager_tool])
+        return iter([self.conversation_task_tool])
     
     async def _run(
         self,

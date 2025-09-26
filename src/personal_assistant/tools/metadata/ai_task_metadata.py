@@ -30,7 +30,7 @@ def create_ai_task_metadata() -> ToolMetadata:
                 "task_type": "reminder",
                 "schedule_type": "once",
                 "next_run_at": "tomorrow at 2pm",
-                "ai_context": "User wants to be reminded to call the dentist about scheduling a checkup. This is important for their oral health and they want to stay proactive about preventive care.",
+                "ai_context": "EXECUTION PLAN: 1) Check current time and calculate reminder timing 2) Send personalized SMS reminder with dentist contact info if available 3) Include motivation about preventive care benefits 4) Log reminder interaction for tracking 5) Follow up if no response after 24 hours. CONTEXT: User needs to schedule dental checkup for preventive care. Timing is flexible but should be during business hours.",
                 "notification_channels": ["sms"],
                 "user_id": 126,
             },
@@ -50,7 +50,7 @@ def create_ai_task_metadata() -> ToolMetadata:
                 "schedule_type": "daily",
                 "schedule_config": {"interval": "daily", "time": "08:00"},
                 "next_run_at": "every day at 8am",
-                "ai_context": "User needs a daily reminder to take their morning medication. This is part of their health routine and consistency is important for effectiveness.",
+                "ai_context": "EXECUTION PLAN: 1) Check user's medication schedule and current time 2) Verify if medication was already taken today by checking recent activity logs 3) If not taken, send personalized reminder with medication name and dosage 4) If already taken, send confirmation message 5) Log the interaction for tracking compliance. CONTEXT: User has prescribed morning medication that must be taken consistently for health management. Timing is critical for effectiveness.",
                 "notification_channels": ["sms"],
                 "user_id": 126,
             },
@@ -70,7 +70,7 @@ def create_ai_task_metadata() -> ToolMetadata:
                 "schedule_type": "daily",
                 "schedule_config": {"interval": "daily", "time": "09:00", "weekdays_only": True},
                 "next_run_at": "every weekday at 9am",
-                "ai_context": "User needs a daily work reminder for their team standup. This helps them prepare updates and stay engaged with their team's progress.",
+                "ai_context": "EXECUTION PLAN: 1) Check current time against meeting schedule 2) Send reminder 15 minutes before standup with preparation checklist 3) Include previous day's action items if available 4) Provide quick access to project status updates 5) Log meeting attendance for team tracking. CONTEXT: User participates in daily team standup meetings. Preparation includes reviewing yesterday's work and planning today's priorities.",
                 "notification_channels": ["sms"],
                 "user_id": 126,
             },
@@ -90,7 +90,7 @@ def create_ai_task_metadata() -> ToolMetadata:
                 "schedule_type": "custom",
                 "schedule_config": {"interval": "2_hours", "start_time": "09:00", "end_time": "17:00"},
                 "next_run_at": "every 2 hours from 9am to 5pm",
-                "ai_context": "User wants to stay hydrated during work hours. This regular reminder helps them maintain their health and energy levels throughout the day.",
+                "ai_context": "EXECUTION PLAN: 1) Track water intake intervals during work hours (9am-5pm) 2) Send gentle reminder every 2 hours with hydration tips 3) Include water intake tracking if available 4) Adjust frequency based on user response patterns 5) Provide hydration benefits motivation. CONTEXT: User wants to maintain proper hydration during work hours for health and productivity. Regular gentle reminders are preferred.",
                 "notification_channels": ["push"],
                 "user_id": 126,
             },
@@ -109,7 +109,7 @@ def create_ai_task_metadata() -> ToolMetadata:
                 "task_type": "reminder",
                 "schedule_type": "once",
                 "next_run_at": "this saturday at 10am",
-                "ai_context": "User needs to remember to buy groceries this weekend. This is part of their weekly routine and helps them plan for the week ahead.",
+                "ai_context": "EXECUTION PLAN: 1) Check weekend schedule and suggest optimal shopping time 2) Include grocery list if available or prompt user to create one 3) Send reminder with store hours and location info 4) Provide meal planning suggestions for the week 5) Follow up after shopping to track completion. CONTEXT: User has weekly grocery shopping routine for meal planning. Weekend timing works best for their schedule.",
                 "notification_channels": ["sms"],
                 "user_id": 126,
             },
@@ -121,21 +121,21 @@ def create_ai_task_metadata() -> ToolMetadata:
         ToolUseCase(
             name="Set Complex Automated Task",
             description="Create AI-executed tasks that require analysis and decision-making",
-            example_request="Analyze my last 5 emails and classify them as should read or should delete",
+            example_request="Analyze my emails and classify them",
             example_parameters={
-                "title": "Email Inbox Management - Classify Last 5 Emails",
-                "description": "Get the last 5 emails and classify each as: should read or should delete. This helps with inbox management.",
+                "title": "Email Inbox Management - Classify Emails",
+                "description": "Analyze emails and classify them based on user preferences to help with inbox management.",
                 "task_type": "automated_task",
                 "schedule_type": "once",
                 "next_run_at": "immediately",
-                "ai_context": "User wants to efficiently manage their inbox by having the AI analyze the last 5 emails and provide clear recommendations on which ones to read and which ones to delete. This is a practical inbox management task.",
+                "ai_context": "EXECUTION PLAN: 1) Connect to user's email account (Outlook/Gmail) 2) Fetch last 10 emails 3) Analyze email content, sender reputation, and subject lines 4) Apply classification rules: Important (work, bills, appointments), Useless (spam, promotions) 5) Move emails to appropriate folders 6) Provide clear summary report. CONTEXT: User wants automated email triage with specific criteria - analyze last 10 emails, create Important and Useless folders, use sender reputation and keywords for classification.",
                 "notification_channels": ["email"],
                 "user_id": 126,
             },
-            expected_outcome="AI task created for email analysis and classification",
-            success_indicators=["automated_task_created", "ai_context_set", "execution_scheduled"],
-            failure_modes=["invalid_ai_context", "execution_error", "tool_access_denied"],
-            prerequisites=["email_tool_access", "ai_execution_capability", "user_permission"],
+            expected_outcome="AI task created for email analysis and classification with specific user preferences",
+            success_indicators=["automated_task_created", "ai_context_set", "execution_scheduled", "user_preferences_applied"],
+            failure_modes=["invalid_ai_context", "execution_error", "tool_access_denied", "insufficient_user_input"],
+            prerequisites=["email_tool_access", "ai_execution_capability", "user_permission", "clarifying_questions_answered"],
         ),
         ToolUseCase(
             name="List Active Reminders",
@@ -243,7 +243,7 @@ def create_ai_task_metadata() -> ToolMetadata:
                 "task_type": "reminder",
                 "schedule_type": "once",
                 "next_run_at": "7pm today",
-                "ai_context": "User wants to be reminded to call their mom. This is important for maintaining family connections and showing care.",
+                "ai_context": "EXECUTION PLAN: 1) Check optimal calling time based on user's schedule and timezone 2) Send personalized reminder with mom's contact info if available 3) Include conversation starters or recent family updates 4) Provide gentle motivation about family connection importance 5) Log call completion for relationship tracking. CONTEXT: User values family connections and wants to maintain regular contact with their mother. Timing should be convenient for both parties.",
                 "notification_channels": ["sms"],
                 "user_id": 126,
             },
@@ -259,7 +259,7 @@ def create_ai_task_metadata() -> ToolMetadata:
                 "schedule_type": "daily",
                 "schedule_config": {"interval": "daily", "time": "08:00"},
                 "next_run_at": "every day at 8am",
-                "ai_context": "User needs a daily reminder to take their vitamins. This is part of their health routine and consistency is important for effectiveness.",
+                "ai_context": "EXECUTION PLAN: 1) Check user's vitamin schedule and current time 2) Verify if vitamins were already taken today by checking recent logs 3) If not taken, send reminder with vitamin types and benefits 4) If already taken, send confirmation and health tip 5) Track compliance for health monitoring. CONTEXT: User takes daily vitamins as part of health routine. Consistency is important for effectiveness and health benefits.",
                 "notification_channels": ["sms"],
                 "user_id": 126,
             },
@@ -275,26 +275,26 @@ def create_ai_task_metadata() -> ToolMetadata:
                 "schedule_type": "weekly",
                 "schedule_config": {"interval": "weekly", "day": "monday", "time": "14:00"},
                 "next_run_at": "every monday at 2pm",
-                "ai_context": "User needs a weekly work reminder for their team meeting. This helps them prepare and stay engaged with their team's progress.",
+                "ai_context": "EXECUTION PLAN: 1) Check meeting schedule and send reminder 1 hour before 2) Include agenda items and preparation checklist 3) Provide access to previous meeting notes and action items 4) Include team member updates if available 5) Log meeting participation for project tracking. CONTEXT: User participates in weekly team meetings for project coordination. Preparation includes reviewing progress and preparing updates.",
                 "notification_channels": ["sms"],
                 "user_id": 126,
             },
             expected_result="✅ Weekly work reminder set: 'Weekly team meeting - prepare agenda' every Monday at 14:00 (ID: 125)",
         ),
         ToolExample(
-            description="Complex AI-executed task",
-            user_request="Analyze my last 5 emails and classify them as should read or should delete",
+            description="Complex AI-executed task with clarifying questions",
+            user_request="Analyze my emails and classify them",
             parameters={
-                "title": "Email Inbox Management - Classify Last 5 Emails",
-                "description": "Get the last 5 emails and classify each as: should read or should delete. This helps with inbox management.",
+                "title": "Email Inbox Management - Classify Emails",
+                "description": "Analyze emails and classify them based on user preferences to help with inbox management.",
                 "task_type": "automated_task",
                 "schedule_type": "once",
                 "next_run_at": "immediately",
-                "ai_context": "User wants to efficiently manage their inbox by having the AI analyze the last 5 emails and provide clear recommendations on which ones to read and which ones to delete. This is a practical inbox management task.",
+                "ai_context": "EXECUTION PLAN: 1) Connect to user's email account (Outlook/Gmail) 2) Fetch last 10 emails 3) Analyze email content, sender reputation, and subject lines 4) Apply classification rules: Important (work, bills, appointments), Useless (spam, promotions) 5) Move emails to appropriate folders 6) Provide clear summary report. CONTEXT: User wants automated email triage with specific criteria - analyze last 10 emails, create Important and Useless folders, use sender reputation and keywords for classification.",
                 "notification_channels": ["email"],
                 "user_id": 126,
             },
-            expected_result="✅ AI task created: 'Email Inbox Management - Classify Last 5 Emails' (ID: 126)",
+            expected_result="✅ AI task created: 'Email Inbox Management - Classify Emails' (ID: 126)\n\nConversation flow:\nUser: 'Analyze my emails and classify them'\nAI: 'I'd be happy to help you set up an automated email classification task! To create the best solution, I need to ask a few questions:\n1. How many emails should I analyze?\n2. What folders should I create for classification?\n3. What criteria should I use for classification?'\nUser: [provides answers]\nAI: [creates task with detailed ai_context based on answers]",
         ),
         ToolExample(
             description="View all active reminders",
@@ -330,9 +330,9 @@ def create_ai_task_metadata() -> ToolMetadata:
 
     # Create the metadata object
     metadata = ToolMetadata(
-        tool_name="ai_task_scheduler",
+        tool_name="create_reminder",
         tool_version="2.0.0",
-        description="AI-DRIVEN AUTOMATION: Create tasks that the AI assistant will execute automatically. Use for: 'Make a list of...', 'Analyze my...', 'Generate a report on...'. The AI does the work for you. NOT for: personal task tracking, calendar events, or simple reminders.",
+        description="SCHEDULED AUTOMATION: Create persistent tasks that run automatically on schedule. Use for recurring automation (e.g., 'create a daily task to filter my emails at 7am'). Tasks are stored in database and run via Celery workers. NOT for conversation-based multi-step operations. IMPORTANT: For complex tasks, ask clarifying questions BEFORE calling this tool to ensure proper configuration.",
         category=ToolCategory.PRODUCTIVITY,
         complexity=ToolComplexity.MODERATE,
         
@@ -395,6 +395,41 @@ def create_ai_task_metadata() -> ToolMetadata:
         6. Offer to update existing reminders instead of creating duplicates
         7. Ask for clarification if time format is ambiguous
         8. Keep responses concise but upbeat and encouraging
+        
+        CLARIFYING QUESTIONS FOR COMPLEX TASKS:
+        When a user requests a complex automated task, ask clarifying questions BEFORE calling the create_reminder tool:
+        
+        1. For EMAIL CLASSIFICATION tasks, ask:
+           - "How many emails should I analyze?" (e.g., 5, 10, all unread, last week's emails)
+           - "What folders should I create for classification?" (e.g., Important, Interesting, Useless)
+           - "What criteria should I use for classification?" (sender reputation, keywords, content analysis)
+        
+        2. For GROCERY SHOPPING tasks, ask:
+           - "What specific items do you need?" (milk, bread, eggs, or general categories)
+           - "Which store do you prefer?" (IGA, Metro, local grocery)
+           - "What time works best for you?" (morning, afternoon, evening)
+        
+        3. For WORK MEETING reminders, ask:
+           - "What preparation do you need to do?" (agenda review, materials, updates)
+           - "How early should I remind you?" (15 min, 1 hour, day before)
+           - "What information should I include?" (meeting link, agenda items, attendees)
+        
+        4. For HEALTH/MEDICATION reminders, ask:
+           - "What medication(s) are you taking?" (specific names, dosages)
+           - "What dosage information should I include?" (mg, frequency, timing)
+           - "Should I track if you've already taken it?" (compliance tracking)
+        
+        5. For PERSONAL TASK reminders, ask:
+           - "What specific items or categories?" (detailed breakdown)
+           - "Which day/time works best?" (schedule preferences)
+           - "Any special considerations?" (dietary restrictions, budget, location)
+        
+        6. For RECURRING TASKS, ask:
+           - "How often should this run?" (daily, weekly, monthly)
+           - "What time works best for you?" (morning, afternoon, evening)
+           - "Should it run on weekends too?" (schedule exceptions)
+        
+        CRITICAL: Ask these questions in the conversation, get user answers, then use those answers to create a properly configured task with detailed ai_context.
         """,
         
         # Parameter guidance
@@ -450,7 +485,7 @@ def create_ai_task_ai_enhancements() -> AIEnhancementManager:
     manager.register_enhancement(
         AIEnhancement(
             enhancement_id="smart_time_parsing",
-            tool_name="ai_task_scheduler",
+            tool_name="create_reminder",
             enhancement_type=EnhancementType.PARAMETER_SUGGESTION,
             priority=EnhancementPriority.HIGH,
             title="Smart Time Parsing",
@@ -491,7 +526,7 @@ def create_ai_task_ai_enhancements() -> AIEnhancementManager:
     manager.register_enhancement(
         AIEnhancement(
             enhancement_id="context_aware_categorization",
-            tool_name="ai_task_scheduler",
+            tool_name="create_reminder",
             enhancement_type=EnhancementType.INTENT_RECOGNITION,
             priority=EnhancementPriority.MEDIUM,
             title="Context-Aware Task Categorization",
@@ -551,7 +586,7 @@ def create_ai_task_ai_enhancements() -> AIEnhancementManager:
     manager.register_enhancement(
         AIEnhancement(
             enhancement_id="content_quality_optimization",
-            tool_name="ai_task_scheduler",
+            tool_name="create_reminder",
             enhancement_type=EnhancementType.WORKFLOW_SUGGESTION,
             priority=EnhancementPriority.HIGH,
             title="Content Quality Optimization",
@@ -608,7 +643,7 @@ def create_ai_task_ai_enhancements() -> AIEnhancementManager:
     manager.register_enhancement(
         AIEnhancement(
             enhancement_id="recurring_pattern_detection",
-            tool_name="ai_task_scheduler",
+            tool_name="create_reminder",
             enhancement_type=EnhancementType.WORKFLOW_SUGGESTION,
             priority=EnhancementPriority.MEDIUM,
             title="Recurring Pattern Detection",
@@ -647,7 +682,7 @@ def create_ai_task_ai_enhancements() -> AIEnhancementManager:
     manager.register_enhancement(
         AIEnhancement(
             enhancement_id="duplicate_prevention",
-            tool_name="ai_task_scheduler",
+            tool_name="create_reminder",
             enhancement_type=EnhancementType.ERROR_PREVENTION,
             priority=EnhancementPriority.HIGH,
             title="Duplicate Reminder Prevention",
@@ -683,7 +718,7 @@ def create_ai_task_ai_enhancements() -> AIEnhancementManager:
     manager.register_enhancement(
         AIEnhancement(
             enhancement_id="smart_notification_channel",
-            tool_name="ai_task_scheduler",
+            tool_name="create_reminder",
             enhancement_type=EnhancementType.PARAMETER_SUGGESTION,
             priority=EnhancementPriority.LOW,
             title="Smart Notification Channel Selection",
