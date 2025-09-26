@@ -5,12 +5,11 @@ This module provides the main tool interface for intelligent note management
 using specialized LLM calls for content enhancement and analysis.
 """
 
-from typing import Optional, Union, Dict, List, Any
+from typing import Optional, Union, Dict
 
 from .llm_notes_enhancer import LLMNotesEnhancer, StrategyEnhancedNote
 from .prompt_templates import NoteType
 from .note_internal import NoteInternal
-from .notion_formatter import NotionFormatter
 from ..base import Tool
 from ...llm.gemini import GeminiLLM
 from ...config.logging_config import get_logger
@@ -33,9 +32,6 @@ class EnhancedNotesTool:
         
         # Initialize internal functions
         self.note_internal = NoteInternal(self.llm_enhancer)
-        
-        # Initialize Notion formatter
-        self.notion_formatter = NotionFormatter()
         
         # Initialize user-specific Notion components
         from ..notion_pages.notion_internal_user_specific import UserSpecificNotionInternal
@@ -258,8 +254,11 @@ class EnhancedNotesTool:
             # Add metadata to content before creating the note
             content_with_metadata = self.note_internal.add_metadata_to_content(content, tags, note_type)
             
-            # Format content with Notion formatter for proper markdown rendering
-            formatted_blocks = self.notion_formatter.format_content_to_blocks(content_with_metadata)
+            # Ensure content is under 2000 characters for Notion compatibility
+            #TODO: This should be done in 2 calls instead of truncating
+            content_with_metadata = self.note_internal.truncate_content_for_notion(content_with_metadata)
+            
+
             
             # Get database session (this should be injected from the tool execution context)
             from personal_assistant.config.database import db_config
@@ -267,9 +266,9 @@ class EnhancedNotesTool:
                 # Ensure user has Personal Assistant page
                 main_page_id = await self.notion_internal.ensure_user_main_page_exists(db, user_id)
                 
-                # Create the note page with formatted blocks
-                note_page_id = await self._create_formatted_note_page(
-                    db, user_id, title, formatted_blocks, main_page_id
+                # Create the note page in user's workspace
+                note_page_id = await self.notion_internal.create_user_page(
+                    db, user_id, title, content_with_metadata, main_page_id
                 )
             
             result = f"✅ Successfully created enhanced note '{title}' with ID: {note_page_id}"
@@ -285,34 +284,6 @@ class EnhancedNotesTool:
                 "error": str(e),
                 "message": "Failed to create enhanced note"
             }
-    
-    async def _create_formatted_note_page(
-        self,
-        db,
-        user_id: int,
-        title: str,
-        formatted_blocks: List[Dict[str, Any]],
-        main_page_id: str
-    ) -> str:
-        """Create a note page with properly formatted Notion blocks"""
-        try:
-            # Get user's Notion client
-            notion_client = await self.notion_internal.get_user_client(db, user_id)
-            
-            # Create the page with formatted blocks
-            page = notion_client.pages.create(
-                parent={"type": "page_id", "page_id": main_page_id},
-                properties={
-                    "title": [{"type": "text", "text": {"content": title}}]
-                },
-                children=formatted_blocks
-            )
-            
-            return page["id"]
-            
-        except Exception as e:
-            self.logger.error(f"Error creating formatted note page: {e}")
-            raise
     
     async def create_simple_note(
         self,
@@ -333,8 +304,8 @@ class EnhancedNotesTool:
                 if not title:
                     title = "Untitled Note"
             
-            # Format content with Notion formatter for proper markdown rendering
-            formatted_blocks = self.notion_formatter.format_content_to_blocks(content)
+            # Ensure content is under 2000 characters for Notion compatibility
+            content = self.note_internal.truncate_content_for_notion(content)
             
             # Get database session
             from personal_assistant.config.database import db_config
@@ -342,9 +313,9 @@ class EnhancedNotesTool:
                 # Ensure user has Personal Assistant page
                 main_page_id = await self.notion_internal.ensure_user_main_page_exists(db, user_id)
                 
-                # Create the note page with formatted blocks
-                note_page_id = await self._create_formatted_note_page(
-                    db, user_id, title, formatted_blocks, main_page_id
+                # Create the note page in user's workspace
+                note_page_id = await self.notion_internal.create_user_page(
+                    db, user_id, title, content, main_page_id
                 )
             
             return f"✅ Successfully created simple note '{title}' with ID: {note_page_id}"
@@ -556,11 +527,17 @@ class EnhancedNotesTool:
                 if not block.get("archived", False):
                     notion_client.blocks.delete(block["id"])
             
-            # Format enhanced content with Notion formatter
-            formatted_blocks = self.notion_formatter.format_content_to_blocks(strategy_note.new_content)
-            
-            # Add enhanced content with proper formatting
-            notion_client.blocks.children.append(page_id, children=formatted_blocks)
+            # Add enhanced content
+            notion_client.blocks.children.append(
+                page_id,
+                children=[{
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [{"type": "text", "text": {"content": strategy_note.new_content}}]
+                    }
+                }]
+            )
             return "✅ SUCCESS: Note content replaced with enhanced version. TASK COMPLETED."
         except Exception as e:
             self.logger.error(f"Error in replace strategy: {e}")
@@ -569,11 +546,17 @@ class EnhancedNotesTool:
     async def _apply_append_strategy(self, page_id: str, strategy_note: StrategyEnhancedNote, notion_client):
         """Apply append strategy - add new content at the end"""
         try:
-            # Format new content with Notion formatter
-            formatted_blocks = self.notion_formatter.format_content_to_blocks(strategy_note.new_content)
-            
-            # Add new content at the end with proper formatting
-            notion_client.blocks.children.append(page_id, children=formatted_blocks)
+            # Add new content at the end
+            notion_client.blocks.children.append(
+                page_id,
+                children=[{
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [{"type": "text", "text": {"content": strategy_note.new_content}}]
+                    }
+                }]
+            )
             return "✅ SUCCESS: New content added to the end of the note. TASK COMPLETED."
         except Exception as e:
             self.logger.error(f"Error in append strategy: {e}")
@@ -593,15 +576,18 @@ class EnhancedNotesTool:
                 strategy_note.insertion_point, blocks
             )
             
-            # Format new content with Notion formatter
-            formatted_blocks = self.notion_formatter.format_content_to_blocks(strategy_note.new_content)
-            
             # Insert the new content
             if insert_after_block_id:
-                # Insert after the specified block with proper formatting
+                # Insert after the specified block
                 notion_client.blocks.children.append(
                     page_id,
-                    children=formatted_blocks,
+                    children=[{
+                        "object": "block",
+                        "type": "paragraph",
+                        "paragraph": {
+                            "rich_text": [{"type": "text", "text": {"content": strategy_note.new_content}}]
+                        }
+                    }],
                     after=insert_after_block_id
                 )
                 return "✅ SUCCESS: New content inserted at the specified location. TASK COMPLETED."

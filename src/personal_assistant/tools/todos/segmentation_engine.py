@@ -6,7 +6,9 @@ into manageable subtasks when users repeatedly miss deadlines.
 """
 
 from datetime import datetime, timedelta
+import select
 from typing import List, Dict, Any, Optional
+from sqlalchemy import and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from personal_assistant.database.models.todos import Todo
 from personal_assistant.config.logging_config import get_logger

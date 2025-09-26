@@ -12,10 +12,11 @@ from .notes.enhanced_notes_tool import EnhancedNotesTool
 from .grocery.grocery_deals_tool import GroceryDealsTool
 
 # Configure module logger
-from .planning.llm_planner import LLMPlannerTool
+# from .planning.llm_planner import LLMPlannerTool  # Temporarily disabled - module not found
 from .reminders.reminder_tool import ReminderTool
 from .todos.todo_tool import create_todo_tools
 from .youtube.youtube_tool import YouTubeTool
+from .ai_tasks.ai_task_tool import AgentWorkflowTool
 
 logger = get_logger("tools")
 
@@ -84,10 +85,10 @@ def create_tool_registry() -> ToolRegistry:
     #     tool.set_category("Research")
     #     registry.register(tool)
 
-    planner_tool = LLMPlannerTool()
-    for tool in planner_tool:
-        tool.set_category("Planner")
-        registry.register(tool)
+    # planner_tool = LLMPlannerTool()  # Temporarily disabled - module not found
+    # for tool in planner_tool:
+    #     tool.set_category("Planner")
+    #     registry.register(tool)
 
     # Register todo tools
     todo_tools = create_todo_tools()
@@ -98,6 +99,12 @@ def create_tool_registry() -> ToolRegistry:
     grocery_deals_tool = GroceryDealsTool()
     for tool in grocery_deals_tool:
         tool.set_category("GroceryDeals")
+        registry.register(tool)
+
+    # Register AI agent workflow management tools
+    agent_workflow_tool = AgentWorkflowTool()
+    for tool in agent_workflow_tool:
+        tool.set_category("AgentWorkflow")
         registry.register(tool)
 
     return registry

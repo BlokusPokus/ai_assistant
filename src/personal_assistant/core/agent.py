@@ -24,6 +24,7 @@ from ..tools import ToolRegistry
 from .error_handler import AgentErrorHandler
 from .logging_utils import log_agent_operation
 from .services import ContextService, ConversationService, BackgroundService, ContextInjectionService, ToolExecutionService, AgentLoopService
+from .services.ai_task_service import AITaskServiceIntegration
 
 logger = get_logger("core")
 
@@ -37,7 +38,11 @@ class AgentCore:
             tools: Registry of available tools (optional)
             llm: LLM client for interactions (optional)
         """
-        self.tools = tools or ToolRegistry()
+        if tools is None:
+            from personal_assistant.tools import create_tool_registry
+            self.tools = create_tool_registry()
+        else:
+            self.tools = tools
 
         api_key = os.getenv("GEMINI_API_KEY")
         self.llm = llm or GeminiLLM(api_key=api_key, model=settings.GEMINI_MODEL)
@@ -84,6 +89,9 @@ class AgentCore:
         self.context_injection_service = ContextInjectionService()
         self.tool_execution_service = ToolExecutionService(self.tools)
         self.agent_loop_service = AgentLoopService(self.planner, self.tool_execution_service)
+        
+        # Initialize AI task service integration
+        self.ai_task_service = AITaskServiceIntegration()
         
         # Current state for agent loop execution
         self.current_state = None
