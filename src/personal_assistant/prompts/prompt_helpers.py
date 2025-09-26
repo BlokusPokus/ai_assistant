@@ -222,7 +222,11 @@ class PromptHelpers:
                     if llm_instructions:
                         formatted.append(f"   💡 Instructions: {llm_instructions}")
                 else:
-                    formatted.append(f"🛠 {tool_name}: {content}")
+                    # Handle success responses with clear message formatting
+                    if isinstance(content, dict) and content.get("success") and content.get("message"):
+                        formatted.append(f"✅ {tool_name}: {content['message']}")
+                    else:
+                        formatted.append(f"🛠 {tool_name}: {content}")
             elif entry["role"] == "memory":
                 # Handle memory role entries (tool execution results)
                 source = entry.get("source", "unknown")

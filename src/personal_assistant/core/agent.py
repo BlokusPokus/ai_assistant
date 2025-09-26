@@ -24,7 +24,6 @@ from ..tools import ToolRegistry
 from .error_handler import AgentErrorHandler
 from .logging_utils import log_agent_operation
 from .services import ContextService, ConversationService, BackgroundService, ContextInjectionService, ToolExecutionService, AgentLoopService
-from .services.ai_task_service import AITaskServiceIntegration
 
 logger = get_logger("core")
 
@@ -38,11 +37,7 @@ class AgentCore:
             tools: Registry of available tools (optional)
             llm: LLM client for interactions (optional)
         """
-        if tools is None:
-            from personal_assistant.tools import create_tool_registry
-            self.tools = create_tool_registry()
-        else:
-            self.tools = tools
+        self.tools = tools or ToolRegistry()
 
         api_key = os.getenv("GEMINI_API_KEY")
         self.llm = llm or GeminiLLM(api_key=api_key, model=settings.GEMINI_MODEL)
@@ -89,9 +84,6 @@ class AgentCore:
         self.context_injection_service = ContextInjectionService()
         self.tool_execution_service = ToolExecutionService(self.tools)
         self.agent_loop_service = AgentLoopService(self.planner, self.tool_execution_service)
-        
-        # Initialize AI task service integration
-        self.ai_task_service = AITaskServiceIntegration()
         
         # Current state for agent loop execution
         self.current_state = None
@@ -142,9 +134,9 @@ class AgentCore:
 
             # This is very low performance and blocks followup messages, we need to rethink how to save memories
             # 5. Start background processing (non-blocking)
-            # asyncio.create_task(self.background_service.process_async(
-            #     user_id, user_input, response, updated_state, conversation_id, start_time
-            # ))
+            asyncio.create_task(self.background_service.process_async(
+                user_id, user_input, response, updated_state, conversation_id, start_time
+            ))
 
             return response
 

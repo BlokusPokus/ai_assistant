@@ -34,7 +34,7 @@ class EnhancedNotesTool:
         self.note_internal = NoteInternal(self.llm_enhancer)
         
         # Initialize user-specific Notion components
-        from ..notion_pages.notion_internal_user_specific import UserSpecificNotionInternal
+        from .notion_internal_user_specific import UserSpecificNotionInternal
         self.notion_internal = UserSpecificNotionInternal()
         
         # Create tool instances
@@ -203,6 +203,63 @@ class EnhancedNotesTool:
             }
         )
         
+        # Bidirectional linking tools
+        self.create_link_tool = Tool(
+            name="create_link",
+            func=self.create_link,
+            description="Create a bidirectional link between two notes using Obsidian-style [[Page Name]] syntax",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "source_page_id": {
+                        "type": "string",
+                        "description": "Page ID of the source page (where the link will be added)"
+                    },
+                    "target_page_title": {
+                        "type": "string",
+                        "description": "Title of the target page to link to"
+                    },
+                    "link_text": {
+                        "type": "string",
+                        "description": "Optional custom text for the link (defaults to target page title)"
+                    }
+                },
+                "required": ["source_page_id", "target_page_title"]
+            }
+        )
+        
+        self.get_backlinks_tool = Tool(
+            name="get_backlinks",
+            func=self.get_backlinks,
+            description="Get all pages that link to the specified page (reverse references)",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "page_id": {
+                        "type": "string",
+                        "description": "Page ID to find backlinks for"
+                    }
+                },
+                "required": ["page_id"]
+            }
+        )
+        
+        self.get_table_of_contents_tool = Tool(
+            name="get_table_of_contents",
+            func=self.get_table_of_contents,
+            description="Get the current table of contents from the user's Personal Assistant page",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "integer",
+                        "description": "User ID for the table of contents"
+                    }
+                },
+                "required": ["user_id"]
+            }
+        )
+        
     
     def __iter__(self):
         """Makes the class iterable to return all tools"""
@@ -212,7 +269,10 @@ class EnhancedNotesTool:
             self.smart_search_tool,
             self.enhance_existing_note_tool,
             self.note_intelligence_tool,
-            self.delete_note_tool
+            self.delete_note_tool,
+            self.create_link_tool,
+            self.get_backlinks_tool,
+            self.get_table_of_contents_tool
         ])
     
     
@@ -600,6 +660,53 @@ class EnhancedNotesTool:
             # Fall back to append on error
             return await self._apply_append_strategy(page_id, strategy_note, notion_client)
     
+    async def get_note_content(
+        self,
+        page_id: str,
+        user_id: Optional[int] = None
+    ) -> Union[str, Dict]:
+        """Get raw note content for RAG indexing"""
+        try:
+            self.logger.info(f"Getting note content for: {page_id}")
+            
+            if not user_id:
+                self.logger.error("User ID is required for note content retrieval")
+                return {
+                    "error": "User ID is required for note content retrieval",
+                    "message": "Failed to get note content"
+                }
+            
+            # Get user's Notion client
+            from personal_assistant.config.database import db_config
+            async with db_config.get_session_context() as db:
+                notion_client = await self.notion_internal.get_user_client(db, user_id)
+                self.logger.info(f"Successfully obtained Notion client for user {user_id}")
+            
+            # Get note content
+            page = notion_client.pages.retrieve(page_id)
+            blocks = notion_client.blocks.children.list(page_id)
+            
+            content = self.note_internal.extract_note_content(blocks)
+            title = self.note_internal.extract_note_title(page)
+            
+            if not content.strip():
+                return ""
+            
+            # Return structured content for RAG system
+            return {
+                "title": title,
+                "content": content,
+                "page_id": page_id,
+                "user_id": user_id
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error getting note content: {e}")
+            return {
+                "error": str(e),
+                "message": "Failed to get note content"
+            }
+    
     async def get_note_intelligence(
         self,
         page_id: str,
@@ -717,6 +824,132 @@ class EnhancedNotesTool:
         except Exception as e:
             self.logger.error(f"Error deleting note: {e}")
             return f"❌ Error: Failed to delete note - {str(e)}"
+    
+    async def create_link(
+        self,
+        source_page_id: str,
+        target_page_title: str,
+        link_text: Optional[str] = None,
+        user_id: Optional[int] = None
+    ) -> Union[str, Dict]:
+        """Create a bidirectional link between two notes using Obsidian-style syntax"""
+        try:
+            if not user_id:
+                return "Error: User ID is required for creating links"
+            
+            # Use target page title as link text if not provided
+            if not link_text:
+                link_text = target_page_title
+            
+            # Create Obsidian-style link syntax
+            link_syntax = f"[[{link_text}]]"
+            
+            # Get user's Notion client
+            from personal_assistant.config.database import db_config
+            async with db_config.get_session_context() as db:
+                notion_client = await self.notion_internal.get_user_client(db, user_id)
+                self.logger.info(f"Successfully obtained Notion client for user {user_id}")
+            
+            # Add the link to the source page
+            notion_client.blocks.children.append(
+                source_page_id,
+                children=[{
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [{"type": "text", "text": {"content": link_syntax}}]
+                    }
+                }]
+            )
+            
+            return f"✅ Successfully created link '{link_syntax}' in page {source_page_id}"
+            
+        except Exception as e:
+            self.logger.error(f"Error creating link: {e}")
+            return f"❌ Error: Failed to create link - {str(e)}"
+    
+    async def get_backlinks(
+        self,
+        page_id: str,
+        user_id: Optional[int] = None
+    ) -> Union[str, Dict]:
+        """Get all pages that link to the specified page"""
+        try:
+            if not user_id:
+                return "Error: User ID is required for getting backlinks"
+            
+            # Get user's Notion client
+            from personal_assistant.config.database import db_config
+            async with db_config.get_session_context() as db:
+                notion_client = await self.notion_internal.get_user_client(db, user_id)
+                self.logger.info(f"Successfully obtained Notion client for user {user_id}")
+            
+            # Get the target page to find its title
+            target_page = notion_client.pages.retrieve(page_id)
+            target_title = self.note_internal.extract_note_title(target_page)
+            
+            # Search for pages that contain links to this page
+            search_results = notion_client.search(
+                query=f"[[{target_title}]]",
+                filter={"property": "object", "value": "page"}
+            )
+            
+            backlinks = []
+            for page in search_results.get("results", []):
+                if page["id"] != page_id:  # Don't include the page itself
+                    page_title = self.note_internal.extract_note_title(page)
+                    backlinks.append({
+                        "page_id": page["id"],
+                        "title": page_title,
+                        "created_time": page.get("created_time", ""),
+                        "last_edited_time": page.get("last_edited_time", "")
+                    })
+            
+            if not backlinks:
+                return f"No backlinks found for '{target_title}'"
+            
+            # Format backlinks response
+            result = f"📎 Found {len(backlinks)} backlink(s) for '{target_title}':\n\n"
+            for i, link in enumerate(backlinks, 1):
+                result += f"{i}. **{link['title']}**\n"
+                result += f"   ID: {link['page_id']}\n"
+                result += f"   Last edited: {link['last_edited_time']}\n\n"
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Error getting backlinks: {e}")
+            return f"❌ Error: Failed to get backlinks - {str(e)}"
+    
+    async def get_table_of_contents(
+        self,
+        user_id: int
+    ) -> Union[str, Dict]:
+        """Get the current table of contents from the user's Personal Assistant page"""
+        try:
+            # Get user's Notion client
+            from personal_assistant.config.database import db_config
+            async with db_config.get_session_context() as db:
+                notion_client = await self.notion_internal.get_user_client(db, user_id)
+                self.logger.info(f"Successfully obtained Notion client for user {user_id}")
+            
+            # Get the user's main Personal Assistant page
+            main_page_id = await self.notion_internal.ensure_user_main_page_exists(db, user_id)
+            
+            # Get the page content
+            blocks = notion_client.blocks.children.list(main_page_id)
+            
+            # Extract table of contents
+            toc_content = self.note_internal.extract_note_content(blocks)
+            
+            if not toc_content.strip():
+                return "No table of contents found. The Personal Assistant page may be empty."
+            
+            return f"📋 **Table of Contents**\n\n{toc_content}"
+            
+        except Exception as e:
+            self.logger.error(f"Error getting table of contents: {e}")
+            return f"❌ Error: Failed to get table of contents - {str(e)}"
     
     
     

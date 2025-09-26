@@ -7,7 +7,6 @@ from .calendar.calendar_tool import CalendarTool
 from .emails.email_tool import EmailTool
 from .internet.internet_tool import InternetTool
 from .ltm.ltm_tool import LTMTool
-from .notion_pages.notion_pages_tool import NotionPagesTool
 from .notes.enhanced_notes_tool import EnhancedNotesTool
 from .grocery.grocery_deals_tool import GroceryDealsTool
 
@@ -37,22 +36,10 @@ def create_tool_registry() -> ToolRegistry:
         tool.set_category("Calendar")
         registry.register(tool)
 
-    # Register Notion note tools
-    # notion_notes_tool = NotionNotesTool()
-    # for tool in notion_notes_tool:
-    #     tool.set_category("Notes")
-    #     registry.register(tool)
-
-    # Register Notion pages tools (new page-based note system)
-    # notion_pages_tool = NotionPagesTool()
-    # for tool in notion_pages_tool:
-    #     tool.set_category("NotionPages")
-    #     registry.register(tool)
-
-    # Register enhanced notes tools (AI-powered note management)
+    # Register enhanced notes tools (AI-powered note management with OAuth and bidirectional linking)
     enhanced_notes_tool = EnhancedNotesTool()
     for tool in enhanced_notes_tool:
-        tool.set_category("EnhancedNotes")
+        tool.set_category("Notes")
         registry.register(tool)
 
     # Register reminder tools
@@ -116,7 +103,6 @@ __all__ = [
     "ToolRegistry",
     "CalendarTool",
     "EmailTool",
-    "NotionPagesTool",
     "EnhancedNotesTool",
     "ReminderTool",
     "InternetTool",
