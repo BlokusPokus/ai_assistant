@@ -122,6 +122,12 @@ const LandingPage: React.FC = () => {
           </div>
           <div className="flex items-center space-x-4">
             <Link
+              to="/prototype"
+              className="text-primary hover:text-accent transition-colors font-medium"
+            >
+              Prototype
+            </Link>
+            <Link
               to="/login"
               className="text-primary hover:text-accent transition-colors font-medium"
             >
