@@ -4,9 +4,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/Card/Card';
+import Badge from '@/components/ui/Badge';
+import Progress from '@/components/ui/Progress';
 import { Clock, CheckCircle, Circle, XCircle, AlertCircle } from 'lucide-react';
 
 interface AITask {
@@ -113,21 +118,6 @@ const AITaskDashboard: React.FC<AITaskDashboardProps> = ({
         return <XCircle className="h-4 w-4 text-red-500" />;
       default:
         return <AlertCircle className="h-4 w-4 text-gray-400" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-gray-100 text-gray-800';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -360,5 +350,3 @@ const AITaskDashboard: React.FC<AITaskDashboardProps> = ({
 };
 
 export default AITaskDashboard;
-
-

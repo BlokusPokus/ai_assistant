@@ -10,7 +10,7 @@ const features = [
       'Smart task management that learns your patterns and helps you stay organized without the overwhelm.',
     iconPath:
       'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
-    colorScheme: 'green',
+    colorScheme: 'green' as const,
   },
   {
     id: 'notes' as const,
@@ -19,7 +19,7 @@ const features = [
       'Capture thoughts, memories, and ideas with intelligent organization that makes everything findable.',
     iconPath:
       'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
-    colorScheme: 'blue',
+    colorScheme: 'blue' as const,
   },
   {
     id: 'calendar' as const,
@@ -28,7 +28,7 @@ const features = [
       'Intelligent scheduling that helps you balance work, life, and everything in between.',
     iconPath:
       'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
-    colorScheme: 'purple',
+    colorScheme: 'purple' as const,
   },
   {
     id: 'reminders' as const,
@@ -37,7 +37,7 @@ const features = [
       'Proactive reminders that help you stay on top of what matters most in your life.',
     iconPath:
       'M15 17h5l-5 5v-5zM4.828 7l2.586 2.586a2 2 0 002.828 0L12.828 7H4.828zM4.828 17H9l-2.586 2.586a2 2 0 01-2.828 0L4.828 17z',
-    colorScheme: 'orange',
+    colorScheme: 'orange' as const,
   },
   {
     id: 'insights' as const,
@@ -46,7 +46,7 @@ const features = [
       'AI-powered analytics that help you understand your patterns and optimize your life.',
     iconPath:
       'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
-    colorScheme: 'indigo',
+    colorScheme: 'indigo' as const,
   },
 ];
 

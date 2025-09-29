@@ -19,6 +19,7 @@ export { default as Loading } from './Loading';
 export { default as Error } from './Error';
 export { default as Badge } from './Badge';
 export { default as Alert } from './Alert';
+export { default as Progress } from './Progress';
 
 // Export component variants and utilities
 export { buttonVariants } from './Button/buttonVariants';
