@@ -1,0 +1,6 @@
+/* Animated Background Styles */
+.animatedBackground {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+}

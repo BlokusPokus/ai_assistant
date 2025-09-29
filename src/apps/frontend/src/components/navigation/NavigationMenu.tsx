@@ -42,10 +42,11 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
             transition-colors duration-200
             ${
               active
-                ? 'bg-blue-100 text-blue-600'
+                ? 'text-white'
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
             }
           `}
+          style={active ? { backgroundColor: '#ede8be' } : {}}
           title={item.label}
         >
           <Icon className="h-5 w-5" />
@@ -62,15 +63,19 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
           transition-colors duration-200
           ${
             active
-              ? 'bg-blue-100 text-blue-600'
+              ? 'text-white'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
           }
         `}
+        style={active ? { backgroundColor: '#35733a' } : {}}
       >
         <Icon className="h-5 w-5" />
         <span>{item.label}</span>
         {active && (
-          <div className="ml-auto w-2 h-2 bg-blue-600 rounded-full"></div>
+          <div
+            className="ml-auto w-2 h-2 rounded-full"
+            style={{ backgroundColor: '#ede8be' }}
+          ></div>
         )}
       </Link>
     );

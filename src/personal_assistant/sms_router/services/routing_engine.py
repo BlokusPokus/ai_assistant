@@ -133,6 +133,7 @@ class SMSRoutingEngine:
                 return response
 
             # Step 4: Process with agent
+            logger.info(f"🔍 DEBUG: Processing SMS for user {user_info['id']} (phone: {from_phone})")
             agent_response = await self.agent_integration.process_with_agent(
                 processed_message.get("cleaned_message", message_body), user_info
             )

@@ -70,6 +70,8 @@ async def twilio_sms_webhook(
 
 async def process_sms_continue_background(from_phone: str, message_body: str, message_sid: str):
     """Continue SMS processing in background after webhook acknowledgment."""
+    logger.info(f"🚀 STARTING SMS BACKGROUND TASK: {from_phone}, message: {message_body[:30]}...")
+    
     try:
         # Import here to avoid circular imports
         
@@ -81,7 +83,9 @@ async def process_sms_continue_background(from_phone: str, message_body: str, me
         
         # Process the message through the routing engine
         # This will handle user identification, spam detection, agent processing, etc.
+        logger.info(f"🔍 DEBUG: Calling routing_engine.route_sms for {from_phone}")
         response = await routing_engine.route_sms(from_phone, message_body, message_sid)
+        logger.info(f"🔍 DEBUG: routing_engine.route_sms completed for {from_phone}")
         
         # Extract message content using Twilio's built-in API
         if hasattr(response, 'verbs') and response.verbs:
@@ -90,12 +94,13 @@ async def process_sms_continue_background(from_phone: str, message_body: str, me
             response_text = "Sorry, I couldn't process your request."
         
         # Send the response via SMS using Twilio REST API
+        logger.info(f"🔍 DEBUG: Sending SMS response to {from_phone}: {response_text[:50]}...")
         message_sid = await twilio_service.send_sms(from_phone, response_text)
         
-        logger.info(f"Successfully sent SMS response to {from_phone}, SID: {message_sid}")
+        logger.info(f"✅ SMS BACKGROUND TASK COMPLETED: {from_phone}, SID: {message_sid}")
         
     except Exception as e:
-        logger.error(f"Error processing SMS message: {e}")
+        logger.error(f"❌ SMS BACKGROUND TASK FAILED: {from_phone}, error: {e}")
         # Send error message
         try:
             await twilio_service.send_sms(from_phone, "Sorry, there was an error processing your request.")

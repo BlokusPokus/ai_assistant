@@ -1,0 +1,17 @@
+/* Pain Point Grid Styles */
+.painPointGrid {
+    display: grid;
+    gap: 2rem;
+}
+
+@media (min-width: 768px) {
+    .painPointGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .painPointGrid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}

@@ -1,0 +1,12 @@
+/* Privacy Features Grid Styles */
+.privacyFeaturesGrid {
+    display: grid;
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+@media (min-width: 768px) {
+    .privacyFeaturesGrid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}

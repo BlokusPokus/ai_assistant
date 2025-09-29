@@ -101,7 +101,7 @@ class AIEventEvaluator:
             # We'll use a special user_id format to indicate this is an AI evaluation
             user_id = f"ai_evaluator_{event_context.user_id}"
 
-            response = await self.agent_core.run(prompt, user_id)
+            response = await self.agent_core.run(prompt, user_id, enable_background_processing=False)
             return response
 
         except Exception as e:
@@ -197,7 +197,7 @@ class AIEventEvaluator:
             prompt = AIEvaluatorPrompts.create_recurrence_analysis_prompt(event_title, last_processed)
 
             user_id = "ai_recurrence_analyzer"
-            response = await self.agent_core.run(prompt, user_id)
+            response = await self.agent_core.run(prompt, user_id, enable_background_processing=False)
 
             # Parse response
             json_start = response.find('{')
@@ -239,7 +239,7 @@ class AIEventEvaluator:
             prompt = AIEvaluatorPrompts.create_action_suggestion_prompt(ai_context)
 
             user_id = f"ai_action_suggester_{event_context.user_id}"
-            response = await self.agent_core.run(prompt, user_id)
+            response = await self.agent_core.run(prompt, user_id, enable_background_processing=False)
 
             # Parse response
             json_start = response.find('{')

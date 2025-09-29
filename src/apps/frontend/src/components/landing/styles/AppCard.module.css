@@ -1,0 +1,51 @@
+/* App Card Styles */
+.appCard {
+    flex-shrink: 0;
+    width: 8rem;
+    cursor: pointer;
+    transition: all 0.3s ease-out;
+    position: relative;
+    z-index: 10;
+}
+
+.appCard:hover {
+    width: 12rem;
+    z-index: 20;
+}
+
+.cardContent {
+    text-align: center;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f3f4f6;
+    transition: all 0.3s ease;
+}
+
+.appCard:hover .cardContent {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.iconContainer {
+    width: 3rem;
+    height: 3rem;
+    margin: 0 auto 0.75rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: white;
+}
+
+.appName {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin: 0;
+}

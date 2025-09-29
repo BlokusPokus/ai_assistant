@@ -130,7 +130,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
 
   const sidebarClasses = `
     fixed left-0 top-0 z-40 h-screen transition-transform duration-300 ease-in-out
-    bg-white border-r border-gray-200 shadow-lg
+    bg-white/80 backdrop-blur-sm border-r border-gray-200 shadow-lg
+    rounded-tr-2xl rounded-br-2xl
     ${isCollapsed ? 'w-16' : 'w-64'}
     ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
   `;
@@ -150,7 +151,87 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
 
       {/* Sidebar */}
       <aside className={sidebarClasses}>
-        <div className="flex h-full flex-col">
+        {/* CSS Animations */}
+        <style>{`
+          @keyframes float {
+            0%, 100% {
+              transform: translateY(0px) scale(1);
+            }
+            50% {
+              transform: translateY(-20px) scale(1.05);
+            }
+          }
+          
+          @keyframes drift {
+            0% {
+              transform: translateX(0px) translateY(0px);
+            }
+            25% {
+              transform: translateX(10px) translateY(-10px);
+            }
+            50% {
+              transform: translateX(-5px) translateY(-20px);
+            }
+            75% {
+              transform: translateX(-10px) translateY(-10px);
+            }
+            100% {
+              transform: translateX(0px) translateY(0px);
+            }
+          }
+          
+          @keyframes fadeInOut {
+            0%, 100% {
+              opacity: 0.1;
+            }
+            50% {
+              opacity: 0.2;
+            }
+          }
+        `}</style>
+
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {/* Blur Ovals - Smaller versions for sidebar */}
+          <div
+            className="absolute top-0 left-0 w-[200px] h-[150px] blur-2xl"
+            style={{
+              backgroundColor: '#98a758',
+              borderRadius: '0% 50% 50% 0%',
+              animation:
+                'float 6s ease-in-out infinite, fadeInOut 4s ease-in-out infinite',
+            }}
+          ></div>
+          <div
+            className="absolute top-0 right-0 w-[180px] h-[120px] blur-2xl"
+            style={{
+              backgroundColor: '#ece5b5',
+              borderRadius: '50% 0% 0% 50%',
+              animation:
+                'drift 8s ease-in-out infinite, fadeInOut 5s ease-in-out infinite',
+            }}
+          ></div>
+          <div
+            className="absolute bottom-0 left-0 w-[220px] h-[160px] blur-2xl"
+            style={{
+              backgroundColor: '#1a4835',
+              borderRadius: '0% 50% 50% 0%',
+              animation:
+                'float 7s ease-in-out infinite reverse, fadeInOut 3s ease-in-out infinite',
+            }}
+          ></div>
+          <div
+            className="absolute bottom-0 right-0 w-[160px] h-[140px] blur-2xl"
+            style={{
+              backgroundColor: '#a0b192',
+              borderRadius: '50% 0% 0% 50%',
+              animation:
+                'drift 9s ease-in-out infinite reverse, fadeInOut 6s ease-in-out infinite',
+            }}
+          ></div>
+        </div>
+
+        <div className="flex h-full flex-col relative z-10">
           {/* Header */}
           <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
             <div className="flex items-center space-x-2">

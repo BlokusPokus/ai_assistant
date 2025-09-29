@@ -1,0 +1,52 @@
+/* Hero Headline Styles */
+.headlineContainer {
+    margin-bottom: 2rem;
+}
+
+.headline {
+    font-size: 3rem;
+    font-weight: 900;
+    margin-bottom: 2rem;
+    line-height: 1.1;
+}
+
+@media (min-width: 768px) {
+    .headline {
+        font-size: 3.75rem;
+    }
+}
+
+.moreContainer {
+    position: relative;
+    display: inline-block;
+}
+
+.constructionImage {
+    position: absolute;
+    top: -30px;
+    left: -5px;
+    width: 60px;
+    height: auto;
+    transform: rotate(-20deg);
+    z-index: 10;
+    pointer-events: none;
+}
+
+@media (min-width: 768px) {
+    .constructionImage {
+        width: 75px;
+        height: auto;
+        top: -35px;
+        left: -8px;
+    }
+}
+
+.highlightedText {
+    font-family: 'GottaCatchWater', 'PlantasiaGlycine', 'Poppins', sans-serif;
+    font-weight: normal;
+    background: linear-gradient(to right, #98a758, #a0b192);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 1.2em;
+}

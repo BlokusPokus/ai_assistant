@@ -430,12 +430,12 @@ const PrototypePage: React.FC = () => {
               >
                 Get started free
               </button>
-              <button
+              {/* <button
                 className="px-8 py-4 bg-white rounded-lg font-semibold transition-colors duration-200"
                 style={{ color: '#62795d', border: '1px solid #a0b192' }}
               >
                 Watch Demo
-              </button>
+              </button> */}
             </div>
           </div>
         </div>

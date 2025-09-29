@@ -1,0 +1,18 @@
+/* AI Features Grid Styles */
+.aiFeaturesGrid {
+    display: grid;
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+@media (min-width: 768px) {
+    .aiFeaturesGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .aiFeaturesGrid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}

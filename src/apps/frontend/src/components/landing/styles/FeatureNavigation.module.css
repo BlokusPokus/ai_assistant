@@ -1,0 +1,20 @@
+/* Feature Navigation Styles */
+.featureNavigation {
+    margin-bottom: 3rem;
+}
+
+.featureContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    max-width: 72rem;
+    margin: 0 auto;
+    justify-content: center;
+    align-items: center;
+}
+
+@media (min-width: 1024px) {
+    .featureContainer {
+        flex-direction: row;
+    }
+}

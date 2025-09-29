@@ -1,0 +1,44 @@
+/* Footer Bottom Styles */
+.footerBottom {
+    border-top: 1px solid #e5e7eb;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+}
+
+@media (min-width: 768px) {
+    .footerBottom {
+        flex-direction: row;
+    }
+}
+
+.copyright {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+    .copyright {
+        margin-bottom: 0;
+    }
+}
+
+.legalLinks {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.875rem;
+}
+
+.legalLink {
+    color: #6b7280;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.legalLink:hover {
+    color: #111827;
+}

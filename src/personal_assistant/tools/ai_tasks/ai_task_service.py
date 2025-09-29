@@ -104,6 +104,27 @@ class AITaskService:
         
         return tasks
     
+    async def get_all_tasks(self) -> List[AITask]:
+        """Get all tasks across all conversations."""
+        async with self._lock:
+            return list(self.tasks.values())
+    
+    async def get_tasks_by_user(self, user_id: int) -> List[AITask]:
+        """
+        Get all tasks for a specific user.
+        
+        Note: This is a placeholder implementation. The current AI task system
+        is conversation-based, not user-based. In a real implementation, you would
+        need to:
+        1. Store user_id with each task
+        2. Query conversations by user_id
+        3. Return tasks from those conversations
+        
+        For now, this returns all tasks as a temporary solution.
+        """
+        logger.warning(f"get_tasks_by_user called for user {user_id} - returning all tasks (conversation-based system)")
+        return await self.get_all_tasks()
+    
     async def update_task_status(self, task_id: str, status: TaskStatus) -> Optional[AITask]:
         """
         Update task status.
@@ -298,5 +319,3 @@ class AITaskService:
 
 # Global instance for the application
 ai_task_service = AITaskService()
-
-

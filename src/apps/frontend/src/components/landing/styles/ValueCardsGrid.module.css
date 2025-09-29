@@ -1,0 +1,24 @@
+/* Value Cards Grid Styles */
+.valueCardsGrid {
+    display: grid;
+    gap: 2rem;
+    margin-bottom: 6rem;
+}
+
+@media (min-width: 768px) {
+    .valueCardsGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .valueCardsGrid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (min-width: 1280px) {
+    .valueCardsGrid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}

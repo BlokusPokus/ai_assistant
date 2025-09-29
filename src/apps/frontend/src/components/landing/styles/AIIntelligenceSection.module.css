@@ -1,0 +1,7 @@
+/* AI Intelligence Section Styles */
+.aiIntelligenceSection {
+    position: relative;
+    z-index: 10;
+    max-width: 72rem;
+    margin: 0 auto 6rem;
+}
