@@ -3,16 +3,6 @@ import styles from './PrototypePage.module.css';
 import { Link } from 'react-router-dom';
 
 const PrototypePage: React.FC = () => {
-  const [prototypeData, setPrototypeData] = useState({
-    title: 'Prototype Page',
-    description: 'This is a new page for quick prototyping and iteration',
-    features: [
-      'Quick iteration without affecting existing pages',
-      'Clean slate for new features',
-      'Easy to modify and test',
-    ],
-  });
-
   const [activeFeature, setActiveFeature] = useState('tasks');
 
   const featureImages = {
@@ -21,13 +11,6 @@ const PrototypePage: React.FC = () => {
     calendar: '/src/pages/dashboard/image.png',
     reminders: '/src/pages/dashboard/image.png',
     insights: '/src/pages/dashboard/image.png',
-  };
-
-  const handleUpdateData = (field: string, value: string) => {
-    setPrototypeData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
   };
 
   return (

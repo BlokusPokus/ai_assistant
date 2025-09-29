@@ -18,7 +18,7 @@ export const FeatureButton: React.FC<FeatureButtonProps> = ({
   isActive,
   onClick,
 }) => {
-  const getColorClasses = (colorScheme: string, isActive: boolean) => {
+  const getColorClasses = (colorScheme: string) => {
     const colorMap = {
       green: {
         buttonActive: 'bg-green-50 border-green-200 shadow-md',
@@ -75,7 +75,7 @@ export const FeatureButton: React.FC<FeatureButtonProps> = ({
     return colorMap[colorScheme as keyof typeof colorMap];
   };
 
-  const colors = getColorClasses(feature.colorScheme, isActive);
+  const colors = getColorClasses(feature.colorScheme);
 
   return (
     <button
