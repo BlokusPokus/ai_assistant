@@ -7,12 +7,12 @@ Injects into Gemini calls.
 """
 
 import re
-from datetime import datetime
 from typing import Dict, List
 
 from ...config.logging_config import get_logger
 from ...tools.base import ToolRegistry
 from ...types.state import AgentState
+from ...utils.time_utils import get_current_time_for_prompts
 
 logger = get_logger("llm")
 
@@ -36,13 +36,13 @@ class PromptBuilder:
 
     def build(self, state: AgentState) -> str:
         """Build ADHD-optimized prompt from current state with enhanced AI reasoning."""
-        current_time = datetime.now()
+        current_time = get_current_time_for_prompts()
 
         # Build ADHD-optimized prompt structure with internal AI thinking guidelines
         base_prompt = f"""
 🎯 ADHD-OPTIMIZED PERSONAL ASSISTANT
 
-📅 Current time: {current_time.strftime('%Y-%m-%d %H:%M')}
+📅 Current time: {current_time}
 
 🎯 YOUR REQUEST: {state.user_input}
 

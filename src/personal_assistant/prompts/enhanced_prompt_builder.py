@@ -5,13 +5,13 @@ Enhanced Prompt Builder with Metadata Integration.
 Builds agent prompts with intelligent metadata loading based on user context.
 """
 
-from datetime import datetime
 from typing import Any, List
 
 from ..config.logging_config import get_logger
 from ..tools.base import ToolRegistry
 from ..tools.metadata import AIEnhancementManager, ToolMetadataManager
 from ..types.state import AgentState
+from ..utils.time_utils import get_current_time_for_prompts
 from .prompt_helpers import PromptHelpers
 
 logger = get_logger("enhanced_prompts")
@@ -102,7 +102,7 @@ class EnhancedPromptBuilder:
         Returns:
             str: Enhanced prompt with relevant metadata
         """
-        current_time = datetime.now()
+        current_time = get_current_time_for_prompts()
 
         # Analyze which tools are likely needed
         required_tools = self._analyze_tool_requirements(state.user_input)
@@ -114,7 +114,7 @@ class EnhancedPromptBuilder:
         base_prompt = f"""
 🎯 PERSONAL ASSISTANT AGENT
 
-📅 Current time: {current_time.strftime('%Y-%m-%d %H:%M')}
+📅 Current time: {current_time}
 
 🎯 USER REQUEST: {state.user_input}
 
@@ -129,7 +129,6 @@ class EnhancedPromptBuilder:
 • For emails: "Just to confirm, you want me to send an email to [email] with subject '[subject]' and body '[body]' - is that correct?"
 • For calendar events: "Just to confirm, you want me to create a meeting on [date] at [time] with [attendees] - is that correct?"
 • For reminders: Execute directly using default notification channel (SMS) - no confirmation needed
-• This rule takes priority over ALL other rules
 
 {self._build_core_guidelines()}
 
@@ -205,11 +204,11 @@ class EnhancedPromptBuilder:
         ):
             required_tools.append("note_tool")
 
-        # Planning tasks
+        # Planning/automation tasks
         if any(
-            word in input_lower for word in ["plan", "organize", "coordinate", "manage"]
+            word in input_lower for word in ["plan", "organize", "coordinate", "manage", "automated", "automation", "repetitive", "schedule", "daily", "weekly", "monthly"]
         ):
-            required_tools.append("ai_task_scheduler")
+            required_tools.append("create_reminder")
 
         logger.debug(
             f"Analyzed tool requirements: {required_tools} for input: {user_input[:50]}..."
@@ -284,6 +283,9 @@ class EnhancedPromptBuilder:
 📋 **Description**: {metadata_dict.get('description', 'No description available')}
 🏷️ **Category**: {metadata_dict.get('category', 'General')}
 ⚡ **Complexity**: {metadata_dict.get('complexity', 'Unknown')}
+
+🎯 **AI INSTRUCTIONS (CRITICAL - MUST FOLLOW)**:
+{metadata_dict.get('ai_instructions', 'No specific instructions available')}
 
 🎯 **Use Cases**:"""
 
@@ -436,6 +438,7 @@ class EnhancedPromptBuilder:
 • Strategy: Check existing content first, then create/update as needed
 • Example: For "Update my interview notes" → First search existing notes, then update
 • Reasoning: Knowledge tools benefit from context awareness and content reuse
+• Ask questions: When the request is not clear, ask questions to clarify the request, so that your note corresponds to the user needs.
 
 🧠 PLANNING TOOLS (LLM Planning):
 • Use when: Need to break down complex tasks or make strategic decisions
@@ -480,8 +483,6 @@ class EnhancedPromptBuilder:
 🎯 **FINAL ANSWER FORMAT**
 • Start with a clear, direct statement
 • Provide comprehensive information without process language
-• Use professional but friendly tone
-• Never end with "Based on the search results..." or similar
 • Always conclude with actionable insights or clear conclusions
 
 🚨 **CRITICAL: ASKING QUESTIONS**
@@ -489,13 +490,11 @@ class EnhancedPromptBuilder:
 • Don't just say "I will ask..." - ACTUALLY ASK
 • If you need an email address, say "What email address should I use for [Name]?"
 • If you need clarification, say "Could you clarify [specific question]?"
-• Always end questions with a question mark (?)
 • Don't get stuck in planning - execute your plan immediately
 
 💭 DECISION MAKING:
 • If the request is simple (greeting, basic question): Respond directly
-• If the request requires information: Use appropriate information tools
-• If the request requires action: Use appropriate action tools
+
 • If the request is complex: Break down into steps and use multiple tools
 """
 

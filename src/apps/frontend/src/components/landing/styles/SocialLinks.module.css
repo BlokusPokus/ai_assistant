@@ -1,0 +1,27 @@
+/* Social Links Styles */
+.socialLinks {
+    display: none;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1.5rem;
+    color: #62795d;
+}
+
+@media (min-width: 768px) {
+    .socialLinks {
+        display: flex;
+    }
+}
+
+.socialLink {
+    transition: opacity 0.2s ease;
+}
+
+.socialLink:hover {
+    opacity: 0.8;
+}
+
+.socialIcon {
+    width: 1.25rem;
+    height: 1.25rem;
+}

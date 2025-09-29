@@ -1,0 +1,29 @@
+/* Link Section Styles */
+.linkSection {
+    /* No specific styles needed, inherits from parent */
+}
+
+.title {
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 1rem;
+}
+
+.linksList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.link {
+    color: #6b7280;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.link:hover {
+    color: #111827;
+}

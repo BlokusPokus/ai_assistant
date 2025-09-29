@@ -54,7 +54,9 @@ class AgentIntegrationService:
             logger.info(f"Processing message for user {user_id}: {message[:50]}...")
 
             # Call existing Agent Core with user context
-            result = await self.agent_core.run(message, user_id)
+            logger.info(f"🔍 DEBUG: Calling AgentCore.run for SMS user {user_id} with message: {message[:30]}...")
+            result = await self.agent_core.run(message, user_id, enable_background_processing=False)
+            logger.info(f"🔍 DEBUG: AgentCore.run completed for SMS user {user_id}, result length: {len(result) if result else 0}")
 
             if not result:
                 logger.warning(f"No response generated for user {user_id}")

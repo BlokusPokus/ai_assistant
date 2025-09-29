@@ -90,7 +90,7 @@ class AgentCore:
         
         logger.info("All services initialized successfully")
 
-    async def run(self, user_input: str, user_id: int) -> str:
+    async def run(self, user_input: str, user_id: int, enable_background_processing: bool = True) -> str:
         """
         Process user input and generate a response using the agent system.
 
@@ -132,11 +132,20 @@ class AgentCore:
             # 4. Execute agent loop
             response, updated_state = await self._execute_agent_loop(user_input, user_id)
 
-            # This is very low performance and blocks followup messages, we need to rethink how to save memories
-            # 5. Start background processing (non-blocking)
-            # asyncio.create_task(self.background_service.process_async(
-            #     user_id, user_input, response, updated_state, conversation_id, start_time
-            # ))
+            # 5. Save state (synchronously if background processing disabled)
+            if not enable_background_processing:
+                # Save state immediately to ensure messages are persisted
+                logger.info(f"🔍 DEBUG: Saving state synchronously for conversation: {conversation_id}")
+                logger.info(f"🔍 DEBUG: Response length: {len(response) if response else 0}")
+                logger.info(f"🔍 DEBUG: Conversation history items: {len(updated_state.conversation_history) if updated_state else 0}")
+                await self.storage_manager.save_state(conversation_id, updated_state, user_id)
+                logger.info(f"✅ State saved synchronously for conversation: {conversation_id}")
+            else:
+                # This is very low performance and blocks followup messages, we need to rethink how to save memories
+                # Start background processing (non-blocking)
+                asyncio.create_task(self.background_service.process_async(
+                    user_id, user_input, response, updated_state, conversation_id, start_time
+                ))
 
             return response
 

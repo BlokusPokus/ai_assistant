@@ -1,0 +1,27 @@
+/* App Carousel Styles */
+.appCarousel {
+    position: relative;
+    margin-bottom: 3rem;
+    display: flex;
+    justify-content: center;
+}
+
+.carouselContainer {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    padding-left: 4rem;
+    padding-right: 4rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Overlapping effect - each card overlaps the previous one by 3rem */
+.carouselContainer>*+* {
+    margin-left: -3rem;
+}
+
+.carouselContainer::-webkit-scrollbar {
+    display: none;
+}

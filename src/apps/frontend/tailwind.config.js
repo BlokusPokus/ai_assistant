@@ -7,7 +7,7 @@ export default {
         primary: 'var(--color-primary)',
         secondary: 'var(--color-secondary)',
         accent: 'var(--color-accent)',
-        'accent-light': '#60A5FA',
+        'accent-light': '#6ba85a',
         'soft-highlight': 'var(--color-soft-highlight)',
       },
       fontFamily: {

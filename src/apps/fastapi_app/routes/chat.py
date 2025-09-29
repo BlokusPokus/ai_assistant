@@ -7,9 +7,10 @@ including message sending, conversation management, and real-time communication.
 
 import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.fastapi_app.models.chat import (
@@ -60,25 +61,47 @@ async def send_message(
     try:
         logger.info(f"User {current_user.id} sending message: {message_data.content[:50]}...")
         
-        # Save user message immediately and get conversation
-        user_message, conversation_id = await chat_service.save_user_message(
+        # Process message with AgentCore (handles all saving)
+        conversation_id, ai_response = await chat_service.save_user_message(
             db, current_user.id, message_data.content, message_data.conversation_id
         )
 
-        # Process AI response in background to avoid timeout
-        background_tasks.add_task(
-            chat_service.process_ai_response_background,
-            db, current_user.id, message_data.content, conversation_id
-        )
+        logger.info(f"✅ MESSAGE PROCESSED BY AGENTCORE: conversation {conversation_id}, user {current_user.id}")
 
-        # Return immediate response with user message
+        # Get both user and AI messages that were just saved by AgentCore
+        from personal_assistant.database.models.conversation_message import ConversationMessage
+        
+        # Get the latest user message
+        user_message_query = select(ConversationMessage).where(
+            ConversationMessage.conversation_id == conversation_id,
+            ConversationMessage.role == "user"
+        ).order_by(ConversationMessage.id.desc()).limit(1)
+        user_message_result = await db.execute(user_message_query)
+        user_message = user_message_result.scalar_one_or_none()
+        
+        # Get the latest AI message
+        ai_message_query = select(ConversationMessage).where(
+            ConversationMessage.conversation_id == conversation_id,
+            ConversationMessage.role == "assistant"
+        ).order_by(ConversationMessage.id.desc()).limit(1)
+        ai_message_result = await db.execute(ai_message_query)
+        ai_message = ai_message_result.scalar_one_or_none()
+        
+        # Return response with both messages
         response = SendMessageResponse(
-            user_message=MessageResponse.model_validate(user_message),
-            ai_message=MessageResponse(
-                id=0,  # Placeholder - will be updated when AI responds
+            user_message=MessageResponse.model_validate(user_message) if user_message else MessageResponse(
+                id=0,
+                conversation_id=conversation_id,
+                role="user",
+                content=message_data.content,
+                message_type="user_input",
+                timestamp=datetime.utcnow().isoformat()
+            ),
+            ai_message=MessageResponse.model_validate(ai_message) if ai_message else MessageResponse(
+                id=0,
                 conversation_id=conversation_id,
                 role="assistant",
-                content="Processing your request...",
+                content=ai_response,
                 message_type="assistant_response",
                 timestamp=datetime.utcnow().isoformat()
             ),

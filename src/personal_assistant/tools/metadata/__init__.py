@@ -25,6 +25,12 @@ from .todo_metadata import (
     todo_ai_enhancements,
     todo_metadata,
 )
+from .grocery_deals_metadata import (
+    create_grocery_deals_ai_enhancements,
+    create_grocery_deals_tool_metadata,
+    grocery_deals_ai_enhancements,
+    grocery_deals_metadata,
+)
 
 __version__ = "1.0.0"
 __author__ = "Personal Assistant Team"
@@ -46,4 +52,8 @@ __all__ = [
     "create_todo_ai_enhancements",
     "todo_metadata",
     "todo_ai_enhancements",
+    "create_grocery_deals_tool_metadata",
+    "create_grocery_deals_ai_enhancements",
+    "grocery_deals_metadata",
+    "grocery_deals_ai_enhancements",
 ]

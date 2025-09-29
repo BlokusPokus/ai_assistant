@@ -1,0 +1,8 @@
+/* Column Overlays Styles */
+.column {
+    position: absolute;
+    top: 0;
+    width: 80px;
+    height: 100vh;
+    z-index: 1000;
+}

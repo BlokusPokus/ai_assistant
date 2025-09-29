@@ -2,16 +2,19 @@
 Webhook routes for SMS Router Service.
 """
 
+import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import Response
+from twilio.twiml.messaging_response import MessagingResponse
 
 from personal_assistant.sms_router.middleware.webhook_validation import (
     validate_twilio_webhook,
 )
 from personal_assistant.sms_router.services.routing_engine import SMSRoutingEngine
 from personal_assistant.sms_router.services.simple_retry_service import SimpleSMSRetryService
+from personal_assistant.communication.twilio_integration.twilio_client import TwilioService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -50,7 +53,10 @@ async def twilio_sms_webhook(
         logger.info(f"Processing SMS from {From}: {Body[:50]}...")
 
         # Route the SMS through the routing engine
-        response = await routing_engine.route_sms(From, Body, MessageSid)
+        response = MessagingResponse()
+        
+        asyncio.create_task(process_sms_continue_background(From, Body, MessageSid))
+
 
         # Return TwiML response
         return Response(content=str(response), media_type="application/xml")
@@ -61,6 +67,45 @@ async def twilio_sms_webhook(
         logger.error(f"Error processing SMS webhook: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
+async def process_sms_continue_background(from_phone: str, message_body: str, message_sid: str):
+    """Continue SMS processing in background after webhook acknowledgment."""
+    logger.info(f"🚀 STARTING SMS BACKGROUND TASK: {from_phone}, message: {message_body[:30]}...")
+    
+    try:
+        # Import here to avoid circular imports
+        
+        # Initialize services
+        routing_engine = SMSRoutingEngine()
+        twilio_service = TwilioService()
+        
+        logger.info(f"Continuing SMS processing from {from_phone}: {message_body[:50]}...")
+        
+        # Process the message through the routing engine
+        # This will handle user identification, spam detection, agent processing, etc.
+        logger.info(f"🔍 DEBUG: Calling routing_engine.route_sms for {from_phone}")
+        response = await routing_engine.route_sms(from_phone, message_body, message_sid)
+        logger.info(f"🔍 DEBUG: routing_engine.route_sms completed for {from_phone}")
+        
+        # Extract message content using Twilio's built-in API
+        if hasattr(response, 'verbs') and response.verbs:
+            response_text = response.verbs[0].value
+        else:
+            response_text = "Sorry, I couldn't process your request."
+        
+        # Send the response via SMS using Twilio REST API
+        logger.info(f"🔍 DEBUG: Sending SMS response to {from_phone}: {response_text[:50]}...")
+        message_sid = await twilio_service.send_sms(from_phone, response_text)
+        
+        logger.info(f"✅ SMS BACKGROUND TASK COMPLETED: {from_phone}, SID: {message_sid}")
+        
+    except Exception as e:
+        logger.error(f"❌ SMS BACKGROUND TASK FAILED: {from_phone}, error: {e}")
+        # Send error message
+        try:
+            await twilio_service.send_sms(from_phone, "Sorry, there was an error processing your request.")
+        except Exception as send_error:
+            logger.error(f"Failed to send error message: {send_error}")
 
 @router.post("/delivery-status")
 async def twilio_delivery_status_webhook(

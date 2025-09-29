@@ -1,0 +1,56 @@
+/* AI Feature Card Styles */
+.aiFeatureCard {
+    text-align: center;
+    padding: 2rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    background-color: white;
+    transition: box-shadow 0.2s ease;
+}
+
+.aiFeatureCard:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.iconContainer {
+    width: 4rem;
+    height: 4rem;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon {
+    width: 2rem;
+    height: 2rem;
+}
+
+.title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #1a4835;
+}
+
+.description {
+    color: #000000;
+    /* Black for maximum readability */
+    margin-bottom: 1rem;
+}
+
+.poweredBy {
+    font-size: 0.875rem;
+    color: #4b5563;
+    /* text-gray-600 - slightly lighter for secondary text */
+}
+
+.poweredByLabel {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.poweredByText {
+    margin: 0;
+}

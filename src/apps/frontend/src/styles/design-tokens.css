@@ -1,11 +1,11 @@
 :root {
     /* Color Palette */
-    --color-background: linear-gradient(135deg, #e0f2fe 0%, #f9fbff 50%, #bdd9f5 100%);
+    --color-background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 50%, #c8e6c8 100%);
     --color-primary: #000000;
     --color-secondary: #FFFFFF;
-    --color-accent: #3B82F6;
-    --color-accent-gradient: #3B82F6 → #60A5FA;
-    --color-soft-highlight: #E0F2FE;
+    --color-accent: #4d8546;
+    --color-accent-gradient: #4d8546 → #6ba85a;
+    --color-soft-highlight: #E8F5E8;
 
     /* Typography */
     --font-family-headers: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

@@ -40,7 +40,10 @@ class TaskExecutor:
             self.metadata_manager.register_tool_metadata(ai_task_metadata)
             
             # Register AI task enhancements
-            create_ai_task_ai_enhancements(self.enhancement_manager)
+            enhancements_manager = create_ai_task_ai_enhancements()
+            # Copy enhancements to our existing manager
+            for enhancement in enhancements_manager.enhancements.values():
+                self.enhancement_manager.register_enhancement(enhancement)
             
             self.logger.info("TaskExecutor initialized with AI task metadata and enhancements")
             

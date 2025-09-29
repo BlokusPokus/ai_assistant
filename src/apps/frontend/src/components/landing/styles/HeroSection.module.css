@@ -1,0 +1,25 @@
+/* Hero Section Styles */
+.heroSection {
+    margin-bottom: 8rem;
+    margin-top: 4rem;
+    text-align: center;
+}
+
+.heroContainer {
+    position: relative;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 4rem;
+}
+
+@media (min-width: 768px) {
+    .heroContainer {
+        max-width: 80rem;
+        padding: 5rem;
+    }
+}
+
+.heroContent {
+    color: hsl(var(--card-foreground));
+    position: relative;
+}

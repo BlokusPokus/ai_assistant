@@ -1,0 +1,56 @@
+/* Value Card Styles */
+.valueCard {
+    text-align: center;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    background-color: white;
+    transition: box-shadow 0.2s ease;
+}
+
+.valueCard:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.iconContainer {
+    width: 4rem;
+    height: 4rem;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon {
+    width: 2rem;
+    height: 2rem;
+}
+
+.title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #1a4835;
+}
+
+.description {
+    color: #000000;
+    /* Black for maximum readability */
+    margin-bottom: 1rem;
+}
+
+.aiSuggestions {
+    font-size: 0.875rem;
+    color: #4b5563;
+    /* text-gray-600 - slightly lighter for secondary text */
+}
+
+.aiLabel {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.aiText {
+    margin: 0;
+}

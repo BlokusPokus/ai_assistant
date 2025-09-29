@@ -6,30 +6,18 @@ This module provides specialized LLM capabilities for:
 - Automatic tag generation
 - Note type detection
 - Content structuring
+- Topic-specific prompt templates
 """
 
 import json
 from typing import List, Optional
 from dataclasses import dataclass
-from enum import Enum
 
 from ...llm.llm_client import LLMClient
 from ...config.logging_config import get_logger
+from .prompt_templates import TopicSpecificPromptManager, NoteType, DomainType
 
 logger = get_logger("notes_enhancer")
-
-
-class NoteType(Enum):
-    """Supported note types for classification"""
-    MEETING = "meeting"
-    PROJECT = "project"
-    PERSONAL = "personal"
-    RESEARCH = "research"
-    LEARNING = "learning"
-    TASK = "task"
-    IDEA = "idea"
-    JOURNAL = "journal"
-    UNKNOWN = "unknown"
 
 
 @dataclass
@@ -47,6 +35,24 @@ class EnhancedNote:
     confidence_score: float
 
 
+@dataclass
+class StrategyEnhancedNote:
+    """Enhanced note with strategy-aware processing"""
+    update_strategy: str  # "replace", "append", "insert"
+    preserved_content: str  # Original content that stays unchanged
+    new_content: str  # New content to add
+    insertion_point: Optional[str]  # Where to insert (if insert strategy)
+    reasoning: str  # Why this strategy was chosen
+    note_type: NoteType
+    suggested_tags: List[str]
+    key_topics: List[str]
+    action_items: List[str]
+    important_details: List[str]
+    structure_suggestions: List[str]
+    enhanced_title: str
+    confidence_score: float
+
+
 class LLMNotesEnhancer:
     """Specialized LLM service for note enhancement and analysis"""
     
@@ -54,10 +60,13 @@ class LLMNotesEnhancer:
         self.llm_client = llm_client
         self.logger = logger
         
-        # Initialize specialized prompts
-        self._init_prompts()
+        # Initialize topic-specific prompt manager
+        self.prompt_manager = TopicSpecificPromptManager()
+        
+        # Initialize fallback prompts
+        self._init_fallback_prompts()
     
-    def _init_prompts(self):
+    def _init_fallback_prompts(self):
         """Initialize specialized prompts for different note operations"""
         self.prompts = {
             "comprehensive_analysis": """
@@ -96,8 +105,10 @@ Return ONLY valid JSON in this exact format:
     "smart_tags": ["tag1", "tag2", "tag3"],
     "enhanced_content": "improved content with better structure",
     "enhanced_title": "clear, descriptive title for the note",
-    "confidence_score": 0.85
+    "confidence_score": 0.85,
+    "follow_up_questions": ["question1", "question2", "question3"]
 }}
+Note: Only include "follow_up_questions" if you need clarification to create a better note.
 """,
             "existing_note_enhancement": """
 You are a specialized note improvement AI. You are enhancing an EXISTING note that the user has already created. Your job is to improve what's already there, not create something new.
@@ -145,6 +156,46 @@ Return ONLY valid JSON in this exact format:
     "enhanced_title": "improved, descriptive title for the existing note",
     "confidence_score": 0.85
 }}
+""",
+            "strategy_enhancement": """
+You are a smart note enhancement AI. Analyze the enhancement request and choose the best strategy to preserve the user's existing work while meeting their needs.
+
+Original Note Content: {content}
+Original Note Title: {title}
+Enhancement Request: {enhancement_request}
+
+STRATEGY OPTIONS:
+- "replace": Modify/enhance existing content (use when major restructuring needed)
+- "append": Add new content at the end (use when adding updates, new sections)
+- "insert": Add content at a specific location (use when inserting into existing sections)
+
+ANALYSIS PROCESS:
+1. Analyze what the user is asking for
+2. Determine if existing content should be preserved
+3. Choose the most appropriate strategy
+4. Generate content accordingly
+
+EXAMPLES:
+- "Add recent updates" → strategy: "append", new_content: recent updates section
+- "Update the timeline section" → strategy: "replace", new_content: enhanced timeline
+- "Add action items after the overview" → strategy: "insert", insertion_point: "after overview"
+
+Return ONLY valid JSON in this exact format:
+{{
+    "update_strategy": "replace|append|insert",
+    "preserved_content": "original content that should remain unchanged",
+    "new_content": "new content to add or enhanced content if replace",
+    "insertion_point": "section name or location where to insert (if insert strategy)",
+    "reasoning": "explanation of why this strategy was chosen",
+    "note_type": "meeting|project|personal|research|learning|task|idea|journal",
+    "key_topics": ["topic1", "topic2"],
+    "action_items": ["action1", "action2"],
+    "important_details": ["detail1", "detail2"],
+    "structure_suggestions": ["suggestion1", "suggestion2"],
+    "smart_tags": ["tag1", "tag2", "tag3"],
+    "enhanced_title": "improved title if needed",
+    "confidence_score": 0.85
+}}
 """
         }
     
@@ -152,7 +203,8 @@ Return ONLY valid JSON in this exact format:
         self, 
         content: str, 
         title: str = None,
-        note_type: Optional[NoteType] = None
+        note_type: Optional[NoteType] = None,
+        domain: Optional[str] = None
     ) -> EnhancedNote:
         """
         Enhance note content using specialized LLM analysis
@@ -161,6 +213,7 @@ Return ONLY valid JSON in this exact format:
             content: Original note content
             title: Note title (optional)
             note_type: Pre-determined note type (optional)
+            domain: Domain string for specialized templates (optional)
             
         Returns:
             EnhancedNote with all processed information
@@ -168,11 +221,31 @@ Return ONLY valid JSON in this exact format:
         try:
             self.logger.info(f"Enhancing note content: {title or 'Untitled'}")
             
-            # Use comprehensive analysis prompt for single LLM call
-            prompt = self.prompts["comprehensive_analysis"].format(
-                content=content,
-                title=title or "Untitled"
-            )
+            # Convert domain string to enum if provided
+            domain_enum = DomainType.GENERAL
+            if domain:
+                try:
+                    domain_enum = DomainType(domain.lower())
+                except ValueError:
+                    self.logger.warning(f"Invalid domain: {domain}, using GENERAL")
+                    domain_enum = DomainType.GENERAL
+            
+            # Select appropriate prompt template
+            if note_type:
+                # Use topic-specific prompt template
+                template = self.prompt_manager.get_template(note_type, domain_enum)
+                prompt = template.template.format(
+                    content=content,
+                    title=title or "Untitled"
+                )
+                self.logger.info(f"Using topic-specific template: {template.name}")
+            else:
+                # Use fallback comprehensive analysis prompt
+                prompt = self.prompts["comprehensive_analysis"].format(
+                    content=content,
+                    title=title or "Untitled"
+                )
+                self.logger.info("Using fallback comprehensive analysis prompt")
             
             # Single LLM call that does everything
             response = await self._get_llm_response(prompt)
@@ -218,10 +291,11 @@ Return ONLY valid JSON in this exact format:
             )
     
     async def enhance_existing_note_content(
-        self, 
-        content: str, 
+        self,
+        content: str,
         title: str = None,
-        note_type: Optional[NoteType] = None
+        note_type: Optional[NoteType] = None,
+        domain: Optional[str] = None
     ) -> EnhancedNote:
         """
         Enhance existing note content using specialized LLM analysis for existing notes
@@ -230,6 +304,7 @@ Return ONLY valid JSON in this exact format:
             content: Original existing note content
             title: Note title (optional)
             note_type: Pre-determined note type (optional)
+            domain: Domain type for specialized templates (optional)
             
         Returns:
             EnhancedNote with all processed information
@@ -237,7 +312,8 @@ Return ONLY valid JSON in this exact format:
         try:
             self.logger.info(f"Enhancing existing note content: {title or 'Untitled'}")
             
-            # Use existing note enhancement prompt
+            # Use existing note enhancement prompt (fallback for now)
+            # TODO: Create topic-specific existing note enhancement templates
             prompt = self.prompts["existing_note_enhancement"].format(
                 content=content,
                 title=title or "Untitled"
@@ -283,6 +359,84 @@ Return ONLY valid JSON in this exact format:
                 action_items=[],
                 important_details=[],
                 structure_suggestions=[],
+                confidence_score=0.0
+            )
+    
+    async def enhance_note_with_strategy(
+        self,
+        content: str,
+        title: str = None,
+        enhancement_request: str = "",
+        note_type: Optional[NoteType] = None,
+        domain: Optional[str] = None
+    ) -> StrategyEnhancedNote:
+        """
+        Enhance note content with strategy-aware processing
+        
+        Args:
+            content: Original note content
+            title: Note title (optional)
+            enhancement_request: What the user wants to enhance/add
+            note_type: Pre-determined note type (optional)
+            domain: Domain type for specialized templates (optional)
+            
+        Returns:
+            StrategyEnhancedNote with strategy and content
+        """
+        try:
+            self.logger.info(f"Enhancing note with strategy: {title or 'Untitled'}")
+            
+            # Use strategy-aware prompt template
+            prompt = self.prompts["strategy_enhancement"].format(
+                content=content,
+                title=title or "Untitled",
+                enhancement_request=enhancement_request
+            )
+            
+            # Single LLM call for strategy and content
+            response = await self._get_llm_response(prompt)
+            analysis = self._parse_llm_json_response(response)
+            
+            # Convert string note type to enum
+            note_type_str = analysis.get("note_type", "unknown").lower()
+            note_type_enum = getattr(NoteType, note_type_str.upper(), NoteType.UNKNOWN)
+            
+            # Create strategy-enhanced note
+            strategy_note = StrategyEnhancedNote(
+                update_strategy=analysis.get("update_strategy", "replace"),
+                preserved_content=analysis.get("preserved_content", content),
+                new_content=analysis.get("new_content", content),
+                insertion_point=analysis.get("insertion_point"),
+                reasoning=analysis.get("reasoning", ""),
+                note_type=note_type_enum,
+                suggested_tags=analysis.get("smart_tags", []),
+                key_topics=analysis.get("key_topics", []),
+                action_items=analysis.get("action_items", []),
+                important_details=analysis.get("important_details", []),
+                structure_suggestions=analysis.get("structure_suggestions", []),
+                enhanced_title=analysis.get("enhanced_title", title or "Untitled"),
+                confidence_score=analysis.get("confidence_score", 0.0)
+            )
+            
+            self.logger.info(f"Strategy chosen: {strategy_note.update_strategy}")
+            return strategy_note
+            
+        except Exception as e:
+            self.logger.error(f"Error in strategy enhancement: {e}")
+            # Fallback to replace strategy
+            return StrategyEnhancedNote(
+                update_strategy="replace",
+                preserved_content=content,
+                new_content=content,
+                insertion_point=None,
+                reasoning="Fallback due to error",
+                note_type=NoteType.UNKNOWN,
+                suggested_tags=[],
+                key_topics=[],
+                action_items=[],
+                important_details=[],
+                structure_suggestions=[],
+                enhanced_title=title or "Untitled",
                 confidence_score=0.0
             )
     

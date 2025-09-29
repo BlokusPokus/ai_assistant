@@ -82,11 +82,16 @@ app.conf.update(
             "queue": "sms_tasks",
             "priority": 8,
         },
+        "personal_assistant.workers.tasks.grocery_tasks.*": {
+            "queue": "grocery_tasks",
+            "priority": 6,
+        },
     },
     # Explicit queue declarations with explicit exchange names
     task_queues=(
         Queue('ai_tasks', exchange='ai_tasks', routing_key='ai_tasks'),
         Queue('sms_tasks', exchange='sms_tasks', routing_key='sms_tasks'),
+        Queue('grocery_tasks', exchange='grocery_tasks', routing_key='grocery_tasks'),
     ),
     # Default queue configuration
     task_default_queue='ai_tasks',
@@ -130,6 +135,22 @@ app.conf.update(
             "schedule": crontab(minute="*/15"),
             "options": {"priority": 7},
         },
+        # Grocery tasks (medium priority)
+        "fetch-iga-flyer-data": {
+            "task": "personal_assistant.workers.tasks.grocery_tasks.fetch_iga_flyer_data",
+            "schedule": crontab(hour=6, minute=0, day_of_week=1),  # Monday 6 AM
+            "options": {"priority": 6},
+        },
+        "test-grocery-task-connection": {
+            "task": "personal_assistant.workers.tasks.grocery_tasks.test_grocery_task_connection",
+            "schedule": crontab(minute="*/30"),
+            "options": {"priority": 6},
+        },
+        "cleanup-expired-grocery-deals": {
+            "task": "personal_assistant.workers.tasks.grocery_tasks.cleanup_expired_grocery_deals",
+            "schedule": crontab(hour=7, minute=0),  # Daily at 7 AM (safety cleanup)
+            "options": {"priority": 5},
+        },
     },
     # Enhanced worker settings
     worker_prefetch_multiplier=1,
@@ -164,10 +185,16 @@ logger.info("🚀 CELERY BEAT SCHEDULE CONFIGURED:")
 logger.info(f"📅 process-due-ai-tasks: Every minute (crontab: */1)")
 logger.info(f"📅 test-scheduler-connection: Every 30 minutes")
 logger.info(f"📅 cleanup-old-logs: Daily at 2:00 AM")
+logger.info(f"📅 fetch-iga-flyer-data: Weekly on Monday at 6:00 AM")
+logger.info(f"📅 test-grocery-task-connection: Every 30 minutes")
+logger.info(f"📅 cleanup-expired-grocery-deals: Daily at 7:00 AM")
 print("🚀 CELERY BEAT SCHEDULE CONFIGURED:")
 print(f"📅 process-due-ai-tasks: Every minute (crontab: */1)")
 print(f"📅 test-scheduler-connection: Every 30 minutes")
 print(f"📅 cleanup-old-logs: Daily at 2:00 AM")
+print(f"📅 fetch-iga-flyer-data: Weekly on Monday at 6:00 AM")
+print(f"📅 test-grocery-task-connection: Every 30 minutes")
+print(f"📅 cleanup-expired-grocery-deals: Daily at 7:00 AM")
 
 # Log the queue configuration
 logger.info("🚀 CELERY QUEUE CONFIGURATION:")

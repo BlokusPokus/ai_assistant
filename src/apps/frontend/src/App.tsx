@@ -6,13 +6,14 @@ import {
   Navigate,
 } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
-import LandingPage from '@/pages/LandingPage';
+import LandingPageRoute from '@/pages/LandingPageRoute';
 import WaitListLandingPage from '@/pages/WaitListLandingPage';
 import LoginPage from '@/pages/LoginPage';
 import MFASetupPage from '@/pages/MFASetupPage';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import {
   DashboardHome,
+  DashboardPrototypePage,
   ProfilePage,
   SettingsPage,
   SecurityPage,
@@ -25,6 +26,7 @@ import {
   SMSAnalyticsPage,
   AdminAnalyticsPage,
 } from '@/pages/dashboard';
+import PrototypePage from '@/pages/dashboard/PrototypePage';
 import PhoneManagementPage from '@/pages/dashboard/PhoneManagementPage';
 import { OAuthSettingsPage } from '@/components/oauth-settings';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -46,7 +48,7 @@ function App() {
             path="/"
             element={
               <ProtectedRoute requireAuth={false}>
-                <LandingPage />
+                <LandingPageRoute />
               </ProtectedRoute>
             }
           />
@@ -65,6 +67,15 @@ function App() {
             element={
               <ProtectedRoute requireAuth={false}>
                 <WaitListLandingPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/prototype"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <PrototypePage />
               </ProtectedRoute>
             }
           />
@@ -98,6 +109,7 @@ function App() {
             }
           >
             <Route index element={<DashboardHome />} />
+            <Route path="prototype" element={<DashboardPrototypePage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="security" element={<SecurityPage />} />

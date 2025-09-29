@@ -292,6 +292,16 @@ def create_note_tool_metadata() -> ToolMetadata:
         rate_limits="1000 notes per day",
         retry_strategy="Retry failed operations with exponential backoff",
         ai_instructions=(
+            """
+When creating notes, ask clarifying questions if the request is vague or incomplete:
+- For meeting notes: Ask about attendees, date, main topics, decisions
+- For project notes: Ask about goals, timeline, stakeholders, deliverables  
+- For learning notes: Ask about source, key concepts, application
+- For personal notes: Ask about context, emotions, goals
+- For research notes: Ask about hypothesis, methodology, findings
+
+Only ask 2-3 targeted questions. Don't ask if the user already provided sufficient detail.
+"""
             "Use the note tool when users want to create, organize, or retrieve notes for any purpose. "
             "This includes meeting notes, project documentation, personal reminders, research findings, "
             "task lists, and any other information they want to capture and organize. "

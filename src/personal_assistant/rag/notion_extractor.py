@@ -7,7 +7,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from ..tools.notion_pages.notion_pages_tool import NotionPagesTool
+from ..tools.notes.enhanced_notes_tool import EnhancedNotesTool
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,8 @@ class NotionContentExtractor:
 
     def __init__(self):
         """Initialize the content extractor."""
-        self.notion_tool = NotionPagesTool()
-        logger.info("NotionContentExtractor initialized")
+        self.notes_tool = EnhancedNotesTool()
+        logger.info("NotionContentExtractor initialized with EnhancedNotesTool")
 
     async def extract_note_content(
         self, note_id: str, user_id: int
@@ -38,15 +38,29 @@ class NotionContentExtractor:
         try:
             logger.debug(f"Extracting content for note {note_id} (user: {user_id})")
 
-            # Get note using existing NotionNotesTool
-            note_content = await self.notion_tool.get_note(note_id)
+            # Get note using EnhancedNotesTool
+            note_data = await self.notes_tool.get_note_content(note_id, user_id)
+
+            if not note_data or isinstance(note_data, dict) and note_data.get("error"):
+                logger.warning(f"No content returned for note {note_id}: {note_data}")
+                return None
+
+            # Handle both string and dict responses
+            if isinstance(note_data, str):
+                # Legacy string format - parse it
+                note_content = note_data
+                title = "Untitled Note"
+            else:
+                # New structured format
+                note_content = note_data.get("content", "")
+                title = note_data.get("title", "Untitled Note")
 
             if not note_content:
-                logger.warning(f"No content returned for note {note_id}")
+                logger.warning(f"No content found for note {note_id}")
                 return None
 
             # Parse and structure content
-            structured_content = self._parse_note_content(note_content)
+            structured_content = self._parse_note_content(note_content, title)
 
             if not structured_content:
                 logger.warning(f"Failed to parse content for note {note_id}")
@@ -69,12 +83,13 @@ class NotionContentExtractor:
             logger.error(f"Error extracting note content for {note_id}: {e}")
             return None
 
-    def _parse_note_content(self, note_content: str) -> Optional[Dict[str, Any]]:
+    def _parse_note_content(self, note_content: str, title: str = None) -> Optional[Dict[str, Any]]:
         """
         Parse note content into structured format.
 
         Args:
             note_content: Raw note content from Notion
+            title: Optional title for the note
 
         Returns:
             Structured content dictionary or None if parsing fails
@@ -89,11 +104,12 @@ class NotionContentExtractor:
             if not lines:
                 return None
 
-            # Extract title (first non-empty line)
-            title = lines[0] if lines else "Untitled Note"
+            # Use provided title or extract from first line
+            if not title:
+                title = lines[0] if lines else "Untitled Note"
 
             # Extract main content (all lines after title)
-            content_lines = lines[1:] if len(lines) > 1 else []
+            content_lines = lines[1:] if len(lines) > 1 and lines[0] == title else lines
             main_content = "\n".join(content_lines)
 
             # Initialize structured content
@@ -306,5 +322,6 @@ class NotionContentExtractor:
         """
         return {
             "extractor_type": "NotionContentExtractor",
-            "notion_tool_available": self.notion_tool is not None,
+            "notes_tool_available": self.notes_tool is not None,
+            "tool_type": "EnhancedNotesTool",
         }

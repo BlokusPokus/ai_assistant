@@ -5,8 +5,10 @@ This module contains all the prompts used by the AIEventEvaluator for calendar e
 Enhanced with sophisticated prompt architecture and metadata integration.
 """
 
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Dict, Any, Optional
+
+from ..utils.time_utils import get_current_time_for_prompts, get_current_utc_time
 
 
 class AIEvaluatorPrompts:
@@ -60,12 +62,12 @@ class AIEvaluatorPrompts:
     @staticmethod
     def _build_base_evaluation_prompt() -> str:
         """Build the base evaluation prompt structure."""
-        current_time = datetime.now()
+        current_time = get_current_time_for_prompts()
         
         return f"""
 🎯 AI CALENDAR EVENT EVALUATOR
 
-📅 Current time: {current_time.strftime('%Y-%m-%d %H:%M')}
+📅 Current time: {current_time}
 
 🎯 EVALUATION REQUEST: Determine if calendar event needs attention
 
@@ -221,7 +223,7 @@ Respond with a JSON object containing:
         Returns:
             Enhanced formatted prompt string
         """
-        current_time = datetime.utcnow()
+        current_time = get_current_utc_time()
         time_since_last = None
         if last_processed:
             time_since_last = (current_time - last_processed).total_seconds() / 3600  # hours
@@ -248,12 +250,12 @@ Respond with a JSON object containing:
     @staticmethod
     def _build_recurrence_base_prompt() -> str:
         """Build the base recurrence analysis prompt."""
-        current_time = datetime.now()
+        current_time = get_current_time_for_prompts()
         
         return f"""
 🎯 AI RECURRENCE PATTERN ANALYZER
 
-📅 Current time: {current_time.strftime('%Y-%m-%d %H:%M')}
+📅 Current time: {current_time}
 
 🎯 ANALYSIS REQUEST: Analyze recurring event pattern and determine processing timing
 

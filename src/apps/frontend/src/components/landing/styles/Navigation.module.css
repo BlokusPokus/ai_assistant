@@ -1,0 +1,39 @@
+/* Navigation Styles */
+.navigation {
+    display: none;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    align-items: center;
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .navigation {
+        display: flex;
+    }
+}
+
+.navLink {
+    font-size: 0.875rem;
+    transition: color 0.2s ease;
+    color: #62795d;
+    text-decoration: none;
+}
+
+.navLink:hover {
+    opacity: 0.8;
+}
+
+.navButton {
+    font-size: 0.875rem;
+    transition: color 0.2s ease;
+    color: #62795d;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.navButton:hover {
+    opacity: 0.8;
+}

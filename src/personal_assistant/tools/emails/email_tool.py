@@ -1,6 +1,7 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import os
+import time
 import httpx
 from dotenv import load_dotenv
 
@@ -13,21 +14,26 @@ from .email_internal import (
     build_email_headers,
     build_email_message_data,
     build_email_params,
+    build_search_parameters,
     clean_recipients_string,
     clean_html_content,
+    execute_search_with_retry,
     format_email_list_response,
     format_email_response,
     format_move_email_response,
     format_success_response,
+    get_oauth_access_token_with_retry,
     handle_email_not_found,
     parse_email_content_response,
     parse_emails_from_batch,
     process_email_batch,
-    validate_body,
+    process_search_results,
+    sanitize_search_parameters,
+    sort_search_results,
     validate_email_parameters,
     validate_message_id,
-    validate_recipients,
-    validate_subject,
+    validate_search_parameters,
+    validate_send_email_params,
 )
 # OAuth imports for user-specific authentication
 from personal_assistant.oauth.services.token_service import OAuthTokenService
@@ -109,6 +115,10 @@ class EmailTool:
                     "description": "Number of emails per batch (default: 10)",
                     "default": 10,
                 },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
+                },
             },
         )
 
@@ -130,6 +140,10 @@ class EmailTool:
                     "type": "boolean",
                     "description": "Whether the body is HTML format (default: false)",
                 },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
+                },
             },
         )
 
@@ -141,6 +155,10 @@ class EmailTool:
                 "email_id": {
                     "type": "string",
                     "description": "The ID of the email message to delete",
+                },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
                 }
             },
         )
@@ -153,6 +171,10 @@ class EmailTool:
                 "email_id": {
                     "type": "string",
                     "description": "The ID of the email message to get content from",
+                },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
                 }
             },
         )
@@ -169,6 +191,10 @@ class EmailTool:
                 "batch_size": {
                     "type": "integer",
                     "description": "Number of emails per batch (default: 10)",
+                },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
                 },
             },
         )
@@ -210,6 +236,10 @@ class EmailTool:
                     "type": "string",
                     "description": "Folder to search in (inbox, sentitems, drafts, etc., default: inbox)",
                 },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
+                },
             },
         )
 
@@ -226,6 +256,10 @@ class EmailTool:
                     "type": "string",
                     "description": "Destination folder name (e.g., 'Archive', 'Junk', 'Deleted Items', or custom folder name)",
                 },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
+                },
             },
         )
 
@@ -233,7 +267,12 @@ class EmailTool:
             name="find_all_email_folders",
             func=self.find_all_email_folders,
             description="Get a list of all available email folders (Inbox, Sent Items, Drafts, Archive, Junk, Deleted Items, and custom folders)",
-            parameters={},
+            parameters={
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
+                },
+            },
         )
 
         self.create_email_folder_tool = Tool(
@@ -254,21 +293,20 @@ class EmailTool:
                     "description": "ID of the parent folder (optional, defaults to root if not specified)",
                     "default": None,
                 },
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
+                },
             },
         )
 
-    # Old token methods removed - now using OAuth system
 
-
-    async def get_emails(self, count: int = 10, batch_size: int = 10, user_id: int = None) -> Union[str, dict]:
+    async def get_emails(self, user_id: int, count: int = 10, batch_size: int = 10, ) -> Union[str, dict]:
         """Read recent emails with improved error handling and OAuth token management"""
         try:
             # Validate and normalize parameters
-            count = int(count) if count else 10
-            batch_size = int(batch_size) if batch_size else 10
+            count, batch_size = validate_email_parameters(count, batch_size)
 
-            if not user_id:
-                return {"error": "User ID is required for OAuth authentication"}
 
             # Get OAuth access token
             token = await self._get_oauth_access_token(user_id)
@@ -301,61 +339,15 @@ class EmailTool:
 
 
     async def send_email(
-        self, to_recipients: str = None, subject: str = None, body: str = None, is_html: bool = False, user_id: int = None, **kwargs
+        self, user_id: int, to_recipients: str = None, subject: str = None, body: str = None, is_html: bool = False, **kwargs
     ) -> Dict[str, Any]:
         """Send an email to one or more recipients"""
         try:
-            # Handle both 'to_recipients' and 'to' parameter names for compatibility
-            if to_recipients is None and 'to' in kwargs:
-                # Convert 'to' parameter (which might be a list) to 'to_recipients' string
-                to_param = kwargs['to']
-                if isinstance(to_param, list):
-                    to_recipients = ', '.join(to_param)
-                else:
-                    to_recipients = str(to_param)
-            
             # Validate parameters using internal functions
-            is_valid, error_msg = validate_recipients(to_recipients)
-            if not is_valid:
-                return EmailErrorHandler.handle_email_error(
-                    ValueError(error_msg),
-                    "send_email",
-                    {
-                        "to_recipients": to_recipients,
-                        "subject": subject,
-                        "body": body,
-                        "is_html": is_html,
-                    },
-                )
+            validation_error = validate_send_email_params(to_recipients, subject, body, is_html)
+            if validation_error:
+                return validation_error
 
-            is_valid, error_msg = validate_subject(subject)
-            if not is_valid:
-                return EmailErrorHandler.handle_email_error(
-                    ValueError(error_msg),
-                    "send_email",
-                    {
-                        "to_recipients": to_recipients,
-                        "subject": subject,
-                        "body": body,
-                        "is_html": is_html,
-                    },
-                )
-
-            is_valid, error_msg = validate_body(body)
-            if not is_valid:
-                return EmailErrorHandler.handle_email_error(
-                    ValueError(error_msg),
-                    "send_email",
-                    {
-                        "to_recipients": to_recipients,
-                        "subject": subject,
-                        "body": body,
-                        "is_html": is_html,
-                    },
-                )
-
-            if not user_id:
-                return {"error": "User ID is required for OAuth authentication"}
 
             # Get OAuth access token
             token = await self._get_oauth_access_token(user_id)
@@ -378,15 +370,9 @@ class EmailTool:
                         {"recipients": to_recipients},
                     )
                 else:
-                    return EmailErrorHandler.handle_email_error(
-                        Exception(f"HTTP {response.status_code}: {response.text}"),
-                        "send_email",
-                        {
-                            "to_recipients": to_recipients,
-                            "subject": subject,
-                            "body": body,
-                            "is_html": is_html,
-                        },
+                    return EmailErrorHandler.handle_http_error(
+                        response, "send_email",
+                        {"to_recipients": to_recipients, "subject": subject, "body": body, "is_html": is_html}
                     )
 
         except Exception as e:
@@ -401,7 +387,7 @@ class EmailTool:
                 },
             )
 
-    async def delete_email(self, email_id: str, user_id: int = None) -> Dict[str, Any]:
+    async def delete_email(self, user_id: int,email_id: str) -> Dict[str, Any]:
         """Delete an email by its ID"""
         try:
             # Validate parameters using internal functions
@@ -411,8 +397,6 @@ class EmailTool:
                     ValueError(error_msg), "delete_email", {"email_id": email_id}
                 )
 
-            if not user_id:
-                return {"error": "User ID is required for OAuth authentication"}
             
             token = await self._get_oauth_access_token(user_id)
             headers = build_email_headers(token)
@@ -430,10 +414,8 @@ class EmailTool:
                 elif response.status_code == 404:
                     return handle_email_not_found(email_id)
                 else:
-                    return EmailErrorHandler.handle_email_error(
-                        Exception(f"HTTP {response.status_code}: {response.text}"),
-                        "delete_email",
-                        {"email_id": email_id},
+                    return EmailErrorHandler.handle_http_error(
+                        response, "delete_email", {"email_id": email_id}
                     )
 
         except Exception as e:
@@ -441,7 +423,7 @@ class EmailTool:
                 e, "delete_email", {"email_id": email_id}
             )
 
-    async def get_email_content(self, email_id: str, user_id: int = None) -> Dict[str, Any]:
+    async def get_email_content(self, user_id: int,email_id: str) -> Dict[str, Any]:
         """Get the full content of a specific email by its ID"""
         try:
             # Validate parameters using internal functions
@@ -453,8 +435,6 @@ class EmailTool:
                     {"email_id": email_id},
                 )
 
-            if not user_id:
-                return {"error": "User ID is required for OAuth authentication"}
             
             token = await self._get_oauth_access_token(user_id)
             headers = build_email_headers(token)
@@ -482,10 +462,8 @@ class EmailTool:
                 elif response.status_code == 404:
                     return handle_email_not_found(email_id)
                 else:
-                    return EmailErrorHandler.handle_email_error(
-                        Exception(f"HTTP {response.status_code}: {response.text}"),
-                        "get_email_content",
-                        {"email_id": email_id},
+                    return EmailErrorHandler.handle_http_error(
+                        response, "get_email_content", {"email_id": email_id}
                     )
 
         except Exception as e:
@@ -493,7 +471,7 @@ class EmailTool:
                 e, "get_email_content", {"email_id": email_id}
             )
 
-    async def get_sent_emails(self, count: int = 10, batch_size: int = 10, user_id: int = None) -> str:
+    async def get_sent_emails(self, user_id: int,count: int = 10, batch_size: int = 10, ) -> str:
         """
         Read recent emails you have sent with improved error handling and token management
         """
@@ -505,8 +483,6 @@ class EmailTool:
 
             count, batch_size = validate_email_parameters(count, batch_size)
 
-            if not user_id:
-                return {"error": "User ID is required for OAuth authentication"}
             
             token = await self._get_oauth_access_token(user_id)
             headers = build_email_headers(token)
@@ -529,10 +505,8 @@ class EmailTool:
                     )
 
                     if response.status_code != 200:
-                        return EmailErrorHandler.handle_email_error_str(
-                            Exception(f"HTTP {response.status_code}: {response.text}"),
-                            "get_sent_emails",
-                            {"count": count, "batch_size": batch_size},
+                        return EmailErrorHandler.handle_http_error(
+                            response, "get_sent_emails", {"count": count, "batch_size": batch_size}
                         )
 
                     batch_data = response.json()
@@ -567,6 +541,7 @@ class EmailTool:
 
     async def search_emails(
         self,
+        user_id: int,
         search_terms: str = None,
         query: str = None,
         count: int = 20,
@@ -577,7 +552,6 @@ class EmailTool:
         date_range: Optional[str] = None,
         received_after: Optional[str] = None,
         folder: str = "inbox",
-        user_id: int = None,
     ) -> str:
         """
         Search emails by query, sender, date range, or other criteria.
@@ -590,200 +564,98 @@ class EmailTool:
         Note: $search doesn't support $orderby, so results are sorted client-side by received date.
         Reference: https://learn.microsoft.com/en-us/graph/search-query-parameter?tabs=http
         """
+        start_time = time.time()
+        request_id = f"search_{int(start_time * 1000)}"
+        
         try:
-            # Validate parameters
-            if not query or not query.strip():
-                return EmailErrorHandler.handle_email_error_str(
-                    ValueError("Search query cannot be empty"),
-                    "search_emails",
-                    {"query": query, "count": count},
+            # Enhanced parameter validation
+            validation_result = validate_search_parameters(
+                search_terms, query, count, date_from, date_to, 
+                start_date, end_date, date_range, received_after, folder
+            )
+            if not validation_result["valid"]:
+                return EmailErrorHandler.handle_validation_error(
+                    validation_result["error"], "search_emails",
+                    {"query": query, "count": count, "folder": folder}
                 )
 
-            # Ensure count is an integer (handle float values from LLM)
-            count = int(count) if count else 20
-
-            if count <= 0 or count > 100:
-                count = min(max(count, 1), 100)  # Clamp between 1 and 100
-
-            if not user_id:
-                return {"error": "User ID is required for OAuth authentication"}
-            
-            token = await self._get_oauth_access_token(user_id)
-            headers = build_email_headers(token)
-            search_results = []
-
-            # Build search filter
-            search_filter: List[str] = []
-
-            # Use $search parameter for comprehensive email search (includes body content)
-            # Microsoft Graph API supports $search in from, subject, and body automatically
-            # Reference: https://learn.microsoft.com/en-us/graph/search-query-parameter?tabs=http
-            search_params = {}
-            actual_query = search_terms or query or date_range  # Support all parameter names, prioritize search_terms
-            
-            if actual_query:
-                # Use $search instead of $filter for better body content search
-                search_params["$search"] = f'"{actual_query}"'
-            else:
-                # If no query, build filter for other criteria only
-                search_filter = []
-
-            # Add date range filter if provided - support all parameter name formats
-            actual_start_date = start_date or date_from or received_after
-            actual_end_date = end_date or date_to
-            
-            if actual_start_date:
-                search_filter.append(f"receivedDateTime ge {actual_start_date}T00:00:00Z")
-            if actual_end_date:
-                search_filter.append(f"receivedDateTime le {actual_end_date}T23:59:59Z")
-
-            # Combine date filters with AND logic (since they're date constraints)
-            filter_string = " and ".join(search_filter) if search_filter else None
-
-            # Build final parameters
-            final_params: Dict[str, Union[str, int]] = {
-                "$top": count,
-                "$select": "id,subject,bodyPreview,receivedDateTime,from,toRecipients,isDraft,importance",
-            }
-
-            # Add search and filter parameters
-            if search_params:
-                final_params.update(search_params)
-            if filter_string:
-                final_params["$filter"] = filter_string
-
-            # Get folder ID if not inbox
-            if folder.lower() != "inbox":
-                # For now, we'll search in inbox and filter by folder later
-                # In a full implementation, you'd get the folder ID first
-                pass
-
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{self.ms_graph_url}/me/messages",
-                    headers=headers,
-                    params=final_params,
-                )
-
-                if response.status_code != 200:
-                    return EmailErrorHandler.handle_email_error_str(
-                        Exception(f"HTTP {response.status_code}: {response.text}"),
-                        "search_emails",
-                        {"query": query, "count": count, "folder": folder},
-                    )
-
-                emails = response.json().get("value", [])
-
-                for email in emails:
-                    # Format search result - use same structure as other email functions
-                    email_info = {
-                        "id": email.get("id"),
-                        "subject": email.get("subject", "No Subject"),
-                        "preview": email.get(
-                            "bodyPreview", "No preview available"
-                        ),  # Changed from body_preview to preview to match format_email_list_response
-                        "received": email.get("receivedDateTime"),  # Changed from received_date to received
-                        "from_name": email.get("from", {})
-                        .get("emailAddress", {})
-                        .get("name", "Unknown"),  # Changed from from_sender to from_name
-                        "from_email": email.get("from", {})
-                        .get("emailAddress", {})
-                        .get("address", "Unknown"),  # Added from_email field
-                        "to_recipients": [
-                            recipient.get("emailAddress", {}).get("address", "Unknown")
-                            for recipient in email.get("toRecipients", [])
-                        ],
-                        "is_draft": email.get("isDraft", False),
-                        "importance": email.get("importance", "normal"),
-                        "folder": folder,
-                    }
-                    search_results.append(email_info)
-
-                # Sort results by received date when using $search (since API doesn't support $orderby with $search)
-                if query and search_results:
-                    try:
-                        from datetime import datetime
-
-                        # Parse ISO datetime strings and sort by received date (newest first)
-                        search_results.sort(
-                            key=lambda x: datetime.fromisoformat(
-                                x["received"].replace("Z", "+00:00")
-                            )
-                            if x["received"]
-                            else datetime.min,
-                            reverse=True,
-                        )
-                        self.logger.info(
-                            f"Sorted {len(search_results)} search results by received date"
-                        )
-                    except Exception as sort_error:
-                        self.logger.warning(
-                            f"Failed to sort search results: {sort_error}"
-                        )
-
-            # Note: $search parameter automatically searches in from, subject, and body
-            # Client-side filtering is no longer needed for basic search functionality
-            # The Microsoft Graph API handles body content search natively via $search
-
-            self.logger.info(
-                f"Search completed: found {len(search_results)} results for query '{query}' in folder '{folder}'"
+            # Sanitize and normalize parameters
+            sanitized_params = sanitize_search_parameters(
+                search_terms, query, count, date_from, date_to,
+                start_date, end_date, date_range, received_after, folder
             )
 
-            # Use formatting function for clean user output
-            return format_email_list_response(search_results[:count], count)
+            self.logger.info(
+                f"[{request_id}] Starting email search with params: "
+                f"query='{sanitized_params['query'][:50]}...', "
+                f"count={sanitized_params['count']}, "
+                f"folder='{sanitized_params['folder']}'"
+            )
+
+            # Get OAuth access token with retry logic
+            token = await get_oauth_access_token_with_retry(self._get_oauth_access_token, user_id, request_id)
+            headers = build_email_headers(token)
+            
+            # Build optimized search parameters
+            search_params = build_search_parameters(sanitized_params)
+            
+            # Execute search with retry logic and rate limiting
+            search_results = await execute_search_with_retry(
+                self.ms_graph_url, headers, search_params, sanitized_params["count"], request_id
+            )
+
+            # Process and sort results efficiently
+            processed_results = process_search_results(search_results, sanitized_params["query"])
+            
+            # Sort results by received date (newest first)
+            sorted_results = sort_search_results(processed_results, request_id)
+
+            execution_time = time.time() - start_time
+            self.logger.info(
+                f"[{request_id}] Search completed: found {len(sorted_results)} results "
+                f"for query '{sanitized_params['query'][:50]}...' in folder '{sanitized_params['folder']}' "
+                f"(execution time: {execution_time:.2f}s)"
+            )
+
+            # Return formatted results
+            return format_email_list_response(sorted_results[:sanitized_params["count"]], sanitized_params["count"])
 
         except Exception as e:
+            execution_time = time.time() - start_time
+            self.logger.error(
+                f"[{request_id}] Search failed after {execution_time:.2f}s: {str(e)}"
+            )
             return EmailErrorHandler.handle_email_error_str(
                 e, "search_emails", {"query": query, "count": count, "folder": folder}
             )
 
-    async def move_email(self, email_id: str, destination_folder: str, user_id: int = None) -> str:
+    async def move_email(self, email_id: str, destination_folder: str, user_id: int) -> str:
         """
-        Move an email from one folder to another folder for organization and classification purposes.
-
-        PRIMARY USE CASE: Email Classification and Organization
-        - Automatically categorize emails into appropriate folders based on content, sender, or subject
-        - Organize emails by project, priority, or topic for better inbox management
-        - Filter and sort emails into custom classification folders
-
-        Supports moving emails to standard folders like:
-        - Archive
-        - Junk
-        - Deleted Items
-        - Custom folders (for classification: 'Important emails', 'Interesting reading', 'Useless emails', etc.)
-
-        CLASSIFICATION EXAMPLES:
-        - Move newsletter emails to 'Interesting reading' folder
-        - Move invoice emails to 'Important emails' folder  
-        - Move spam/promotional emails to 'Useless emails' folder
-        - Move project-related emails to specific project folders
-
-        Reference: https://learn.microsoft.com/en-us/graph/api/message-move
+        Move an email from one folder to another folder for organization and classification.
+        
+        Args:
+            email_id: ID of the email to move
+            destination_folder: Name of the destination folder
+            user_id: User identifier for OAuth authentication
+            
+        Returns:
+            Success message with move details or error message
         """
         try:
+            # Build error context once
+            error_context = {"email_id": email_id, "destination_folder": destination_folder}
+            
             # Validate parameters
             if not email_id or not email_id.strip():
-                return EmailErrorHandler.handle_email_error_str(
-                    ValueError("Email ID cannot be empty"),
-                    "move_email",
-                    {
-                        "email_id": email_id,
-                        "destination_folder": destination_folder,
-                    },
+                return EmailErrorHandler.handle_validation_error(
+                    "Email ID cannot be empty", "move_email", error_context
                 )
 
             if not destination_folder or not destination_folder.strip():
-                return EmailErrorHandler.handle_email_error_str(
-                    ValueError("Destination folder cannot be empty"),
-                    "move_email",
-                    {
-                        "email_id": email_id,
-                        "destination_folder": destination_folder,
-                    },
+                return EmailErrorHandler.handle_validation_error(
+                    "Destination folder cannot be empty", "move_email", error_context
                 )
 
-            if not user_id:
-                return {"error": "User ID is required for OAuth authentication"}
             
             token = await self._get_oauth_access_token(user_id)
             headers = build_email_headers(token, "application/json")
@@ -826,46 +698,20 @@ class EmailTool:
                                 break
                         
                         if destination_id is None:
-                            return EmailErrorHandler.handle_email_error_str(
-                                ValueError(f"Folder '{destination_folder}' not found"),
-                                "move_email",
-                                {"email_id": email_id, "destination_folder": destination_folder}
+                            return EmailErrorHandler.handle_folder_not_found_error(
+                                destination_folder, "move_email", error_context
                             )
                     else:
-                        return EmailErrorHandler.handle_email_error_str(
-                            Exception(f"Failed to get folder list: HTTP {folders_response.status_code}"),
-                            "move_email",
-                            {"email_id": email_id, "destination_folder": destination_folder}
+                        return EmailErrorHandler.handle_http_error(
+                            folders_response, "move_email", error_context
                         )
 
             # Build the move request payload
             move_data = {"destinationId": destination_id}
 
-            # First, try to get the current folder of the message to provide better feedback
-            current_folder = "unknown"
-            try:
-                async with httpx.AsyncClient() as client:
-                    # Get message details to see current folder
-                    response = await client.get(
-                        f"{self.ms_graph_url}/me/messages/{email_id}",
-                        headers=headers,
-                        params={"$select": "id,subject,parentFolderId"},
-                    )
-
-                    if response.status_code == 200:
-                        message_data = response.json()
-                        # Try to get folder name from parentFolderId
-                        folder_response = await client.get(
-                            f"{self.ms_graph_url}/me/mailFolders/{message_data.get('parentFolderId')}",
-                            headers=headers,
-                        )
-                        if folder_response.status_code == 200:
-                            folder_data = folder_response.json()
-                            current_folder = folder_data.get("displayName", "unknown")
-            except Exception as folder_error:
-                self.logger.warning(
-                    f"Could not determine current folder: {folder_error}"
-                )
+            # Helper function to avoid repeating parameters
+            def create_response(success: bool, message: str) -> str:
+                return format_move_email_response(success, message, email_id, destination_folder, "unknown")
 
             # Perform the move operation
             async with httpx.AsyncClient() as client:
@@ -883,52 +729,26 @@ class EmailTool:
                         # If response is empty or not JSON, create a basic success response
                         move_result = {"subject": "Email moved successfully"}
 
-                    success_message = f"Successfully moved email '{move_result.get('subject', 'Unknown subject')}' from '{current_folder}' to '{destination_folder}'"
-
-                    return format_move_email_response(
-                        True,
-                        success_message,
-                        email_id,
-                        destination_folder,
-                        current_folder,
-                    )
+                    success_message = f"Successfully moved email '{move_result.get('subject', 'Unknown subject')}' to '{destination_folder}'"
+                    return create_response(True, success_message)
+                    
                 elif response.status_code == 404:
-                    error_message = f"Email with ID {email_id} not found"
-                    return format_move_email_response(
-                        False,
-                        error_message,
-                        email_id,
-                        destination_folder,
-                        current_folder,
-                    )
+                    return create_response(False, f"Email with ID {email_id} not found")
+                    
                 elif response.status_code == 400:
                     error_data = response.json()
                     error_message = f"Move failed: {error_data.get('error', {}).get('message', 'Bad request')}"
-                    return format_move_email_response(
-                        False,
-                        error_message,
-                        email_id,
-                        destination_folder,
-                        current_folder,
-                    )
+                    return create_response(False, error_message)
+                    
                 else:
-                    error_message = f"HTTP {response.status_code}: {response.text}"
-                    return format_move_email_response(
-                        False,
-                        error_message,
-                        email_id,
-                        destination_folder,
-                        current_folder,
-                    )
+                    return create_response(False, f"HTTP {response.status_code}: {response.text}")
 
         except Exception as e:
             return EmailErrorHandler.handle_email_error_str(
-                e,
-                "move_email",
-                {"email_id": email_id, "destination_folder": destination_folder},
+                e, "move_email", error_context
             )
 
-    async def find_all_email_folders(self, user_id: int = None) -> str:
+    async def find_all_email_folders(self, user_id: int) -> str:
         """
         Get a list of all available email folders including standard and custom folders.
         
@@ -936,8 +756,6 @@ class EmailTool:
         and any custom folders the user has created.
         """
         try:
-            if not user_id:
-                return {"error": "User ID is required for OAuth authentication"}
             
             token = await self._get_oauth_access_token(user_id)
             headers = build_email_headers(token)
@@ -957,10 +775,8 @@ class EmailTool:
                 )
                 
                 if response.status_code != 200:
-                    return EmailErrorHandler.handle_email_error_str(
-                        Exception(f"HTTP {response.status_code}: {response.text}"),
-                        "find_all_email_folders",
-                        {}
+                    return EmailErrorHandler.handle_http_error(
+                        response, "find_all_email_folders", {}
                     )
                 
                 folders_data = response.json().get("value", [])
@@ -1006,7 +822,7 @@ class EmailTool:
                 e, "find_all_email_folders", {}
             )
 
-    async def create_email_folder(self, folder_name: str = None, display_name: str = None, parent_folder_id: str = None, user_id: int = None) -> str:
+    async def create_email_folder(self, folder_name: str, user_id: int, parent_folder_id: Optional[str] = None) -> str:
         """
         Create a new custom email folder for organizing emails.
         
@@ -1019,38 +835,26 @@ class EmailTool:
             Success message with folder details or error message
         """
         try:
-            # Support both parameter name formats
-            actual_folder_name = folder_name or display_name
+            # Build error context once
+            error_context = {"folder_name": folder_name, "parent_folder_id": parent_folder_id}
             
-            # Validate parameters
-            if not actual_folder_name or not actual_folder_name.strip():
-                return EmailErrorHandler.handle_email_error_str(
-                    ValueError("Folder name cannot be empty"),
-                    "create_email_folder",
-                    {"folder_name": actual_folder_name, "parent_folder_id": parent_folder_id}
+            # Validate and clean folder name
+            if not folder_name or not folder_name.strip():
+                return EmailErrorHandler.handle_validation_error(
+                    "Folder name cannot be empty", "create_email_folder", error_context
                 )
             
-            # Clean and validate folder name
-            actual_folder_name = actual_folder_name.strip()
-            if len(actual_folder_name) > 255:
-                return EmailErrorHandler.handle_email_error_str(
-                    ValueError("Folder name cannot exceed 255 characters"),
-                    "create_email_folder",
-                    {"folder_name": actual_folder_name, "parent_folder_id": parent_folder_id}
+            folder_name = folder_name.strip()
+            if len(folder_name) > 255:
+                return EmailErrorHandler.handle_validation_error(
+                    "Folder name cannot exceed 255 characters", "create_email_folder", error_context
                 )
-            
-            if not user_id:
-                return {"error": "User ID is required for OAuth authentication"}
             
             token = await self._get_oauth_access_token(user_id)
             headers = build_email_headers(token, "application/json")
             
             # Build the folder creation payload
-            folder_data = {
-                "displayName": actual_folder_name
-            }
-            
-            # Add parent folder ID if specified
+            folder_data = {"displayName": folder_name}
             if parent_folder_id:
                 folder_data["parentFolderId"] = parent_folder_id
             
@@ -1065,7 +869,7 @@ class EmailTool:
                 if response.status_code == 201:  # Created
                     folder_info = response.json()
                     folder_id = folder_info.get("id")
-                    created_name = folder_info.get("displayName", actual_folder_name)
+                    created_name = folder_info.get("displayName", folder_name)
                     
                     success_message = f"Successfully created email folder '{created_name}'"
                     if folder_id:
@@ -1074,33 +878,16 @@ class EmailTool:
                     self.logger.info(f"Created email folder '{created_name}' for user {user_id}")
                     return success_message
                     
-                elif response.status_code == 400:
-                    error_data = response.json()
-                    error_message = error_data.get("error", {}).get("message", "Bad request")
-                    return EmailErrorHandler.handle_email_error_str(
-                        Exception(f"Folder creation failed: {error_message}"),
-                        "create_email_folder",
-                        {"folder_name": actual_folder_name, "parent_folder_id": parent_folder_id}
-                    )
-                    
-                elif response.status_code == 409:
-                    return EmailErrorHandler.handle_email_error_str(
-                        Exception(f"A folder with the name '{actual_folder_name}' already exists"),
-                        "create_email_folder",
-                        {"folder_name": actual_folder_name, "parent_folder_id": parent_folder_id}
-                    )
-                    
                 else:
-                    return EmailErrorHandler.handle_email_error_str(
-                        Exception(f"HTTP {response.status_code}: {response.text}"),
-                        "create_email_folder",
-                        {"folder_name": actual_folder_name, "parent_folder_id": parent_folder_id}
+                    return EmailErrorHandler.handle_http_error(
+                        response, "create_email_folder", error_context
                     )
                     
         except Exception as e:
             return EmailErrorHandler.handle_email_error_str(
-                e, "create_email_folder", {"folder_name": actual_folder_name, "parent_folder_id": parent_folder_id}
+                e, "create_email_folder", error_context
             )
+
 
     def __iter__(self):
         """Makes the class iterable to return all tools"""

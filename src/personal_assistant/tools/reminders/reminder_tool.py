@@ -6,7 +6,6 @@ AI tasks and reminders that can be executed by the AI assistant.
 """
 
 import logging
-from typing import Any, Dict, Optional
 
 from ..ai_scheduler.core.task_manager import AITaskManager
 from ..base import Tool
@@ -25,7 +24,7 @@ class ReminderTool:
         self.create_reminder_tool = Tool(
             name="create_reminder",
             func=self.create_reminder,
-            description="Create a new AI-driven reminder or task",
+            description="SCHEDULED AUTOMATION: Create persistent tasks that run automatically on schedule. Use for recurring automation (e.g., 'create a daily task to filter my emails at 7am'). Tasks are stored in database and run via Celery workers. NOT for conversation-based multi-step operations. IMPORTANT: For complex tasks, ask clarifying questions BEFORE calling this tool to ensure proper configuration.",
             parameters={
                 "type": "object",
                 "properties": {
@@ -51,6 +50,10 @@ class ReminderTool:
                         "type": "string",
                         "enum": ["once", "daily", "weekly", "monthly", "custom"],
                         "description": "How often the task should repeat (default: once)",
+                    },
+                    "ai_context": {
+                        "type": "string",
+                        "description": "Detailed execution plan and context for the AI to follow when executing this task",
                     },
                 },
                 "required": ["text", "time"],
@@ -129,6 +132,7 @@ class ReminderTool:
         channel = kwargs.get("channel", "sms")
         task_type = kwargs.get("task_type", "reminder")
         schedule_type = kwargs.get("schedule_type", "once")
+        ai_context = kwargs.get("ai_context")
         user_id = kwargs.get("user_id", 126)
 
         # Validate inputs
@@ -161,11 +165,12 @@ class ReminderTool:
                 task = await self.task_manager.create_task(
                     user_id=user_id,
                     title=text,
-                    description=text,
+                    description=f"Automated task: {text}" if task_type == "automated_task" else text,
                     task_type=task_type,
                     schedule_type=schedule_type,
                     schedule_config=schedule_config,
                     next_run_at=next_run_at,
+                    ai_context=ai_context,
                     notification_channels=[channel],
                 )
                 

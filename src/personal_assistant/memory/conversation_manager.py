@@ -57,12 +57,10 @@ async def get_conversation_id(user_id: int | None) -> Optional[str]:
             conversation_id = result.scalar_one_or_none()
 
             if conversation_id:
-                logger.debug(
-                    f"Found conversation ID in normalized storage: {conversation_id}"
-                )
+                logger.info(f"🔍 DEBUG: Found conversation ID in normalized storage: {conversation_id}")
                 return str(conversation_id) if conversation_id is not None else None
             else:
-                logger.debug("No conversation found in normalized storage")
+                logger.info(f"🔍 DEBUG: No conversation found in normalized storage for user {user_id}")
                 return None
     except Exception as e:
         logger.error(f"Error getting conversation ID for user {user_id}: {e}")
@@ -95,6 +93,9 @@ async def create_new_conversation(user_id: int | None) -> str:
 
         conversation_id = str(uuid.uuid4())
         logger.info(f"Creating new conversation {conversation_id} for user {user_id}")
+        
+        # Debug: Log conversation creation details
+        logger.info(f"🔍 DEBUG: Creating conversation for user_id={user_id}, conversation_id={conversation_id}")
 
         async with AsyncSessionLocal() as session:
             async with session.begin():  # Start transaction

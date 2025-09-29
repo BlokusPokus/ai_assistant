@@ -1,0 +1,74 @@
+/* Feature Button Styles */
+.featureButton {
+    position: relative;
+    width: 100%;
+    padding: 1rem;
+    text-align: left;
+    border-radius: 0.75rem;
+    border: 1px solid;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    background-color: white;
+}
+
+.featureButton:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.buttonContent {
+    margin-bottom: 0.75rem;
+}
+
+.iconTitle {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.icon {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.75rem;
+}
+
+.title {
+    font-weight: 600;
+}
+
+.description {
+    font-size: 0.875rem;
+    color: #000000;
+    /* Black for maximum readability */
+    margin: 0;
+}
+
+.progressBar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 0.25rem;
+    background-color: #f3f4f6;
+    border-radius: 0 0 0.75rem 0.75rem;
+    overflow: hidden;
+    margin: 0 2px;
+    /* Account for button border and padding */
+}
+
+.progressFill {
+    height: 100%;
+    border-radius: 0 0 0.75rem 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.progressFill.active {
+    width: 100%;
+}
+
+.progressFill.inactive {
+    width: 0;
+}
+
+.featureButton:hover .progressFill.inactive {
+    width: 100%;
+}

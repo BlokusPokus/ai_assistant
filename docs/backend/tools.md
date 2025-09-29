@@ -165,14 +165,17 @@ Calendar management through Microsoft Graph API.
 
 ### Enhanced Notes Tools (`src/personal_assistant/tools/notes/`)
 
-AI-powered note management with Notion integration.
+AI-powered note management with Notion integration, OAuth authentication, and bidirectional linking.
 
 **EnhancedNotesTool Class**:
 
 - LLM-powered content enhancement
-- Notion API integration
-- User-specific workspaces
+- OAuth-based Notion API integration
+- User-specific workspaces with isolation
 - Intelligent search and analysis
+- Bidirectional linking with Obsidian-style syntax
+- Table of contents management
+- Comprehensive error handling
 
 **Available Tools**:
 
@@ -189,6 +192,18 @@ AI-powered note management with Notion integration.
   - Automatic categorization
   - Tag generation
   - Metadata inclusion
+  - OAuth user isolation
+
+#### `create_simple_note`
+
+- **Purpose**: Create basic notes without AI enhancement
+- **Parameters**:
+  - `content`: Note content (required)
+  - `title`: Note title (optional)
+- **Features**:
+  - Direct content storage
+  - OAuth user isolation
+  - Notion compatibility
 
 #### `smart_search_notes`
 
@@ -203,6 +218,7 @@ AI-powered note management with Notion integration.
   - LLM-based relevance selection
   - Content preview
   - Search statistics
+  - User-specific results
 
 #### `enhance_existing_note`
 
@@ -210,8 +226,68 @@ AI-powered note management with Notion integration.
 - **Parameters**:
   - `search_query`: Search to find note (optional)
   - `page_id`: Specific page ID (optional)
+  - `enhancement_request`: What to enhance/add
   - `enhancement_type`: Type of enhancement (default: all)
 - **Features**:
+  - Strategy-based enhancement (replace/append/insert)
+  - LLM-powered content analysis
+  - Smart enhancement selection
+  - User-specific operations
+
+#### `get_note_intelligence`
+
+- **Purpose**: Get AI-powered insights about a note
+- **Parameters**:
+  - `page_id`: Note page ID (required)
+- **Features**:
+  - Content analysis
+  - Key topics extraction
+  - Action items identification
+  - Improvement suggestions
+
+#### `delete_note`
+
+- **Purpose**: Delete notes with confirmation
+- **Parameters**:
+  - `search_query`: Search to find note (optional)
+  - `page_id`: Specific page ID (optional)
+  - `confirm_deletion`: Confirmation flag (required)
+- **Features**:
+  - Safe deletion with confirmation
+  - Search-based deletion
+  - User-specific operations
+
+#### `create_link`
+
+- **Purpose**: Create bidirectional links between notes
+- **Parameters**:
+  - `source_page_id`: Source page ID (required)
+  - `target_page_title`: Target page title (required)
+  - `link_text`: Custom link text (optional)
+- **Features**:
+  - Obsidian-style `[[Page Name]]` syntax
+  - Bidirectional linking
+  - User-specific operations
+
+#### `get_backlinks`
+
+- **Purpose**: Find all pages that link to a specific page
+- **Parameters**:
+  - `page_id`: Page ID to find backlinks for (required)
+- **Features**:
+  - Reverse reference system
+  - Link relationship tracking
+  - User-specific results
+
+#### `get_table_of_contents`
+
+- **Purpose**: Get table of contents from user's Personal Assistant page
+- **Parameters**:
+  - `user_id`: User ID (required)
+- **Features**:
+  - Auto-updating TOC
+  - User-specific workspace
+  - Organized note structure
   - Content enhancement
   - Structure improvement
   - Tag suggestions

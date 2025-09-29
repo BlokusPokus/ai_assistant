@@ -1,0 +1,81 @@
+/* Header Styles */
+.header {
+    position: fixed;
+    top: 0.25rem;
+    left: 0;
+    right: 0;
+    padding: 0.75rem 0;
+    max-width: 95%;
+    margin: 0 auto;
+    width: 100%;
+    z-index: 20;
+}
+
+@media (min-width: 768px) {
+    .header {
+        padding: 1.5rem 0;
+    }
+}
+
+.headerSpacer {
+    height: 0.5rem;
+}
+
+.headerContent {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    padding: 0 0.75rem;
+}
+
+@media (min-width: 768px) {
+    .headerContent {
+        padding: 0 1rem;
+    }
+}
+
+.logoSection {
+    flex: 1;
+    min-width: 0;
+}
+
+.logoLink {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    text-decoration: none;
+}
+
+.logo {
+    width: 2rem;
+    height: 2rem;
+}
+
+.logoText {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #1a4835;
+}
+
+@media (min-width: 768px) {
+    .logoText {
+        font-size: 1.25rem;
+    }
+}
+
+.rightSection {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+@media (min-width: 768px) {
+    .rightSection {
+        gap: 1.5rem;
+    }
+}

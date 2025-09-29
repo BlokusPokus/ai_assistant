@@ -6,7 +6,6 @@ import type { MessageResponse, ConversationResponse } from '@/services/chatApi';
 import {
   filterVisibleMessages,
   removeDuplicateMessages,
-  isDuplicateMessage,
 } from '@/utils/messageUtils';
 import MessageBubble from '@/components/chat/MessageBubble';
 
@@ -22,7 +21,10 @@ const ChatPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const [lastMessageCount, setLastMessageCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load conversations on component mount
   useEffect(() => {
@@ -46,6 +48,15 @@ const ChatPage: React.FC = () => {
     }, 100);
     return () => clearTimeout(timer);
   }, [messages]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -79,12 +90,62 @@ const ChatPage: React.FC = () => {
       const filteredMessages = removeDuplicateMessages(
         filterVisibleMessages(messages)
       );
-      // Reverse the order since backend now returns newest-first, but we want oldest-first for chat display
-      setMessages(filteredMessages.reverse());
+      // Backend now returns messages in chronological order (by ID)
+      setMessages(filteredMessages);
+      setLastMessageCount(filteredMessages.length);
     } catch (error: any) {
       console.error('Error loading messages:', error);
       setError('Failed to load messages');
     }
+  };
+
+  const checkForNewMessages = async () => {
+    if (!currentConversationId || isPolling) return;
+
+    try {
+      const messages = await chatApi.getConversationMessages(
+        currentConversationId
+      );
+      const filteredMessages = removeDuplicateMessages(
+        filterVisibleMessages(messages)
+      );
+
+      // Check if we have new messages
+      if (filteredMessages.length > lastMessageCount) {
+        setMessages(filteredMessages);
+        setLastMessageCount(filteredMessages.length);
+
+        // Stop polling if we have a real AI response (not placeholder)
+        const lastMessage = filteredMessages[filteredMessages.length - 1];
+        if (
+          lastMessage.role === 'assistant' &&
+          lastMessage.content !== 'Processing your request...' &&
+          lastMessage.id !== 0
+        ) {
+          stopPolling();
+        }
+      }
+    } catch (error: any) {
+      console.error('Error checking for new messages:', error);
+      // Don't show error to user for polling failures
+    }
+  };
+
+  const startPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+
+    setIsPolling(true);
+    pollingIntervalRef.current = setInterval(checkForNewMessages, 2000); // Poll every 2 seconds
+  };
+
+  const stopPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    setIsPolling(false);
   };
 
   const sendMessage = async () => {
@@ -94,6 +155,18 @@ const ChatPage: React.FC = () => {
     setInputMessage('');
     setIsLoading(true);
     setError(null);
+
+    // Add user message to UI immediately for better UX
+    const tempUserMessage: MessageResponse = {
+      id: Date.now(), // Temporary ID
+      conversation_id: currentConversationId || 'temp',
+      role: 'user',
+      content: messageContent,
+      message_type: 'user_input',
+      timestamp: new Date().toISOString(),
+    };
+
+    setMessages(prev => [...prev, tempUserMessage]);
 
     try {
       let response;
@@ -107,23 +180,16 @@ const ChatPage: React.FC = () => {
         setCurrentConversationId(response.conversation_id);
       }
 
-      // Update messages with both user and AI responses, avoiding duplicates
-      setMessages(prev => {
-        const newMessages = [...prev];
+      // Reload messages from backend to ensure correct ordering and get real message IDs
+      await loadMessages(response.conversation_id);
 
-        // Add user message if not already present
-        if (!isDuplicateMessage(response.user_message, newMessages)) {
-          newMessages.push(response.user_message);
-        }
-
-        // Add AI message if not already present
-        if (!isDuplicateMessage(response.ai_message, newMessages)) {
-          newMessages.push(response.ai_message);
-        }
-
-        // Filter and deduplicate all messages
-        return removeDuplicateMessages(filterVisibleMessages(newMessages));
-      });
+      // Start polling for real AI response if we got a placeholder
+      if (
+        response.ai_message.content === 'Processing your request...' &&
+        response.ai_message.id === 0
+      ) {
+        startPolling();
+      }
 
       // Reload conversations to include the new one
       if (!currentConversationId) {
@@ -132,6 +198,8 @@ const ChatPage: React.FC = () => {
     } catch (error: any) {
       console.error('Error sending message:', error);
       setError('Failed to send message');
+      // Remove the temporary user message on error
+      setMessages(prev => prev.filter(msg => msg.id !== tempUserMessage.id));
       // Restore input message on error
       setInputMessage(messageContent);
     } finally {
@@ -147,9 +215,11 @@ const ChatPage: React.FC = () => {
   };
 
   const startNewConversation = () => {
+    stopPolling(); // Stop any ongoing polling
     setCurrentConversationId(null);
     setMessages([]);
     setError(null);
+    setLastMessageCount(0);
   };
 
   const deleteConversation = async (conversationId: string) => {
