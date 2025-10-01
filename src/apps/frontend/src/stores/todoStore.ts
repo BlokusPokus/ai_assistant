@@ -35,7 +35,7 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       // Use authenticated API service
-      const response = await api.get('/todos');
+      const response = await api.get('/todos/');
       set({ todos: response.data.todos || [], loading: false });
     } catch (error) {
       console.error('Error fetching todos:', error);
@@ -50,7 +50,7 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
   createTodo: async todo => {
     set({ loading: true, error: null });
     try {
-      const response = await api.post('/todos', todo);
+      const response = await api.post('/todos/', todo);
       set(state => ({
         todos: [response.data.todo, ...state.todos],
         loading: false,
