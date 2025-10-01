@@ -24,8 +24,9 @@ const LandingPage: React.FC = () => {
       <main className={styles.mainContent}>
         <HeroSection />
         <ProblemSection />
-        <SolutionSection />
         <IntegrationsSection />
+        <SolutionSection />
+
         <AIIntelligenceSection />
         <PrivacySection />
       </main>

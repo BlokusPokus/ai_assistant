@@ -9,8 +9,9 @@
     gap: 2rem;
     max-width: 72rem;
     margin: 0 auto;
-    justify-content: center;
-    align-items: center;
+    justify-content: flex-start;
+    align-items: flex-start;
+    padding-left: 4rem;
 }
 
 @media (min-width: 1024px) {

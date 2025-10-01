@@ -3,6 +3,13 @@
     display: grid;
     gap: 2rem;
     margin-bottom: 6rem;
+    grid-auto-rows: 1fr;
+    /* Ensure all rows have equal height */
+}
+
+.valueCardsGrid>* {
+    min-height: 400px;
+    /* Increased height for all cards */
 }
 
 @media (min-width: 768px) {

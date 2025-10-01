@@ -6,7 +6,7 @@ export const HeroCTAButtons: React.FC = () => {
   return (
     <div className={styles.ctaContainer}>
       <Link to="/login" className={styles.primaryButton}>
-        Get started free
+        Send Your First SMS{' '}
       </Link>
       {/* <button className={styles.secondaryButton}>Watch Demo</button> */}
     </div>

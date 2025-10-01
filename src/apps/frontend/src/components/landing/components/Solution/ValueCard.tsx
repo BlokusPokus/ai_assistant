@@ -8,6 +8,8 @@ interface ValueCardProps {
   iconBgColor: string;
   iconColor: string;
   iconPath: string;
+  isDarkTheme?: boolean;
+  backgroundImage?: string;
 }
 
 export const ValueCard: React.FC<ValueCardProps> = ({
@@ -17,7 +19,27 @@ export const ValueCard: React.FC<ValueCardProps> = ({
   iconBgColor,
   iconColor,
   iconPath,
+  isDarkTheme = false,
+  backgroundImage,
 }) => {
+  if (isDarkTheme) {
+    return (
+      <div className={styles.valueCardDark}>
+        <div
+          className={styles.heroImageContainer}
+          style={{
+            backgroundImage: `url(${backgroundImage || '/family_solarpunk.png'})`,
+          }}
+        ></div>
+
+        <div className={styles.contentSection}>
+          <h3 className={styles.titleDark}>{title}</h3>
+          <p className={styles.subtitleDark}>{description}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.valueCard}>
       <div

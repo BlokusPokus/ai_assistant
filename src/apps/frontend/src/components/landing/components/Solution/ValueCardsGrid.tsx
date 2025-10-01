@@ -1,5 +1,5 @@
 import React from 'react';
-import { ValueCard } from './ValueCard';
+import { ValueCard } from './index';
 import styles from '../../styles/ValueCardsGrid.module.css';
 
 const valueCards = [
@@ -48,8 +48,8 @@ const valueCards = [
       'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
   },
   {
-    id: 'social-life',
-    title: 'Social Life',
+    id: 'adventures',
+    title: 'Adventures',
     description:
       'Expand your social circle and engage in meaningful activities and experiences.',
     aiSuggestions:
@@ -99,7 +99,7 @@ const valueCards = [
 export const ValueCardsGrid: React.FC = () => {
   return (
     <div className={styles.valueCardsGrid}>
-      {valueCards.map(card => (
+      {valueCards.map((card, index) => (
         <ValueCard
           key={card.id}
           title={card.title}
@@ -108,6 +108,35 @@ export const ValueCardsGrid: React.FC = () => {
           iconBgColor={card.iconBgColor}
           iconColor={card.iconColor}
           iconPath={card.iconPath}
+          isDarkTheme={
+            index === 0 ||
+            index === 1 ||
+            index === 2 ||
+            index === 3 ||
+            index === 4 ||
+            index === 5 ||
+            index === 6 ||
+            index === 7
+          } // Apply dark theme to all cards
+          backgroundImage={
+            index === 0
+              ? '/family_solarpunk.png'
+              : index === 1
+                ? '/health_solarpunk.png'
+                : index === 2
+                  ? '/resilience_solarpunk2.png'
+                  : index === 3
+                    ? '/organization_solarpunk.png'
+                    : index === 4
+                      ? '/community_solarpunk2.png'
+                      : index === 5
+                        ? '/nature_solarpunk.png'
+                        : index === 6
+                          ? '/creative_solarpunk.png'
+                          : index === 7
+                            ? '/create_solarpunk.png'
+                            : undefined
+          }
         />
       ))}
     </div>

@@ -1,8 +1,9 @@
 import React from 'react';
-import { HeroHeadline } from './HeroHeadline';
-import { HeroDescription } from './HeroDescription';
-import { HeroCTAButtons } from './HeroCTAButtons';
+
 import styles from '../../styles/HeroSection.module.css';
+import { HeroDescription } from './HeroDescription';
+import { HeroHeadline } from './HeroHeadline';
+import { HeroCTAButtons } from './HeroCTAButtons';
 
 export const HeroSection: React.FC = () => {
   return (
@@ -12,6 +13,13 @@ export const HeroSection: React.FC = () => {
           <HeroHeadline />
           <HeroDescription />
           <HeroCTAButtons />
+        </div>
+        <div className={styles.heroImageContainer}>
+          <img
+            src="/hero_text_solarpunk.png"
+            alt="Personal Assistant App"
+            className={styles.heroImage}
+          />
         </div>
       </div>
     </section>

@@ -5,7 +5,11 @@ import httpx
 from dotenv import load_dotenv
 
 from ..base import Tool
-from ..emails.ms_graph import get_access_token
+from personal_assistant.oauth.services.token_service import OAuthTokenService
+from personal_assistant.oauth.services.integration_service import (
+    OAuthIntegrationService,
+)
+from personal_assistant.database.session import AsyncSessionLocal
 
 # Import calendar-specific error handling
 from .calendar_error_handler import CalendarErrorHandler
@@ -16,14 +20,12 @@ from .calendar_internal import (
     format_event_details_response,
     format_success_response,
     get_datetime_range,
-    get_environment_error_message,
     handle_event_not_found,
     parse_calendar_event,
     parse_event_details,
     parse_start_time_with_duration,
     validate_calendar_parameters,
     validate_duration,
-    validate_environment_variables,
     validate_event_id,
     validate_location,
     validate_start_time,
@@ -38,9 +40,9 @@ class CalendarTool:
         config_file = f"config/{env}.env"
         load_dotenv(config_file)
         self.ms_graph_url = "https://graph.microsoft.com/v1.0"
-        self._access_token = None
-        self.scopes = ["Calendars.Read", "Calendars.ReadWrite", "User.Read"]
-        # Don't initialize token here - do it lazily when needed
+        # Initialize OAuth services for per-user authentication (mirrors EmailTool)
+        self.token_service = OAuthTokenService()
+        self.integration_service = OAuthIntegrationService()
 
         # Create individual tools
         self.view_calendar_events_tool = Tool(
@@ -48,6 +50,10 @@ class CalendarTool:
             func=self.get_events,
             description="View upcoming calendar events",
             parameters={
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
+                },
                 "count": {
                     "type": "integer",
                     "description": "Number of events to fetch",
@@ -64,6 +70,10 @@ class CalendarTool:
             func=self.create_calendar_event,
             description="Create a new calendar event or reminder. Use 'subject' for the event title, 'start_time' for when it starts, and 'duration' for how long it lasts (in minutes).",
             parameters={
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
+                },
                 "subject": {"type": "string", "description": "Event title/subject (use this parameter name, not 'title')"},
                 "start_time": {
                     "type": "string",
@@ -83,6 +93,10 @@ class CalendarTool:
             func=self.delete_calendar_event,
             description="Delete a specific calendar event by its ID. Use this to delete individual events. The response will clearly indicate which event was deleted by name/subject to help you track progress.",
             parameters={
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID for authentication (required for OAuth access)",
+                },
                 "event_id": {
                     "type": "string",
                     "description": "The ID of the specific event to delete (get this from view_calendar_events first)",
@@ -100,27 +114,47 @@ class CalendarTool:
             ]
         )
 
-    def _initialize_token(self):
-        """Initialize the access token using environment variables"""
-        is_valid, application_id, client_secret = validate_environment_variables()
+    async def _get_oauth_access_token(self, user_id: int) -> str:
+        """Get a valid OAuth access token for the user's Microsoft integration (mirrors EmailTool)."""
+        async with AsyncSessionLocal() as db:
+            integration = await self.integration_service.get_integration_by_user_and_provider(
+                db=db, user_id=user_id, provider="microsoft"
+            )
 
-        if not is_valid:
-            raise ValueError(get_environment_error_message())
+            if not integration:
+                raise Exception("Microsoft integration not found. Please connect your Microsoft account first.")
 
-        self._access_token = get_access_token(
-            application_id, client_secret, self.scopes
+            token = await self.token_service.get_valid_token(db, integration.id, "access_token")
+            if token:
+                return token.access_token
+
+            # Attempt refresh via OAuth manager if no valid token
+            from personal_assistant.oauth.oauth_manager import OAuthManager
+
+            oauth_manager = OAuthManager()
+            provider = oauth_manager.get_provider("microsoft")
+            new_access_token = await self.token_service.refresh_access_token(db, integration.id, provider)
+            if new_access_token:
+                return new_access_token
+
+            raise Exception("Could not refresh access token. Please reconnect your Microsoft account.")
+
+    async def _handle_insufficient_permissions(self, user_id: int, error_message: str) -> Dict[str, Any]:
+        """Handle insufficient OAuth permissions by prompting for re-authentication."""
+        return CalendarErrorHandler.handle_calendar_error(
+            Exception(f"Insufficient permissions: {error_message}. Please reconnect your Microsoft account to grant calendar access permissions."),
+            "create_calendar_event",
+            {"user_id": user_id},
         )
 
-    async def get_events(self, count: int = 5, days: int = 7) -> List[Dict[str, Any]]:
+    async def get_events(self, user_id: int, count: int = 5, days: int = 7) -> List[Dict[str, Any]]:
         """Get upcoming calendar events"""
-        if not self._access_token:
-            self._initialize_token()
-
         try:
             # Validate parameters using internal functions
             count, days = validate_calendar_parameters(count, days)
 
-            headers = build_calendar_headers(self._access_token)
+            token = await self._get_oauth_access_token(user_id)
+            headers = build_calendar_headers(token)
 
             # Get datetime range using internal function
             start_datetime, end_datetime = get_datetime_range(days)
@@ -167,6 +201,7 @@ class CalendarTool:
 
     async def create_calendar_event(
         self,
+        user_id: int,
         subject: str,
         start_time: str,
         duration: int = 60,
@@ -174,9 +209,6 @@ class CalendarTool:
         attendees: str = "",
     ) -> Dict[str, Any]:
         """Create a new calendar event"""
-        if not self._access_token:
-            self._initialize_token()
-
         try:
             # Validate parameters using internal functions
             is_valid, error_msg = validate_subject(subject)
@@ -235,7 +267,8 @@ class CalendarTool:
                     },
                 )
 
-            headers = build_calendar_headers(self._access_token, "application/json")
+            token = await self._get_oauth_access_token(user_id)
+            headers = build_calendar_headers(token, "application/json")
 
             # Parse start time and calculate end time using internal function
             start_dt, end_dt = parse_start_time_with_duration(start_time, duration)
@@ -274,8 +307,13 @@ class CalendarTool:
                         f"Successfully created event '{subject}' at {start_time}{attendee_info}",
                         response.json(),
                     )
+                elif response.status_code == 403:
+                    # Handle insufficient permissions - user needs to reconnect with updated scopes
+                    error_data = response.json()
+                    error_message = error_data.get("error", {}).get("message", "Access denied")
+                    return await self._handle_insufficient_permissions(user_id, error_message)
                 else:
-                    # Use calendar-specific error handling for HTTP errors
+                    # Use calendar-specific error handling for other HTTP errors
                     return CalendarErrorHandler.handle_calendar_error(
                         Exception(f"HTTP {response.status_code}: {response.text}"),
                         "create_calendar_event",
@@ -315,7 +353,7 @@ class CalendarTool:
                 },
             )
 
-    async def get_event_details(self, event_id: str) -> str:
+    async def get_event_details(self, user_id: int, event_id: str) -> str:
         """
         Get detailed information about a specific event.
 
@@ -325,9 +363,6 @@ class CalendarTool:
         Returns:
             Detailed event information
         """
-        if not self._access_token:
-            self._initialize_token()
-
         try:
             # Validate parameters using internal functions
             is_valid, error_msg = validate_event_id(event_id)
@@ -337,7 +372,8 @@ class CalendarTool:
                 )
                 return error_response["llm_instructions"]  # type: ignore
 
-            headers = build_calendar_headers(self._access_token)
+            token = await self._get_oauth_access_token(user_id)
+            headers = build_calendar_headers(token)
 
             async with httpx.AsyncClient() as client:
                 response = await client.get(
@@ -364,11 +400,8 @@ class CalendarTool:
             )
             return error_response["llm_instructions"]  # type: ignore
 
-    async def delete_calendar_event(self, event_id: str) -> Dict[str, Any]:
+    async def delete_calendar_event(self, user_id: int, event_id: str) -> Dict[str, Any]:
         """Delete a calendar event"""
-        if not self._access_token:
-            self._initialize_token()
-
         try:
             # Validate parameters using internal functions
             is_valid, error_msg = validate_event_id(event_id)
@@ -379,7 +412,8 @@ class CalendarTool:
                     {"event_id": event_id},
                 )
 
-            headers = build_calendar_headers(self._access_token)
+            token = await self._get_oauth_access_token(user_id)
+            headers = build_calendar_headers(token)
 
             # First, get event details before deletion for better response
             event_details = None
@@ -417,6 +451,11 @@ class CalendarTool:
                         message = f"✅ Successfully deleted event with ID: {event_id[:20]}..."
                     
                     return format_success_response(message, {"deleted_event": event_details})
+                elif response.status_code == 403:
+                    # Handle insufficient permissions - user needs to reconnect with updated scopes
+                    error_data = response.json()
+                    error_message = error_data.get("error", {}).get("message", "Access denied")
+                    return await self._handle_insufficient_permissions(user_id, error_message)
                 elif response.status_code == 404:
                     return handle_event_not_found(event_id)
                 else:
