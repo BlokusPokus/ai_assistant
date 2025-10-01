@@ -1,6 +1,6 @@
 import React from 'react';
-import { AppCard } from './AppCard';
 import styles from '../../styles/AppCarousel.module.css';
+import { AppCard } from './AppCard';
 
 const apps = [
   {

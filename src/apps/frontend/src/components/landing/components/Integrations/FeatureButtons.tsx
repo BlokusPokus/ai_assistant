@@ -1,6 +1,6 @@
 import React from 'react';
-import { FeatureButton } from './FeatureButton';
 import styles from '../../styles/FeatureButtons.module.css';
+import { FeatureButton } from './FeatureButton';
 
 const features = [
   {
