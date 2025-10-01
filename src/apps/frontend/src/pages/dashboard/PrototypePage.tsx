@@ -376,7 +376,7 @@ const PrototypePage: React.FC = () => {
             </div>
 
             <h1 className="text-5xl md:text-6xl font-black mb-8 leading-tight">
-              MORE out of{' '}
+              Squeeze MORE out of{' '}
               <span
                 style={{
                   fontFamily:

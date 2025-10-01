@@ -66,20 +66,19 @@ class ResponseFormatter:
             return fallback_response
 
     def _format_text(self, text: str) -> str:
-        """Format text for SMS delivery."""
+        """Format text for SMS delivery while preserving SMS-friendly formatting."""
         if not text:
             return "No response generated."
 
-        # Remove excessive whitespace
-        formatted = re.sub(r"\s+", " ", text.strip())
-
-        # Handle common formatting issues
-        formatted = formatted.replace("\n\n", "\n")
-        formatted = formatted.replace("\n", " ")
-
+        # Remove excessive whitespace but preserve intentional line breaks
+        formatted = re.sub(r"[ \t]+", " ", text.strip())
+        
+        # Handle multiple consecutive line breaks (reduce to single)
+        formatted = re.sub(r"\n\s*\n", "\n", formatted)
+        
         # Remove HTML-like tags if present
         formatted = re.sub(r"<[^>]+>", "", formatted)
-
+        
         # Ensure proper sentence endings
         if not formatted.endswith((".", "!", "?")):
             formatted += "."

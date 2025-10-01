@@ -88,7 +88,7 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
         """
         try:
             # Get scopes from kwargs or use default Microsoft Graph scopes
-            scopes = kwargs.get('scopes', ['openid', 'profile', 'email', 'User.Read', 'Mail.Read', 'Mail.Send', 'Mail.ReadWrite', 'Calendars.Read', 'offline_access'])
+            scopes = kwargs.get('scopes', ['openid', 'profile', 'email', 'User.Read', 'Mail.Read', 'Mail.Send', 'Mail.ReadWrite', 'Calendars.Read', 'Calendars.ReadWrite', 'offline_access'])
             scope_string = ' '.join(scopes) if isinstance(scopes, list) else scopes
             
             # Debug logging
@@ -401,7 +401,7 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
             "profile",
             "email",
             "User.Read",
-            "Calendars.Read",
+            "Calendars.ReadWrite",
         ]
 
     def get_required_scopes(self) -> List[str]:

@@ -534,11 +534,36 @@ class EnhancedPromptBuilder:
 <<SMS BEST PRACTICES>>
 
 📱 SMS FORMATTING GUIDELINES:
-• Character Limits: Aim for under 160 characters per message
-• Line Breaks: Use \\n for readability instead of bullet points
-• Abbreviations: Use common ones (w/, thx, np, etc.)
-• Emojis: Use sparingly (max 1-2 per message)
-• Punctuation: Keep simple (avoid semicolons, colons)
+
+1. SHORT, CLEAR & FOCUSED:
+• Try to stay under ~160 characters (if possible), so it doesn't split into multiple segments or overwhelm the user
+• If more space is needed, break into two SMS rather than one very long one
+
+2. IMPORTANT INFO FIRST:
+• Lead with what matters (answer, outcome, next steps). Don't bury the point at the end
+
+3. SIMPLE LANGUAGE:
+• No jargon, avoid abbreviations unless they're super common
+
+4. FRIENDLY TONE:
+• Polite, maybe include a greeting ("Hi,") or a "Thanks for waiting." But don't overdo it; keep it efficient
+
+5. USE OF LINE BREAKS / PARAGRAPHS:
+• If reply has multiple parts (e.g. explanation + action + closing), consider 2-3 short lines
+• But avoid too many breaks, double blank lines, etc., which can look messy or strain on small screens
+
+6. CLEAR CTA / NEXT STEP:
+• If you want the user to do something (reply, click, confirm), make that explicit at end
+
+7. MINIMAL FLAIR:
+• Use emojis sparingly (maybe one if it fits tone). They can make tone lighter, but overuse or "fancy special characters" can reduce readability
+• Avoid all-caps or lots of exclamation marks unless tone demands it
+
+8. PREVIEW-FRIENDLY:
+• Because many SMS apps show first ~30-40 characters in preview, put something meaningful there. The user should get a sense just from the first line
+
+9. CONSISTENCY:
+• Use consistent style, tone, structure across messages so users get familiar
 
 💡 SMS RESPONSE EXAMPLES:
 • Weather: "Sunny, 75°F. Perfect day!"

@@ -21,7 +21,7 @@ export const FeatureButton: React.FC<FeatureButtonProps> = ({
   const getColorClasses = (colorScheme: string) => {
     const colorMap = {
       green: {
-        buttonActive: 'bg-green-50 border-green-200 shadow-md',
+        buttonActive: 'bg-white border-green-200 shadow-md',
         buttonInactive:
           'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md',
         iconActive: 'text-green-600',
@@ -31,7 +31,7 @@ export const FeatureButton: React.FC<FeatureButtonProps> = ({
         progressGradient: 'linear-gradient(to right, #4ade80, #22c55e)', // green-400 to green-500
       },
       blue: {
-        buttonActive: 'bg-blue-50 border-blue-200 shadow-md',
+        buttonActive: 'bg-white border-blue-200 shadow-md',
         buttonInactive:
           'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md',
         iconActive: 'text-blue-600',
@@ -41,7 +41,7 @@ export const FeatureButton: React.FC<FeatureButtonProps> = ({
         progressGradient: 'linear-gradient(to right, #60a5fa, #3b82f6)', // blue-400 to blue-500
       },
       purple: {
-        buttonActive: 'bg-purple-50 border-purple-200 shadow-md',
+        buttonActive: 'bg-white border-purple-200 shadow-md',
         buttonInactive:
           'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md',
         iconActive: 'text-purple-600',
@@ -51,7 +51,7 @@ export const FeatureButton: React.FC<FeatureButtonProps> = ({
         progressGradient: 'linear-gradient(to right, #a78bfa, #8b5cf6)', // purple-400 to purple-500
       },
       orange: {
-        buttonActive: 'bg-orange-50 border-orange-200 shadow-md',
+        buttonActive: 'bg-white border-orange-200 shadow-md',
         buttonInactive:
           'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md',
         iconActive: 'text-orange-600',
@@ -61,7 +61,7 @@ export const FeatureButton: React.FC<FeatureButtonProps> = ({
         progressGradient: 'linear-gradient(to right, #fb923c, #f97316)', // orange-400 to orange-500
       },
       indigo: {
-        buttonActive: 'bg-indigo-50 border-indigo-200 shadow-md',
+        buttonActive: 'bg-white border-indigo-200 shadow-md',
         buttonInactive:
           'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md',
         iconActive: 'text-indigo-600',
