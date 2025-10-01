@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FeatureButtons } from './FeatureButtons';
-import { FeaturePreview } from './FeaturePreview';
 import styles from '../../styles/FeatureNavigation.module.css';
+import { FeaturePreview } from './FeaturePreview';
 
 export const FeatureNavigation: React.FC = () => {
   const [activeFeature, setActiveFeature] = useState<

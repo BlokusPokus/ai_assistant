@@ -4,13 +4,12 @@ import styles from '../../styles/FeaturePreview.module.css';
 interface FeaturePreviewProps {
   activeFeature: 'tasks' | 'notes' | 'calendar' | 'reminders' | 'insights';
 }
-
 const featureImages = {
-  tasks: '/src/pages/dashboard/image.png',
-  notes: '/src/pages/dashboard/image.png',
-  calendar: '/src/pages/dashboard/image.png',
-  reminders: '/src/pages/dashboard/image.png',
-  insights: '/src/pages/dashboard/image.png',
+  tasks: '/bloop_examples.png',
+  notes: '/bloop_examples.png',
+  calendar: '/bloop_examples.png',
+  reminders: '/bloop_examples.png',
+  insights: '/bloop_examples.png',
 };
 
 const featureDescriptions = {
