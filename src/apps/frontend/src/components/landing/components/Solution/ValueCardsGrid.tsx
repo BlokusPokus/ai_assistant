@@ -122,7 +122,7 @@ export const ValueCardsGrid: React.FC = () => {
             index === 0
               ? '/family_solarpunk.png'
               : index === 1
-                ? '/health_solarpunk.png'
+                ? '/wellness_solarpunk.png'
                 : index === 2
                   ? '/resilience_solarpunk2.png'
                   : index === 3
