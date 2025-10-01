@@ -40,7 +40,7 @@ export const useAITaskStore = create<AITaskState>((set, get) => ({
   fetchTasks: async () => {
     set({ loading: true, error: null });
     try {
-      const response = await api.get('/ai-tasks');
+      const response = await api.get('/ai-tasks/');
       set({ tasks: response.data.tasks || [], loading: false });
     } catch (error) {
       console.error('Error fetching AI tasks:', error);
@@ -55,7 +55,7 @@ export const useAITaskStore = create<AITaskState>((set, get) => ({
   createTask: async task => {
     set({ loading: true, error: null });
     try {
-      const response = await api.post('/ai-tasks', task);
+      const response = await api.post('/ai-tasks/', task);
       set(state => ({
         tasks: [response.data.task, ...state.tasks],
         loading: false,
