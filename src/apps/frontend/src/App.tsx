@@ -28,7 +28,6 @@ import {
   SMSAnalyticsPage,
   AdminAnalyticsPage,
 } from '@/pages/dashboard';
-import PrototypePage from '@/pages/dashboard/PrototypePage';
 import PhoneManagementPage from '@/pages/dashboard/PhoneManagementPage';
 import { OAuthSettingsPage } from '@/components/oauth-settings';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -69,15 +68,6 @@ function App() {
             element={
               <ProtectedRoute requireAuth={false}>
                 <WaitListLandingPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/prototype"
-            element={
-              <ProtectedRoute requireAuth={false}>
-                <PrototypePage />
               </ProtectedRoute>
             }
           />
