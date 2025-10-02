@@ -71,15 +71,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMenuToggle }) => {
             <Bell className="h-5 w-5" />
             <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
           </Button>
-
-          {/* User menu placeholder */}
-          <div className="hidden md:block">
-            <Button variant="ghost" size="sm">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium text-blue-600">U</span>
-              </div>
-            </Button>
-          </div>
         </div>
       </div>
     </header>

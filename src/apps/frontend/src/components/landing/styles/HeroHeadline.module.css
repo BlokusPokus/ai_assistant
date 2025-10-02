@@ -50,3 +50,9 @@
     background-clip: text;
     font-size: 1.2em;
 }
+
+.betaText {
+    font-size: 0.4em;
+    font-weight: 500;
+    opacity: 0.8;
+}

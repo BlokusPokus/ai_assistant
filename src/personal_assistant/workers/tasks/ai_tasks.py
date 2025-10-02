@@ -137,11 +137,13 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
                     )
                 else:
                     # Recurring tasks: calculate next run time and keep status as active
+                    logger.info(f"Processing recurring task {task.id} (schedule_type: {task.schedule_type}, schedule_config: {task.schedule_config})")
                     next_run_at = await task_manager.calculate_next_run(
                         schedule_type=task.schedule_type,
                         schedule_config=task.schedule_config,
                         current_time=datetime.utcnow()
                     )
+                    logger.info(f"Calculated next_run_at for task {task.id}: {next_run_at}")
                     
                     if next_run_at:
                         await task_manager.update_task_status(
@@ -152,13 +154,13 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
                         )
                         logger.info(f"Rescheduled recurring task {task.id} for next run at {next_run_at}")
                     else:
-                        # If we can't calculate next run, mark as completed
+                        # If we can't calculate next run, log detailed error and mark as completed
+                        logger.error(f"Could not calculate next run for task {task.id} (schedule_type: {task.schedule_type}, schedule_config: {task.schedule_config}), marking as completed")
                         await task_manager.update_task_status(
                             task_id=int(task.id),
                             status="completed",
                             last_run_at=datetime.utcnow(),
                         )
-                        logger.warning(f"Could not calculate next run for task {task.id}, marking as completed")
 
                 # Send notification if configured
                 if task.should_notify():
