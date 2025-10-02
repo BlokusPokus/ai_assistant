@@ -11,4 +11,3 @@ export { default as AITasksPage } from './AITasksPage';
 export { default as OAuthIntegrationsPage } from '../../components/oauth/OAuthIntegrationsPage';
 export { default as SMSAnalyticsPage } from './SMSAnalyticsPage';
 export { default as AdminAnalyticsPage } from './AdminAnalyticsPage';
-export { default as PrototypePage } from './PrototypePage';
