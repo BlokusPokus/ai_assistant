@@ -16,7 +16,7 @@ export const HeroSection: React.FC = () => {
         </div>
         <div className={styles.heroImageContainer}>
           <img
-            src="/hero_text_solarpunk.png"
+            src="/handphone.png"
             alt="Personal Assistant App"
             className={styles.heroImage}
           />

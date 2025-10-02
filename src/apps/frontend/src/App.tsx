@@ -10,6 +10,8 @@ import LandingPageRoute from '@/pages/LandingPageRoute';
 import WaitListLandingPage from '@/pages/WaitListLandingPage';
 import LoginPage from '@/pages/LoginPage';
 import MFASetupPage from '@/pages/MFASetupPage';
+import PricingPage from '@/pages/PricingPage';
+import HowItWorksPage from '@/pages/HowItWorksPage';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import {
   DashboardHome,
@@ -88,6 +90,10 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route path="/pricing" element={<PricingPage />} />
+
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
 
           {/* Protected Routes */}
           <Route

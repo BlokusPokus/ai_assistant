@@ -5,14 +5,15 @@ import { Link } from 'react-router-dom';
 export const Navigation: React.FC = () => {
   return (
     <nav className={styles.navigation}>
-      <Link className={styles.navLink} to="/features">
-        Features
+      <Link className={styles.navLink} to="/">
+        Home
       </Link>
       <Link className={styles.navLink} to="/pricing">
         Pricing
       </Link>
-      <button className={styles.navButton}>About</button>
-      <button className={styles.navButton}>Contact</button>
+      <Link className={styles.navLink} to="/how-it-works">
+        How it works
+      </Link>
     </nav>
   );
 };

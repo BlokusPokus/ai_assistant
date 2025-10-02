@@ -392,18 +392,35 @@ class AITaskManager:
         try:
             if schedule_type == "once":
                 # For one-time tasks, use the specified time
-                return schedule_config.get("run_at")
+                run_at = schedule_config.get("run_at")
+                if run_at is None:
+                    self.logger.warning(f"One-time task missing 'run_at' in schedule_config: {schedule_config}")
+                return run_at
 
             elif schedule_type == "daily":
                 # Daily at specific time
                 hour = schedule_config.get("hour", 9)
                 minute = schedule_config.get("minute", 0)
+                
+                # Ensure hour and minute are integers
+                try:
+                    hour = int(hour) if hour is not None else 9
+                    minute = int(minute) if minute is not None else 0
+                except (ValueError, TypeError) as e:
+                    self.logger.error(f"Invalid hour/minute values: hour={hour}, minute={minute}, error={e}")
+                    return None
+                
+                self.logger.info(f"Calculating daily next run: hour={hour}, minute={minute}, current_time={current_time}")
+                
                 next_run = current_time.replace(
                     hour=hour, minute=minute, second=0, microsecond=0
                 )
 
                 if next_run <= current_time:
                     next_run += timedelta(days=1)
+                    self.logger.info(f"Daily task: next run is tomorrow at {next_run}")
+                else:
+                    self.logger.info(f"Daily task: next run is today at {next_run}")
                 return next_run
 
             elif schedule_type == "weekly":
@@ -464,7 +481,9 @@ class AITaskManager:
                 return None
 
         except Exception as e:
-            self.logger.error(f"Error calculating next run time: {e}")
+            self.logger.error(f"Error calculating next run time for schedule_type={schedule_type}, schedule_config={schedule_config}: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
             return None
 
 
