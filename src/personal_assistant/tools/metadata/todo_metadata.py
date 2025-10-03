@@ -306,6 +306,12 @@ def create_todo_tool_metadata() -> ToolMetadata:
         9. COMPLETION TRACKING: Always update completion patterns for analytics
         10. USER CONTEXT: Consider user's productivity patterns when making recommendations
         
+        FORMATTING RULES:
+        - NEVER use markdown formatting (* **text**, # headers, etc.) in todo lists
+        - Use plain text bullet points (•) or dashes (-) for lists
+        - For SMS responses: Keep todo lists concise and mobile-friendly
+        - Use simple formatting that works in all contexts
+        
         When creating todos:
         - Ask for clear, actionable titles
         - Accept flexible date formats (system handles parsing)

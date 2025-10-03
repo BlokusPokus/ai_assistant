@@ -62,6 +62,9 @@ class EnhancedPromptBuilder:
                 create_note_ai_enhancements,
                 create_note_tool_metadata,
             )
+            from ..tools.metadata.final_answer_metadata import (
+                create_final_answer_metadata,
+            )
 
             # Register email tool metadata
             email_metadata = create_email_tool_metadata()
@@ -86,6 +89,11 @@ class EnhancedPromptBuilder:
             note_metadata = create_note_tool_metadata()
             self.metadata_manager.register_tool_metadata(note_metadata)
             create_note_ai_enhancements(self.enhancement_manager)
+
+            # Register final answer metadata
+            final_answer_metadata = create_final_answer_metadata()
+            self.metadata_manager.register_tool_metadata(final_answer_metadata)
+            # Final answer enhancements are already included in the metadata
 
             logger.info("Enhanced prompt builder initialized with all tool metadata")
 
@@ -140,7 +148,7 @@ class EnhancedPromptBuilder:
 
 {self._build_adhd_optimizations(state)}
 
-{self._build_sms_best_practices()}
+ 
 
 🎯 **CRITICAL: ENHANCED TOOL GUIDANCE (MUST FOLLOW)** 🎯
 
@@ -218,6 +226,7 @@ class EnhancedPromptBuilder:
     def _get_contextual_metadata(self, required_tools: List[str]) -> str:
         """
         Get contextual metadata for tools that are likely needed.
+        Also includes final answer metadata when no tools are required.
 
         Args:
             required_tools: List of tool names that are likely needed
@@ -225,11 +234,9 @@ class EnhancedPromptBuilder:
         Returns:
             str: Formatted contextual metadata
         """
-        if not required_tools:
-            return "💡 No specific tool guidance needed for this request."
-
         metadata_sections = []
 
+        # Add tool metadata for required tools
         for tool_name in required_tools:
             try:
                 # Get tool metadata
@@ -251,6 +258,24 @@ class EnhancedPromptBuilder:
             except Exception as e:
                 logger.warning(f"Failed to get metadata for {tool_name}: {e}")
                 continue
+
+        # Add final answer metadata when no tools are required (likely final answer)
+        if not required_tools:
+            try:
+                from ..tools.metadata import get_final_answer_metadata
+                final_answer_metadata = get_final_answer_metadata()
+                final_answer_enhancements = self.enhancement_manager.get_tool_enhancements("final_answer")
+                
+                # Format final answer metadata section
+                section = self._format_tool_metadata_section(
+                    final_answer_metadata, final_answer_enhancements
+                )
+                metadata_sections.append(section)
+                logger.debug("Added final answer metadata to prompt")
+                
+            except Exception as e:
+                logger.warning(f"Failed to get final answer metadata: {e}")
+                metadata_sections.append("💡 No specific tool guidance needed for this request.")
 
         if not metadata_sections:
             return "💡 Basic tool guidance available - use tools as needed."
@@ -352,11 +377,8 @@ class EnhancedPromptBuilder:
 
 🚨 **CRITICAL: COMMUNICATION STYLE**
 • DURING PROCESS: Think out loud naturally, like you're working alongside them
-• FINAL ANSWER: Be conversational and warm, like talking to a good friend
-• NEVER say "Based on the search results..." in final answers
-• NEVER say "I will provide a summary..." in final answers
-• ALWAYS end with genuine, helpful answers that feel personal and caring
 • Use natural language, occasional humor, and show empathy when appropriate
+• Be genuinely friendly and approachable - like a knowledgeable friend who cares
 
 🚨 **CRITICAL: EXECUTION OVER PLANNING**
 • When you need information from the user, ASK IMMEDIATELY
@@ -448,9 +470,6 @@ class EnhancedPromptBuilder:
 
 🚨 **CRITICAL: TOOL COMMUNICATION RULES**
 • DURING PROCESS: Can think out loud about tool usage
-• FINAL ANSWER: Must be clean and direct from tool results
-• NEVER say "Based on the search results..." in final answers
-• NEVER say "I will provide a summary..." in final answers
 • Speak naturally during process, professionally in final answer
 
 💡 **COMPLEX PROCESSES (Encouraged)**
@@ -475,15 +494,8 @@ class EnhancedPromptBuilder:
 
 🚨 **CRITICAL: RESPONSE STYLE**
 • DURING PROCESS: Think out loud, explain your approach
-• FINAL ANSWER: Clean, direct, professional response
 • Process information transparently, deliver results clearly
 • Can explain thinking during process, but final answer must be clean
-• Give final answers as if you're a knowledgeable friend
-
-🎯 **FINAL ANSWER FORMAT**
-• Start with a clear, direct statement
-• Provide comprehensive information without process language
-• Always conclude with actionable insights or clear conclusions
 
 🚨 **CRITICAL: ASKING QUESTIONS**
 • When you need information from the user, ASK THE QUESTION DIRECTLY
@@ -528,57 +540,7 @@ class EnhancedPromptBuilder:
 • Avoid overwhelming with too much information at once
 """
 
-    def _build_sms_best_practices(self) -> str:
-        """Build SMS-specific best practices and examples."""
-        return """
-<<SMS BEST PRACTICES>>
-
-📱 SMS FORMATTING GUIDELINES:
-
-1. SHORT, CLEAR & FOCUSED:
-• Try to stay under ~160 characters (if possible), so it doesn't split into multiple segments or overwhelm the user
-• If more space is needed, break into two SMS rather than one very long one
-
-2. IMPORTANT INFO FIRST:
-• Lead with what matters (answer, outcome, next steps). Don't bury the point at the end
-
-3. SIMPLE LANGUAGE:
-• No jargon, avoid abbreviations unless they're super common
-
-4. FRIENDLY TONE:
-• Polite, maybe include a greeting ("Hi,") or a "Thanks for waiting." But don't overdo it; keep it efficient
-
-5. USE OF LINE BREAKS / PARAGRAPHS:
-• If reply has multiple parts (e.g. explanation + action + closing), consider 2-3 short lines
-• But avoid too many breaks, double blank lines, etc., which can look messy or strain on small screens
-
-6. CLEAR CTA / NEXT STEP:
-• If you want the user to do something (reply, click, confirm), make that explicit at end
-
-7. MINIMAL FLAIR:
-• Use emojis sparingly (maybe one if it fits tone). They can make tone lighter, but overuse or "fancy special characters" can reduce readability
-• Avoid all-caps or lots of exclamation marks unless tone demands it
-
-8. PREVIEW-FRIENDLY:
-• Because many SMS apps show first ~30-40 characters in preview, put something meaningful there. The user should get a sense just from the first line
-
-9. CONSISTENCY:
-• Use consistent style, tone, structure across messages so users get familiar
-
-💡 SMS RESPONSE EXAMPLES:
-• Weather: "Sunny, 75°F. Perfect day!"
-• Email: "Need John's email address?"
-• Meeting: "What time works for you?"
-• Research: "Found 3 options. Want details?"
-• Confirmation: "Got it! Will send email now."
-
-🚨 SMS CRITICAL RULES:
-• Always prioritize clarity over verbosity
-• Use simple, direct language
-• Break complex info into multiple messages
-• End with clear next steps or questions
-• Keep tone friendly but concise
-"""
+    
 
     def _build_action_guidance(self, state: AgentState) -> str:
         """Build action guidance based on current state."""
