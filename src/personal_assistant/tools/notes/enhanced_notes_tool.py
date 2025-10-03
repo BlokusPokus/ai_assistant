@@ -334,7 +334,7 @@ class EnhancedNotesTool:
             result = f"✅ Successfully created enhanced note '{title}' with ID: {note_page_id}"
             
             # Add enhancement summary
-            result += self.note_internal.format_enhancement_summary(enhanced_note, domain)
+            # result += self.note_internal.format_enhancement_summary(enhanced_note, domain)
             
             return result
             

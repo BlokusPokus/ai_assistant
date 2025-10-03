@@ -31,6 +31,11 @@ from .grocery_deals_metadata import (
     grocery_deals_ai_enhancements,
     grocery_deals_metadata,
 )
+from .final_answer_metadata import (
+    create_final_answer_metadata,
+    get_final_answer_metadata,
+    FINAL_ANSWER_METADATA,
+)
 
 __version__ = "1.0.0"
 __author__ = "Personal Assistant Team"
@@ -56,4 +61,7 @@ __all__ = [
     "create_grocery_deals_ai_enhancements",
     "grocery_deals_metadata",
     "grocery_deals_ai_enhancements",
+    "create_final_answer_metadata",
+    "get_final_answer_metadata",
+    "FINAL_ANSWER_METADATA",
 ]
