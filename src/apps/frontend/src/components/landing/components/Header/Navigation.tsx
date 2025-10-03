@@ -14,6 +14,9 @@ export const Navigation: React.FC = () => {
       <Link className={styles.navLink} to="/how-it-works">
         How it works
       </Link>
+      <Link className={styles.navLink} to="/blog">
+        Blog
+      </Link>
     </nav>
   );
 };
