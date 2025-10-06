@@ -276,7 +276,7 @@ jobs:
     if: always()
     steps:
       - name: Download all security scan results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: security-results
 
