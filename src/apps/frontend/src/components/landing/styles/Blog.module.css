@@ -1,0 +1,106 @@
+/* Blog page structure matching landing page */
+.blogPage {
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+    background-color: white;
+}
+
+/* Blog shared styles, lightly inspired by landing page spacing/typography */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 4rem 1rem;
+    position: relative;
+    z-index: 10;
+}
+
+.contentContainer {
+    background-color: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    margin-top: 2rem;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 1rem;
+}
+
+.meta {
+    color: #666666;
+    font-size: 0.9rem;
+}
+
+.list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.listItem {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #efefef;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.postImage {
+    width: 80px;
+    height: 60px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.postContent {
+    flex: 1;
+    min-width: 0;
+}
+
+.postLink {
+    font-size: 1.125rem;
+    text-decoration: none;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.postLink:hover {
+    text-decoration: underline;
+}
+
+.featuredImage {
+    width: 100%;
+    height: 200px;
+    border-radius: 8px;
+    object-fit: cover;
+    margin-bottom: 1rem;
+}
+
+.article {
+    line-height: 1.75;
+}
+
+.article h1,
+.article h2,
+.article h3 {
+    letter-spacing: -0.01em;
+}
+
+.article p {
+    margin: 0.75rem 0;
+    color: #222222;
+}
+
+.article ul {
+    margin: 0.5rem 0 1rem 1.25rem;
+}
+
+.backLink {
+    display: inline-block;
+    margin-top: 2rem;
+}

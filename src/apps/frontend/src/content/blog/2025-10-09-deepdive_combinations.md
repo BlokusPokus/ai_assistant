@@ -1,0 +1,13 @@
+---
+title: How to chain actions
+
+featuredImage: https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&h=300&fit=crop
+---
+
+This is the first post. You'll find updates, release notes, and deep dives here.
+
+- What we're building
+- Why it matters
+- How to get involved
+
+Thanks for reading!
