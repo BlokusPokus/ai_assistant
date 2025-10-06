@@ -42,6 +42,14 @@
     border-radius: 20px;
 }
 
+/* Video-specific styles */
+.heroImage[src$=".mp4"] {
+    width: 100%;
+    height: auto;
+    max-height: 500px;
+    object-fit: cover;
+}
+
 @media (min-width: 768px) {
     .heroContainer {
         max-width: 80rem;
@@ -57,6 +65,10 @@
     }
 
     .heroImage {
+        max-height: 600px;
+    }
+
+    .heroImage[src$=".mp4"] {
         max-height: 600px;
     }
 }
