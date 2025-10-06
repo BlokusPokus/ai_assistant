@@ -122,7 +122,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to production server (Blue-Green)
-        uses: appleboy/ssh-action@v1.0.0
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
@@ -287,7 +287,7 @@ jobs:
     needs: blue-green-deploy
     steps:
       - name: Run database migrations
-        uses: appleboy/ssh-action@v1.0.0
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
@@ -351,7 +351,7 @@ jobs:
     if: failure()
     steps:
       - name: Rollback deployment
-        uses: appleboy/ssh-action@v1.0.0
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
