@@ -2,7 +2,7 @@
 # Optimized for production with security hardening
 
 # ===== STAGE 1: Build Environment =====
-FROM python:3.11-slim as builder
+FROM python:3.14-slim as builder
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -28,7 +28,7 @@ RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # ===== STAGE 2: Production Runtime =====
-FROM python:3.11-slim as production
+FROM python:3.14-slim as production
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
