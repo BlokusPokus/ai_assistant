@@ -83,6 +83,38 @@ class AITaskManager:
                 await session.rollback()
                 raise
 
+    async def create_reminder(
+        self,
+        user_id: int,
+        title: str,
+        remind_at: datetime,
+        description: Optional[str] = None,
+        notification_channels: Optional[List[str]] = None,
+    ) -> AITask:
+        """
+        Create a one-time reminder task.
+
+        Args:
+            user_id: User ID
+            title: Reminder title
+            remind_at: When to run the reminder
+            description: Reminder description
+            notification_channels: List of notification channels
+
+        Returns:
+            Created AITask instance
+        """
+        return await self.create_task(
+            user_id=user_id,
+            title=title,
+            description=description,
+            task_type="reminder",
+            schedule_type="once",
+            schedule_config={"run_at": remind_at},
+            next_run_at=remind_at,
+            notification_channels=notification_channels or ["sms"],
+        )
+
     def _serialize_schedule_config(
         self, schedule_config: Dict[str, Any]
     ) -> Dict[str, Any]:

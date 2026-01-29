@@ -193,7 +193,7 @@ services:
       [
         "celery",
         "-A",
-        "personal_assistant.workers.celery_app",
+        "personal_assistant.celery",
         "beat",
         "--loglevel=info",
       ]
@@ -351,7 +351,7 @@ services:
       [
         "celery",
         "-A",
-        "personal_assistant.workers.celery_app",
+        "personal_assistant.celery",
         "worker",
         "--queues=ai_tasks",
         "--loglevel=info",

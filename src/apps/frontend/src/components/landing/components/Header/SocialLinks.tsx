@@ -7,7 +7,7 @@ export const SocialLinks: React.FC = () => {
       <a
         aria-label="Discord"
         className={styles.socialLink}
-        href="#"
+        href="https://discord.gg/eQMMp3h5"
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -22,7 +22,7 @@ export const SocialLinks: React.FC = () => {
       <a
         aria-label="X"
         className={styles.socialLink}
-        href="#"
+        href="https://x.com/BloopAssistant"
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -37,7 +37,7 @@ export const SocialLinks: React.FC = () => {
       <a
         aria-label="LinkedIn"
         className={styles.socialLink}
-        href="#"
+        href="https://www.linkedin.com/in/ianleblanc1/"
         target="_blank"
         rel="noopener noreferrer"
       >

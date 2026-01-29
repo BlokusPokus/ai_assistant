@@ -292,7 +292,7 @@ worker:
     [
       "celery",
       "-A",
-      "personal_assistant.workers.celery_app",
+      "personal_assistant.celery",
       "worker",
       "--loglevel=info",
       "--queues=ai_tasks",
@@ -322,7 +322,7 @@ scheduler:
     [
       "celery",
       "-A",
-      "personal_assistant.workers.celery_app",
+      "personal_assistant.celery",
       "beat",
       "--loglevel=info",
     ]

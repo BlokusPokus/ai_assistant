@@ -12,6 +12,8 @@ import LoginPage from '@/pages/LoginPage';
 import MFASetupPage from '@/pages/MFASetupPage';
 import PricingPage from '@/pages/PricingPage';
 import HowItWorksPage from '@/pages/HowItWorksPage';
+import BlogPage from '@/pages/BlogPage';
+import BlogPostPage from '@/pages/BlogPostPage';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import {
   DashboardHome,
@@ -84,6 +86,9 @@ function App() {
           <Route path="/pricing" element={<PricingPage />} />
 
           <Route path="/how-it-works" element={<HowItWorksPage />} />
+
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogPostPage />} />
 
           {/* Protected Routes */}
           <Route

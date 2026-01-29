@@ -68,7 +68,7 @@ class TestSimpleSMSRetryService:
     @pytest.mark.asyncio
     async def test_queue_for_retry_retryable_error(self, retry_service):
         """Test queuing retryable errors."""
-        with patch('src.personal_assistant.sms_router.services.simple_retry_service._get_session_factory') as mock_factory:
+        with patch('src.personal_assistant.sms_router.services.simple_retry_service.get_session_factory') as mock_factory:
             mock_session = AsyncMock()
             mock_factory.return_value.return_value.__aenter__.return_value = mock_session
 
@@ -101,11 +101,11 @@ class TestSimpleSMSRetryService:
     @pytest.mark.asyncio
     async def test_process_retry_queue(self, retry_service):
         """Test processing retry queue."""
-        with patch('src.personal_assistant.sms_router.services.simple_retry_service._get_session_factory') as mock_factory:
+        with patch('src.personal_assistant.sms_router.services.simple_retry_service.get_session_factory') as mock_factory:
             mock_session = AsyncMock()
             mock_factory.return_value.return_value.__aenter__.return_value = mock_session
 
-            # Mock retry entries
+            # Mock retry entries - use MagicMock for execute result so result.scalars().all() is sync
             mock_retry = MagicMock()
             mock_retry.id = 1
             mock_retry.status = 'pending'
@@ -113,8 +113,9 @@ class TestSimpleSMSRetryService:
             mock_retry.max_retries = 3
             mock_retry.phone_number = '+1234567890'
             mock_retry.message_content = 'Test message'
-
-            mock_session.execute.return_value.scalars.return_value.all.return_value = [mock_retry]
+            mock_result = MagicMock()
+            mock_result.scalars.return_value.all.return_value = [mock_retry]
+            mock_session.execute = AsyncMock(return_value=mock_result)
 
             # Mock Twilio service
             with patch.object(retry_service.twilio_service, 'send_sms') as mock_send:
@@ -130,14 +131,17 @@ class TestSimpleSMSRetryService:
     @pytest.mark.asyncio
     async def test_handle_delivery_confirmation(self, retry_service):
         """Test handling delivery confirmation."""
-        with patch('src.personal_assistant.sms_router.services.simple_retry_service._get_session_factory') as mock_factory:
+        with patch('src.personal_assistant.sms_router.services.simple_retry_service.get_session_factory') as mock_factory:
             mock_session = AsyncMock()
             mock_factory.return_value.return_value.__aenter__.return_value = mock_session
 
-            # Mock SMS log
+            # Mock SMS log - use MagicMock for execute result so scalar_one_or_none() is sync
             mock_sms_log = MagicMock()
             mock_sms_log.id = 1
-            mock_session.execute.return_value.scalar_one_or_none.return_value = mock_sms_log
+            mock_sms_log.final_status = "delivered"
+            mock_result = MagicMock()
+            mock_result.scalar_one_or_none.return_value = mock_sms_log
+            mock_session.execute = AsyncMock(return_value=mock_result)
 
             result = await retry_service.handle_delivery_confirmation(
                 'test_message_sid', 'delivered'
@@ -149,14 +153,16 @@ class TestSimpleSMSRetryService:
     @pytest.mark.asyncio
     async def test_cleanup_old_retries(self, retry_service):
         """Test cleanup of old retry records."""
-        with patch('src.personal_assistant.sms_router.services.simple_retry_service._get_session_factory') as mock_factory:
+        with patch('src.personal_assistant.sms_router.services.simple_retry_service.get_session_factory') as mock_factory:
             mock_session = AsyncMock()
             mock_factory.return_value.return_value.__aenter__.return_value = mock_session
 
-            # Mock old retry records
+            # Mock old retry records - use MagicMock for execute result so result.scalars().all() is sync
             mock_old_retry = MagicMock()
             mock_old_retry.next_retry_at = datetime.utcnow() - timedelta(days=8)
-            mock_session.execute.return_value.scalars.return_value.all.return_value = [mock_old_retry]
+            mock_result = MagicMock()
+            mock_result.scalars.return_value.all.return_value = [mock_old_retry]
+            mock_session.execute = AsyncMock(return_value=mock_result)
 
             count = await retry_service.cleanup_old_retries(days_old=7)
 
@@ -172,11 +178,11 @@ class TestSMSRetryIntegration:
         """Test complete retry flow with successful retry."""
         retry_service = SimpleSMSRetryService()
 
-        with patch('src.personal_assistant.sms_router.services.simple_retry_service._get_session_factory') as mock_factory:
+        with patch('src.personal_assistant.sms_router.services.simple_retry_service.get_session_factory') as mock_factory:
             mock_session = AsyncMock()
             mock_factory.return_value.return_value.__aenter__.return_value = mock_session
 
-            # Mock SMS log for retry
+            # Mock SMS log for retry - use MagicMock for execute result so result.scalars().all() is sync
             mock_sms_log = MagicMock()
             mock_sms_log.id = 1
             mock_sms_log.success = False
@@ -185,8 +191,9 @@ class TestSMSRetryIntegration:
             mock_sms_log.next_retry_at = datetime.utcnow()
             mock_sms_log.phone_number = '+1234567890'
             mock_sms_log.message_content = 'Test message'
-
-            mock_session.execute.return_value.scalars.return_value.all.return_value = [mock_sms_log]
+            mock_result = MagicMock()
+            mock_result.scalars.return_value.all.return_value = [mock_sms_log]
+            mock_session.execute = AsyncMock(return_value=mock_result)
 
             # Mock successful Twilio send
             with patch.object(retry_service.twilio_service, 'send_sms') as mock_send:
@@ -205,11 +212,11 @@ class TestSMSRetryIntegration:
         """Test retry flow when max retries are reached."""
         retry_service = SimpleSMSRetryService()
 
-        with patch('src.personal_assistant.sms_router.services.simple_retry_service._get_session_factory') as mock_factory:
+        with patch('src.personal_assistant.sms_router.services.simple_retry_service.get_session_factory') as mock_factory:
             mock_session = AsyncMock()
             mock_factory.return_value.return_value.__aenter__.return_value = mock_session
 
-            # Mock SMS log at max retries
+            # Mock SMS log at max retries - use MagicMock for execute result so result.scalars().all() is sync
             mock_sms_log = MagicMock()
             mock_sms_log.id = 1
             mock_sms_log.success = False
@@ -218,8 +225,9 @@ class TestSMSRetryIntegration:
             mock_sms_log.next_retry_at = datetime.utcnow()
             mock_sms_log.phone_number = '+1234567890'
             mock_sms_log.message_content = 'Test message'
-
-            mock_session.execute.return_value.scalars.return_value.all.return_value = [mock_sms_log]
+            mock_result = MagicMock()
+            mock_result.scalars.return_value.all.return_value = [mock_sms_log]
+            mock_session.execute = AsyncMock(return_value=mock_result)
 
             # Mock failed Twilio send
             with patch.object(retry_service.twilio_service, 'send_sms') as mock_send:

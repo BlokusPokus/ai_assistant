@@ -5,15 +5,18 @@ This module handles AI-specific background tasks including:
 - Processing due AI tasks
 - Executing AI-driven workflows
 - Managing AI task lifecycle
+
+Async work runs on the worker's dedicated event loop via async_runtime.run()
+to avoid cross-loop DB/asyncpg errors (Task 101).
 """
 
-import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 # Import the existing AI scheduler components
 from ...tools.ai_scheduler.core.task_manager import AITaskManager
+from ..async_runtime import run as run_in_worker_loop
 from ..celery_app import app
 
 from ...tools.ai_scheduler.notifications.service import NotificationService
@@ -32,41 +35,20 @@ def process_due_ai_tasks(self) -> Dict[str, Any]:
     2. Executes each task using the AI assistant
     3. Sends notifications based on task results
     4. Updates task status and schedules next run if recurring
+
+    Delegates async work to the worker async runtime (one loop per worker).
     """
     task_id = self.request.id
     current_time = datetime.utcnow()
-    
-    # Enhanced logging for Celery beat tracking
+
     logger.info(f"🚀 CELERY BEAT TRIGGERED: process_due_ai_tasks started at {current_time}")
     logger.info(f"📋 Task ID: {task_id}")
     logger.info(f"⏰ Current UTC time: {current_time}")
-    print(f"🚀 CELERY BEAT TRIGGERED: process_due_ai_tasks started at {current_time}")
-    print(f"📋 Task ID: {task_id}")
-    print(f"⏰ Current UTC time: {current_time}")
 
     try:
-        # Use asyncio.run() with proper event loop handling
-        import nest_asyncio
-
-        # Apply nest_asyncio to allow nested event loops
-        nest_asyncio.apply()
-
-        # Get or create event loop
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        # Run the async function
-        print("🔍 BREAKPOINT 2: About to call _process_due_ai_tasks_async")
-        result = loop.run_until_complete(_process_due_ai_tasks_async(task_id))
-        print(f"🔍 BREAKPOINT 3: _process_due_ai_tasks_async completed, result: {result}")
-        return result
-
+        return run_in_worker_loop(_process_due_ai_tasks_async(task_id))
     except Exception as e:
         logger.error(f"Task {task_id} failed with exception: {e}")
-        # Retry the task
         raise self.retry(countdown=60, max_retries=3)
 
 
@@ -257,20 +239,7 @@ def create_ai_reminder(
     logger.info(f"Creating AI reminder task {task_id} for user {user_id}")
 
     try:
-        # Use asyncio.run() with proper event loop handling
-        import nest_asyncio
-
-        nest_asyncio.apply()
-
-        # Get or create event loop
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        # Run the async function
-        result = loop.run_until_complete(
+        result = run_in_worker_loop(
             _create_ai_reminder_async(
                 user_id, title, remind_at, description, notification_channels
             )
@@ -360,20 +329,7 @@ def create_periodic_ai_task(
     logger.info(f"Creating periodic AI task {task_id} for user {user_id}")
 
     try:
-        # Use asyncio.run() with proper event loop handling
-        import nest_asyncio
-
-        nest_asyncio.apply()
-
-        # Get or create event loop
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        # Run the async function
-        result = loop.run_until_complete(
+        result = run_in_worker_loop(
             _create_periodic_ai_task_async(
                 user_id,
                 title,
@@ -458,21 +414,7 @@ def test_scheduler_connection(self) -> Dict[str, Any]:
     print(f"📋 Test Task ID: {task_id}")
 
     try:
-        # Use asyncio.run() with proper event loop handling
-        import nest_asyncio
-
-        nest_asyncio.apply()
-
-        # Get or create event loop
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        # Run the async function
-        result = loop.run_until_complete(_test_scheduler_connection_async())
-        return result
+        return run_in_worker_loop(_test_scheduler_connection_async())
 
     except Exception as e:
         logger.error(f"Scheduler connection test failed: {e}")
@@ -526,21 +468,7 @@ def cleanup_old_logs(self) -> Dict[str, Any]:
     logger.info(f"Starting log cleanup task {task_id}")
 
     try:
-        # Use asyncio.run() with proper event loop handling
-        import nest_asyncio
-
-        nest_asyncio.apply()
-
-        # Get or create event loop
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        # Run the async function
-        result = loop.run_until_complete(_cleanup_old_logs_async())
-        return result
+        return run_in_worker_loop(_cleanup_old_logs_async())
 
     except Exception as e:
         logger.error(f"Log cleanup failed: {e}")

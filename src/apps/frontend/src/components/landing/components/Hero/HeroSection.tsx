@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import styles from '../../styles/HeroSection.module.css';
 import { HeroDescription } from './HeroDescription';
@@ -6,6 +6,18 @@ import { HeroHeadline } from './HeroHeadline';
 import { HeroCTAButtons } from './HeroCTAButtons';
 
 export const HeroSection: React.FC = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.play();
+      }
+    }, 5000); // 5 seconds delay
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <section className={styles.heroSection}>
       <div className={styles.heroContainer}>
@@ -15,9 +27,11 @@ export const HeroSection: React.FC = () => {
           <HeroCTAButtons />
         </div>
         <div className={styles.heroImageContainer}>
-          <img
-            src="/handphone.png"
-            alt="Personal Assistant App"
+          <video
+            ref={videoRef}
+            src="/walking_phone.mp4"
+            muted
+            playsInline
             className={styles.heroImage}
           />
         </div>

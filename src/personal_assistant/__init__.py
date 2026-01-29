@@ -10,4 +10,7 @@ __author__ = "Personal Assistant Team"
 
 from .core.agent import AgentCore
 
+# Expose the canonical Celery entrypoint as `personal_assistant.celery`
+from . import celery as celery  # noqa: F401
+
 __all__ = ["AgentCore"]
