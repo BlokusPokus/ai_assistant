@@ -191,3 +191,4 @@ The refactor to a canonical Celery 5.6 layout is complete. Summary of the new la
 - **Docker/CLI:** Dev, stage, and prod compose files use `-A personal_assistant.celery` for worker and beat. Dev worker listens on `--queues=ai_tasks,sms_tasks,grocery_tasks`; prod `ai_worker` uses `--queues=ai_tasks` only.
 
 Differences from the pre-refactor layout: configuration and app creation are separated from the workers package; the single source of truth for the app and config is `personal_assistant.celery` + `personal_assistant.celery.config`; `workers.celery_app` is a thin adapter for signals and backward-compatible imports.
+

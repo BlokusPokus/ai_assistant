@@ -130,7 +130,14 @@ class Settings(BaseSettings):
     PA_EMBEDDING_LOG_LEVEL: Optional[str] = None  # Control embedding log verbosity
     PA_EMBEDDING_FILTER: Optional[str] = None  # Enable/disable embedding noise filter
 
-    # Celery settings
+    # Redis (single source of truth for broker and session; see Task 102)
+    REDIS_URL: str = "redis://localhost:6379/0"
+    # Redis client pool/timeouts (Task 103)
+    REDIS_SOCKET_CONNECT_TIMEOUT: int = 5
+    REDIS_SOCKET_TIMEOUT: int = 5
+    REDIS_MAX_CONNECTIONS: Optional[int] = None  # Use redis-py default if None
+
+    # Celery settings (default from REDIS_URL; override via env if needed)
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
 

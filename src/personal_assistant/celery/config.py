@@ -23,8 +23,11 @@ from personal_assistant.config.settings import settings
 # Broker / backend configuration
 # ---------------------------------------------------------------------------
 
-CELERY_BROKER_URL = getattr(settings, "CELERY_BROKER_URL", None) or os.getenv(
-    "CELERY_BROKER_URL", os.getenv("REDIS_URL", "redis://localhost:6379")
+# Single source: settings first, then env; fallback to REDIS_URL (Task 102)
+CELERY_BROKER_URL = (
+    getattr(settings, "CELERY_BROKER_URL", None)
+    or os.getenv("CELERY_BROKER_URL")
+    or getattr(settings, "REDIS_URL", "redis://localhost:6379/0")
 )
 
 # Celery 5 prefers the new-style ``result_backend`` setting name. We avoid
