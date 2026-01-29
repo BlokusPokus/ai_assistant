@@ -39,7 +39,7 @@ def engine():
 
 # Create async session factory
 def _get_session_factory():
-    """Get the session factory, creating if necessary."""
+    """Get the app session factory, creating if necessary."""
     if not hasattr(_get_session_factory, "_factory"):
         _get_session_factory._factory = async_sessionmaker(
             bind=engine(),
@@ -50,21 +50,39 @@ def _get_session_factory():
     return _get_session_factory._factory
 
 
+def get_session_factory():
+    """
+    Return the session factory for the current context.
+    In Celery workers, when code runs inside async_runtime.run(coro), use the
+    worker's dedicated engine/session factory to avoid cross-loop DB errors.
+    """
+    try:
+        from personal_assistant.workers.async_runtime import (
+            get_worker_session_factory,
+            in_worker_loop_thread,
+        )
+        if in_worker_loop_thread():
+            return get_worker_session_factory()
+    except ImportError:
+        pass
+    return _get_session_factory()
+
+
 # For backward compatibility, create a callable that returns the factory
 class AsyncSessionLocal:
     def __call__(self, *args, **kwargs):
-        return _get_session_factory()(*args, **kwargs)
+        return get_session_factory()(*args, **kwargs)
 
     def configure(self, **kwargs):
-        return _get_session_factory().configure(**kwargs)
+        return get_session_factory().configure(**kwargs)
 
     @property
     def kw(self):
-        return _get_session_factory().kw
+        return get_session_factory().kw
 
     async def __aenter__(self):
         """Async context manager entry."""
-        self._session = _get_session_factory()()
+        self._session = get_session_factory()()
         return self._session
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -108,7 +126,7 @@ def get_db():
     """
 
     async def _get_db():
-        session = _get_session_factory()()
+        session = get_session_factory()()
         try:
             yield session
         finally:

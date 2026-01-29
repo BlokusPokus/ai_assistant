@@ -45,6 +45,7 @@ This guide provides step-by-step instructions for deploying future versions of t
 - [ ] Update `config/production.env` with new variables if needed
 - [ ] Update `docker/.env.prod` with new secrets if needed
 - [ ] Verify all API keys and credentials are current
+- [ ] **Ensure `docker/docker/.env.prod` exists** (docker-compose looks for this path)
 
 ---
 
@@ -91,7 +92,7 @@ cd docker
 # CRITICAL: Create backup before migration
 docker exec personal_assistant_postgres_prod pg_dump -U prod_user personal_assistant_prod > backup_before_migration_$(date +%Y%m%d_%H%M%S).sql
 
-# Run database migrations
+# Run database migrations # i don't use alembic, need to change
 docker exec personal_assistant_api_prod python -m alembic upgrade head
 
 # Verify database schema
@@ -111,10 +112,15 @@ cd /home/deploy/ai_assistant/src/apps/frontend
 npm install
 
 # Build frontend for production
-npx vite build
+npm run build
 
-# Copy built files to nginx directory
-cp -r dist/* /home/deploy/ai_assistant/docker/nginx/html/
+# IMPORTANT: Copy files using Docker to avoid permission issues
+docker cp /home/deploy/ai_assistant/src/apps/frontend/dist/. personal_assistant_nginx_prod:/usr/share/nginx/html/
+
+cd /home/deploy/ai_assistant/docker && docker-compose -f docker-compose.prod.yml up frontend-build --build
+
+# Alternative: Use sudo if Docker copy fails
+# sudo cp -r dist/* /home/deploy/ai_assistant/docker/nginx/html/
 ```
 
 ### Step 6: Rebuild and Restart Services
@@ -123,10 +129,17 @@ cp -r dist/* /home/deploy/ai_assistant/docker/nginx/html/
 # Navigate to docker directory
 cd /home/deploy/ai_assistant/docker
 
-# Rebuild containers (if code changes)
-docker-compose -f docker-compose.prod.yml build
+# IMPORTANT: Ensure environment file exists
+mkdir -p /home/deploy/ai_assistant/docker/docker
+cp /home/deploy/ai_assistant/docker/.env.prod /home/deploy/ai_assistant/docker/docker/.env.prod
 
-# Restart services
+# Rebuild containers with fresh images (if code changes)
+docker-compose -f docker-compose.prod.yml build --no-cache
+
+# Stop all containers to ensure fresh start
+docker-compose -f docker-compose.prod.yml down
+
+# Start services with fresh containers
 docker-compose -f docker-compose.prod.yml up -d
 
 # Check service status
@@ -168,12 +181,35 @@ ls -la /home/deploy/ai_assistant/docker/nginx/html/
 
 # Rebuild and copy frontend
 cd /home/deploy/ai_assistant/src/apps/frontend
-npx vite build
-cp -r dist/* /home/deploy/ai_assistant/docker/nginx/html/
+npm run build
+
+# Copy files using Docker (avoids permission issues)
+docker cp /home/deploy/ai_assistant/src/apps/frontend/dist/. personal_assistant_nginx_prod:/usr/share/nginx/html/
 
 # Restart nginx
 cd /home/deploy/ai_assistant/docker
 docker-compose -f docker-compose.prod.yml restart nginx
+```
+
+### Frontend Shows Old Styling
+
+**Problem**: Website loads but shows old styling despite fresh deployment
+**Solution**:
+
+```bash
+# Check if files are actually fresh
+docker exec personal_assistant_nginx_prod ls -la /usr/share/nginx/html/ | head -5
+
+# Verify asset timestamps
+docker exec personal_assistant_nginx_prod stat /usr/share/nginx/html/index.html
+
+# Check if HTML references correct assets
+docker exec personal_assistant_nginx_prod cat /usr/share/nginx/html/index.html | grep "assets/"
+
+# Force browser cache refresh
+# - Hard refresh: Cmd+Shift+R (Mac) or Ctrl+F5 (Windows)
+# - Safari: Develop → Empty Caches
+# - Try incognito/private window
 ```
 
 ### Assets 404 Errors
@@ -502,7 +538,7 @@ git pull origin main
 cd docker && docker exec personal_assistant_api_prod python -m alembic upgrade head
 
 # Build frontend
-cd ../src/apps/frontend && npx vite build && cp -r dist/* ../../docker/nginx/html/
+cd ../src/apps/frontend && npm run build && docker cp dist/. personal_assistant_nginx_prod:/usr/share/nginx/html/
 
 # Restart services
 cd ../../docker && docker-compose -f docker-compose.prod.yml up -d

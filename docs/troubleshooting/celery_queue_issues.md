@@ -19,11 +19,11 @@ This guide helps diagnose and fix common Celery queue routing issues, particular
 Celery Beat sends tasks to one queue (e.g., `ai_tasks`) but Worker listens to a different queue (e.g., `celery`).
 
 **Solution:**
-Ensure worker command includes explicit queue declarations:
+Ensure worker command includes explicit queue declarations. Use the canonical app entrypoint `personal_assistant.celery` and the current queues:
 
 ```bash
-celery -A personal_assistant.workers.celery_app worker \
-  --queues=ai_tasks,email_tasks,file_tasks,sync_tasks,maintenance_tasks \
+celery -A personal_assistant.celery worker \
+  --queues=ai_tasks,sms_tasks,grocery_tasks \
   --loglevel=info
 ```
 
@@ -46,13 +46,13 @@ Multiple Celery instances running simultaneously or queue naming conflicts causi
    docker stop personal_assistant_worker personal_assistant_scheduler
    ```
 
-2. Clear problematic queues:
+2. Clear problematic queues (legacy example; adjust queue names to match your env):
 
    ```bash
-   redis-cli -h localhost -p 6379 -a redis_password del "ai_tasks\x06\x169" "email_tasks\x06\x163" "sync_tasks\x06\x166"
+   redis-cli -h localhost -p 6379 -a redis_password del "ai_tasks\x06\x169" "sms_tasks\x06\x163" "grocery_tasks\x06\x166"
    ```
 
-3. Restart services with proper configuration:
+3. Restart services with proper configuration (uses `-A personal_assistant.celery`):
    ```bash
    docker-compose -f docker/docker-compose.dev.yml up -d worker scheduler
    ```
@@ -89,9 +89,9 @@ docker ps | grep personal_assistant
 ### Check Worker Queue Listening
 
 ```bash
-# Inspect active worker queues
+# Inspect active worker queues (use canonical app personal_assistant.celery)
 python -c "
-from personal_assistant.workers.celery_app import app
+from personal_assistant.celery import app
 inspect = app.control.inspect()
 active_queues = inspect.active_queues()
 print(active_queues)
@@ -102,34 +102,45 @@ print(active_queues)
 
 ### 1. Proper Configuration
 
-Ensure all components use consistent queue configuration:
+Ensure all components use consistent queue configuration. The canonical app and config live in `personal_assistant.celery` and `personal_assistant.celery.config`; the current queues are `ai_tasks`, `sms_tasks`, and `grocery_tasks`.
 
-**Celery App Configuration** (`src/personal_assistant/workers/celery_app.py`):
+**Celery configuration** (`src/personal_assistant/celery/config.py`):
 
 ```python
 task_queues=(
     Queue('ai_tasks', routing_key='ai_tasks'),
-    Queue('email_tasks', routing_key='email_tasks'),
-    Queue('file_tasks', routing_key='file_tasks'),
-    Queue('sync_tasks', routing_key='sync_tasks'),
-    Queue('maintenance_tasks', routing_key='maintenance_tasks'),
+    Queue('sms_tasks', routing_key='sms_tasks'),
+    Queue('grocery_tasks', routing_key='grocery_tasks'),
 ),
 task_default_queue='ai_tasks',
 ```
 
-**Docker Worker Command** (`docker/docker-compose.dev.yml`):
+**Docker worker / beat** – use app entrypoint `personal_assistant.celery` (`docker/docker-compose.dev.yml`):
 
 ```yaml
+# Worker
 command:
   [
     "celery",
     "-A",
-    "personal_assistant.workers.celery_app",
+    "personal_assistant.celery",
     "worker",
     "--loglevel=info",
-    "--queues=ai_tasks,email_tasks,file_tasks,sync_tasks,maintenance_tasks",
+    "--queues=ai_tasks,sms_tasks,grocery_tasks",
+  ]
+
+# Beat scheduler
+command:
+  [
+    "celery",
+    "-A",
+    "personal_assistant.celery",
+    "beat",
+    "--loglevel=info",
   ]
 ```
+
+**Legacy queue names** (no longer in use): `email_tasks`, `file_tasks`, `sync_tasks`, `maintenance_tasks`. Historical docs may still reference them.
 
 ### 2. Process Management
 
@@ -210,16 +221,16 @@ echo "=============================="
 # Check Redis connection
 redis-cli -h localhost -p 6379 -a redis_password ping
 
-# Check queue lengths
+# Check queue lengths (current queues: ai_tasks, sms_tasks, grocery_tasks)
 echo "📊 Queue Status:"
-for queue in ai_tasks email_tasks file_tasks sync_tasks maintenance_tasks; do
+for queue in ai_tasks sms_tasks grocery_tasks; do
     length=$(redis-cli -h localhost -p 6379 -a redis_password llen "$queue")
     echo "  $queue: $length tasks"
 done
 
 # Check for problematic queues
 echo "⚠️  Problematic Queues:"
-problematic=$(redis-cli -h localhost -p 6379 -a redis_password keys "*tasks*" | grep -v -E "(ai_tasks|email_tasks|file_tasks|sync_tasks|maintenance_tasks)$")
+problematic=$(redis-cli -h localhost -p 6379 -a redis_password keys "*tasks*" | grep -v -E "(ai_tasks|sms_tasks|grocery_tasks)$")
 if [ -n "$problematic" ]; then
     echo "$problematic"
 else
@@ -244,10 +255,10 @@ docker ps | grep personal_assistant
 echo "🔄 Celery Processes:"
 ps aux | grep celery
 
-# Check worker queue listening
+# Check worker queue listening (canonical app: personal_assistant.celery)
 echo "📡 Active Worker Queues:"
 python -c "
-from personal_assistant.workers.celery_app import app
+from personal_assistant.celery import app
 try:
     inspect = app.control.inspect()
     active_queues = inspect.active_queues()

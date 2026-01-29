@@ -139,7 +139,7 @@ services:
       [
         "celery",
         "-A",
-        "personal_assistant.workers.celery_app",
+        "personal_assistant.celery",
         "worker",
         "--loglevel=info",
         "--concurrency=2",
@@ -176,7 +176,7 @@ services:
       [
         "celery",
         "-A",
-        "personal_assistant.workers.celery_app",
+        "personal_assistant.celery",
         "beat",
         "--loglevel=info",
       ]

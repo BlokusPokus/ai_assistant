@@ -26,8 +26,10 @@ services:
       retries: 3
       start_period: 40s
 
-  # Frontend Development Server
+  # Frontend Development Server (profile: avoids heavy build that can crash Docker Desktop; use --profile frontend to include)
   frontend:
+    profiles:
+      - frontend
     build:
       context: ../src/apps/frontend
       dockerfile: Dockerfile.dev
@@ -151,6 +153,8 @@ services:
     env_file:
       - ../config/development.env
     environment:
+      - PYTHONPATH=/app/src
+
       - ENVIRONMENT=development
       - DEBUG=true
       - REAL_DB_URL=postgresql+asyncpg://ianleblanc:password@host.docker.internal:5432/postgres
@@ -162,14 +166,16 @@ services:
       - ../src:/app/src:ro
       - ../config:/app/config:ro
       - ../logs:/app/logs
+    tmpfs:
+      - /tmp
     command:
       [
         "celery",
         "-A",
-        "personal_assistant.workers.celery_app",
+        "personal_assistant.celery",
         "worker",
         "--loglevel=info",
-        "--queues=ai_tasks",
+        "--queues=ai_tasks,sms_tasks,grocery_tasks",
       ]
     depends_on:
       redis:
@@ -188,6 +194,7 @@ services:
     env_file:
       - ../config/development.env
     environment:
+      - PYTHONPATH=/app/src
       - ENVIRONMENT=development
       - DEBUG=true
       - REAL_DB_URL=postgresql+asyncpg://ianleblanc:password@host.docker.internal:5432/postgres
@@ -199,11 +206,13 @@ services:
       - ../src:/app/src:ro
       - ../config:/app/config:ro
       - ../logs:/app/logs
+    tmpfs:
+      - /tmp
     command:
       [
         "celery",
         "-A",
-        "personal_assistant.workers.celery_app",
+        "personal_assistant.celery",
         "beat",
         "--loglevel=info",
       ]
@@ -241,7 +250,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
     ports:
-      - "3000:3000"
+      - "3005:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro

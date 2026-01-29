@@ -202,10 +202,10 @@ pip install pytest pytest-asyncio pytest-cov black isort flake8 mypy
 redis-server
 
 # Start Celery worker (in separate terminal)
-celery -A personal_assistant.workers.celery_app worker --loglevel=info
+celery -A personal_assistant.celery worker --loglevel=info
 
 # Start Celery beat (in separate terminal)
-celery -A personal_assistant.workers.celery_app beat --loglevel=info
+celery -A personal_assistant.celery beat --loglevel=info
 
 # Start FastAPI server
 uvicorn src.apps.fastapi_app.main:app --reload --host 0.0.0.0 --port 8000

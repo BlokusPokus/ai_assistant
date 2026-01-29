@@ -13,7 +13,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...communication.twilio_integration.twilio_client import TwilioService
-from ...database.session import _get_session_factory
+from ...database.session import get_session_factory
 from ..models.sms_models import SMSUsageLog
 from .error_classifier import SMSErrorClassifier
 
@@ -54,7 +54,7 @@ class SimpleSMSRetryService:
             return False
 
         try:
-            session_factory = _get_session_factory()
+            session_factory = get_session_factory()
             async with session_factory() as db:
                 sms_log = await db.get(SMSUsageLog, sms_log_id)
                 if not sms_log:
@@ -92,7 +92,7 @@ class SimpleSMSRetryService:
         stats = {'processed': 0, 'successful': 0, 'failed': 0}
 
         try:
-            session_factory = _get_session_factory()
+            session_factory = get_session_factory()
             async with session_factory() as db:
                 # Get failed SMS records ready for retry
                 now = datetime.utcnow()
@@ -164,7 +164,7 @@ class SimpleSMSRetryService:
             bool: True if status was updated successfully
         """
         try:
-            session_factory = _get_session_factory()
+            session_factory = get_session_factory()
             async with session_factory() as db:
                 # Find SMS log by message SID
                 query = select(SMSUsageLog).where(
@@ -199,7 +199,7 @@ class SimpleSMSRetryService:
         try:
             cutoff_date = datetime.utcnow() - timedelta(days=days_old)
 
-            session_factory = _get_session_factory()
+            session_factory = get_session_factory()
             async with session_factory() as db:
                 # Update old retry records to remove retry scheduling
                 query = select(SMSUsageLog).where(

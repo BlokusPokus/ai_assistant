@@ -350,17 +350,17 @@ docker-compose exec frontend npm run dev
    docker-compose logs worker
 
    # Check Celery status
-   docker-compose exec worker celery -A personal_assistant.workers.celery_app inspect active
+   docker-compose exec worker celery -A personal_assistant.celery inspect active
    ```
 
 2. **Task Failures**:
 
    ```bash
    # Check failed tasks
-   docker-compose exec worker celery -A personal_assistant.workers.celery_app inspect failed
+   docker-compose exec worker celery -A personal_assistant.celery inspect failed
 
    # Check task results
-   docker-compose exec worker celery -A personal_assistant.workers.celery_app inspect stats
+   docker-compose exec worker celery -A personal_assistant.celery inspect stats
    ```
 
 3. **Memory Issues**:
@@ -386,10 +386,10 @@ docker-compose logs -f worker
 docker-compose exec worker bash
 
 # Check Celery configuration
-docker-compose exec worker celery -A personal_assistant.workers.celery_app inspect stats
+docker-compose exec worker celery -A personal_assistant.celery inspect stats
 
 # Check task queues
-docker-compose exec worker celery -A personal_assistant.workers.celery_app inspect active_queues
+docker-compose exec worker celery -A personal_assistant.celery inspect active_queues
 ```
 
 ## Database Issues

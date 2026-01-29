@@ -162,8 +162,13 @@ class TestQueueRoutingRegression:
             # Determine expected queue based on task name
             if 'ai_tasks' in task_name:
                 expected_queue = 'ai_tasks'
+            elif 'sms_tasks' in task_name:
+                expected_queue = 'sms_tasks'
+            elif 'grocery_tasks' in task_name:
+                expected_queue = 'grocery_tasks'
             else:
-                expected_queue = 'ai_tasks'  # default
+                # Default queue for any other tasks
+                expected_queue = app.conf.task_default_queue
             
             # Check that task routing matches expected queue
             task_routes = app.conf.task_routes
