@@ -142,6 +142,26 @@ class AITaskManager:
                 serialized[key] = value
         return serialized
 
+    async def get_task_by_id(self, task_id: int) -> Optional[AITask]:
+        """
+        Get a single task by ID.
+
+        Args:
+            task_id: Task ID
+
+        Returns:
+            AITask if found, None otherwise
+        """
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(
+                    select(AITask).where(AITask.id == task_id)
+                )
+                return result.scalar_one_or_none()
+            except Exception as e:
+                self.logger.error(f"Error getting task {task_id}: {e}")
+                return None
+
     async def get_due_tasks(self, limit: int = 50) -> List[AITask]:
         """
         Get tasks that are due for execution.

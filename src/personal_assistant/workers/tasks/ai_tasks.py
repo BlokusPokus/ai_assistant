@@ -213,6 +213,113 @@ async def _process_due_ai_tasks_async(task_id: str) -> Dict[str, Any]:
         }
 
 
+@app.task(bind=True, max_retries=2, default_retry_delay=30)
+def execute_single_ai_task(self, task_id: int) -> Dict[str, Any]:
+    """
+    Execute a single AI task by ID (e.g. triggered from dashboard "Execute" button).
+
+    Args:
+        task_id: Database AI task ID
+
+    Returns:
+        Dict with status and result or error
+    """
+    try:
+        return run_in_worker_loop(_execute_single_ai_task_async(task_id))
+    except Exception as e:
+        logger.error(f"execute_single_ai_task failed for task_id={task_id}: {e}")
+        return {
+            "task_id": task_id,
+            "status": "failed",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+
+async def _execute_single_ai_task_async(task_id: int) -> Dict[str, Any]:
+    """Load task by id and run same execution flow as process_due_ai_tasks."""
+    task_manager = AITaskManager()
+    notification_service = NotificationService()
+    task_executor = TaskExecutor()
+
+    task = await task_manager.get_task_by_id(task_id)
+    if not task:
+        return {
+            "task_id": task_id,
+            "status": "not_found",
+            "message": f"Task {task_id} not found",
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    if task.status not in ("active", "paused"):
+        return {
+            "task_id": task_id,
+            "status": "skipped",
+            "message": f"Task status is {task.status}, not active/paused",
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+    try:
+        await task_manager.update_task_status(
+            task_id=int(task.id),
+            status="processing",
+            last_run_at=datetime.utcnow(),
+        )
+        execution_result = await task_executor.execute_task(task)
+
+        if task.schedule_type == "once":
+            await task_manager.update_task_status(
+                task_id=int(task.id),
+                status="completed",
+                last_run_at=datetime.utcnow(),
+            )
+        else:
+            next_run_at = await task_manager.calculate_next_run(
+                schedule_type=task.schedule_type,
+                schedule_config=task.schedule_config,
+                current_time=datetime.utcnow(),
+            )
+            if next_run_at:
+                await task_manager.update_task_status(
+                    task_id=int(task.id),
+                    status="active",
+                    last_run_at=datetime.utcnow(),
+                    next_run_at=next_run_at,
+                )
+            else:
+                await task_manager.update_task_status(
+                    task_id=int(task.id),
+                    status="completed",
+                    last_run_at=datetime.utcnow(),
+                )
+
+        if task.should_notify():
+            await notification_service.send_task_completion_notification(
+                task, execution_result
+            )
+
+        return {
+            "task_id": task_id,
+            "status": "success",
+            "message": "Task executed successfully",
+            "task_title": task.title,
+            "timestamp": datetime.utcnow().isoformat(),
+            "ai_response": execution_result.get("ai_response", ""),
+        }
+    except Exception as e:
+        logger.error(f"Failed to execute AI task {task_id}: {e}")
+        await task_manager.update_task_status(
+            task_id=int(task.id),
+            status="failed",
+            last_run_at=datetime.utcnow(),
+        )
+        return {
+            "task_id": task_id,
+            "status": "failed",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+
 @app.task(bind=True, max_retries=3, default_retry_delay=60)
 def create_ai_reminder(
     self,

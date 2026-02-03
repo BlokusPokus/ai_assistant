@@ -795,6 +795,31 @@ docker-compose exec frontend ls -la /app
 docker-compose exec api ls -la /app/logs
 ```
 
+#### Docker Compose log errors (dev)
+
+When running `docker compose -f docker/docker-compose.dev.yml logs -f`, you may see the following. Each has a known cause and fix:
+
+| Log message | Cause | Fix | Status |
+|-------------|--------|-----|--------|
+| **Redis:** `Possible SECURITY ATTACK detected... POST or Host: commands` | Prometheus (or any HTTP client) was scraping `redis:6379` directly. Redis speaks RESP, not HTTP. | Do not scrape Redis port in Prometheus. Use `redis_exporter` and scrape its HTTP `/metrics`. `docker/monitoring/prometheus.yml` has Redis job commented out. | Fixed in config |
+| **Redis:** `Memory overcommit must be enabled!` | Kernel setting `vm.overcommit_memory` is 0 on the host. | On the Docker host: `sysctl vm.overcommit_memory=1` (or add to `/etc/sysctl.conf` and reboot). Optional for dev. | Host-level; optional for dev |
+| **API:** `Error grabbing logs: invalid character '\x00'` | Uvicorn with `--reload` uses file watchers that can write binary to stdout and break Docker’s log stream. | Run API without `--reload` in Docker. `docker-compose.dev.yml` api service uses a command without `--reload`. | Fixed in compose |
+| **Prometheus:** `received unsupported Content-Type "application/json"` for API | Prometheus was scraping a JSON health endpoint (e.g. `/health/database/performance`) instead of Prometheus exposition format. | Scrape `/metrics` for the API. `docker/monitoring/prometheus.yml` uses `metrics_path: "/metrics"` for `personal_assistant_api`. | Fixed in config |
+| **Nginx:** `can not modify /etc/nginx/conf.d/default.conf (read-only file system?)` | The Nginx image entrypoint tries to modify `default.conf` (e.g. IPv6), but the compose mount is `:ro`. | In dev, mount `conf.d` read-write (remove `:ro`) so the entrypoint can run, or ignore the warning if Nginx still works. | Fixed in compose (dev) |
+| **Loki:** `error getting ingester clients" err="empty ring"` | Loki’s ring is not ready at startup. | Usually transient; Loki finishes starting and the ring fills. If it persists, check Loki resources and logs. | Monitor; often transient |
+| **API:** repeated `GET /health/database/performance` | Previously from Prometheus scraping that path. API healthcheck uses `/health/overall`. | After switching Prometheus to `/metrics`, restart stack; those requests should stop. | Fixed once Prometheus updated |
+
+**Verification after fixes**
+
+```bash
+# Restart dev stack so config/compose changes apply
+docker compose -f docker/docker-compose.dev.yml down
+docker compose -f docker/docker-compose.dev.yml up -d
+
+# Follow logs (should no longer see \x00 error or Redis SECURITY ATTACK from Prometheus)
+docker compose -f docker/docker-compose.dev.yml logs -f
+```
+
 ### Environment Issues
 
 #### Configuration Problems

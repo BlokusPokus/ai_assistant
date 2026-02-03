@@ -10,11 +10,16 @@ This directory contains the Docker configuration for the Personal Assistant TDAH
 - **`docker-compose.prod.yml`** - Production environment (high availability, security)
 - **`env.stage.example`** - Staging environment variables template
 - **`env.prod.example`** - Production environment variables template
+- **`env.dev.example`** - Optional development overrides (DB user, Redis/Grafana passwords)
 - **`monitoring/`** - Monitoring stack configurations
 
 ## 🚀 Quick Start
 
 ### Development Environment
+
+Optional: to use your existing app config as the single source of truth, add `DEV_DB_USER`, `DEV_DB_PASSWORD`, `DEV_REDIS_PASSWORD`, `DEV_GRAFANA_ADMIN_PASSWORD` to **`config/development.env`** (same file as `DATABASE_URL` / `CELERY_BROKER_URL`). From the **repo root**, run:  
+`docker compose -f docker/docker-compose.dev.yml --env-file config/development.env up -d`  
+Then when you update images, the same credentials are used. Otherwise copy `env.dev.example` to `docker/.env` or leave unset to use defaults (postgres, password, redis_password, admin).
 
 ```bash
 # Start development environment

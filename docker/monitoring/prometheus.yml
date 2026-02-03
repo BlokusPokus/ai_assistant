@@ -12,11 +12,11 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # Personal Assistant API
+  # Personal Assistant API (Prometheus exposition format)
   - job_name: "personal_assistant_api"
     static_configs:
       - targets: ["api:8000"]
-    metrics_path: "/health/database/performance"
+    metrics_path: "/metrics"
     scrape_interval: 30s
 
   # PostgreSQL Database
@@ -25,11 +25,12 @@ scrape_configs:
       - targets: ["postgres:5432"]
     # Note: Requires postgres_exporter for actual metrics
 
-  # Redis
-  - job_name: "redis"
-    static_configs:
-      - targets: ["redis:6379"]
-    # Note: Requires redis_exporter for actual metrics
+  # Redis: do NOT scrape redis:6379 directly (Redis uses RESP, not HTTP).
+  # Scraping it causes "Possible SECURITY ATTACK" in Redis logs. Use redis_exporter when needed:
+  # - job_name: "redis"
+  #   static_configs:
+  #     - targets: ["redis_exporter:9121"]
+  #   # redis_exporter exposes HTTP /metrics; add redis_exporter service to compose to enable
 
   # Node Exporter (if running on host)
   - job_name: "node"
