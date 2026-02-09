@@ -4,6 +4,7 @@ from fastapi.responses import Response
 from fastapi.security import HTTPBearer
 
 from .middleware.auth import AuthMiddleware
+from .middleware.prometheus_metrics import PrometheusMetricsMiddleware
 from .middleware.rate_limiting import RateLimitingMiddleware
 from .routes import (
     ai_tasks,
@@ -45,6 +46,9 @@ app.add_middleware(
 
 # Add correlation ID middleware (should be early in the chain)
 app.add_middleware(CorrelationIDMiddleware)
+
+# Record HTTP metrics for Grafana Application dashboard (request rate, latency, error rate)
+app.add_middleware(PrometheusMetricsMiddleware)
 
 # Add authentication and rate limiting middleware
 app.add_middleware(RateLimitingMiddleware)

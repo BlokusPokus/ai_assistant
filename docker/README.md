@@ -74,7 +74,9 @@ docker-compose -f docker-compose.prod.yml down
 - **PostgreSQL**: localhost:5432
 - **Redis**: localhost:6379
 - **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000
+- **Grafana**: http://localhost:3005
+- **postgres_exporter**: http://localhost:9187 (metrics only; for Grafana/postgres panels)
+- **worker** (Prometheus): http://localhost:9091 (task metrics for Grafana Task dashboard; `WORKER_METRICS_PORT`)
 
 ### Staging
 
@@ -128,9 +130,22 @@ docker-compose -f docker-compose.prod.yml down
 
 ## 📊 Monitoring & Observability
 
+### Grafana access and provisioning
+
+- **URL (dev):** http://localhost:3005  
+- **Login:** `admin` / value of `DEV_GRAFANA_ADMIN_PASSWORD` (from `config/development.env` or `docker/.env`; default `admin` if unset).  
+- **Provisioning:** All dashboards and datasources are provisioned from **`docker/monitoring/grafana/`**:
+  - **Dashboards:** `monitoring/grafana/dashboards/*.json` (provider config: `dashboards.yml`).
+  - **Datasources:** `monitoring/grafana/datasources/*.yml` (Prometheus, Loki).
+  - **Alert rules:** Defined in Prometheus, not in Grafana. Rule files live under `monitoring/grafana/alerting/*.yml` and are mounted into Prometheus via `prometheus.yml` `rule_files` (e.g. `/etc/prometheus/rules/*.yml`). To add or change alerts, edit those YAML files and reload Prometheus.
+
+See **`docs/monitoring/README.md`** for architecture and **`docs/architecture/tasks/106_grafana_dashboards_refinement/DASHBOARD_MAP.md`** for a one-page dashboard map.
+
 ### Metrics Collection
 
-- **Prometheus**: System and application metrics
+- **Prometheus**: System and application metrics (scrapes API, postgres_exporter, and optionally node_exporter).
+- **postgres_exporter**: Included in dev compose; connects to Postgres on the host (`host.docker.internal:5432`) and exposes metrics at `:9187`. Use the same `DEV_DB_USER` / `DEV_DB_PASSWORD` as the API.
+- **node_exporter**: Not in compose. For host CPU/memory/disk metrics, run [node_exporter](https://github.com/prometheus/node_exporter) on your machine; Prometheus is already configured to scrape `host.docker.internal:9100` when it is running.
 - **Grafana**: Dashboards and visualization
 - **Custom metrics**: Application-specific performance data
 

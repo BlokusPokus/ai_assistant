@@ -333,7 +333,7 @@
       },
       "targets": [
         {
-          "expr": "system_network_bytes_total",
+          "expr": "system_network_io_bytes",
           "interval": "",
           "legendFormat": "Network Traffic",
           "refId": "A"

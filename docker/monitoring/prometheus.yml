@@ -3,8 +3,9 @@ global:
   evaluation_interval: 15s
 
 rule_files:
-  # - "first_rules.yml"
-  # - "second_rules.yml"
+  - "/etc/prometheus/rules/critical-alerts.yml"
+  - "/etc/prometheus/rules/warning-alerts.yml"
+  - "/etc/prometheus/rules/info-alerts.yml"
 
 scrape_configs:
   # Prometheus itself
@@ -19,11 +20,18 @@ scrape_configs:
     metrics_path: "/metrics"
     scrape_interval: 30s
 
-  # PostgreSQL Database
+  # Celery Worker (task execution metrics for Task dashboard)
+  - job_name: "celery_worker"
+    static_configs:
+      - targets: ["worker:9091"]
+    metrics_path: "/metrics"
+    scrape_interval: 30s
+
+  # PostgreSQL (via postgres_exporter; add postgres_exporter service in compose to get data)
   - job_name: "postgres"
     static_configs:
-      - targets: ["postgres:5432"]
-    # Note: Requires postgres_exporter for actual metrics
+      - targets: ["postgres_exporter:9187"]
+    metrics_path: "/metrics"
 
   # Redis: do NOT scrape redis:6379 directly (Redis uses RESP, not HTTP).
   # Scraping it causes "Possible SECURITY ATTACK" in Redis logs. Use redis_exporter when needed:
@@ -32,8 +40,7 @@ scrape_configs:
   #     - targets: ["redis_exporter:9121"]
   #   # redis_exporter exposes HTTP /metrics; add redis_exporter service to compose to enable
 
-  # Node Exporter (if running on host)
-  - job_name: "node"
-    static_configs:
-      - targets: ["host.docker.internal:9100"]
-    # Note: Requires node_exporter to be running on host
+  # Node Exporter (optional: run on host for host metrics; comment in when node_exporter is running)
+  # - job_name: "node"
+  #   static_configs:
+  #     - targets: ["host.docker.internal:9100"]

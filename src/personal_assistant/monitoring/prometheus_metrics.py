@@ -238,6 +238,13 @@ class PrometheusMetricsService:
             registry=self.registry,
         )
 
+        self.task_executions_total = Counter(
+            "task_executions_total",
+            "Total task executions by outcome",
+            ["task_type", "outcome"],
+            registry=self.registry,
+        )
+
         self.task_success_rate = Gauge(
             "task_success_rate",
             "Task success rate percentage",
@@ -343,6 +350,8 @@ class PrometheusMetricsService:
         self.task_execution_duration_seconds.labels(task_type=task_type).observe(
             duration
         )
+        outcome = "success" if success else "failure"
+        self.task_executions_total.labels(task_type=task_type, outcome=outcome).inc()
 
     def update_oauth_integrations(self, provider_counts: Dict[str, int]):
         """Update OAuth integration counts."""

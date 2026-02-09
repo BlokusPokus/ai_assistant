@@ -10,7 +10,7 @@ import logging
 import os
 from datetime import datetime
 
-from celery.signals import task_failure, task_postrun, task_prerun
+from celery.signals import task_failure, task_postrun, task_prerun, worker_process_init
 
 from personal_assistant.celery import app
 
@@ -39,6 +39,21 @@ def task_postrun_handler(sender=None, task_id=None, task=None, **kwargs):
         logger.info(f"Task completed: {task.name} ({task_id}) in {execution_time:.2f}s")
     except Exception as e:
         logger.error(f"Error in task postrun handler: {e}")
+
+
+@worker_process_init.connect
+def _worker_process_init_metrics_server(**kwargs):
+    """Start the Prometheus /metrics HTTP server in this worker process (same process that runs tasks)."""
+    try:
+        from .metrics_server import start_metrics_server
+
+        port = start_metrics_server(host="0.0.0.0", port=9091)
+        logger.info("Worker metrics server started on port %s", port)
+    except OSError as e:
+        if "Address already in use" in str(e):
+            logger.debug("Worker metrics port 9091 already in use (another worker may have bound it), skipping")
+        else:
+            logger.warning("Could not start worker metrics server: %s", e)
 
 
 @task_failure.connect

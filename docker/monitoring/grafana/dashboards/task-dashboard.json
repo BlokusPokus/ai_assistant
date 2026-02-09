@@ -90,13 +90,13 @@
       },
       "targets": [
         {
-          "expr": "task_execution_duration_seconds",
+          "expr": "(sum(increase(task_execution_duration_seconds_sum[5m])) by (task_type) / sum(increase(task_execution_duration_seconds_count[5m])) by (task_type)) or on() vector(0)",
           "interval": "",
           "legendFormat": "{{task_type}}",
           "refId": "A"
         }
       ],
-      "title": "Task Execution Duration",
+      "title": "Task Execution Duration (avg s)",
       "type": "timeseries"
     },
     {
@@ -171,13 +171,13 @@
       },
       "targets": [
         {
-          "expr": "task_success_rate",
+          "expr": "(sum(increase(task_executions_total{outcome=\"success\"}[5m])) by (task_type) / sum(increase(task_executions_total[5m])) by (task_type) * 100) or on() vector(0)",
           "interval": "",
           "legendFormat": "{{task_type}}",
           "refId": "A"
         }
       ],
-      "title": "Task Success Rate",
+      "title": "Task Success Rate (%)",
       "type": "timeseries"
     },
     {
@@ -252,7 +252,7 @@
       },
       "targets": [
         {
-          "expr": "task_queue_length",
+          "expr": "task_queue_length or on() vector(0)",
           "interval": "",
           "legendFormat": "{{queue_name}}",
           "refId": "A"
@@ -333,13 +333,13 @@
       },
       "targets": [
         {
-          "expr": "task_execution_total",
+          "expr": "sum(increase(task_execution_duration_seconds_count[5m])) by (task_type) or on() vector(0)",
           "interval": "",
           "legendFormat": "{{task_type}}",
           "refId": "A"
         }
       ],
-      "title": "Task Execution Count",
+      "title": "Task Executions (count in 5m)",
       "type": "timeseries"
     }
   ],

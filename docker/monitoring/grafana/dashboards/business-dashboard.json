@@ -252,7 +252,7 @@
       },
       "targets": [
         {
-          "expr": "feature_usage_total",
+          "expr": "user_registrations_total",
           "interval": "",
           "legendFormat": "{{feature}}",
           "refId": "A"
@@ -333,7 +333,7 @@
       },
       "targets": [
         {
-          "expr": "business_revenue_total",
+          "expr": "oauth_adoption_rate",
           "interval": "",
           "legendFormat": "Revenue",
           "refId": "A"

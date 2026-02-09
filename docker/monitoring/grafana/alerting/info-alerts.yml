@@ -10,38 +10,36 @@ groups:
           summary: "User registration spike"
           description: "User registration rate is {{ $value }} per second"
 
+      # SMS cost: Counter; use increase over 1h to detect high cost in period
       - alert: HighSMSCost
-        expr: sms_cost_total > 100
-        for: 1h
+        expr: increase(sms_cost_total[1h]) > 100
+        for: 5m
         labels:
           severity: info
         annotations:
-          summary: "High SMS costs"
-          description: "SMS costs have reached ${{ $value }} for {{ $labels.provider }}"
+          summary: "High SMS costs in last hour"
+          description: "SMS cost increase in last hour is ${{ $value }} (provider {{ $labels.provider }})"
 
-      - alert: FeatureUsageIncrease
-        expr: rate(feature_usage_total[1h]) > 50
-        for: 30m
-        labels:
-          severity: info
-        annotations:
-          summary: "Feature usage increase"
-          description: "Feature {{ $labels.feature }} usage increased to {{ $value }} per hour"
+      # feature_usage_total not in app; rule disabled until metric exists
+      # - alert: FeatureUsageIncrease
+      #   expr: rate(feature_usage_total[1h]) > 50
+      #   ...
 
       - alert: OAuthIntegrationIncrease
-        expr: oauth_integrations_active > 1000
+        expr: sum(oauth_integrations_active) > 1000
         for: 1h
         labels:
           severity: info
         annotations:
           summary: "High OAuth integration count"
-          description: "OAuth integrations for {{ $labels.provider }} reached {{ $value }}"
+          description: "Total OAuth integrations reached {{ $value }}"
 
+      # task_execution_total does not exist; use histogram _count
       - alert: TaskExecutionSpike
-        expr: rate(task_execution_total[5m]) > 100
+        expr: sum(rate(task_execution_duration_seconds_count[5m])) > 100
         for: 5m
         labels:
           severity: info
         annotations:
           summary: "Task execution spike"
-          description: "Task execution rate is {{ $value }} per second for {{ $labels.task_type }}"
+          description: "Task execution rate is {{ $value }} per second"

@@ -90,7 +90,7 @@
       },
       "targets": [
         {
-          "expr": "oauth_integrations_active",
+          "expr": "oauth_integrations_active or on() vector(0)",
           "interval": "",
           "legendFormat": "{{provider}}",
           "refId": "A"
@@ -171,13 +171,13 @@
       },
       "targets": [
         {
-          "expr": "oauth_token_refresh_total",
+          "expr": "sum(increase(oauth_token_refresh_total[5m])) by (provider, status) or on() vector(0)",
           "interval": "",
           "legendFormat": "{{provider}} - {{status}}",
           "refId": "A"
         }
       ],
-      "title": "Token Refresh Attempts",
+      "title": "Token Refreshes (count in 5m)",
       "type": "timeseries"
     },
     {
@@ -252,13 +252,13 @@
       },
       "targets": [
         {
-          "expr": "oauth_operation_duration_seconds",
+          "expr": "(sum(increase(oauth_operation_duration_seconds_sum[5m])) by (provider, operation) / sum(increase(oauth_operation_duration_seconds_count[5m])) by (provider, operation)) or on() vector(0)",
           "interval": "",
           "legendFormat": "{{provider}} - {{operation}}",
           "refId": "A"
         }
       ],
-      "title": "OAuth Operation Duration",
+      "title": "OAuth Operation Duration (avg s)",
       "type": "timeseries"
     },
     {
@@ -333,13 +333,13 @@
       },
       "targets": [
         {
-          "expr": "oauth_errors_total",
+          "expr": "sum(increase(oauth_errors_total[5m])) by (provider, error_type) or on() vector(0)",
           "interval": "",
           "legendFormat": "{{provider}} - {{error_type}}",
           "refId": "A"
         }
       ],
-      "title": "OAuth Errors",
+      "title": "OAuth Errors (count in 5m)",
       "type": "timeseries"
     }
   ],

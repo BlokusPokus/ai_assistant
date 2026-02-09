@@ -6,6 +6,11 @@ and other security-related middleware components.
 """
 
 from .auth import AuthMiddleware
+from .prometheus_metrics import PrometheusMetricsMiddleware
 from .rate_limiting import RateLimitingMiddleware
 
-__all__ = ["AuthMiddleware", "RateLimitingMiddleware"]
+__all__ = [
+    "AuthMiddleware",
+    "PrometheusMetricsMiddleware",
+    "RateLimitingMiddleware",
+]

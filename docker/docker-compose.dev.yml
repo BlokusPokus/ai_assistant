@@ -155,6 +155,8 @@ services:
       dockerfile: docker/Dockerfile
       target: development
     container_name: personal_assistant_worker
+    ports:
+      - "9091:9091"  # Prometheus /metrics (WORKER_METRICS_PORT)
     env_file:
       - ../config/development.env
     environment:
@@ -179,6 +181,7 @@ services:
         "-A",
         "personal_assistant.celery",
         "worker",
+        "--concurrency=1",
         "--loglevel=info",
         "--queues=ai_tasks,sms_tasks,grocery_tasks",
       ]
@@ -236,6 +239,7 @@ services:
       - "9090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/grafana/alerting:/etc/prometheus/rules:ro
       - prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
@@ -277,6 +281,18 @@ services:
       - loki_data:/loki
     command:
       - "-config.file=/etc/loki/local-config.yaml"
+    restart: unless-stopped
+    networks:
+      - personal_assistant_network
+
+  # PostgreSQL metrics (connects to Postgres on host; Prometheus scrapes this)
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: personal_assistant_postgres_exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${DEV_DB_USER:-postgres}:${DEV_DB_PASSWORD:-password}@host.docker.internal:5432/postgres?sslmode=disable"
+    ports:
+      - "9187:9187"
     restart: unless-stopped
     networks:
       - personal_assistant_network

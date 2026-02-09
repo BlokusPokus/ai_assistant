@@ -91,11 +91,13 @@ graph TB
 | Component             | Purpose            | Technology | Port |
 | --------------------- | ------------------ | ---------- | ---- |
 | **Prometheus**        | Metrics collection | Prometheus | 9090 |
-| **Grafana**           | Visualization      | Grafana    | 3000 |
+| **Grafana**           | Visualization      | Grafana    | 3005 (dev) / 3001 (stage) / 3000 (prod) |
 | **Loki**              | Log aggregation    | Loki       | 3100 |
-| **Node Exporter**     | System metrics     | Prometheus | 9100 |
+| **API /metrics**      | API + HTTP metrics | FastAPI    | 8000 (same as API) |
+| **Worker /metrics**   | Task execution metrics (Task dashboard) | Celery worker | 9091 |
 | **Postgres Exporter** | Database metrics   | Prometheus | 9187 |
-| **Redis Exporter**    | Cache metrics      | Prometheus | 9121 |
+| **Node Exporter**     | Host system metrics (optional) | Prometheus | 9100 |
+| **Redis Exporter**    | Cache metrics (optional)      | Prometheus | 9121 |
 
 ## Prometheus Configuration
 
@@ -103,108 +105,100 @@ graph TB
 
 **File**: `docker/monitoring/prometheus.yml`
 
+- **Rule files** are mounted from `docker/monitoring/grafana/alerting/` into `/etc/prometheus/rules/` (critical-, warning-, info-alerts.yml).
+- **API metrics**: The API exposes Prometheus metrics at **`/metrics`** (see `PrometheusMetricsMiddleware` in the FastAPI app). Prometheus scrapes `api:8000/metrics`.
+- **Worker metrics**: The Celery worker exposes **`/metrics`** on port **9091** (HTTP server in the worker process; see Task 106). Prometheus scrapes `worker:9091/metrics` for the **Task dashboard**. For task metrics to appear, use **`--concurrency=1`** in dev so the same process that runs tasks also serves metrics.
+- **Postgres**: Scraped via **postgres_exporter** at `postgres_exporter:9187` (not Postgres itself).
+- **Redis**: Do not scrape `redis:6379` (Redis speaks RESP, not HTTP). Use redis_exporter (e.g. 9121) if needed; that job is commented out by default.
+- **Node**: Optional; comment in the `node` job if node_exporter is running on the host (e.g. `host.docker.internal:9100`).
+
 ```yaml
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
 rule_files:
-  - "critical-alerts.yml"
-  - "warning-alerts.yml"
-  - "info-alerts.yml"
+  - "/etc/prometheus/rules/critical-alerts.yml"
+  - "/etc/prometheus/rules/warning-alerts.yml"
+  - "/etc/prometheus/rules/info-alerts.yml"
 
 scrape_configs:
-  # Prometheus itself
   - job_name: "prometheus"
     static_configs:
       - targets: ["localhost:9090"]
 
-  # Personal Assistant API
   - job_name: "personal_assistant_api"
     static_configs:
       - targets: ["api:8000"]
-    metrics_path: "/health/database/performance"
+    metrics_path: "/metrics"
     scrape_interval: 30s
 
-  # PostgreSQL Database
+  - job_name: "celery_worker"
+    static_configs:
+      - targets: ["worker:9091"]
+    metrics_path: "/metrics"
+    scrape_interval: 30s
+
   - job_name: "postgres"
     static_configs:
-      - targets: ["postgres:5432"]
-    # Note: Requires postgres_exporter for actual metrics
+      - targets: ["postgres_exporter:9187"]
+    metrics_path: "/metrics"
 
-  # Redis
-  - job_name: "redis"
-    static_configs:
-      - targets: ["redis:6379"]
-    # Note: Requires redis_exporter for actual metrics
-
-  # Node Exporter (if running on host)
-  - job_name: "node"
-    static_configs:
-      - targets: ["host.docker.internal:9100"]
-    # Note: Requires node_exporter to be running on host
+  # Redis: use redis_exporter when needed (job commented out by default)
+  # Node: uncomment and run node_exporter on host for host metrics
 ```
 
 ### Custom Metrics
 
-The Personal Assistant API exposes custom metrics:
+Metrics are defined in `src/personal_assistant/monitoring/prometheus_metrics.py`. The **API** exposes them at `GET /metrics` (scrape job `personal_assistant_api`). The **worker** exposes the same registry in its process at `GET http://worker:9091/metrics` (scrape job `celery_worker`); task-related metrics are only populated when tasks run in that same worker process.
 
-#### Health Metrics
+For a concise map of which dashboard uses which metrics and which job, see **`docs/architecture/tasks/106_grafana_dashboards_refinement/DASHBOARD_MAP.md`**.
 
-```python
-# Database Performance Metrics
-database_health_status: Gauge
-database_connection_pool_size: Gauge
-database_active_connections: Gauge
-database_query_response_time_p95: Histogram
-database_slow_query_count: Counter
-
-# Application Metrics
-api_request_duration_seconds: Histogram
-api_request_total: Counter
-api_active_connections: Gauge
-api_memory_usage_bytes: Gauge
-api_cpu_usage_percent: Gauge
-
-# Business Metrics
-user_registration_total: Counter
-user_login_total: Counter
-sms_sent_total: Counter
-oauth_integration_total: Counter
-chat_message_total: Counter
-```
-
-#### Performance Metrics
+#### Main metric families (API and/or worker)
 
 ```python
-# Response Time Metrics
-response_time_p50: Histogram
-response_time_p95: Histogram
-response_time_p99: Histogram
+# HTTP (API only)
+http_requests_total              # Counter by method, endpoint, status
+http_request_duration_seconds    # Histogram by method, endpoint
 
-# Throughput Metrics
-requests_per_second: Counter
-messages_per_minute: Counter
-sms_per_hour: Counter
+# Tasks (worker only; recorded when Celery tasks run)
+task_execution_duration_seconds  # Histogram by task_type (_bucket, _count, _sum)
+task_executions_total           # Counter by task_type, outcome (success|failure)
+task_success_rate               # Gauge by task_type (optional)
+task_queue_length               # Gauge by queue_name
 
-# Error Metrics
-error_rate_percentage: Gauge
-failed_requests_total: Counter
-timeout_requests_total: Counter
+# OAuth (API only; recorded on token refresh and status)
+oauth_integrations_active       # Gauge by provider
+oauth_token_refresh_total       # Counter by provider, status
+oauth_operation_duration_seconds # Histogram by provider, operation
+oauth_errors_total             # Counter by provider, error_type
+
+# Database / application health (API)
+database_health_status, database_connections_active, database_connection_pool_utilization
+application_health_status, active_sessions
+system_cpu_usage_percent, system_memory_usage_bytes, system_uptime_seconds
+
+# SMS, business (API)
+sms_messages_total, sms_processing_duration_seconds, sms_queue_length, sms_success_rate, sms_cost_total
+user_registrations_total, oauth_adoption_rate
 ```
 
 ## Grafana Dashboards
+
+**Access (dev):** http://localhost:3005 — Login: `admin` / `DEV_GRAFANA_ADMIN_PASSWORD` (see `docker/README.md`). Dashboards and datasources are provisioned from `docker/monitoring/grafana/`. For a one-page map of each dashboard’s purpose and main metrics, see **`docs/architecture/tasks/106_grafana_dashboards_refinement/DASHBOARD_MAP.md`**.
 
 ### Dashboard Overview
 
 The system includes six comprehensive dashboards:
 
-1. **System Dashboard**: Infrastructure and system metrics
-2. **Application Dashboard**: API performance and health
+1. **System Dashboard**: Infrastructure and system metrics (from API scrape)
+2. **Application Dashboard**: API performance and health (`http_requests_total`, `http_request_duration_seconds`, error rate, response time percentiles)
 3. **Business Dashboard**: User engagement and feature usage
 4. **SMS Dashboard**: SMS routing and Twilio integration
-5. **OAuth Dashboard**: OAuth provider integrations
-6. **Task Dashboard**: Background task processing
+5. **OAuth Dashboard**: OAuth provider integrations (active integrations, token refreshes, operation duration, errors)
+6. **Task Dashboard**: Background task processing (**data from worker scrape** `worker:9091`; requires worker `--concurrency=1` in dev so the same process serves metrics and runs tasks)
+
+Dashboard panels use `increase(...[5m])` (and histogram `_sum`/`_count`) for low-volume metrics so values are visible; they also use `or on() vector(0)` so panels show an empty graph instead of "No data" when no series exist.
 
 ### System Dashboard
 
@@ -287,43 +281,29 @@ The system includes six comprehensive dashboards:
 
 ### OAuth Dashboard
 
-**Purpose**: Monitor OAuth provider integrations
+**Purpose**: Monitor OAuth provider integrations (data from API scrape)
 
 **Key Metrics**:
 
-- OAuth flow success rates
-- Token refresh success rates
-- Provider-specific metrics
-- Integration health status
-- Authentication failures
+- Active OAuth integrations (per provider), token refreshes (count in 5m), OAuth operation duration (avg s), OAuth errors (count in 5m)
+- `oauth_integrations_active`, `oauth_token_refresh_total`, `oauth_operation_duration_seconds_*`, `oauth_errors_total`
 
-**Visualizations**:
-
-- OAuth flow success rates
-- Provider performance comparison
-- Token refresh trends
-- Integration health status
-- Error analysis
+**When data appears**: Active integrations are updated when **GET /oauth/status** is called (e.g. user opens OAuth/settings). Token refresh and error metrics are recorded when **POST /integrations/{id}/refresh** is used (e.g. user clicks "Refresh" on an integration). Background refreshes from tools (e.g. email, calendar) may not be recorded unless they go through the same path.
 
 ### Task Dashboard
 
 **Purpose**: Monitor background task processing
 
+**Data source**: Scrape job **`celery_worker`** (`worker:9091/metrics`). Task metrics are recorded in the worker process when Celery tasks run; for a single worker, use `--concurrency=1` so the process that serves `/metrics` is the same one executing tasks.
+
 **Key Metrics**:
 
-- Celery worker health
-- Task queue lengths
-- Task execution times
-- Failed task rates
-- Scheduled task performance
+- Task execution duration (avg over 5m), task success rate (%), task executions (count in 5m), task queue length
+- `task_execution_duration_seconds_*`, `task_executions_total`, `task_queue_length`
 
 **Visualizations**:
 
-- Task queue status
-- Worker performance
-- Task execution trends
-- Error rates
-- Schedule adherence
+- Task execution duration (avg s), success rate (%), executions (count in 5m), queue length
 
 ## Log Aggregation with Loki
 
@@ -712,11 +692,14 @@ access_denied_total: Counter
 1. **Prometheus Not Scraping**:
 
    ```bash
-   # Check Prometheus targets
+   # Check Prometheus targets (all jobs: api, celery_worker, postgres, etc.)
    curl http://localhost:9090/api/v1/targets
 
-   # Check service discovery
-   curl http://localhost:9090/api/v1/targets?state=active
+   # Verify API exposes metrics
+   curl -s http://localhost:8000/metrics | head -20
+
+   # Verify worker exposes metrics (from host: ensure worker port 9091 is mapped)
+   curl -s http://localhost:9091/metrics | grep -E "^task_|^#"
    ```
 
 2. **Grafana Dashboard Not Loading**:
@@ -725,8 +708,8 @@ access_denied_total: Counter
    # Check Grafana logs
    docker-compose logs grafana
 
-   # Check datasource connection
-   curl http://localhost:3000/api/datasources
+   # Check datasource connection (use port 3005 in dev, 3000 in prod)
+   curl http://localhost:3005/api/datasources
    ```
 
 3. **Loki Not Receiving Logs**:
@@ -745,8 +728,8 @@ access_denied_total: Counter
 # Check Prometheus status
 curl http://localhost:9090/-/healthy
 
-# Check Grafana status
-curl http://localhost:3000/api/health
+# Check Grafana status (use port 3005 in dev)
+curl http://localhost:3005/api/health
 
 # Check Loki status
 curl http://localhost:3100/ready
